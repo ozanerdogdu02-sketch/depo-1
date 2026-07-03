@@ -1,0 +1,2289 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<meta name="theme-color" content="#0A0F16">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Fagent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap">
+<link rel="manifest" href="data:application/json,%7B%22name%22%3A%22Fagent%22%2C%22short_name%22%3A%22Fagent%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230A0F16%22%2C%22theme_color%22%3A%22%230A0F16%22%2C%22icons%22%3A%5B%5D%7D">
+<title>FAGENT</title>
+<style>
+  :root{
+    --bg:#0A0F16; --bg2:#0F1620; --surface:#121C28; --surface2:#18242F; --border:#243240;
+    --text:#EAF1F8; --muted:#8696A8; --faint:#5B6B7C;
+    --emerald:#34D399; --emerald-dim:#0e4738; --amber:#FBBF24; --amber-dim:#43340f;
+    --red:#F87171; --red-dim:#3f1f1f; --sky:#38BDF8; --sky-dim:#103445; --violet:#A78BFA;
+    --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.5;overflow-x:hidden}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;padding:0 16px 100px;position:relative}
+  .topbar{display:flex;justify-content:space-between;align-items:center;padding:20px 4px 14px;position:sticky;top:0;background:linear-gradient(180deg,var(--bg) 70%,transparent);z-index:5}
+  .wordmark{font-family:var(--mono);font-size:14px;letter-spacing:.32em;color:var(--emerald);font-weight:600}
+  .topuser{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:17px;margin-bottom:13px;animation:rise .4s ease both}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes sekmeGir{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .status{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;padding:2px 4px 12px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--emerald);box-shadow:0 0 10px rgba(52,211,153,.8);animation:pulse 2.4s ease infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+  .dot.warn{background:var(--amber);box-shadow:0 0 10px rgba(251,191,36,.7)}
+  .stxt{color:var(--emerald)} .stxt.warn{color:var(--amber)} .sts{color:var(--muted)}
+  .big{font-family:var(--mono);font-size:30px;font-weight:600;letter-spacing:-.5px}
+  .sub{font-size:12px;color:var(--muted);margin-top:4px}
+  .mono{font-family:var(--mono)}
+  .pos{color:var(--emerald)} .neg{color:var(--red)} .amb{color:var(--amber)} .skc{color:var(--sky)}
+  .mrow{display:flex;justify-content:space-between;font-family:var(--mono);gap:8px}
+  .mk{font-size:10px;color:var(--muted)} .mv{font-size:14px;margin-top:2px}
+  .bar{display:flex;height:11px;border-radius:6px;overflow:hidden;background:var(--surface2);margin-bottom:11px}
+  .bar > div{transition:width .6s cubic-bezier(.4,0,.2,1)}
+  .lrow{display:flex;justify-content:space-between;font-size:13px;padding:4px 0}
+  .lrow .nm{display:flex;align-items:center;gap:8px}
+  .ldot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .lval{font-family:var(--mono);color:var(--muted);font-size:12px}
+  .ins{background:var(--surface2);border:1px solid var(--border);border-radius:13px;padding:13px;margin-top:9px;animation:rise .4s ease both}
+  .instag{font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;margin-bottom:5px;font-weight:600}
+  .inst{font-size:13.5px;font-weight:600}
+  .insd{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.55}
+  .insa{font-size:12px;margin-top:8px;font-weight:500}
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+  .btn{background:var(--emerald);color:#04110B;border-radius:13px;padding:13px 16px;font-size:14px;font-weight:600;width:100%;transition:transform .1s,opacity .2s}
+  .btn:active{transform:scale(.98)}
+  .btn:disabled{opacity:.4}
+  .btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+  .btn.sky{background:var(--sky);color:#04121A}
+  .iconbtn{padding:8px;border-radius:10px;color:var(--muted);transition:color .2s,transform .3s}
+  .iconbtn:active{transform:rotate(180deg)}
+  .input,select.input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:13px;color:var(--text);font-size:15px;outline:none;font-family:var(--mono);transition:border-color .2s}
+  .input:focus{border-color:var(--emerald)}
+  .input::placeholder{color:var(--faint)}
+  select.input{appearance:none;-webkit-appearance:none;font-family:var(--sans);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%238696A8' stroke-width='2'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+  .lbl{font-size:11.5px;color:var(--muted);margin:13px 0 5px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{border:1px solid var(--border);background:var(--surface2);border-radius:999px;padding:9px 14px;font-size:13px;color:var(--text);transition:all .15s}
+  .chip.on{border-color:var(--emerald);color:var(--emerald);background:var(--emerald-dim)}
+  .trow{display:flex;justify-content:space-between;align-items:flex-start;padding:11px 2px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;border-radius:8px}
+  .trow:hover{background:var(--surface2)}
+  .trow:last-child{border-bottom:none}
+  .tl .tt{font-family:var(--mono);font-size:13.5px}
+  .tl .tn{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .tdate{font-family:var(--mono);font-size:10.5px;color:var(--muted);white-space:nowrap;padding-top:2px}
+  .empty{font-size:13px;color:var(--muted);padding:6px 2px;line-height:1.6}
+  .chatwrap{display:flex;flex-direction:column;height:calc(100vh - 200px)}
+  .chatlog{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-bottom:10px}
+  .bub{max-width:88%;border-radius:16px;padding:11px 14px;font-size:13.5px;line-height:1.55;white-space:pre-wrap;animation:rise .3s ease both}
+  .bub.me{align-self:flex-end;background:var(--emerald-dim);border:1px solid rgba(52,211,153,.3)}
+  .bub.ai{align-self:flex-start;background:var(--surface);border:1px solid var(--border)}
+  .chatin{display:flex;gap:8px;padding-top:10px;border-top:1px solid var(--border)}
+  .chatin input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:13px;color:var(--text);font-size:14px;outline:none}
+  .chatin input:focus{border-color:var(--emerald)}
+  .send{background:var(--emerald);color:#04110B;border-radius:12px;padding:0 17px;font-weight:700;font-size:16px}
+  .qbtn{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px;font-size:13px;margin-bottom:8px;color:var(--text);transition:border-color .2s}
+  .qbtn:hover{border-color:var(--emerald)}
+  .nav{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(0deg,var(--bg) 75%,transparent);border-top:1px solid var(--border);z-index:10;backdrop-filter:blur(8px)}
+  .navin{max-width:480px;margin:0 auto;display:flex}
+  .navbtn{flex:1;padding:11px 0 15px;text-align:center;color:var(--faint);font-family:var(--mono);font-size:10px;transition:color .2s}
+  .navbtn .ic{font-size:18px;display:block;margin-bottom:3px}
+  .navbtn.on{color:var(--emerald)}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:92px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:11px 17px;font-size:13px;z-index:60;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;max-width:90%;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.4)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+  .toast.err{border-color:#5b2727;color:var(--red)}
+  .toast.ok{border-color:var(--emerald-dim);color:var(--emerald)}
+  .spin{display:inline-block;animation:sp 1s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .hide{display:none!important}
+  a{color:var(--sky);text-decoration:none}
+  ::-webkit-scrollbar{width:0;height:0}
+  /* progress */
+  .prog{height:4px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-top:8px}
+  .prog > div{height:100%;background:var(--emerald);width:0;transition:width .5s ease;border-radius:3px}
+  /* skeleton */
+  .skel{background:linear-gradient(90deg,var(--surface2) 25%,var(--border) 50%,var(--surface2) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:8px}
+  @keyframes shimmer{to{background-position:-200% 0}}
+  /* badge */
+  .badge{display:inline-block;font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:6px;font-weight:600}
+  .badge.g{background:var(--emerald-dim);color:var(--emerald)}
+  .badge.a{background:var(--amber-dim);color:var(--amber)}
+  .badge.r{background:var(--red-dim);color:var(--red)}
+  .badge.s{background:var(--sky-dim);color:var(--sky)}
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(5,8,12,.78);z-index:100;display:flex;align-items:center;justify-content:center;padding:18px;opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(3px)}
+  .overlay.show{opacity:1;pointer-events:auto}
+  .modal{background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:22px;max-width:440px;width:100%;max-height:88vh;overflow-y:auto;transform:scale(.96);transition:transform .25s}
+  .overlay.show .modal{transform:none}
+  .modal h3{font-size:17px;margin-bottom:4px}
+  .modal .mh{font-family:var(--mono);font-size:11px;letter-spacing:.15em;color:var(--emerald);text-transform:uppercase;margin-bottom:10px}
+  .xrow{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:13px;padding:6px 0;border-bottom:1px solid var(--border)}
+  .xrow:last-child{border-bottom:none}
+  /* onboarding */
+  .ob{position:fixed;inset:0;background:var(--bg);z-index:200;display:flex;flex-direction:column;padding:0 22px;overflow-y:auto}
+  .obtop{padding:26px 0 10px;display:flex;justify-content:space-between;align-items:center}
+  .obdots{display:flex;gap:6px}
+  .obdot{width:7px;height:7px;border-radius:50%;background:var(--border);transition:all .3s}
+  .obdot.on{background:var(--emerald);width:22px}
+  .obskip{font-size:12px;color:var(--muted)}
+  .obbody{flex:1;display:flex;flex-direction:column;justify-content:center;padding:14px 0 0;max-width:440px;margin:0 auto;width:100%}
+  .obstep{animation:rise .4s ease both}
+  .obq{font-size:24px;font-weight:700;letter-spacing:-.5px;line-height:1.25;margin-bottom:8px}
+  .obhint{font-size:13.5px;color:var(--muted);line-height:1.6;margin-bottom:22px}
+  .obfoot{padding:16px 0 26px;max-width:440px;margin:0 auto;width:100%}
+  .obwordmark{font-family:var(--mono);font-size:13px;letter-spacing:.3em;color:var(--emerald);font-weight:600}
+  .riskopt{border:1px solid var(--border);background:var(--surface);border-radius:14px;padding:15px;margin-bottom:10px;cursor:pointer;transition:all .15s}
+  .riskopt:hover{border-color:var(--emerald)}
+  .riskopt.on{border-color:var(--emerald);background:var(--emerald-dim)}
+  .riskopt .rt{font-size:15px;font-weight:600}
+  .riskopt .rd{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .goalgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .goalc{border:1px solid var(--border);background:var(--surface);border-radius:14px;padding:16px 13px;cursor:pointer;text-align:center;transition:all .15s}
+  .goalc:hover{border-color:var(--emerald)}
+  .goalc.on{border-color:var(--emerald);background:var(--emerald-dim)}
+  .goalc .gi{font-size:22px;margin-bottom:6px}
+  .goalc .gt{font-size:13px;font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- ════════ PIN KİLİT ════════ -->
+<div class="ob hide" id="pinlock" style="z-index:300;justify-content:center">
+  <div style="max-width:340px;margin:0 auto;width:100%;text-align:center;padding-top:18vh">
+    <div class="obwordmark" style="margin-bottom:30px">FAGENT</div>
+    <div style="font-size:40px;margin-bottom:8px">🔒</div>
+    <div class="obq" style="font-size:20px;text-align:center">PIN gir</div>
+    <div class="obhint" style="text-align:center" id="pinhint">4 haneli kodunu gir</div>
+    <div style="display:flex;gap:12px;justify-content:center;margin:20px 0" id="pindots"></div>
+    <div id="pinpad" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:240px;margin:0 auto"></div>
+  </div>
+</div>
+
+<!-- ════════ ONBOARDING ════════ -->
+<div class="ob hide" id="ob">
+  <div class="obtop">
+    <span class="obwordmark">FAGENT</span>
+    <button class="obskip" onclick="obSkip()">Atla</button>
+  </div>
+  <div class="obdots" id="obdots"></div>
+  <div class="obbody"><div id="obstep"></div></div>
+  <div class="obfoot" id="obfoot"></div>
+</div>
+
+<!-- ════════ ANA UYGULAMA ════════ -->
+<div class="app" id="app">
+  <div class="topbar">
+    <span class="wordmark">FAGENT</span>
+    <span class="topuser" id="topuser">tek dosya</span>
+  </div>
+
+  <!-- PANEL -->
+  <section id="tab-panel">
+    <div class="status"><span class="dot" id="sdot"></span><span class="stxt" id="stxt">HAZIR</span><span class="sts" id="sts"></span></div>
+    <div id="panelic"></div>
+  </section>
+
+  <!-- İŞLEMLER -->
+  <section id="tab-islem" class="hide">
+    <div class="card">
+      <div class="eyebrow">Yeni işlem</div>
+      <div class="lbl">Tür</div>
+      <div class="chips" id="tipchips">
+        <button class="chip on" data-tip="ekle">+ Ekle</button>
+        <button class="chip" data-tip="cikar">− Çıkar</button>
+        <button class="chip" data-tip="tasi">→ Taşı</button>
+      </div>
+      <div class="lbl" id="lblvar">Varlık</div>
+      <select class="input" id="ivar"></select>
+      <div id="hedefwrap" class="hide">
+        <div class="lbl">Hedef varlık</div>
+        <select class="input" id="ihedef"></select>
+      </div>
+      <div class="lbl">Tutar (₺)</div>
+      <input class="input" id="itutar" inputmode="numeric" placeholder="örn. 5000">
+      <div class="lbl">Not (isteğe bağlı)</div>
+      <input class="input" id="inot" placeholder="örn. maaştan birikim" style="font-family:var(--sans)">
+      <div style="height:16px"></div>
+      <button class="btn" id="ikaydet" onclick="islemKaydet()">İşlemi kaydet</button>
+    </div>
+    <div class="card">
+      <div class="eyebrow">İşlem defteri</div>
+      <input class="input" id="defterArama" placeholder="🔍 Ara (varlık, not, tutar)…" style="font-family:var(--sans);margin-bottom:6px" oninput="defterCiz()">
+      <div class="chips" style="margin-bottom:6px" id="defterFiltre">
+        <button class="chip on" data-f="hepsi">Hepsi</button>
+        <button class="chip" data-f="ekle">Ekleme</button>
+        <button class="chip" data-f="cikar">Çıkarma</button>
+        <button class="chip" data-f="tasi">Taşıma</button>
+      </div>
+      <div id="defter"></div>
+    </div>
+  </section>
+
+  <!-- AJAN -->
+  <section id="tab-ajan" class="hide">
+    <div class="chatwrap">
+      <div class="chatlog" id="chatlog"></div>
+      <div class="chatin">
+        <input id="cin" placeholder="Ajana sor…" onkeydown="if(event.key==='Enter')gonder()">
+        <button class="send" id="csend" onclick="gonder()">→</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- AYARLAR -->
+  <section id="tab-ayar" class="hide">
+    <div class="card">
+      <div class="eyebrow">Profil</div>
+      <div class="lbl">İsim</div>
+      <input class="input" id="aisim" style="font-family:var(--sans)">
+      <div class="lbl">Aylık net gelir (₺)</div>
+      <input class="input" id="agelir" inputmode="numeric">
+      <div class="lbl">Birikim oranı (%)</div>
+      <input class="input" id="abirikim" inputmode="numeric">
+      <div class="lbl">Risk iştahı</div>
+      <select class="input" id="arisk">
+        <option value="dusuk">Düşük — ana para erimesin yeter</option>
+        <option value="orta">Orta — makul riskle reel kazanç</option>
+        <option value="yuksek">Yüksek — dalgalanma sorun değil</option>
+      </select>
+      <div class="lbl">Ana hedef</div>
+      <select class="input" id="ahedef">
+        <option value="acil">Acil fon kurmak</option>
+        <option value="ev">Ev / Araba birikimi</option>
+        <option value="buyut">Birikimi büyütmek</option>
+        <option value="pasif">Pasif gelir</option>
+      </select>
+      <div class="lbl">Hedef tutarı (₺) — ulaşmak istediğin miktar</div>
+      <input class="input" id="ahedeftutar" inputmode="numeric" placeholder="örn. 500000 (boş bırakabilirsin)">
+    </div>
+    <div class="card">
+      <div class="eyebrow">Portföy — mevcut paranı gir</div>
+      <div id="avarlik"></div>
+    </div>
+    <div class="card">
+      <div class="eyebrow" style="color:var(--amber)">Varsayımlar</div>
+      <div class="lbl">Yıllık enflasyon beklentisi (%)</div>
+      <input class="input" id="aenf" inputmode="numeric">
+      <div class="lbl">Yıllık mevduat faizi (%)</div>
+      <input class="input" id="afaiz" inputmode="numeric">
+    </div>
+    <button class="btn" onclick="ayarKaydet()">Kaydet</button>
+    <div style="height:14px"></div>
+    <div class="card">
+      <div class="eyebrow" style="color:var(--sky)">Ajan anahtarı (AI özellikleri için)</div>
+      <div class="sub" style="margin:0 0 8px">Ajan analizi ve sohbeti için Anthropic API anahtarı. Yalnızca bu tarayıcıda saklanır. <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a></div>
+      <input class="input" id="aapikey" type="password" placeholder="sk-ant-..." style="font-family:var(--mono)">
+      <div style="height:10px"></div>
+      <button class="btn ghost" onclick="anahtarKaydet()">Anahtarı kaydet</button>
+    </div>
+    <div class="card">
+      <div class="eyebrow" style="color:var(--violet)">Güvenlik & Araçlar</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn ghost" style="text-align:left;padding:13px 14px" onclick="pinKur()" id="pinbtn">🔒 PIN kilidi kur</button>
+        <button class="btn ghost" style="text-align:left;padding:13px 14px" onclick="alarmModal()">🔔 Alarm merkezi</button>
+        <button class="btn ghost" style="text-align:left;padding:13px 14px" onclick="raporYazdir()">📄 PDF rapor oluştur</button>
+        <button class="btn ghost" style="text-align:left;padding:13px 14px" onclick="yardimModal()">❓ Yardım & SSS</button>
+        <button class="btn ghost" style="text-align:left;padding:13px 14px" onclick="buyukMetinToggle()" id="metinbtn">🔠 Büyük metin: Kapalı</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="eyebrow" style="color:var(--violet)">🎯 Hedeflerim</div>
+      <div class="sub" style="margin:0 0 10px">Ana hedefine ek olarak paralel hedefler takip edebilirsin. %25/50/75/100'de rozet kazanırsın.</div>
+      <div id="hedeflerListesi"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input class="input" id="hedefIkon" placeholder="🎯" style="flex:0 0 50px;text-align:center;font-family:var(--sans)">
+        <input class="input" id="hedefAd" placeholder="Tatil, Laptop..." style="flex:2;font-family:var(--sans)">
+        <input class="input" id="hedefTutarYeni" inputmode="numeric" placeholder="₺" style="flex:1">
+      </div>
+      <button class="btn ghost" style="margin-top:8px" onclick="hedefEkle()">+ Hedef ekle</button>
+    </div>
+    <div class="card">
+      <div class="eyebrow" style="color:var(--amber)">📅 Fatura hatırlatma</div>
+      <div class="sub" style="margin:0 0 10px">Vadesi yaklaşan faturaları Fagent hatırlatır. 3 gün kala panelde uyarı çıkar.</div>
+      <div id="faturaListesi"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input class="input" id="faturaAd" placeholder="Elektrik, Kira..." style="flex:2;font-family:var(--sans)">
+        <input class="input" id="faturaTutar" inputmode="numeric" placeholder="₺" style="flex:1">
+        <input class="input" id="faturaVade" type="date" style="flex:2">
+      </div>
+      <button class="btn ghost" style="margin-top:8px" onclick="faturaEkle()">+ Fatura ekle</button>
+    </div>
+    <div class="card" style="border-color:var(--sky-dim)">
+      <div class="eyebrow" style="color:var(--sky)">⚡ Zapier entegrasyonu</div>
+      <div class="sub" style="margin:0 0 10px">Fagent tetikleyici ateşlenince (reel getiri düşüşü, aşırı yoğunlaşma vb.) Zapier üzerinden WhatsApp, Gmail, SMS, Telegram'a bildirim gönderir.</div>
+      <div class="lbl">Zapier Webhook URL</div>
+      <input class="input" id="azapier" placeholder="https://hooks.zapier.com/hooks/catch/..." style="font-family:var(--mono);font-size:12px">
+      <div style="height:8px"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn ghost" style="flex:1;font-size:13px" onclick="zapierKaydet()">Kaydet</button>
+        <button class="btn ghost" style="flex:1;font-size:13px" onclick="zapierTest()">Test et</button>
+      </div>
+      <div id="zapierdurum" class="sub" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Yedek</div>
+      <div class="sub" style="margin:0 0 10px">Verini dosyaya indir ya da geri yükle. Tarayıcı temizlense bile kaybolmaz.</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn ghost" style="flex:1" onclick="disaAktar()">İndir</button>
+        <button class="btn ghost" style="flex:1" onclick="document.getElementById('ifile').click()">Geri yükle</button>
+      </div>
+      <input type="file" id="ifile" accept="application/json" class="hide" onchange="iceAktar(event)">
+    </div>
+    <div class="card">
+      <div class="eyebrow" style="color:var(--red)">Tehlikeli bölge</div>
+      <div class="sub" style="margin:0 0 12px">Silinen veriler geri alınamaz. Önce yedek al.</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn ghost" style="color:var(--amber);border-color:var(--amber-dim);font-size:13px;text-align:left;padding:12px 14px" onclick="sohbetSifirla()">
+          <span style="display:block;font-size:11px;color:var(--muted);margin-bottom:2px;font-family:var(--mono);letter-spacing:.1em">SOHBET GEÇMİŞİ</span>
+          Tüm sohbet mesajlarını sil
+        </button>
+        <button class="btn ghost" style="color:var(--amber);border-color:var(--amber-dim);font-size:13px;text-align:left;padding:12px 14px" onclick="analizSifirla()">
+          <span style="display:block;font-size:11px;color:var(--muted);margin-bottom:2px;font-family:var(--mono);letter-spacing:.1em">AJAN ANALİZİ</span>
+          Son analizi ve piyasa verisini sil
+        </button>
+        <button class="btn ghost" style="color:var(--amber);border-color:var(--amber-dim);font-size:13px;text-align:left;padding:12px 14px" onclick="islemlerSifirla()">
+          <span style="display:block;font-size:11px;color:var(--muted);margin-bottom:2px;font-family:var(--mono);letter-spacing:.1em">İŞLEM DEFTERİ</span>
+          Tüm işlem geçmişini sil
+        </button>
+        <button class="btn ghost" style="color:var(--amber);border-color:var(--amber-dim);font-size:13px;text-align:left;padding:12px 14px" onclick="trendSifirla()">
+          <span style="display:block;font-size:11px;color:var(--muted);margin-bottom:2px;font-family:var(--mono);letter-spacing:.1em">VARLIK TRENDİ</span>
+          Aylık trend geçmişini sil
+        </button>
+        <div style="height:4px;border-top:1px solid var(--border)"></div>
+        <button id="resetbtn" class="btn ghost" style="color:var(--red);border-color:var(--red-dim);font-size:13px;text-align:left;padding:12px 14px" onclick="sifirla()">
+          <span style="display:block;font-size:11px;color:var(--muted);margin-bottom:2px;font-family:var(--mono);letter-spacing:.1em">TAM SIFIRLAMA</span>
+          Tüm verileri sil, baştan başla
+        </button>
+      </div>
+    </div>
+    <div class="sub" style="text-align:center;font-family:var(--mono)">FAGENT v0.7 · işlem defteri simülasyondur, bankaya bağlı değildir</div>
+  </section>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<!-- NAV -->
+<div class="nav" id="nav"><div class="navin">
+  <button class="navbtn on" data-tab="panel"><span class="ic">▦</span>Panel</button>
+  <button class="navbtn" data-tab="islem"><span class="ic">⇄</span>İşlemler</button>
+  <button class="navbtn" data-tab="ajan"><span class="ic">◉</span>Ajan</button>
+  <button class="navbtn" data-tab="ayar"><span class="ic">≡</span>Ayarlar</button>
+</div></div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)modalKapat()">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   FAGENT v0.3 — tek dosya
+   Eklenenler: onboarding, hedef-mantığı, what-if, budget,
+   trend, placeholder, modal/detay, yedek, gelişmiş hata+loading
+   ═══════════════════════════════════════════════════════ */
+
+const VARLIKLAR = [
+  {k:'mevduat', ad:'Vadeli mevduat', kisa:'Mevduat', renk:'#34D399'},
+  {k:'doviz',   ad:'Döviz',          kisa:'Döviz',   renk:'#38BDF8'},
+  {k:'altin',   ad:'Altın',          kisa:'Altın',   renk:'#FBBF24'},
+  {k:'hisseFon',ad:'Hisse / Fon',    kisa:'Hisse',   renk:'#A78BFA'},
+  {k:'nakit',   ad:'Nakit (vadesiz)',kisa:'Nakit',   renk:'#64748B'},
+];
+const ADLAR = Object.fromEntries(VARLIKLAR.map(v=>[v.k,v.ad]));
+const MODEL = 'claude-sonnet-4-6';
+const LS_VERI='fagent_veri', LS_KEY='fagent_apikey', LS_CHAT='fagent_webchat';
+
+const HEDEFLER = {
+  acil:  {ad:'Acil fon kurmak',     ufuk:'6-12 ay',  ideal:{mevduat:70,nakit:20,altin:10,doviz:0,hisseFon:0}, mantik:'Kısa vade ve erişilebilirlik önemli. Riskli varlık az, nakit yastığı yüksek.'},
+  ev:    {ad:'Ev / Araba birikimi', ufuk:'2-5 yıl',  ideal:{mevduat:45,altin:25,doviz:20,nakit:10,hisseFon:0}, mantik:'Orta vade. Enflasyona karşı altın+döviz koruması, ama ana para güvende kalmalı.'},
+  buyut: {ad:'Birikimi büyütmek',   ufuk:'3-7 yıl',  ideal:{mevduat:30,altin:25,doviz:20,hisseFon:25,nakit:0}, mantik:'Uzun vade reel büyüme. Hisse/fon ile potansiyel, altın+döviz ile denge.'},
+  pasif: {ad:'Pasif gelir',         ufuk:'5+ yıl',   ideal:{hisseFon:40,mevduat:25,altin:20,doviz:15,nakit:0}, mantik:'Temettü ve faiz üreten varlıklar öncelikli. Uzun ufukta hisse ağırlığı.'},
+};
+
+const BOS = {
+  profil:{isim:'', gelir:0, birikimOrani:0, risk:'orta', hedef:'buyut', enflasyon:35, mevduatFaizi:45, hedefTutar:0},
+  portfoy:{mevduat:0, doviz:0, altin:0, hisseFon:0, nakit:0},
+  islemler:[],
+  son_analiz:null,
+  gecmis:[],
+  kuruldu:false,
+  son_ziyaret:null,
+  risk_gecmisi:[],
+  pin:'',
+  alarmlar:{dolar:0, altin:0, reel:0},
+  ayarlar:{buyukMetin:false},
+  zapier:{webhookUrl:'', sonGonderim:null},  // Zapier entegrasyonu
+  faturalar:[],   // [{ad, tutar, vadeTarihi}]
+  tetikHafiza:{}, // cooldown + dedup (proaktif bot motorundan)
+  hedefler:[],     // [{id, ad, ikon, hedefTutar}] — ana hedefe ek paralel hedefler
+  rozetler:{},     // {hedefId: [25,50,75,100]} — kazanılan eşikler (tekrar kutlamayı önler)
+};
+
+let D = veriYukle();
+let APIKEY = localStorage.getItem(LS_KEY) || '';
+let chat = JSON.parse(localStorage.getItem(LS_CHAT) || '[]');
+let tip = 'ekle';
+let analizYukleniyor=false, sohbetYukleniyor=false;
+
+/* ── yardımcılar ── */
+const $ = id => document.getElementById(id);
+const fmt = n => '₺' + Math.round(n||0).toLocaleString('tr-TR');
+const fmtK = n => { n=Math.round(n||0); return n>=1000 ? '₺'+(n/1000).toLocaleString('tr-TR',{maximumFractionDigits:1})+'K' : '₺'+n; };
+const num = s => {
+  s=String(s).trim(); if(!s) return 0;
+  const nokta=s.lastIndexOf('.'), virgul=s.lastIndexOf(',');
+  let t;
+  if(nokta>-1 && virgul>-1){
+    // İki ayraç var: sonuncusu ondalık, diğeri binlik (örn. 1.234,56)
+    const ond=Math.max(nokta,virgul);
+    t=s.slice(0,ond).replace(/[.,]/g,'')+'.'+s.slice(ond+1).replace(/[.,]/g,'');
+  } else if(virgul>-1){
+    t=s.replace(/\./g,'').replace(',','.');           // yalnızca virgül → ondalık
+  } else if(nokta>-1){
+    const p=s.split('.'), son=p[p.length-1];
+    // "5.000" gibi 3 haneli son grup veya birden fazla nokta → binlik; "35.5" → ondalık
+    t=(p.length>2||son.length===3)?s.replace(/\./g,''):s;
+  } else { t=s; }
+  const n=parseFloat(t.replace(/[^0-9.\-]/g,''));
+  return isNaN(n)?0:n;
+};
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const saat = iso => { const d=new Date(iso); return isNaN(d)?'':d.toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); };
+const gun = iso => { const d=new Date(iso); return isNaN(d)?'':d.toLocaleString('tr-TR',{day:'2-digit',month:'short'}); };
+function toast(m,tur){ const t=$('toast'); t.textContent=m; t.className='toast show'+(tur?' '+tur:''); clearTimeout(t._t); t._t=setTimeout(()=>t.className='toast',2900); }
+
+/* ── veri ── */
+function veriYukle(){
+  try{
+    const v=JSON.parse(localStorage.getItem(LS_VERI));
+    if(v){
+      const m=JSON.parse(JSON.stringify(BOS));
+      m.profil={...m.profil,...(v.profil||{})};
+      m.portfoy={...m.portfoy,...(v.portfoy||{})};
+      m.islemler=Array.isArray(v.islemler)?v.islemler:[];
+      m.gecmis=Array.isArray(v.gecmis)?v.gecmis:[];
+      m.son_analiz=v.son_analiz||null;
+      m.son_ziyaret=v.son_ziyaret||null;
+      m.risk_gecmisi=Array.isArray(v.risk_gecmisi)?v.risk_gecmisi:[];
+      m.pin=v.pin||'';
+      m.alarmlar={...m.alarmlar,...(v.alarmlar||{})};
+      m.ayarlar={...m.ayarlar,...(v.ayarlar||{})};
+      m.zapier={...m.zapier,...(v.zapier||{})};
+      m.faturalar=Array.isArray(v.faturalar)?v.faturalar:[];
+      m.tetikHafiza=v.tetikHafiza||{};
+      m.hedefler=Array.isArray(v.hedefler)?v.hedefler:[];
+      m.rozetler=v.rozetler||{};
+      m.kuruldu=!!v.kuruldu;
+      // eski hedef metinlerini anahtara çevir
+      if(!HEDEFLER[m.profil.hedef]){
+        const map={'Acil fon kurmak':'acil','Ev / Araba birikimi':'ev','Birikimi büyütmek':'buyut','Pasif gelir':'pasif'};
+        m.profil.hedef=map[m.profil.hedef]||'buyut';
+      }
+      return m;
+    }
+  }catch(e){}
+  return JSON.parse(JSON.stringify(BOS));
+}
+function veriKaydet(){ localStorage.setItem(LS_VERI,JSON.stringify(D)); }
+
+function hesapla(){
+  const p=D.profil;
+  const toplam=VARLIKLAR.reduce((s,v)=>s+(D.portfoy[v.k]||0),0);
+  const e=p.enflasyon/100, f=p.mevduatFaizi/100;
+  const reel=((1+f)/(1+e)-1)*100;
+  const dagilim={};
+  VARLIKLAR.forEach(v=>{ const t=D.portfoy[v.k]||0; dagilim[v.k]={tutar:t,yuzde:toplam?Math.round(t/toplam*100):0}; });
+  return {toplam, reelMevduat:Math.round(reel*10)/10, dagilim};
+}
+
+/* ═══════ GELİŞMİŞ FİNANSAL METRİKLER ═══════ */
+/* GitHub Finance Toolkit yaklaşımlarından uyarlandı, Türkiye/enflasyon bağlamına özel */
+
+// Her varlık için yaklaşık yıllık beklenen reel getiri ve risk (oynaklık) — Türkiye koşulları
+const VARLIK_PROFILI = {
+  mevduat:  {getiri: ()=>((1+D.profil.mevduatFaizi/100)/(1+D.profil.enflasyon/100)-1)*100, risk: 2},
+  doviz:    {getiri: ()=>3,  risk: 14},   // reel, uzun dönem ortalama beklenti
+  altin:    {getiri: ()=>4,  risk: 16},
+  hisseFon: {getiri: ()=>7,  risk: 28},
+  nakit:    {getiri: ()=>-D.profil.enflasyon/100*100, risk: 0}, // nakit enflasyonla erir
+};
+
+function gelismisMetrikler(){
+  const ctx = hesapla();
+  if(ctx.toplam <= 0) return null;
+
+  // 1) ÇEŞİTLENDİRME SKORU (Herfindahl-Hirschman tabanlı, 0-100)
+  // Tek varlığa yığılmışsa düşük, dengeli dağılmışsa yüksek
+  let hhi = 0;
+  VARLIKLAR.forEach(v=>{ const pay = (D.portfoy[v.k]||0)/ctx.toplam; hhi += pay*pay; });
+  const aktifVarlikSayisi = VARLIKLAR.filter(v=>(D.portfoy[v.k]||0)>0).length;
+  // HHI 1/n ile 1 arasında; normalize et
+  const cesitlendirme = Math.round((1-hhi)/(1-1/VARLIKLAR.length)*100);
+
+  // 2) PORTFÖY BEKLENEN REEL GETİRİSİ (ağırlıklı ortalama)
+  let beklenenGetiri = 0;
+  VARLIKLAR.forEach(v=>{
+    const pay = (D.portfoy[v.k]||0)/ctx.toplam;
+    beklenenGetiri += pay * VARLIK_PROFILI[v.k].getiri();
+  });
+  beklenenGetiri = Math.round(beklenenGetiri*10)/10;
+
+  // 3) PORTFÖY RİSKİ (ağırlıklı oynaklık — basitleştirilmiş, korelasyon yok)
+  let portfoyRisk = 0;
+  VARLIKLAR.forEach(v=>{
+    const pay = (D.portfoy[v.k]||0)/ctx.toplam;
+    portfoyRisk += pay * VARLIK_PROFILI[v.k].risk;
+  });
+  portfoyRisk = Math.round(portfoyRisk*10)/10;
+
+  // 4) RİSK-GETİRİ SKORU (Sharpe benzeri: birim risk başına getiri)
+  // risksiz oran ~ mevduat reel getirisi
+  const risksiz = ((1+D.profil.mevduatFaizi/100)/(1+D.profil.enflasyon/100)-1)*100;
+  const sharpe = portfoyRisk>0 ? Math.round((beklenenGetiri-risksiz)/portfoyRisk*100)/100 : 0;
+
+  // 5) RİSK UYUM KONTROLÜ (kullanıcının beyan ettiği risk vs portföyün gerçek riski)
+  const riskHedef = {dusuk:8, orta:16, yuksek:26}[D.profil.risk] || 16;
+  const riskSapma = portfoyRisk - riskHedef;
+  let riskUyum;
+  if(Math.abs(riskSapma)<=4) riskUyum='uyumlu';
+  else if(riskSapma>4) riskUyum='fazla riskli';
+  else riskUyum='fazla temkinli';
+
+  // 6) PORTFÖY SAĞLIK PUANI (0-100, bileşik)
+  // çeşitlendirme + reel getiri pozitifliği + risk uyumu + enflasyon koruması
+  let saglik = 0;
+  saglik += cesitlendirme*0.30;                                    // çeşitlilik %30
+  saglik += Math.min(100, Math.max(0, (beklenenGetiri+5)*8))*0.30; // reel getiri %30
+  saglik += (Math.abs(riskSapma)<=4?100:Math.max(0,100-Math.abs(riskSapma)*5))*0.20; // risk uyumu %20
+  // enflasyon koruması: nakit+düşük getirili oranı ne kadar azsa o kadar iyi
+  const korumasiz = ((D.portfoy.nakit||0))/ctx.toplam*100;
+  saglik += Math.max(0, 100-korumasiz*3)*0.20;                     // koruma %20
+  saglik = Math.round(saglik);
+
+  return {cesitlendirme, beklenenGetiri, portfoyRisk, sharpe, riskUyum, riskSapma, riskHedef, saglik, aktifVarlikSayisi};
+}
+
+
+/* aylık anlık kaydı — trend için (ayda 1 nokta) */
+function gecmisGuncelle(){
+  const toplam=hesapla().toplam;
+  if(toplam<=0) return;
+  const bugun=new Date().toISOString().slice(0,7); // YYYY-MM
+  const son=D.gecmis[D.gecmis.length-1];
+  if(son && son.ay===bugun){ son.toplam=toplam; }
+  else { D.gecmis.push({ay:bugun, ts:new Date().toISOString(), toplam}); D.gecmis=D.gecmis.slice(-12); }
+}
+
+function islemUygula(islem){
+  const {tip,varlik,hedef}=islem;
+  let tutar=parseFloat(islem.tutar);
+  if(isNaN(tutar)) return [false,'Tutar sayı olmalı.'];
+  if(!['ekle','cikar','tasi'].includes(tip)) return [false,'Geçersiz işlem türü.'];
+  if(!VARLIKLAR.some(v=>v.k===varlik)) return [false,'Geçersiz varlık.'];
+  if(tutar<=0) return [false,'Tutar sıfırdan büyük olmalı.'];
+  const pf=D.portfoy;
+  const onceMevcut={...pf};
+  if(tip==='ekle'){ pf[varlik]+=tutar; }
+  else if(tip==='cikar'){ if(pf[varlik]<tutar) return [false,`${ADLAR[varlik]} bakiyesi yetersiz (${fmt(pf[varlik])}).`]; pf[varlik]-=tutar; }
+  else { if(!VARLIKLAR.some(v=>v.k===hedef)||hedef===varlik) return [false,'Taşıma için geçerli bir hedef seç.']; if(pf[varlik]<tutar) return [false,`${ADLAR[varlik]} bakiyesi yetersiz (${fmt(pf[varlik])}).`]; pf[varlik]-=tutar; pf[hedef]+=tutar; }
+  D.islemler.push({ts:new Date().toISOString(),tip,varlik,hedef:tip==='tasi'?hedef:null,tutar,not:String(islem.not||'').slice(0,120),once:onceMevcut});
+  D.islemler=D.islemler.slice(-200);
+  gecmisGuncelle();
+  veriKaydet();
+  return [true,'ok'];
+}
+
+/* ═══════ ONBOARDING ═══════ */
+let obAdim=0, obGecici={};
+const OB_SAYI=5;
+function obBaslat(){
+  obAdim=0;
+  obGecici={isim:'', portfoy:{mevduat:0,doviz:0,altin:0,hisseFon:0,nakit:0}, gelir:0, birikim:30, risk:'orta', hedef:'buyut'};
+  $('ob').classList.remove('hide'); $('app').classList.add('hide'); $('nav').classList.add('hide');
+  obCiz();
+}
+function obDots(){ return Array.from({length:OB_SAYI},(_,i)=>`<span class="obdot ${i<=obAdim?'on':''}"></span>`).join(''); }
+function obCiz(){
+  $('obdots').innerHTML=obDots();
+  const s=$('obstep'), f=$('obfoot');
+  if(obAdim===0){
+    s.innerHTML=`<div class="obstep">
+      <div class="obq">Merhaba 👋<br>Sana nasıl hitap edeyim?</div>
+      <div class="obhint">Fagent seni tanıyan bir finansal ajan. İsminle başlayalım.</div>
+      <input class="input" id="ob-isim" placeholder="örn. Ozan" value="${esc(obGecici.isim)}" style="font-family:var(--sans);font-size:17px">
+    </div>`;
+    f.innerHTML=`<button class="btn" onclick="obNext()">Devam →</button>`;
+    setTimeout(()=>$('ob-isim')?.focus(),100);
+  }
+  else if(obAdim===1){
+    s.innerHTML=`<div class="obstep">
+      <div class="obq">Şu an paran nerede?</div>
+      <div class="obhint">Yaklaşık tutarları gir — sonra İşlemler'den güncelleyebilirsin. Bilmediğini boş bırak.</div>
+      ${VARLIKLAR.map(v=>`
+        <div class="lbl" style="margin-top:10px"><span class="ldot" style="display:inline-block;background:${v.renk};margin-right:6px"></span>${v.ad}</div>
+        <input class="input" id="ob-pv-${v.k}" inputmode="numeric" placeholder="0 ₺" value="${obGecici.portfoy[v.k]||''}">`).join('')}
+    </div>`;
+    f.innerHTML=`<div style="display:flex;gap:10px"><button class="btn ghost" style="flex:.4" onclick="obBack()">←</button><button class="btn" style="flex:1" onclick="obNext()">Devam →</button></div>`;
+  }
+  else if(obAdim===2){
+    s.innerHTML=`<div class="obstep">
+      <div class="obq">Aylık gelirin ne kadar?</div>
+      <div class="obhint">Ortalama net gelirin ve bunun ne kadarını biriktirebildiğin. Bütçe planı için kullanacağım.</div>
+      <div class="lbl">Aylık net gelir (₺)</div>
+      <input class="input" id="ob-gelir" inputmode="numeric" placeholder="örn. 50000" value="${obGecici.gelir||''}">
+      <div class="lbl">Bunun yüzde kaçını biriktiriyorsun?</div>
+      <input class="input" id="ob-birikim" inputmode="numeric" placeholder="örn. 30" value="${obGecici.birikim||''}">
+    </div>`;
+    f.innerHTML=`<div style="display:flex;gap:10px"><button class="btn ghost" style="flex:.4" onclick="obBack()">←</button><button class="btn" style="flex:1" onclick="obNext()">Devam →</button></div>`;
+  }
+  else if(obAdim===3){
+    const opts=[
+      {k:'dusuk',t:'Düşük',d:'Ana param erimesin yeter, riske girmem.'},
+      {k:'orta', t:'Orta', d:'Makul riskle enflasyonu yenmek isterim.'},
+      {k:'yuksek',t:'Yüksek',d:'Dalgalanma sorun değil, kazanç önemli.'},
+    ];
+    s.innerHTML=`<div class="obstep">
+      <div class="obq">Risk iştahın ne?</div>
+      <div class="obhint">Buna göre sana uygun portföy dağılımını öneririm.</div>
+      ${opts.map(o=>`<div class="riskopt ${obGecici.risk===o.k?'on':''}" onclick="obGecici.risk='${o.k}';obCiz()"><div class="rt">${o.t}</div><div class="rd">${o.d}</div></div>`).join('')}
+    </div>`;
+    f.innerHTML=`<div style="display:flex;gap:10px"><button class="btn ghost" style="flex:.4" onclick="obBack()">←</button><button class="btn" style="flex:1" onclick="obNext()">Devam →</button></div>`;
+  }
+  else if(obAdim===4){
+    const g=[
+      {k:'acil',i:'🛟',t:'Acil fon'},
+      {k:'ev',i:'🏠',t:'Ev / Araba'},
+      {k:'buyut',i:'📈',t:'Birikimi büyüt'},
+      {k:'pasif',i:'💸',t:'Pasif gelir'},
+    ];
+    s.innerHTML=`<div class="obstep">
+      <div class="obq">Ana hedefin ne?</div>
+      <div class="obhint">Hedefe göre vade ve strateji değişir. Ajan buna göre konuşacak.</div>
+      <div class="goalgrid">${g.map(o=>`<div class="goalc ${obGecici.hedef===o.k?'on':''}" onclick="obGecici.hedef='${o.k}';obCiz()"><div class="gi">${o.i}</div><div class="gt">${o.t}</div></div>`).join('')}</div>
+    </div>`;
+    f.innerHTML=`<div style="display:flex;gap:10px"><button class="btn ghost" style="flex:.4" onclick="obBack()">←</button><button class="btn" style="flex:1" onclick="obBitir()">Panele geç ✓</button></div>`;
+  }
+}
+function obTopla(){
+  if(obAdim===0){ obGecici.isim=$('ob-isim')?.value.trim()||obGecici.isim; }
+  if(obAdim===1){ VARLIKLAR.forEach(v=>obGecici.portfoy[v.k]=num($('ob-pv-'+v.k)?.value)); }
+  if(obAdim===2){ obGecici.gelir=num($('ob-gelir')?.value); obGecici.birikim=num($('ob-birikim')?.value)||30; }
+}
+function obNext(){ obTopla(); if(obAdim<OB_SAYI-1){ obAdim++; obCiz(); } }
+function obBack(){ obTopla(); if(obAdim>0){ obAdim--; obCiz(); } }
+function obSkip(){ if(confirm('Kurulumu atlayıp boş panele geçilsin mi? İstediğinde Ayarlar\'dan doldurabilirsin.')){ D.kuruldu=true; veriKaydet(); obKapat(); } }
+function obBitir(){
+  obTopla();
+  D.profil.isim=obGecici.isim||'Yatırımcı';
+  D.profil.gelir=obGecici.gelir;
+  D.profil.birikimOrani=obGecici.birikim;
+  D.profil.risk=obGecici.risk;
+  D.profil.hedef=obGecici.hedef;
+  VARLIKLAR.forEach(v=>D.portfoy[v.k]=obGecici.portfoy[v.k]||0);
+  D.kuruldu=true;
+  gecmisGuncelle();
+  veriKaydet();
+  obKapat();
+  toast('Hoş geldin '+D.profil.isim+'! 👋','ok');
+}
+function obKapat(){ $('ob').classList.add('hide'); $('app').classList.remove('hide'); $('nav').classList.remove('hide'); hepsiniCiz(); sekme('panel'); }
+
+/* ═══════ AJAN ═══════ */
+const TEMEL_PROMPT=`Sen Fagent'sın: Türkçe konuşan, proaktif bir yapay zeka finansal ajan.
+
+### Kimlik ve ton
+- Kısa, net, aksiyona dönük yaz. Çoğu yanıt 2-5 cümle.
+- Motivasyon cümlesi, dolgu lafı yok. Türkçe yaz, sayıları ₺ ve tr-TR biçiminde (₺125.000). Emoji kullanma.
+
+### Sınırlar
+- Kesin getiri vaadi verme.
+- Somut al/sat önerisi içeren mesajın sonuna tek satır: "Bu bir yatırım tavsiyesi değildir."
+- Hassas veri (kimlik, kart, şifre) isteme. Kaldıraç/kripto vadeli/hızlı zengin taleplerinde riski açıkça söyle.
+
+### Bağlam
+- Kullanıcı Türkiye'de, yüksek enflasyona karşı birikimini koruyor. Esas ölçü: reel getiri.
+- Güncel piyasa verisi (kur, altın, enflasyon) gerektiğinde web aramasıyla bul; tahmin etme.
+- Portföy değişikliğini sen yapamazsın; kullanıcı İşlemler sekmesinden girer.
+- Kullanıcının HEDEFİNİ ve o hedefin ideal dağılımını biliyorsun; önerilerini hedefe ve mevcut dağılımın hedeften sapmasına dayandır.`;
+
+function hedefBilgi(){
+  const h=HEDEFLER[D.profil.hedef]||HEDEFLER.buyut;
+  const ctx=hesapla();
+  const sapma=VARLIKLAR.map(v=>{ const mevcut=ctx.dagilim[v.k].yuzde, ideal=h.ideal[v.k]||0; return {varlik:v.ad,mevcut,ideal,fark:mevcut-ideal}; });
+  return {hedef:h.ad, ufuk:h.ufuk, mantik:h.mantik, idealDagilim:h.ideal, mevcutVsIdeal:sapma};
+}
+
+function sistemPromptu(kanal){
+  const ctx=hesapla();
+  const ek=[
+    TEMEL_PROMPT,
+    `### Kanal\nKullanıcı ${kanal} üzerinden yazıyor.`,
+    '### GÜNCEL PORTFÖY\n'+JSON.stringify({profil:{isim:D.profil.isim,gelir:D.profil.gelir,birikimOrani:D.profil.birikimOrani,risk:D.profil.risk,hedef:D.profil.hedef,hedefTutar:D.profil.hedefTutar,enflasyon:D.profil.enflasyon,mevduatFaizi:D.profil.mevduatFaizi},portfoy:D.portfoy,hesaplanan:ctx}),
+    '### HEDEF VE İDEAL DAĞILIM\n'+JSON.stringify(hedefBilgi()),
+  ];
+  // Risk geçmişi — varsa ekle
+  if(Array.isArray(D.risk_gecmisi) && D.risk_gecmisi.length>0){
+    const RISK_ADI={dusuk:'Düşük',orta:'Orta',yuksek:'Yüksek'};
+    const HEDEF_ADI={acil:'Acil fon',ev:'Ev/Araba',buyut:'Birikimi büyüt',pasif:'Pasif gelir'};
+    const gecmisMetin=D.risk_gecmisi.map(r=>{
+      const tarih=new Date(r.ts).toLocaleDateString('tr-TR',{day:'2-digit',month:'short',year:'numeric'});
+      return `${tarih}: Risk=${RISK_ADI[r.risk]||r.risk}, Hedef=${HEDEF_ADI[r.hedef]||r.hedef}, Portföy=${Math.round(r.portfoyToplam||0).toLocaleString('tr-TR')}₺`;
+    }).join('\n');
+    ek.push(`### RİSK VE HEDEF GEÇMİŞİ\nKullanıcının geçmişteki risk iştahı ve hedef değişimleri:\n${gecmisMetin}\n\nŞu an: Risk=${RISK_ADI[D.profil.risk]||D.profil.risk}, Hedef=${HEDEF_ADI[D.profil.hedef]||D.profil.hedef}\n\nAnaliz et: Risk değişimleri portföy dağılımına yansımış mı? Tutarsızlık var mı? Geçmiş risk profiliyle bugünkü davranış uyumlu mu?`);
+  }
+  // Son 20 işlem (5 yerine)
+  if(D.islemler.length) ek.push('### SON İŞLEMLER\n'+JSON.stringify(D.islemler.slice(-20).map(i=>({ts:i.ts,tip:i.tip,varlik:i.varlik,hedef:i.hedef,tutar:i.tutar,not:i.not}))));
+  // Trend geçmişi
+  if(D.gecmis.length>1) ek.push('### VARLIK TRENDİ (aylık)\n'+JSON.stringify(D.gecmis.map(g=>({ay:g.ay,toplam:g.toplam}))));
+  // Son analiz özeti
+  if(D.son_analiz?.ozet) ek.push('### SON ANALİZ ÖZETİ\n'+D.son_analiz.ozet);
+  // Gelişmiş finansal metrikler
+  const gm = gelismisMetrikler();
+  if(gm) ek.push('### GELİŞMİŞ METRİKLER\n'+JSON.stringify({
+    portfoySaglikPuani:gm.saglik+'/100',
+    cesitlendirmeSkoru:'%'+gm.cesitlendirme,
+    beklenenReelGetiri:'%'+gm.beklenenGetiri,
+    portfoyRiski:gm.portfoyRisk,
+    riskGetiriSkoru:gm.sharpe,
+    riskUyumu:gm.riskUyum,
+    aktifVarlikSayisi:gm.aktifVarlikSayisi
+  })+'\nBu metrikleri yorumlarken kullan: çeşitlendirme düşükse uyar, risk uyumsuzsa belirt, sağlık puanı düşükse nedenini açıkla.');
+  return ek.join('\n\n');
+}
+
+async function claudeCagri(system,messages,maxTokens,webSearch){
+  if(!APIKEY) throw new Error('Önce Ayarlar\'dan Anthropic anahtarını gir.');
+  const body={model:MODEL,max_tokens:maxTokens,system,messages};
+  if(webSearch) body.tools=[{type:'web_search_20260209',name:'web_search',max_uses:4}];
+  let r;
+  try{
+    r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':APIKEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify(body)});
+  }catch(e){ throw new Error('Ağ hatası — internet bağlantını kontrol et.'); }
+  let j; try{ j=await r.json(); }catch{ throw new Error('Beklenmeyen yanıt. Tekrar dene.'); }
+  if(!r.ok){
+    if(r.status===401) throw new Error('Anahtar geçersiz — Ayarlar\'dan kontrol et.');
+    if(r.status===429) throw new Error('Kota doldu. Anthropic kredini kontrol et.');
+    if(r.status===529||r.status===503) throw new Error('Servis yoğun, birazdan tekrar dene.');
+    throw new Error(j?.error?.message || ('HTTP '+r.status));
+  }
+  return (j.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n').trim();
+}
+
+function jsonAyikla(metin){
+  const t=metin.replace(/```json/g,'').replace(/```/g,'').trim();
+  let bas=t.indexOf('{"piyasa"'); if(bas===-1) bas=t.indexOf('{');
+  const son=t.lastIndexOf('}');
+  if(bas===-1||son===-1) throw new Error('JSON yok');
+  return JSON.parse(t.slice(bas,son+1));
+}
+
+/* ═══════ DURUM ═══════ */
+function durumYaz(){
+  const ok=!!APIKEY;
+  $('sdot').className='dot'+(ok?'':' warn');
+  $('stxt').className='stxt'+(ok?'':' warn');
+  $('stxt').textContent=ok?'AJAN AKTİF':'ANAHTAR GEREKLİ';
+  $('sts').textContent=(ok&&D.son_analiz?.ts)?'· son analiz '+saat(D.son_analiz.ts):'';
+}
+
+/* ═══════ PANEL ═══════ */
+function projSVG(){
+  const e=D.profil.enflasyon/100,f=D.profil.mevduatFaizi/100;
+  const ya=[],me=[];
+  for(let m=0;m<=12;m++){ ya.push(100/Math.pow(1+e,m/12)); me.push(100*Math.pow(1+f,m/12)/Math.pow(1+e,m/12)); }
+  const hepsi=[...ya,...me],mn=Math.min(...hepsi)-4,mx=Math.max(...hepsi)+4;
+  const X=m=>(m/12)*300,Y=v=>112-((v-mn)/(mx-mn))*100;
+  const yol=a=>a.map((v,i)=>(i?'L':'M')+X(i).toFixed(1)+','+Y(v).toFixed(1)).join(' ');
+  return `<svg viewBox="0 0 300 130" style="width:100%;display:block">
+    <defs><linearGradient id="ga" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#FBBF24" stop-opacity=".18"/><stop offset="1" stop-color="#FBBF24" stop-opacity="0"/></linearGradient></defs>
+    <path d="${yol(ya)} L300,130 L0,130 Z" fill="url(#ga)"/>
+    <path d="${yol(me)}" fill="none" stroke="#34D399" stroke-width="2.2"/>
+    <path d="${yol(ya)}" fill="none" stroke="#FBBF24" stroke-width="2.2"/>
+    <text x="0" y="127" fill="#5B6B7C" font-size="9" font-family="monospace">bugün</text>
+    <text x="138" y="127" fill="#5B6B7C" font-size="9" font-family="monospace">6 ay</text>
+    <text x="272" y="127" fill="#5B6B7C" font-size="9" font-family="monospace">12 ay</text>
+  </svg>
+  <div class="sub mono" style="margin-top:6px"><span class="amb">— yastık altı</span> &nbsp; <span class="pos">— mevduatta</span></div>`;
+}
+
+function trendKart(){
+  if(D.gecmis.length<2) return '';
+  const ilk=D.gecmis[0].toplam, son=D.gecmis[D.gecmis.length-1].toplam;
+  const fark=son-ilk, yuzde=ilk?Math.round(fark/ilk*100):0;
+  const vals=D.gecmis.map(g=>g.toplam), mn=Math.min(...vals), mx=Math.max(...vals);
+  const W=300,H=44;
+  const X=i=>D.gecmis.length>1?(i/(D.gecmis.length-1))*W:0;
+  const Y=v=>mx>mn?H-((v-mn)/(mx-mn))*(H-6)-3:H/2;
+  const yol=D.gecmis.map((g,i)=>(i?'L':'M')+X(i).toFixed(1)+','+Y(g.toplam).toFixed(1)).join(' ');
+  const renk=fark>=0?'#34D399':'#F87171';
+  return `<div class="card"><div class="eyebrow">Varlık trendi · son ${D.gecmis.length} ay</div>
+    <svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;margin:4px 0">
+      <path d="${yol}" fill="none" stroke="${renk}" stroke-width="2"/>
+      <circle cx="${X(D.gecmis.length-1).toFixed(1)}" cy="${Y(son).toFixed(1)}" r="3" fill="${renk}"/>
+    </svg>
+    <div class="mrow"><span class="mono" style="font-size:12px;color:var(--muted)">${gun(D.gecmis[0].ts)}</span>
+    <span class="mono ${fark>=0?'pos':'neg'}" style="font-size:12px">${fark>=0?'+':''}${fmt(fark)} · ${fark>=0?'+':''}${yuzde}%</span></div></div>`;
+}
+
+function panelCiz(){
+  const h=hesapla(), sa=D.son_analiz;
+  // boş durum
+  if(h.toplam===0 && D.islemler.length===0){
+    $('panelic').innerHTML=`
+      <div class="card" style="text-align:center;padding:30px 18px">
+        <div style="font-size:34px;margin-bottom:10px">📊</div>
+        <div style="font-size:18px;font-weight:700;margin-bottom:6px">Hoş geldin${D.profil.isim?', '+esc(D.profil.isim):''}</div>
+        <div class="sub" style="margin-bottom:18px">Panelin boş görünüyor. Hızlı başlamak için örnek veriyle dene, sonra kendi rakamlarını gir.</div>
+        <button class="btn" onclick="ornekYukle()">Örnek veriyle başla</button>
+        <div style="height:9px"></div>
+        <button class="btn ghost" onclick="sekme('ayar')">Kendi paramı gireceğim</button>
+      </div>
+      ${!APIKEY?keyBanner():''}`;
+    durumYaz(); return;
+  }
+
+  const piyasa=sa?.piyasa?`
+    <div class="card"><div class="eyebrow" style="color:var(--sky)">Güncel piyasa · ajan çekti</div>
+      <div class="mrow">
+        <div><div class="mk">USD/TRY</div><div class="mv">${sa.piyasa.dolar?Number(sa.piyasa.dolar).toLocaleString('tr-TR'):'—'}</div></div>
+        <div><div class="mk">Gram altın</div><div class="mv">${sa.piyasa.gramAltin?'₺'+Number(sa.piyasa.gramAltin).toLocaleString('tr-TR'):'—'}</div></div>
+        <div><div class="mk">TÜFE (yıllık)</div><div class="mv amb">${sa.piyasa.enflasyon?'%'+Number(sa.piyasa.enflasyon).toLocaleString('tr-TR'):'—'}</div></div>
+      </div></div>`:'';
+
+  const reel=h.reelMevduat;
+  const reelBadge=reel>=8?'<span class="badge g">güçlü</span>':reel>=0?'<span class="badge a">pozitif ama zayıf</span>':'<span class="badge r">negatif</span>';
+  const bar=VARLIKLAR.map(v=>{const t=D.portfoy[v.k]||0,w=h.toplam?(t/h.toplam*100):0;return w>0?`<div style="width:${w}%;background:${v.renk}"></div>`:'';}).join('');
+  const lejant=VARLIKLAR.filter(v=>(D.portfoy[v.k]||0)>0).map(v=>{const t=D.portfoy[v.k],y=Math.round(t/h.toplam*100);return `<div class="lrow"><span class="nm"><span class="ldot" style="background:${v.renk}"></span>${v.ad}</span><span class="lval">${fmt(t)} · ${y}%</span></div>`;}).join('')||'<div class="empty">Henüz varlık girilmedi.</div>';
+
+  const tipM={uyari:['▲ UYARI','var(--amber)'],firsat:['◆ FIRSAT','var(--emerald)'],bilgi:['● BİLGİ','var(--sky)']};
+  const icler=(sa?.icgoruler||[]).map(i=>{const [ad,renk]=tipM[i.tip]||tipM.bilgi;return `<div class="ins"><div class="instag" style="color:${renk}">${ad}</div><div class="inst">${esc(i.baslik)}</div><div class="insd">${esc(i.detay)}</div>${i.aksiyon?`<div class="insa" style="color:${renk}">› ${esc(i.aksiyon)}</div>`:''}</div>`;}).join('');
+
+  $('panelic').innerHTML=`
+    ${!APIKEY?keyBanner():''}
+    ${alarmUyariKart()}
+    ${haftalikOzetKart()}
+    ${piyasa}
+    <div class="card"><div class="eyebrow">Toplam varlık</div>
+      <div class="big">${fmt(h.toplam)}</div>
+      <div class="sub">Mevduat reel getirisi: <span class="mono ${reel>=0?'pos':'neg'}">${reel>=0?'+':''}${reel}%</span> ${reelBadge}</div></div>
+    ${tetikleyiciKart()}
+    ${kutlamaKart()}
+    ${hedefIlerlemeKart()}
+    ${hedeflerimKart()}
+    ${tasarrufHiziKart()}
+    ${trendKart()}
+    <div class="card" onclick="hedefModal()" style="cursor:pointer">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="eyebrow" style="margin:0;color:var(--violet)">Hedef uyumu</div>
+        <span class="lval">detay ›</span>
+      </div>
+      ${hedefOzet()}
+    </div>
+    ${enflasyonKarsiKart()}
+    <div class="card"><div class="eyebrow" style="color:var(--amber)">Alım gücü projeksiyonu · 12 ay</div>
+      <div class="sub" style="margin:0 0 8px">Bugünkü 100₺'nin reel değeri:</div>${projSVG()}</div>
+    ${saglikKart()}
+    ${donutGrafik()}
+    <div style="display:flex;gap:10px;margin-bottom:13px">
+      <button class="btn ghost" style="flex:1;font-size:13px" onclick="senaryoModal()">🔮 Senaryo</button>
+      <button class="btn ghost" style="flex:1;font-size:13px" onclick="butceModal()">💰 Bütçe planı</button>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="eyebrow" style="margin:0;color:var(--emerald)">Ajan analizi</div>
+        <button class="iconbtn" onclick="analiz()" ${analizYukleniyor||!APIKEY?'disabled':''}>${analizYukleniyor?'<span class="spin">⟳</span>':'⟳'}</button>
+      </div>
+      ${analizYukleniyor?analizYukleniyorHTML()
+        :!APIKEY?'<div class="empty">Anahtar girilince ajan portföyünü analiz edip uyarı ve fırsatları buraya yazar.</div>'
+        :sa?.ozet?`<div style="font-size:13.5px;margin-top:8px;line-height:1.55">${esc(sa.ozet)}</div>${icler}`
+        :'<div class="empty">Henüz analiz yok — ⟳ ile ilkini iste.</div>'}
+    </div>
+    <div class="sub" style="text-align:center;padding:0 14px">Fagent bir prototiptir; çıktıları yatırım tavsiyesi değildir.</div>`;
+  // Kritik tetikleyiciler varsa Zapier'a gönder (arka planda, sessizce)
+  if(D.zapier?.webhookUrl){
+    const tetikler=tetikleyiciTara().filter(t=>t.tip==='kritik'||t.tip==='uyari');
+    if(tetikler.length>0) zapierGonder(tetikler).catch(()=>{});
+  }
+  durumYaz();
+}
+
+function keyBanner(){ return `<div class="card" style="border-color:var(--sky-dim);background:linear-gradient(135deg,var(--sky-dim),var(--surface))">
+  <div style="font-size:13.5px;font-weight:600;margin-bottom:4px">🔑 Ajan özellikleri için anahtar gerekli</div>
+  <div class="sub" style="margin-bottom:10px">Panel, işlemler ve projeksiyon anahtarsız çalışır. Ajan analizi + sohbet için Anthropic anahtarı gir (ücretsiz başlar).</div>
+  <button class="btn sky" onclick="keyModal()">Nasıl alınır? · Gir</button></div>`; }
+
+function analizYukleniyorHTML(){
+  return `<div class="empty" style="padding-top:10px">
+    <div style="display:flex;align-items:center;gap:8px"><span class="spin">⟳</span> Ajan çalışıyor…</div>
+    <div class="prog"><div id="progbar"></div></div>
+    <div style="font-size:11px;margin-top:6px" id="progtxt">Güncel piyasa verileri çekiliyor…</div></div>`;
+}
+
+function hedefOzet(){
+  const h=HEDEFLER[D.profil.hedef]||HEDEFLER.buyut;
+  const ctx=hesapla();
+  if(ctx.toplam===0) return `<div class="sub" style="margin-top:6px">${h.ad} · ${h.ufuk}</div>`;
+  let toplamSapma=0;
+  VARLIKLAR.forEach(v=>{ toplamSapma+=Math.abs(ctx.dagilim[v.k].yuzde-(h.ideal[v.k]||0)); });
+  const uyum=Math.max(0,100-toplamSapma);
+  const renk=uyum>=75?'var(--emerald)':uyum>=50?'var(--amber)':'var(--red)';
+  return `<div style="margin-top:8px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+    <span>${h.ad} · ${h.ufuk}</span><span class="mono" style="color:${renk}">%${uyum} uyum</span></div>
+    <div class="bar" style="height:8px;margin-bottom:0"><div style="width:${uyum}%;background:${renk}"></div></div></div>`;
+}
+
+/* ═══════ YENİ: HAFTALIK ÖZET (geri çeken kart) ═══════ */
+function saglikKart(){
+  const m = gelismisMetrikler();
+  if(!m) return '';
+  const renk = m.saglik>=70?'#34D399':m.saglik>=45?'#FBBF24':'#F87171';
+  const etiket = m.saglik>=70?'sağlıklı':m.saglik>=45?'orta':'zayıf';
+  // dairesel ilerleme (SVG ring)
+  const C = 2*Math.PI*34;
+  const dash = (m.saglik/100)*C;
+  const riskRenk = m.riskUyum==='uyumlu'?'#34D399':m.riskUyum==='fazla riskli'?'#F87171':'#FBBF24';
+  return `<div class="card">
+    <div class="eyebrow" style="color:${renk}">Portföy sağlık puanı</div>
+    <div style="display:flex;align-items:center;gap:18px;margin-top:6px">
+      <div style="position:relative;width:84px;height:84px;flex-shrink:0">
+        <svg width="84" height="84" style="transform:rotate(-90deg)">
+          <circle cx="42" cy="42" r="34" fill="none" stroke="#18242F" stroke-width="7"/>
+          <circle cx="42" cy="42" r="34" fill="none" stroke="${renk}" stroke-width="7" stroke-linecap="round" stroke-dasharray="${dash} ${C}" style="transition:stroke-dasharray .8s ease"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <span class="mono" style="font-size:22px;font-weight:600;color:${renk}">${m.saglik}</span>
+          <span style="font-size:9px;color:var(--muted)">/100</span>
+        </div>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:600;margin-bottom:8px">Portföyün <span style="color:${renk}">${etiket}</span></div>
+        <div class="mrow" style="margin-bottom:4px"><span style="font-size:11px;color:var(--muted)">Çeşitlendirme</span><span class="mono" style="font-size:12px">%${m.cesitlendirme}</span></div>
+        <div class="mrow" style="margin-bottom:4px"><span style="font-size:11px;color:var(--muted)">Beklenen reel getiri</span><span class="mono ${m.beklenenGetiri>=0?'pos':'neg'}" style="font-size:12px">${m.beklenenGetiri>=0?'+':''}${m.beklenenGetiri}%</span></div>
+        <div class="mrow" style="margin-bottom:4px"><span style="font-size:11px;color:var(--muted)">Risk-getiri skoru</span><span class="mono" style="font-size:12px">${m.sharpe}</span></div>
+        <div class="mrow"><span style="font-size:11px;color:var(--muted)">Risk uyumu</span><span class="mono" style="font-size:12px;color:${riskRenk}">${m.riskUyum}</span></div>
+      </div>
+    </div>
+    ${m.riskUyum!=='uyumlu'?`<div class="sub" style="margin-top:10px;line-height:1.5">Beyan ettiğin risk iştahı <b style="color:var(--text)">${({dusuk:'düşük',orta:'orta',yuksek:'yüksek'})[D.profil.risk]}</b> ama portföyünün gerçek riski ${m.riskUyum==='fazla riskli'?'bundan yüksek':'bundan düşük'}. ${m.riskUyum==='fazla riskli'?'Daha temkinli varlıklara kaydırabilirsin.':'Hedefine göre biraz daha getiri odaklı olabilirsin.'}</div>`:''}</div>`;
+}
+
+function donutGrafik(){
+  const ctx = hesapla();
+  if(ctx.toplam <= 0) return '';
+  const aktif = VARLIKLAR.filter(v=>(D.portfoy[v.k]||0)>0);
+  if(aktif.length===0) return '';
+  const R=52, sw=22, C=2*Math.PI*R;
+  let offset=0;
+  const segs = aktif.map(v=>{
+    const pay=(D.portfoy[v.k]||0)/ctx.toplam;
+    const len=pay*C;
+    const seg=`<circle cx="70" cy="70" r="${R}" fill="none" stroke="${v.renk}" stroke-width="${sw}" stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-offset}" style="transition:all .6s ease"/>`;
+    offset+=len;
+    return seg;
+  }).join('');
+  const lejant = aktif.map(v=>{
+    const y=Math.round((D.portfoy[v.k]||0)/ctx.toplam*100);
+    return `<div class="lrow"><span class="nm"><span class="ldot" style="background:${v.renk}"></span>${v.ad}</span><span class="lval">${fmt(D.portfoy[v.k])} · %${y}</span></div>`;
+  }).join('');
+  return `<div class="card"><div class="eyebrow">Varlık dağılımı</div>
+    <div style="display:flex;align-items:center;gap:18px;margin-top:6px">
+      <svg width="140" height="140" style="transform:rotate(-90deg);flex-shrink:0">${segs}
+        <circle cx="70" cy="70" r="${R-sw/2-1}" fill="var(--surface)"/>
+      </svg>
+      <div style="flex:1">${lejant}</div>
+    </div></div>`;
+}
+
+function alarmUyariKart(){
+  const uyarilar=alarmKontrol();
+  if(uyarilar.length===0) return '';
+  return `<div class="card" style="border-color:var(--red);background:linear-gradient(135deg,var(--red-dim),var(--surface))">
+    <div class="eyebrow" style="color:var(--red)">🔔 Alarm · eşik aşıldı</div>
+    ${uyarilar.map(u=>`<div style="font-size:13px;font-weight:600;margin-top:6px">▲ ${esc(u)}</div>`).join('')}
+    <div class="sub" style="margin-top:8px">Ajan analizini açıp durumu değerlendirebilirsin.</div></div>`;
+}
+
+/* ═══════ TETİKLEYİCİ MOTORU — "sormadan konuşan ajan"ın kalbi ═══════ */
+/* Portföyü, hedefi, metrikleri kurallara göre tarar; önemli durumları proaktif olarak yüzeye çıkarır */
+/* ═══════ PROAKTIF BOT MOTORU (fagent_proactive portlaması) ═══════ */
+/* DecisionEngine mantığı: skor, cooldown, dedup, budget — PDF'ten JS'e uyarlandı */
+
+const MOTOR_CFG = {
+  skorEsigi: 1.0,        // score_threshold — altındaki tetikler gösterilmez
+  saatlikMax: 6,         // max_alerts_per_hour — spam önleme
+  cooldownSn: 300,       // cooldown_seconds — aynı anahtar için min süre (5dk)
+  tekrarPenaltiDk: 60,   // repeat_window_min — tekrar cezası penceresi
+  faturaOnceDk: 3,       // fatura hatırlatma: kaç gün önce
+};
+
+function motorSkor(aday, hafiza){
+  const key = aday.anahtar;
+  const h = hafiza[key] || {};
+  const tekrarSayisi = (h.tekrar||0);
+  const ceza = 1.0 + tekrarSayisi;
+  const skor = (aday.degerFaktor * Math.max(1e-9, aday.aciliyet) * (aday.guven||1.0)) / (0.3 * ceza);
+  return Math.round(skor * 100) / 100;
+}
+
+/* Not: eski motorKarar/motorKaydet (cooldown + tekrar cezası) kaldırıldı.
+   Bu mantık her renderda çalışan tetikleyiciTara() içinden çağrıldığı için
+   kartı susturuyor ve Zapier'ı bloke ediyordu. Bildirim tekrarını Zapier
+   tarafındaki günlük gönderim kilidi (D.zapier.sonGonderim) zaten önlüyor. */
+
+/* ── FATURA AJANI (bills.py portlaması) ── */
+function faturaKontrol(){
+  if(!D.faturalar || D.faturalar.length === 0) return [];
+  const bugun = new Date();
+  const sonuclar = [];
+  D.faturalar.forEach(f => {
+    const vade = new Date(f.vadeTarihi);
+    const gunFarki = Math.round((vade - bugun) / (1000*60*60*24));
+    if(gunFarki >= 0 && gunFarki <= MOTOR_CFG.faturaOnceDk){
+      const ne = gunFarki === 0 ? 'bugün' : gunFarki === 1 ? 'yarın' : `${gunFarki} gün içinde`;
+      const aciliyet = gunFarki === 0 ? 1.0 : gunFarki === 1 ? 0.9 : 0.7;
+      sonuclar.push({
+        tip: 'uyari', ikon: '📅',
+        anahtar: 'fatura_'+f.ad,
+        dedupKey: `${f.ad}:${f.vadeTarihi}`,
+        degerFaktor: Math.min(1.0, 0.6 + f.tutar/5000),
+        aciliyet, guven: 1.0,
+        baslik: `${f.ad} ödemesi ${ne}!`,
+        detay: `${fmt(f.tutar)} · Son ödeme ${f.vadeTarihi}`,
+        aksiyon: `Ödemeyi unutma — ${ne} son gün`
+      });
+    }
+  });
+  return sonuclar;
+}
+
+/* ── FX KURAL MOTORU (fx.py portlaması) ── */
+function fxKuralKontrol(){
+  const sa = D.son_analiz;
+  if(!sa?.piyasa) return [];
+  const sonuclar = [];
+  const a = D.alarmlar;
+  // Dolar eşik kontrolü (FxRule above/below mantığı)
+  if(a.dolar > 0 && sa.piyasa.dolar){
+    const dolar = Number(sa.piyasa.dolar);
+    if(dolar >= a.dolar){
+      const asim = (dolar - a.dolar) / a.dolar;
+      sonuclar.push({
+        tip: 'kritik', ikon: '💱',
+        anahtar: 'fx_dolar_esik',
+        degerFaktor: Math.min(1.0, asim/0.03),
+        aciliyet: Math.min(1.0, asim/0.01),
+        guven: 1.0,
+        baslik: `Dolar alarm eşiğini aştı`,
+        detay: `Dolar ${dolar.toLocaleString('tr-TR')}₺ — belirlediğin ${a.dolar}₺ eşiğinin üzerinde (%${(asim*100).toFixed(1)} aşım).`,
+        aksiyon: 'Döviz pozisyonunu gözden geçir'
+      });
+    }
+  }
+  // Altın eşik
+  if(a.altin > 0 && sa.piyasa.gramAltin){
+    const altin = Number(sa.piyasa.gramAltin);
+    if(altin >= a.altin){
+      const asim = (altin - a.altin) / a.altin;
+      sonuclar.push({
+        tip: 'firsat', ikon: '🥇',
+        anahtar: 'fx_altin_esik',
+        degerFaktor: Math.min(1.0, asim/0.03),
+        aciliyet: Math.min(1.0, asim/0.01),
+        guven: 1.0,
+        baslik: `Altın alarm eşiğini aştı`,
+        detay: `Gram altın ${altin.toLocaleString('tr-TR')}₺ — eşiğin ${a.altin.toLocaleString('tr-TR')}₺ üzerinde.`,
+        aksiyon: 'Altın pozisyonunu değerlendir'
+      });
+    }
+  }
+  return sonuclar;
+}
+
+/* ── ANA TETİKLEYİCİ (skor motoruyla) ── */
+function tetikleyiciTara(){
+  const ctx = hesapla();
+  if(ctx.toplam <= 0) return [];
+  const m = gelismisMetrikler();
+  const h = HEDEFLER[D.profil.hedef] || HEDEFLER.buyut;
+  const hafiza = D.tetikHafiza || {};
+  const adaylar = [];
+
+  // 1) REEL GETİRİ NEGATİF
+  if(ctx.reelMevduat < 0){
+    const siddet = Math.abs(ctx.reelMevduat);
+    adaylar.push({ tip:'kritik', ikon:'⚠', anahtar:'reel_negatif',
+      degerFaktor:Math.min(1.0, siddet/10), aciliyet:1.0, guven:1.0,
+      baslik:'Paran enflasyona yeniliyor',
+      detay:`Reel getirin %${ctx.reelMevduat} — faiz (%${D.profil.mevduatFaizi}) enflasyonu (%${D.profil.enflasyon}) karşılamıyor.`,
+      aksiyon:'Ajana "enflasyona karşı ne yapmalıyım" diye sor'
+    });
+  }
+
+  // 2) AŞIRI YOĞUNLAŞMA
+  VARLIKLAR.forEach(v=>{
+    const yuzde = ctx.dagilim[v.k].yuzde;
+    if(yuzde >= 60){
+      adaylar.push({ tip:'uyari', ikon:'◳', anahtar:'yogun_'+v.k,
+        degerFaktor:Math.min(1.0,(yuzde-60)/40), aciliyet:0.8, guven:1.0,
+        baslik:'Yumurtaların çoğu tek sepette',
+        detay:`Varlığının %${yuzde}'i ${v.ad}'da — tek varlık düşerse tüm portföyün etkilenir.`,
+        aksiyon:`${v.ad}'dan bir kısmını başka varlığa taşı`
+      });
+    }
+  });
+
+  // 3) RİSK UYUMSUZLUĞU
+  if(m && m.riskUyum === 'fazla riskli'){
+    adaylar.push({ tip:'uyari', ikon:'◈', anahtar:'risk_uyum_fazla',
+      degerFaktor:0.7, aciliyet:0.8, guven:1.0,
+      baslik:'Portföyün beyan ettiğin riskten fazla',
+      detay:`"${({dusuk:'Düşük',orta:'Orta',yuksek:'Yüksek'})[D.profil.risk]} risk" dedin ama gerçek risk daha yüksek.`,
+      aksiyon:'Daha temkinli varlıklara (mevduat, altın) ağırlık ver'
+    });
+  } else if(m && m.riskUyum === 'fazla temkinli'){
+    adaylar.push({ tip:'firsat', ikon:'◇', anahtar:'risk_uyum_az',
+      degerFaktor:0.5, aciliyet:0.6, guven:0.9,
+      baslik:'Hedefin için fazla temkinlisin',
+      detay:`Portföyün seçtiğin riskten daha güvenli. ${h.ad} hedefi için biraz daha getiri odaklı olabilirsin.`,
+      aksiyon:'Hedefine uygun dağılım için Hedef kartına bak'
+    });
+  }
+
+  // 4) HEDEFE YAKLAŞMA
+  if(D.profil.hedefTutar > 0){
+    const ilerleme = Math.round(ctx.toplam / D.profil.hedefTutar * 100);
+    if(ilerleme >= 100){
+      adaylar.push({ tip:'firsat', ikon:'★', anahtar:'hedef_tamam',
+        dedupKey:`hedef_tamam_${D.profil.hedefTutar}`,
+        degerFaktor:1.0, aciliyet:1.0, guven:1.0,
+        baslik:'Hedefine ulaştın! 🎯',
+        detay:`${h.ad} hedefini tamamladın (${fmt(ctx.toplam)} / ${fmt(D.profil.hedefTutar)}).`,
+        aksiyon:"Ayarlar'dan yeni bir hedef belirle"
+      });
+    } else if(ilerleme >= 90){
+      adaylar.push({ tip:'firsat', ikon:'◎', anahtar:'hedef_yaklas',
+        degerFaktor:0.8, aciliyet:0.9, guven:1.0,
+        baslik:'Hedefine çok yaklaştın!',
+        detay:`${h.ad} hedefinin %${ilerleme}'ine ulaştın. Son ${fmt(D.profil.hedefTutar - ctx.toplam)} kaldı.`,
+        aksiyon:'Son adımı planlamak için bütçe planına bak'
+      });
+    }
+  }
+
+  // 5) PORTFÖY SAĞLIĞI DÜŞÜK
+  if(m && m.saglik < 45){
+    adaylar.push({ tip:'uyari', ikon:'◉', anahtar:'saglik_dusuk',
+      degerFaktor:Math.min(1.0,(45-m.saglik)/45), aciliyet:0.75, guven:1.0,
+      baslik:'Portföy sağlığın düşük',
+      detay:`Sağlık puanın ${m.saglik}/100. Çeşitlendirme, risk uyumu veya enflasyon koruması zayıf.`,
+      aksiyon:'Sağlık puanı kartındaki detaylara bak'
+    });
+  }
+
+  // 6) NAKİT FAZLASI
+  const nakitYuzde = ctx.dagilim.nakit.yuzde;
+  if(nakitYuzde >= 25){
+    adaylar.push({ tip:'firsat', ikon:'◌', anahtar:'nakit_fazla',
+      degerFaktor:Math.min(1.0,(nakitYuzde-25)/50), aciliyet:0.6, guven:0.9,
+      baslik:'Çok fazla atıl nakit var',
+      detay:`Varlığının %${nakitYuzde}'i vadesiz nakit — enflasyonla eriyor.`,
+      aksiyon:'Nakdin bir kısmını en azından vadeli mevduata taşı'
+    });
+  }
+
+  // 7) FATURA AJANI (bills.py portlaması)
+  faturaKontrol().forEach(f => adaylar.push(f));
+
+  // 8) FX KURAL MOTORU (fx.py portlaması)
+  fxKuralKontrol().forEach(f => adaylar.push(f));
+
+  // Skor hesapla (SAF — kayıt yok). Bu fonksiyon her renderda çağrıldığı için
+  // burada cooldown/tekrar yazmak kartın birkaç renderdan sonra kaybolmasına
+  // ve skorların eşiğin altına düşüp uyarıların kalıcı susmasına yol açıyordu.
+  // Cooldown/dedup artık yalnızca gerçek bildirim gönderiminde (Zapier) uygulanır.
+  adaylar.forEach(a => { a.skor = motorSkor(a, hafiza); });
+  const gecenler = adaylar.filter(a => a.skor >= MOTOR_CFG.skorEsigi);
+
+  // Skora göre sırala, max 3 göster
+  return gecenler.sort((a,b) => (b.skor||0)-(a.skor||0)).slice(0,3);
+}
+
+function tetikleyiciKart(){
+  const tetikler = tetikleyiciTara();
+  if(tetikler.length === 0) return '';
+  const tipRenk = {kritik:'var(--red)', uyari:'var(--amber)', firsat:'var(--emerald)'};
+  return `<div class="card" style="border-color:var(--emerald);background:linear-gradient(135deg,rgba(52,211,153,.06),var(--surface))">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+      <span class="dot"></span>
+      <div class="eyebrow" style="margin:0;color:var(--emerald)">Fagent senin için fark etti</div>
+    </div>
+    ${tetikler.map(t=>{
+      const renk = tipRenk[t.tip] || 'var(--sky)';
+      return `<div class="ins" style="border-color:${renk};margin-top:9px">
+        <div class="instag" style="color:${renk}">${t.ikon} ${t.tip==='kritik'?'ÖNEMLİ':t.tip==='uyari'?'DİKKAT':'FIRSAT'}</div>
+        <div class="inst">${esc(t.baslik)}</div>
+        <div class="insd">${esc(t.detay)}</div>
+        <div class="insa" style="color:${renk}">› ${esc(t.aksiyon)}</div>
+      </div>`;
+    }).join('')}
+    <div class="sub" style="margin-top:10px;font-style:italic">Bunları sen sormadan, portföyünü izleyerek fark ettim.</div>
+  </div>`;
+}
+
+
+function haftalikOzetKart(){
+  const sz=D.son_ziyaret;
+  if(!sz||!sz.ts) return '';
+  const gecenGun=Math.floor((Date.now()-new Date(sz.ts).getTime())/86400000);
+  if(gecenGun<1) return ''; // aynı gün tekrar açtıysa gösterme
+  const simdi=hesapla().toplam;
+  const fark=simdi-(sz.toplam||0);
+  const yuzde=sz.toplam?Math.round(fark/sz.toplam*1000)/10:0;
+  const sure=gecenGun===1?'dün':gecenGun<7?gecenGun+' gün':gecenGun<14?'geçen hafta':Math.floor(gecenGun/7)+' hafta';
+  let mesaj, renk, ikon;
+  if(Math.abs(fark)<1){ mesaj='Portföyünde değişiklik yok.'; renk='var(--muted)'; ikon='●'; }
+  else if(fark>0){ mesaj=`Portföyün ${fmt(fark)} arttı (+%${yuzde}).`; renk='var(--emerald)'; ikon='▲'; }
+  else { mesaj=`Portföyün ${fmt(Math.abs(fark))} azaldı (%${yuzde}).`; renk='var(--red)'; ikon='▼'; }
+  return `<div class="card" style="border-color:${renk};background:linear-gradient(135deg,rgba(52,211,153,.04),var(--surface))">
+    <div class="eyebrow" style="color:${renk}">Tekrar hoş geldin · ${sure} sonra</div>
+    <div style="font-size:14px;font-weight:600;margin-top:4px"><span style="color:${renk}">${ikon}</span> ${mesaj}</div>
+    <div class="sub" style="margin-top:4px">Son ziyaretinden bu yana. Detay için ajan analizini yenile.</div></div>`;
+}
+
+/* ═══════ YENİ: HEDEF İLERLEME (duygusal bağ) ═══════ */
+/* ═══════ ROZET / KUTLAMA SİSTEMİ (fikir #3) ═══════ */
+const ESIK_ROZETLER = {
+  25: {ikon:'🛟', ad:'Çırak', renk:'#38BDF8'},
+  50: {ikon:'🥈', ad:'Yarı Yolda', renk:'#A78BFA'},
+  75: {ikon:'🥇', ad:'Neredeyse Tamam', renk:'#FBBF24'},
+  100:{ikon:'🏆', ad:'Hedef Tamamlandı', renk:'#34D399'},
+};
+
+function tumHedefler(){
+  // Ana hedef (Ayarlar'daki) + paralel hedefler (Hedeflerim listesi) tek dizide
+  const liste = [];
+  if(D.profil.hedefTutar > 0){
+    const h = HEDEFLER[D.profil.hedef] || HEDEFLER.buyut;
+    liste.push({id:'ana', ad:h.ad, ikon:'🎯', hedefTutar:D.profil.hedefTutar});
+  }
+  (D.hedefler||[]).forEach(h => liste.push(h));
+  return liste;
+}
+
+function rozetKontrol(){
+  // Her hedef için eşik aşımlarını kontrol eder, yeni kazanılanları döndürür
+  const ctx = hesapla();
+  if(ctx.toplam <= 0) return [];
+  const yeniRozetler = [];
+  tumHedefler().forEach(h => {
+    if(!h.hedefTutar || h.hedefTutar <= 0) return;
+    const yuzde = Math.min(100, Math.round(ctx.toplam / h.hedefTutar * 100));
+    const kazanilanlar = D.rozetler[h.id] || [];
+    [25,50,75,100].forEach(esik => {
+      if(yuzde >= esik && !kazanilanlar.includes(esik)){
+        yeniRozetler.push({hedefId:h.id, hedefAd:h.ad, esik, ...ESIK_ROZETLER[esik]});
+      }
+    });
+  });
+  return yeniRozetler;
+}
+
+function rozetlerKaydet(yeniler){
+  yeniler.forEach(r => {
+    if(!D.rozetler[r.hedefId]) D.rozetler[r.hedefId] = [];
+    if(!D.rozetler[r.hedefId].includes(r.esik)) D.rozetler[r.hedefId].push(r.esik);
+  });
+  if(yeniler.length) veriKaydet();
+}
+
+function kutlamaKart(){
+  const yeniler = rozetKontrol();
+  if(yeniler.length === 0) return '';
+  rozetlerKaydet(yeniler);
+  return yeniler.map(r => `
+    <div class="card" style="text-align:center;padding:22px 16px;border-color:${r.renk};background:linear-gradient(135deg,${r.renk}22,var(--surface));animation:rise .4s ease both">
+      <div style="font-size:38px;margin-bottom:8px">${r.ikon}</div>
+      <div style="font-size:16px;font-weight:700;color:${r.renk}">${r.ad} rozeti kazandın!</div>
+      <div class="sub" style="margin-top:4px">${esc(r.hedefAd)} hedefinin %${r.esik}'ine ulaştın.</div>
+    </div>`).join('');
+}
+
+/* ═══════ ÇOKLU HEDEF TAKİBİ (fikir #4) ═══════ */
+function hedeflerimKart(){
+  const ek = D.hedefler || [];
+  if(ek.length === 0) return '';
+  const ctx = hesapla();
+  const satirlar = ek.map(h => {
+    const yuzde = Math.min(100, Math.round(ctx.toplam / h.hedefTutar * 100));
+    const renk = yuzde>=100?'var(--emerald)':yuzde>=50?'var(--sky)':'var(--violet)';
+    return `<div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
+        <span>${h.ikon||'🎯'} ${esc(h.ad)}</span>
+        <span class="mono" style="color:${renk}">%${yuzde}</span></div>
+      <div class="bar" style="height:7px;margin-bottom:0"><div style="width:${yuzde}%;background:${renk}"></div></div>
+    </div>`;
+  }).join('');
+  return `<div class="card"><div class="eyebrow" style="color:var(--violet)">Hedeflerim · ${ek.length} paralel hedef</div>${satirlar}</div>`;
+}
+
+function hedefEkle(){
+  const ad = $('hedefAd')?.value.trim();
+  const tutar = parseFloat($('hedefTutarYeni')?.value)||0;
+  const ikon = $('hedefIkon')?.value.trim() || '🎯';
+  if(!ad || tutar <= 0){ toast('Hedef adı ve tutarı gerekli','err'); return; }
+  if(!D.hedefler) D.hedefler = [];
+  D.hedefler.push({id:'h'+Date.now(), ad, ikon, hedefTutar:tutar});
+  veriKaydet();
+  $('hedefAd').value=''; $('hedefTutarYeni').value=''; $('hedefIkon').value='';
+  hedeflerListesiCiz();
+  toast(ad+' eklendi ✓','ok');
+  panelCiz();
+}
+function hedefSilParalel(idx){
+  if(!confirm('Bu hedefi silmek istiyor musun?')) return;
+  const h = D.hedefler[idx];
+  delete D.rozetler[h.id];
+  D.hedefler.splice(idx,1);
+  veriKaydet();
+  hedeflerListesiCiz();
+  toast('Hedef silindi','ok');
+  panelCiz();
+}
+function hedeflerListesiCiz(){
+  const el = $('hedeflerListesi');
+  if(!el) return;
+  if(!D.hedefler || D.hedefler.length === 0){
+    el.innerHTML = '<div class="sub" style="margin:0 0 8px;color:var(--faint)">Henüz ek hedef yok. Ana hedefin Ayarlar\'ın üstündeki "Ana hedef" alanında.</div>';
+    return;
+  }
+  const ctx = hesapla();
+  el.innerHTML = D.hedefler.map((h,i) => {
+    const yuzde = Math.min(100, Math.round(ctx.toplam / h.hedefTutar * 100));
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div><div style="font-size:13px;font-weight:600">${h.ikon} ${esc(h.ad)}</div>
+      <div style="font-size:11px;color:var(--muted)">${fmt(h.hedefTutar)} · %${yuzde}</div></div>
+      <button onclick="hedefSilParalel(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:18px;padding:4px">×</button>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════ TASARRUF HIZI METRİĞİ (fikir #5) ═══════ */
+function tasarrufHiziKart(){
+  const g = D.gecmis || [];
+  if(g.length < 3) return ''; // en az 3 nokta lazım (2 aralık karşılaştırması için)
+  const son = g[g.length-1].toplam;
+  const onceki = g[g.length-2].toplam;
+  const ikiOnce = g[g.length-3].toplam;
+  const buAyDelta = son - onceki;
+  const gecenAyDelta = onceki - ikiOnce;
+  if(gecenAyDelta === 0) return '';
+  const degisimYuzde = Math.round((buAyDelta - gecenAyDelta) / Math.abs(gecenAyDelta) * 100);
+  const hizlaniyor = degisimYuzde > 0;
+  const renk = hizlaniyor ? 'var(--emerald)' : 'var(--red)';
+  const ikon = hizlaniyor ? '🚀' : '🐢';
+  return `<div class="card">
+    <div class="eyebrow">Tasarruf hızı</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:4px">
+      <span style="font-size:24px">${ikon}</span>
+      <div>
+        <div class="mono" style="font-size:18px;color:${renk};font-weight:600">${degisimYuzde>=0?'+':''}${degisimYuzde}%</div>
+        <div class="sub" style="margin:0">${hizlaniyor?'Birikimin hızlanıyor':'Birikimin yavaşladı'} — geçen aya göre</div>
+      </div>
+    </div>
+    <div class="mrow" style="margin-top:10px">
+      <span class="mk">Bu ay</span><span class="mk">Geçen ay</span>
+    </div>
+    <div class="mrow">
+      <span class="mv ${buAyDelta>=0?'pos':'neg'}">${buAyDelta>=0?'+':''}${fmt(buAyDelta)}</span>
+      <span class="mv" style="color:var(--muted)">${gecenAyDelta>=0?'+':''}${fmt(gecenAyDelta)}</span>
+    </div>
+  </div>`;
+}
+
+function hedefIlerlemeKart(){
+  const hedefTutar=D.profil.hedefTutar||0;
+  if(hedefTutar<=0) return ''; // hedef tutarı girilmemişse gösterme
+  const ctx=hesapla();
+  const mevcut=ctx.toplam;
+  const yuzde=Math.min(100,Math.round(mevcut/hedefTutar*100));
+  const kalan=Math.max(0,hedefTutar-mevcut);
+  const h=HEDEFLER[D.profil.hedef]||HEDEFLER.buyut;
+  // aylık birikim tahmini: gelir × birikim oranı
+  const aylikBirikim=(D.profil.gelir||0)*(D.profil.birikimOrani||0)/100;
+  let tahmin='';
+  if(kalan>0 && aylikBirikim>0){
+    const ay=Math.ceil(kalan/aylikBirikim);
+    const yil=Math.floor(ay/12), kalanAy=ay%12;
+    const sure=yil>0?`${yil} yıl ${kalanAy>0?kalanAy+' ay':''}`:`${ay} ay`;
+    tahmin=`Bu hızda (ayda ${fmt(aylikBirikim)}) yaklaşık <b style="color:var(--text)">${sure}</b> sonra ulaşırsın.`;
+  } else if(kalan<=0){
+    tahmin=`<b style="color:var(--emerald)">Hedefe ulaştın! 🎯</b>`;
+  } else {
+    tahmin='Süre tahmini için Ayarlar\'dan gelir ve birikim oranını gir.';
+  }
+  const renk=yuzde>=100?'var(--emerald)':yuzde>=50?'var(--sky)':'var(--violet)';
+  return `<div class="card">
+    <div class="eyebrow" style="color:${renk}">Hedef ilerlemesi · ${h.ad}</div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin:6px 0 8px">
+      <span class="big" style="font-size:22px">${fmt(mevcut)}</span>
+      <span class="mono" style="color:var(--muted);font-size:13px">/ ${fmt(hedefTutar)}</span></div>
+    <div class="bar" style="height:10px"><div style="width:${yuzde}%;background:${renk}"></div></div>
+    <div style="display:flex;justify-content:space-between;font-size:12px;margin-top:6px">
+      <span class="mono" style="color:${renk}">%${yuzde}</span>
+      <span class="mono" style="color:var(--muted)">${kalan>0?fmt(kalan)+' kaldı':'tamamlandı'}</span></div>
+    <div class="sub" style="margin-top:10px;line-height:1.5">${tahmin}</div></div>`;
+}
+
+/* ═══════ YENİ: ENFLASYON KARŞILAŞTIRMASI (ana değer önerisi) ═══════ */
+function enflasyonKarsiKart(){
+  const ctx=hesapla();
+  if(ctx.toplam<=0) return '';
+  const e=D.profil.enflasyon/100;
+  const toplam=ctx.toplam;
+  // 1 yıl önce bugünkü paranın bugünkü reel değeri vs nominal koruma
+  const yilSonraNominal=toplam; // para aynı kalsa
+  const reelDeger=toplam/(1+e); // enflasyonla erimiş hali
+  const enflasyonKaybi=toplam-reelDeger;
+  // mevduatta tutulsa
+  const f=D.profil.mevduatFaizi/100;
+  const mevduatSonuc=toplam*(1+f);
+  const mevduatReel=mevduatSonuc/(1+e);
+  const mevduatKazanc=mevduatReel-toplam;
+  const iyi=mevduatKazanc>=0;
+  return `<div class="card">
+    <div class="eyebrow" style="color:var(--amber)">Enflasyon karşısında · 1 yıllık</div>
+    <div class="xrow" style="border-color:var(--border)">
+      <span>Bugünkü ${fmt(toplam)}</span><span class="mono">başlangıç</span></div>
+    <div class="xrow">
+      <span>Hiçbir şey yapmazsan</span>
+      <span class="mono neg">${fmt(reelDeger)} <span style="font-size:10px">(-${fmt(enflasyonKaybi)})</span></span></div>
+    <div class="xrow" style="border:none">
+      <span>Mevduatta tutarsan</span>
+      <span class="mono ${iyi?'pos':'neg'}">${fmt(mevduatReel)} <span style="font-size:10px">(${iyi?'+':''}${fmt(mevduatKazanc)})</span></span></div>
+    <div class="sub" style="margin-top:10px;line-height:1.5">Enflasyon (%${D.profil.enflasyon}) yastık altındaki parayı yılda <b style="color:var(--red)">${fmt(enflasyonKaybi)}</b> eritiyor. ${iyi?`Mevduat faizi bunu telafi edip <b style="color:var(--emerald)">${fmt(mevduatKazanc)}</b> reel kazanç bırakıyor.`:`Mevduat faizi bile bu kaybı karşılamıyor.`}</div></div>`;
+}
+
+
+function modalAc(html){ $('modal').innerHTML=html; $('overlay').classList.add('show'); }
+function modalKapat(){ $('overlay').classList.remove('show'); }
+
+function keyModal(){
+  modalAc(`<div class="mh">Ajan anahtarı</div>
+    <h3>Anthropic API anahtarı nasıl alınır?</h3>
+    <div style="font-size:13.5px;color:var(--muted);line-height:1.7;margin:12px 0">
+      <b style="color:var(--text)">1.</b> <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com/settings/keys</a> aç, hesap oluştur.<br>
+      <b style="color:var(--text)">2.</b> Faturalama bölümünden küçük kredi yükle (5$ aylarca yeter). Bu claude.ai aboneliğinden ayrıdır.<br>
+      <b style="color:var(--text)">3.</b> "Create Key" ile anahtar oluştur, kopyala (sk-ant-... ile başlar).<br>
+      <b style="color:var(--text)">4.</b> Aşağıya yapıştır.
+    </div>
+    <div class="card" style="margin:0 0 12px;background:var(--surface2)">
+      <div style="font-size:12px;color:var(--muted)">✓ Anahtar yalnızca senin tarayıcında saklanır, hiçbir yere gönderilmez.<br>✓ Ödemeli kullanımda verin modele eğitim için kullanılmaz.</div>
+    </div>
+    <input class="input" id="m-apikey" type="password" placeholder="sk-ant-..." value="${esc(APIKEY)}">
+    <div style="height:12px"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn ghost" style="flex:.5" onclick="modalKapat()">Sonra</button>
+      <button class="btn" style="flex:1" onclick="APIKEY=$('m-apikey').value.trim(); APIKEY?localStorage.setItem(LS_KEY,APIKEY):localStorage.removeItem(LS_KEY); modalKapat(); durumYaz(); panelCiz(); toast(APIKEY?'Ajan aktif ✓':'Anahtar silindi', APIKEY?'ok':'')">Kaydet</button>
+    </div>`);
+}
+
+function hedefModal(){
+  const h=HEDEFLER[D.profil.hedef]||HEDEFLER.buyut;
+  const ctx=hesapla();
+  const rows=VARLIKLAR.map(v=>{
+    const mevcut=ctx.dagilim[v.k].yuzde, ideal=h.ideal[v.k]||0, fark=mevcut-ideal;
+    const ok=Math.abs(fark)<=5;
+    const ikon=ok?'<span class="pos">✓</span>':fark>0?'<span class="amb">▲ fazla</span>':'<span class="skc">▼ az</span>';
+    return `<div class="xrow"><span><span class="ldot" style="display:inline-block;background:${v.renk};margin-right:7px"></span>${v.ad}</span>
+      <span>%${mevcut} → <span style="color:var(--muted)">%${ideal}</span> &nbsp; ${ikon}</span></div>`;
+  }).join('');
+  modalAc(`<div class="mh">Hedef uyumu</div>
+    <h3>${h.ad}</h3>
+    <div class="sub" style="margin:4px 0 14px">Vade ufku: ${h.ufuk}. ${h.mantik}</div>
+    <div class="eyebrow">Mevcut → İdeal dağılım</div>
+    <div style="margin-top:6px">${rows}</div>
+    ${ctx.toplam>0?`<div class="sub" style="margin-top:14px">İdeal'e yaklaşmak için İşlemler sekmesinden taşıma yapabilir ya da ajana "hedefime göre ne yapmalıyım" diye sorabilirsin.</div>`:''}
+    <div style="height:14px"></div>
+    <button class="btn" onclick="modalKapat()">Anladım</button>`);
+}
+
+function senaryoModal(){
+  const p=D.profil;
+  modalAc(`<div class="mh">What-if senaryosu</div>
+    <h3>🔮 Varsayımları değiştir, sonucu gör</h3>
+    <div class="sub" style="margin:4px 0 14px">Kaydetmez, sadece simülasyon. Reel getirinin nasıl değiştiğini gösterir.</div>
+    <div class="lbl">Enflasyon (%)</div>
+    <input class="input" id="sc-enf" inputmode="numeric" value="${p.enflasyon}" oninput="senaryoHesap()">
+    <div class="lbl">Mevduat faizi (%)</div>
+    <input class="input" id="sc-faiz" inputmode="numeric" value="${p.mevduatFaizi}" oninput="senaryoHesap()">
+    <div class="card" style="margin:14px 0 0;background:var(--surface2)" id="sc-sonuc"></div>
+    <div style="height:14px"></div>
+    <button class="btn" onclick="modalKapat()">Kapat</button>`);
+  senaryoHesap();
+}
+function senaryoHesap(){
+  const e=num($('sc-enf').value)/100, f=num($('sc-faiz').value)/100;
+  const reel=((1+f)/(1+e)-1)*100;
+  const simdiE=D.profil.enflasyon/100, simdiF=D.profil.mevduatFaizi/100;
+  const simdiReel=((1+simdiF)/(1+simdiE)-1)*100;
+  const fark=reel-simdiReel;
+  const toplam=hesapla().toplam;
+  const yillik=toplam*reel/100;
+  $('sc-sonuc').innerHTML=`
+    <div class="xrow"><span>Şu anki reel getiri</span><span class="mono ${simdiReel>=0?'pos':'neg'}">${simdiReel>=0?'+':''}${simdiReel.toFixed(1)}%</span></div>
+    <div class="xrow"><span>Senaryoda reel getiri</span><span class="mono ${reel>=0?'pos':'neg'}">${reel>=0?'+':''}${reel.toFixed(1)}%</span></div>
+    <div class="xrow"><span>Değişim</span><span class="mono ${fark>=0?'pos':'neg'}">${fark>=0?'+':''}${fark.toFixed(1)} puan</span></div>
+    ${toplam>0?`<div class="xrow"><span>Mevduatına yıllık etki</span><span class="mono ${yillik>=0?'pos':'neg'}">${yillik>=0?'+':''}${fmt(yillik)}</span></div>`:''}`;
+}
+
+function butceModal(){
+  const p=D.profil;
+  const gelir=p.gelir, oran=p.birikimOrani||30;
+  const ayrilan=gelir*oran/100;
+  const h=HEDEFLER[p.hedef]||HEDEFLER.buyut;
+  const dagit=VARLIKLAR.filter(v=>(h.ideal[v.k]||0)>0).map(v=>{
+    const tutar=ayrilan*(h.ideal[v.k]/100);
+    return `<div class="xrow"><span><span class="ldot" style="display:inline-block;background:${v.renk};margin-right:7px"></span>${v.ad}</span><span class="mono">${fmt(tutar)} <span style="color:var(--muted)">· %${h.ideal[v.k]}</span></span></div>`;
+  }).join('');
+  modalAc(`<div class="mh">Bütçe planı</div>
+    <h3>💰 Bu ay ne kadar, nereye?</h3>
+    ${gelir>0?`
+      <div class="sub" style="margin:4px 0 14px">Aylık ₺${gelir.toLocaleString('tr-TR')} gelirin, %${oran} birikim oranınla.</div>
+      <div class="card" style="margin:0 0 12px;background:var(--surface2)">
+        <div class="mrow"><span style="font-size:13px;color:var(--muted)">Bu ay ayıracağın</span><span class="big" style="font-size:22px">${fmt(ayrilan)}</span></div>
+      </div>
+      <div class="eyebrow">${h.ad} hedefine göre dağıt</div>
+      <div style="margin-top:6px">${dagit}</div>
+      <div class="sub" style="margin-top:12px">Bu dağılım hedefinin ideal oranlarına göre. İşlemler sekmesinden bu tutarları ekleyebilirsin.</div>
+    `:`
+      <div class="empty" style="padding:14px 0">Bütçe planı için gelir bilgisi gerekli. Ayarlar'dan aylık gelirini ve birikim oranını gir.</div>
+      <button class="btn ghost" onclick="modalKapat();sekme('ayar')">Ayarlar'a git</button>
+    `}
+    ${gelir>0?'<div style="height:14px"></div><button class="btn" onclick="modalKapat()">Anladım</button>':''}`);
+}
+
+function islemDetayModal(idx){
+  const i=D.islemler[idx]; if(!i) return;
+  const v=ADLAR[i.varlik]||i.varlik, hd=ADLAR[i.hedef];
+  let baslik;
+  if(i.tip==='ekle') baslik=`<span class="pos">+${fmt(i.tutar)}</span> · ${v}`;
+  if(i.tip==='cikar') baslik=`<span class="neg">−${fmt(i.tutar)}</span> · ${v}`;
+  if(i.tip==='tasi') baslik=`${fmt(i.tutar)} · ${v} <span class="amb">→</span> ${hd}`;
+  let degisim='';
+  if(i.once){
+    const etkilenen=i.tip==='tasi'?[i.varlik,i.hedef]:[i.varlik];
+    degisim=etkilenen.map(k=>{
+      const o=i.once[k]||0, y=D.portfoy[k]; // not: y güncel, tam doğru olmayabilir ama gösterim
+      return `<div class="xrow"><span>${ADLAR[k]}</span><span class="mono">${fmt(o)} <span class="amb">→</span> ${fmt(i.tip==='ekle'?o+i.tutar:i.tip==='cikar'?o-i.tutar:(k===i.varlik?o-i.tutar:o+i.tutar))}</span></div>`;
+    }).join('');
+  }
+  modalAc(`<div class="mh">İşlem detayı</div>
+    <h3 style="font-family:var(--mono);font-size:15px">${baslik}</h3>
+    <div class="sub" style="margin:4px 0 14px">${saat(i.ts)}${i.not?' · '+esc(i.not):''}</div>
+    ${degisim?`<div class="eyebrow">Bu işlemle değişen</div><div style="margin-top:6px">${degisim}</div>`:''}
+    <div style="height:14px"></div>
+    <button class="btn" onclick="modalKapat()">Kapat</button>`);
+}
+
+/* ═══════ ANALİZ ═══════ */
+let progTimer=null;
+function progBaslat(){
+  let p=0; const mesajlar=['Güncel piyasa verileri çekiliyor…','Dolar ve altın fiyatları alınıyor…','Enflasyon verisi kontrol ediliyor…','Portföyün analiz ediliyor…','İçgörüler hazırlanıyor…'];
+  let mi=0;
+  progTimer=setInterval(()=>{
+    p=Math.min(p+Math.random()*12+3,92);
+    const bar=$('progbar'), txt=$('progtxt');
+    if(bar) bar.style.width=p+'%';
+    if(txt && p>mi*20 && mi<mesajlar.length-1){ mi++; txt.textContent=mesajlar[mi]; }
+  },800);
+}
+function progDur(){ clearInterval(progTimer); }
+
+async function analiz(){
+  if(analizYukleniyor) return;
+  if(!APIKEY){ keyModal(); return; }
+  analizYukleniyor=true; panelCiz(); progBaslat();
+  try{
+    const ctx=hesapla();
+    const istem=`Kullanıcı profili, portföyü, hedefi ve hesaplanan değerler:
+${JSON.stringify({profil:D.profil,portfoy:D.portfoy,hesaplanan:ctx,hedef:hedefBilgi()})}
+
+ÖNCE en fazla 2-3 kısa web araması yap: güncel USD/TRY kuru, gram altın TL fiyatı ve Türkiye'nin son açıklanan yıllık TÜFE enflasyonu.
+
+SONRA güncel verileri, portföyü ve HEDEFİ birlikte analiz et. En son SADECE şu formatta JSON döndür:
+{"piyasa":{"dolar":0.0,"gramAltin":0.0,"enflasyon":0.0},"ozet":"${D.profil.isim||'kullanıcı'} ismiyle hitap eden, hedefe (${(HEDEFLER[D.profil.hedef]||{}).ad}) atıf yapan, güncel veriden en az birine değinen 2-3 cümle","icgoruler":[{"tip":"uyari|firsat|bilgi","baslik":"kısa başlık","detay":"kullanıcının kendi tutarlarına, hedefine ve güncel piyasaya atıf yapan 1-2 cümle","aksiyon":"değerlendirilebilecek tek somut adım"}]}
+
+3-4 içgörü üret. En az bir içgörü, mevcut dağılımın hedefin ideal dağılımından saptığı noktaya değinsin. Kullanıcının enflasyon varsayımı (%${D.profil.enflasyon}) son TÜFE'den belirgin farklıysa güncellemesini öner. Kesin al/sat tavsiyesi verme.`;
+    const ham=await claudeCagri('Sen FAGENT adlı finansal ajansın. Web aramasıyla güncel veri toplayabilirsin. Nihai cevabın SADECE geçerli JSON olmalı; JSON dışında metin yazma.',[{role:'user',content:istem}],1500,true);
+    const a=jsonAyikla(ham);
+    a.ts=new Date().toISOString();
+    D.son_analiz=a; veriKaydet();
+    progDur(); toast('Analiz güncellendi ✓','ok');
+  }catch(e){ progDur(); toast(e.message,'err'); }
+  analizYukleniyor=false; panelCiz();
+}
+
+/* ═══════ İŞLEMLER ═══════ */
+let defterAktifFiltre='hepsi';
+function defterCiz(){
+  const sel=VARLIKLAR.map(v=>`<option value="${v.k}">${v.ad}</option>`).join('');
+  $('ivar').innerHTML=sel; $('ihedef').innerHTML=sel;
+  const arama=($('defterArama')?.value||'').toLowerCase().trim();
+  let kayitlar=D.islemler.map((i,idx)=>({i,idx}));
+  // filtre
+  if(defterAktifFiltre!=='hepsi') kayitlar=kayitlar.filter(({i})=>i.tip===defterAktifFiltre);
+  // arama
+  if(arama) kayitlar=kayitlar.filter(({i})=>{
+    const metin=`${ADLAR[i.varlik]||''} ${ADLAR[i.hedef]||''} ${i.not||''} ${i.tutar}`.toLowerCase();
+    return metin.includes(arama);
+  });
+  const liste=kayitlar.slice(-50).reverse().map(({i,idx})=>{
+    const v=ADLAR[i.varlik]||i.varlik, hd=ADLAR[i.hedef];
+    let t;
+    if(i.tip==='ekle') t=`<span class="pos">+${fmt(i.tutar)}</span> · ${v}`;
+    if(i.tip==='cikar') t=`<span class="neg">−${fmt(i.tutar)}</span> · ${v}`;
+    if(i.tip==='tasi') t=`${fmt(i.tutar)} · ${v} <span class="amb">→</span> ${hd}`;
+    return `<div class="trow" onclick="islemDetayModal(${idx})"><div class="tl"><div class="tt">${t}</div>${i.not?`<div class="tn">${esc(i.not)}</div>`:''}</div><div class="tdate">${saat(i.ts)}</div></div>`;
+  }).join('');
+  const bosMesaj=arama||defterAktifFiltre!=='hepsi'?'Eşleşen işlem yok.':'Defter boş. İlk işlemini yukarıdan gir.';
+  $('defter').innerHTML=liste||`<div class="empty">${bosMesaj}</div>`;
+}
+
+function islemKaydet(){
+  const tutar=num($('itutar').value);
+  if(tutar<=0) return toast('Geçerli bir tutar gir.','err');
+  const [ok,msg]=islemUygula({tip,varlik:$('ivar').value,hedef:$('ihedef').value,tutar,not:$('inot').value});
+  if(!ok) return toast(msg,'err');
+  $('itutar').value=''; $('inot').value='';
+  toast('İşlem kaydedildi ✓','ok');
+  defterCiz(); panelCiz();
+}
+
+/* ═══════ SOHBET ═══════ */
+
+/* Grafik verisini metne dönüştür — ajan bunu okur */
+function grafikVeriDerle(){
+  const ctx = hesapla();
+  const h = HEDEFLER[D.profil.hedef]||HEDEFLER.buyut;
+  const satirlar = [];
+
+  // 1) Trend grafiği
+  if(D.gecmis.length >= 2){
+    const ilk = D.gecmis[0], son = D.gecmis[D.gecmis.length-1];
+    const fark = son.toplam - ilk.toplam;
+    const yuzde = ilk.toplam ? Math.round(fark/ilk.toplam*100) : 0;
+    const noktalar = D.gecmis.map(g=>`${g.ay}: ${fmt(g.toplam)}`).join(' → ');
+    // ivme hesabı
+    let ivme = '';
+    if(D.gecmis.length >= 3){
+      const ortaFark = D.gecmis[D.gecmis.length-2].toplam - D.gecmis[D.gecmis.length-3].toplam;
+      const sonFark  = son.toplam - D.gecmis[D.gecmis.length-2].toplam;
+      ivme = sonFark > ortaFark ? 'İvme artıyor.' : sonFark < ortaFark ? 'İvme yavaşlıyor.' : 'İvme sabit.';
+    }
+    satirlar.push(`TREND GRAFİĞİ (${D.gecmis.length} ay): ${noktalar}`);
+    satirlar.push(`Toplam değişim: ${fark>=0?'+':''}${fmt(fark)} (${fark>=0?'+':''}%${yuzde}). ${ivme}`);
+  }
+
+  // 2) Projeksiyon grafiği
+  const e = D.profil.enflasyon/100, f = D.profil.mevduatFaizi/100;
+  const yastikSon = 100/Math.pow(1+e, 1);
+  const mevduatSon = 100*Math.pow(1+f,1)/Math.pow(1+e,1);
+  satirlar.push(`PROJEKSİYON GRAFİĞİ (12 ay, 100₺ başlangıç):`);
+  satirlar.push(`- Yastık altı: 100₺ → ${yastikSon.toFixed(1)}₺ (-%${(100-yastikSon).toFixed(1)} reel kayıp)`);
+  satirlar.push(`- Mevduat: 100₺ → ${mevduatSon.toFixed(1)}₺ (${mevduatSon>=100?'+':''}${(mevduatSon-100).toFixed(1)}₺ reel)`);
+
+  // 3) Dağılım ve hedef uyum çubuğu
+  if(ctx.toplam > 0){
+    let toplamSapma = 0;
+    const dagRows = VARLIKLAR.filter(v=>(D.portfoy[v.k]||0)>0 || (h.ideal[v.k]||0)>0).map(v=>{
+      const mevcut = ctx.dagilim[v.k].yuzde, ideal = h.ideal[v.k]||0;
+      const fark = mevcut - ideal;
+      toplamSapma += Math.abs(fark);
+      return `${v.ad}: mevcut %${mevcut}, ideal %${ideal} (${fark>0?'+':''}${fark} puan)`;
+    });
+    const uyum = Math.max(0, 100-toplamSapma);
+    satirlar.push(`HEDEF UYUM ÇUBUĞU: %${uyum} (${h.ad}, ${h.ufuk})`);
+    satirlar.push(dagRows.join(' | '));
+  }
+
+  // 4) Enflasyon karşılaştırması
+  if(ctx.toplam > 0){
+    const yastikReel = ctx.toplam/(1+e);
+    const mevduatReel = ctx.toplam*(1+f)/(1+e);
+    satirlar.push(`ENFLASYON ETKİSİ (${fmt(ctx.toplam)} için 1 yıl):`);
+    satirlar.push(`- Hareketsiz: ${fmt(yastikReel)} (-${fmt(ctx.toplam-yastikReel)} erime)`);
+    satirlar.push(`- Mevduatta: ${fmt(mevduatReel)} (${mevduatReel>=ctx.toplam?'+':''}${fmt(mevduatReel-ctx.toplam)} reel)`);
+  }
+
+  // 5) Hedef ilerleme
+  if(D.profil.hedefTutar > 0 && ctx.toplam > 0){
+    const yuzde = Math.round(ctx.toplam/D.profil.hedefTutar*100);
+    const aylik = (D.profil.gelir||0)*(D.profil.birikimOrani||0)/100;
+    const kalan = D.profil.hedefTutar - ctx.toplam;
+    const ay = aylik > 0 ? Math.ceil(kalan/aylik) : null;
+    satirlar.push(`HEDEF İLERLEME ÇUBUĞU: ${fmt(ctx.toplam)} / ${fmt(D.profil.hedefTutar)} (%${yuzde})${ay?`, tahmini ${ay} ay kaldı`:''}`);
+  }
+
+  return satirlar.join('\n');
+}
+
+let acilisYapildi = false; // sekme başına bir kez açılış analizi
+
+async function acilisAnalizi(){
+  if(!APIKEY) return;
+  if(acilisYapildi) return;
+  if(hesapla().toplam === 0) return;
+  acilisYapildi = true;
+
+  // hareketli "düşünüyor" animasyonu
+  const log = $('chatlog');
+  let dots = 0;
+  const animFrame = ['⬤ ○ ○','○ ⬤ ○','○ ○ ⬤','○ ⬤ ○'];
+  log.innerHTML = `<div class="bub ai" id="acilis-bub" style="font-family:var(--mono);font-size:12px;color:var(--emerald)">⬤ ○ ○ &nbsp;grafikler okunuyor…</div>`;
+  log.scrollTop = log.scrollHeight;
+  const animId = setInterval(()=>{
+    dots = (dots+1)%4;
+    const mesajlar = ['grafikler okunuyor…','varlık trendi analiz ediliyor…','projeksiyon hesaplanıyor…','hedef uyumu değerlendiriliyor…'];
+    const el = $('acilis-bub');
+    if(el) el.innerHTML = `${animFrame[dots]} &nbsp;${mesajlar[dots]}`;
+  }, 600);
+
+  try{
+    const grafikMetin = grafikVeriDerle();
+    const istem = `Aşağıda kullanıcının uygulamasındaki TÜM GRAFİKLERİN verisini görüyorsun. Bu grafikleri bütünsel olarak yorumla ve kullanıcıya kısa, direkt, aksiyona dönük bir açılış mesajı yaz.
+
+${grafikMetin}
+
+Kurallar:
+- İsmiyle hitap et (${D.profil.isim||'kullanıcı'})
+- Trend grafiğini yorumla (artış mı, ivme mi değişti?)
+- Projeksiyon grafiğinden reel getiri mesajı ver
+- Hedef uyum çubuğundan en kritik sapmayı söyle
+- Toplam 3-4 cümle, nokta nokta değil akıcı paragraf
+- Emoji yok, motivasyon lafı yok
+- Sonda "Ne sormak istersin?" gibi bir şey YAZMA — kullanıcı zaten soracak`;
+
+    const yanit = await claudeCagri(sistemPromptu('web paneli — açılış grafik analizi'),
+      [{role:'user', content:istem}], 600, false);
+
+    clearInterval(animId);
+    chat.push({role:'assistant', content:yanit});
+    localStorage.setItem(LS_CHAT, JSON.stringify(chat));
+  }catch(e){
+    clearInterval(animId);
+    // sessizce geç, hata mesajı gösterme
+  }
+  chatCiz();
+}
+
+function chatCiz(){
+  const log = $('chatlog');
+  if(chat.length === 0){
+    // API varsa açılış mesajı henüz gelmedi — animasyon zaten gösteriliyor
+    if(APIKEY && hesapla().toplam > 0 && !acilisYapildi){
+      log.innerHTML = `<div class="bub ai" id="acilis-bub" style="font-family:var(--mono);font-size:12px;color:var(--emerald)">⬤ ○ ○ &nbsp;grafikler okunuyor…</div>`;
+    } else if(!APIKEY){
+      log.innerHTML = `<div class="empty" style="text-align:center;padding:24px 10px 14px">
+        Portföyünü ve hedefini biliyorum${D.profil.isim?', '+esc(D.profil.isim):''}.<br><br>(Önce Ayarlar'dan anahtar gir.)</div>
+        <button class="qbtn" onclick="hizli(this)">Hedefime göre ne yapmalıyım?</button>
+        <button class="qbtn" onclick="hizli(this)">Enflasyona karşı en zayıf noktam ne?</button>
+        <button class="qbtn" onclick="hizli(this)">Dolar şu an ne kadar, bende ne kadarlık var?</button>`;
+    } else {
+      log.innerHTML = `<div class="empty" style="text-align:center;padding:24px 10px 14px">Portföyünü ve hedefini biliyorum${D.profil.isim?', '+esc(D.profil.isim):''}. Rakamların üzerinden konuşalım.</div>
+        <button class="qbtn" onclick="hizli(this)">Hedefime göre ne yapmalıyım?</button>
+        <button class="qbtn" onclick="hizli(this)">Enflasyona karşı en zayıf noktam ne?</button>
+        <button class="qbtn" onclick="hizli(this)">Dolar şu an ne kadar, bende ne kadarlık var?</button>`;
+    }
+  } else {
+    log.innerHTML = chat.map(m=>`<div class="bub ${m.role==='user'?'me':'ai'}">${esc(m.content)}</div>`).join('')
+      + (sohbetYukleniyor ? '<div class="bub ai" style="font-family:var(--mono);font-size:13px">● ● ●</div>' : '');
+  }
+  log.scrollTop = log.scrollHeight;
+}
+
+function hizli(b){ $('cin').value=b.textContent; gonder(); }
+
+/* API'ye gönderilecek mesaj penceresi — dizi mutlaka 'user' ile başlamalı.
+   Açılış analizi sohbete önce bir 'assistant' mesajı eklediği için,
+   baştaki assistant mesajları kırpılmazsa ilk soru 400 hatası verir. */
+function apiMesajlari(n){
+  let msgs=chat.slice(-n);
+  while(msgs.length && msgs[0].role!=='user') msgs=msgs.slice(1);
+  return msgs;
+}
+
+async function gonder(){
+  const m=$('cin').value.trim();
+  if(!m||sohbetYukleniyor) return;
+  if(!APIKEY){ keyModal(); return; }
+  $('cin').value='';
+  chat.push({role:'user',content:m});
+  sohbetYukleniyor=true; chatCiz();
+  try{
+    const r=await claudeCagri(sistemPromptu('web paneli'),apiMesajlari(20),1000,true);
+    chat.push({role:'assistant',content:r});
+  }catch(e){ chat.push({role:'assistant',content:'⚠ '+e.message}); }
+  chat=chat.slice(-40);
+  localStorage.setItem(LS_CHAT,JSON.stringify(chat));
+  sohbetYukleniyor=false; chatCiz();
+}
+
+/* ═══════ AYARLAR ═══════ */
+function ayarDoldur(){
+  $('aisim').value=D.profil.isim||''; $('agelir').value=D.profil.gelir||'';
+  $('abirikim').value=D.profil.birikimOrani||''; $('arisk').value=D.profil.risk||'orta';
+  $('ahedef').value=D.profil.hedef||'buyut';
+  $('ahedeftutar').value=D.profil.hedefTutar||'';
+  $('aenf').value=D.profil.enflasyon; $('afaiz').value=D.profil.mevduatFaizi;
+  $('aapikey').value=APIKEY;
+  const pb=$('pinbtn'); if(pb) pb.textContent=D.pin?'🔓 PIN kilidini kaldır':'🔒 PIN kilidi kur';
+  const mb=$('metinbtn'); if(mb) mb.textContent=D.ayarlar.buyukMetin?'🔠 Büyük metin: Açık':'🔠 Büyük metin: Kapalı';
+  const zb=$('azapier'); if(zb) zb.value=D.zapier?.webhookUrl||'';
+  const zd=$('zapierdurum'); if(zd&&D.zapier?.webhookUrl){ zd.textContent='✓ Webhook kayıtlı'; zd.style.color='var(--emerald)'; }
+  faturaListesiCiz();
+  hedeflerListesiCiz();
+  $('avarlik').innerHTML=VARLIKLAR.map(v=>`<div class="lbl"><span class="ldot" style="display:inline-block;background:${v.renk};margin-right:6px"></span>${v.ad} (₺)</div><input class="input" id="pv-${v.k}" inputmode="numeric" value="${D.portfoy[v.k]||''}" placeholder="0">`).join('');
+}
+function ayarKaydet(){
+  VARLIKLAR.forEach(v=>D.portfoy[v.k]=num($('pv-'+v.k).value));
+  const eskiRisk=D.profil.risk, eskiHedef=D.profil.hedef;
+  D.profil={isim:$('aisim').value.trim()||'Yatırımcı',gelir:num($('agelir').value),birikimOrani:num($('abirikim').value),risk:$('arisk').value,hedef:$('ahedef').value,hedefTutar:num($('ahedeftutar').value),enflasyon:num($('aenf').value)||35,mevduatFaizi:num($('afaiz').value)||45};
+  // risk veya hedef değiştiyse geçmişe kayıt
+  if(D.profil.risk!==eskiRisk || D.profil.hedef!==eskiHedef){
+    if(!Array.isArray(D.risk_gecmisi)) D.risk_gecmisi=[];
+    D.risk_gecmisi.push({ts:new Date().toISOString(), risk:D.profil.risk, hedef:D.profil.hedef, portfoyToplam:hesapla().toplam});
+    D.risk_gecmisi=D.risk_gecmisi.slice(-24); // max 24 kayıt
+  }
+  gecmisGuncelle(); veriKaydet();
+  toast('Kaydedildi ✓','ok');
+  $('topuser').textContent=(D.profil.isim||'').toLowerCase()||'tek dosya';
+  panelCiz(); sekme('panel');
+}
+function anahtarKaydet(){
+  const k=$('aapikey').value.trim();
+  APIKEY=k; k?localStorage.setItem(LS_KEY,k):localStorage.removeItem(LS_KEY);
+  toast(k?'Anahtar kaydedildi · ajan aktif ✓':'Anahtar silindi',k?'ok':'');
+  durumYaz(); panelCiz();
+}
+
+function ornekYukle(){
+  D.portfoy={mevduat:60000,doviz:25000,altin:15000,hisseFon:0,nakit:5000};
+  if(!D.profil.isim) D.profil.isim='Yatırımcı';
+  // trend için birkaç geçmiş nokta uydur (demo)
+  const now=new Date();
+  D.gecmis=[];
+  for(let i=3;i>=0;i--){ const d=new Date(now.getFullYear(),now.getMonth()-i,1); D.gecmis.push({ay:d.toISOString().slice(0,7),ts:d.toISOString(),toplam:105000-i*7000+Math.round((Math.random()-.5)*3000)}); }
+  D.gecmis[D.gecmis.length-1].toplam=105000;
+  D.kuruldu=true; veriKaydet();
+  toast('Örnek veri yüklendi','ok');
+  hepsiniCiz();
+}
+
+function disaAktar(){
+  const blob=new Blob([JSON.stringify(D,null,1)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='fagent-yedek-'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  toast('Yedek indirildi ✓','ok');
+}
+function iceAktar(ev){
+  const f=ev.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const v=JSON.parse(r.result);
+      if(!v.profil||!v.portfoy) throw new Error('geçersiz');
+      localStorage.setItem(LS_VERI,JSON.stringify(v));
+      D=veriYukle();
+      toast('Yedek geri yüklendi ✓','ok');
+      hepsiniCiz(); sekme('panel');
+    }catch(e){ toast('Dosya okunamadı, geçerli bir Fagent yedeği mi?','err'); }
+  };
+  r.readAsText(f);
+  ev.target.value='';
+}
+
+let resetOnay=false;
+function sifirla(){
+  if(!resetOnay){ resetOnay=true; $('resetbtn').textContent='Emin misin? Tekrar dokun → her şey silinir'; setTimeout(()=>{resetOnay=false; ayarDoldur();},4000); return; }
+  localStorage.removeItem(LS_VERI); localStorage.removeItem(LS_CHAT);
+  D=JSON.parse(JSON.stringify(BOS)); chat=[]; acilisYapildi=false;
+  resetOnay=false;
+  toast('Sıfırlandı','ok');
+  obBaslat();
+}
+
+function sohbetSifirla(){
+  if(!confirm('Tüm sohbet geçmişi silinecek. Emin misin?')) return;
+  chat=[]; acilisYapildi=false;
+  localStorage.removeItem(LS_CHAT);
+  toast('Sohbet geçmişi silindi ✓','ok');
+  chatCiz();
+}
+
+function analizSifirla(){
+  if(!confirm('Son ajan analizi ve piyasa verisi silinecek. Emin misin?')) return;
+  D.son_analiz=null;
+  veriKaydet();
+  toast('Analiz silindi ✓','ok');
+  panelCiz();
+}
+
+function islemlerSifirla(){
+  if(!confirm('Tüm işlem defteri silinecek. Emin misin?')) return;
+  D.islemler=[];
+  veriKaydet();
+  toast('İşlem defteri silindi ✓','ok');
+  defterCiz(); panelCiz();
+}
+
+function trendSifirla(){
+  if(!confirm('Aylık trend geçmişi silinecek. Emin misin?')) return;
+  D.gecmis=[];
+  veriKaydet();
+  toast('Trend geçmişi silindi ✓','ok');
+  panelCiz();
+}
+
+/* ═══════ PIN KİLİT ═══════ */
+let pinGirilen='', pinModu='ac'; // 'ac' (giriş) | 'kur' (yeni belirle) | 'dogrula'
+let pinYeni='';
+function pinPadCiz(){
+  const pad=$('pinpad');
+  const tuslar=['1','2','3','4','5','6','7','8','9','','0','⌫'];
+  pad.innerHTML=tuslar.map(t=>t===''?'<div></div>':`<button class="btn ghost" style="font-size:20px;padding:16px;font-family:var(--mono)" onclick="pinBas('${t}')">${t}</button>`).join('');
+  pinDotsCiz();
+}
+function pinDotsCiz(){
+  $('pindots').innerHTML=[0,1,2,3].map(i=>`<span style="width:14px;height:14px;border-radius:50%;border:2px solid var(--emerald);background:${i<pinGirilen.length?'var(--emerald)':'transparent'}"></span>`).join('');
+}
+function pinBas(t){
+  if(t==='⌫'){ pinGirilen=pinGirilen.slice(0,-1); pinDotsCiz(); return; }
+  if(pinGirilen.length>=4) return;
+  pinGirilen+=t;
+  pinDotsCiz();
+  if(pinGirilen.length===4){
+    setTimeout(pinKontrol,150);
+  }
+}
+function pinKontrol(){
+  if(pinModu==='ac'){
+    if(pinGirilen===D.pin){ $('pinlock').classList.add('hide'); pinGirilen=''; }
+    else { $('pinhint').textContent='Yanlış PIN, tekrar dene'; $('pinhint').style.color='var(--red)'; pinGirilen=''; pinDotsCiz(); }
+  } else if(pinModu==='kur'){
+    pinYeni=pinGirilen; pinGirilen=''; pinModu='dogrula';
+    $('pinhint').textContent='Tekrar gir (doğrulama)'; $('pinhint').style.color='var(--muted)';
+    pinDotsCiz();
+  } else if(pinModu==='dogrula'){
+    if(pinGirilen===pinYeni){
+      D.pin=pinYeni; veriKaydet();
+      $('pinlock').classList.add('hide'); pinGirilen=''; pinYeni='';
+      toast('PIN kilidi açıldı ✓','ok');
+      ayarDoldur();
+    } else {
+      $('pinhint').textContent='Eşleşmedi, baştan'; $('pinhint').style.color='var(--red)';
+      pinGirilen=''; pinModu='kur'; pinYeni='';
+      setTimeout(()=>{$('pinhint').textContent='Yeni 4 haneli PIN belirle';$('pinhint').style.color='var(--muted)';pinDotsCiz();},1200);
+      pinDotsCiz();
+    }
+  }
+}
+function pinKur(){
+  if(D.pin){
+    if(confirm('PIN kilidini kaldırmak istiyor musun?')){ D.pin=''; veriKaydet(); toast('PIN kaldırıldı','ok'); ayarDoldur(); }
+    return;
+  }
+  pinModu='kur'; pinGirilen=''; pinYeni='';
+  $('pinhint').textContent='Yeni 4 haneli PIN belirle'; $('pinhint').style.color='var(--muted)';
+  $('pinlock').classList.remove('hide');
+  pinPadCiz();
+}
+
+/* ═══════ ALARM MERKEZİ ═══════ */
+function alarmModal(){
+  const a=D.alarmlar;
+  modalAc(`<div class="mh">Alarm merkezi</div>
+    <h3>🔔 Eşik bildirimleri</h3>
+    <div class="sub" style="margin:4px 0 14px">Belirlediğin eşik aşılınca panel açılışında uyarı çıkar. 0 = kapalı.</div>
+    <div class="lbl">Dolar bu değerin üstüne çıkarsa uyar (₺)</div>
+    <input class="input" id="alm-dolar" inputmode="numeric" value="${a.dolar||''}" placeholder="örn. 50">
+    <div class="lbl">Gram altın bu değerin üstüne çıkarsa uyar (₺)</div>
+    <input class="input" id="alm-altin" inputmode="numeric" value="${a.altin||''}" placeholder="örn. 5000">
+    <div class="lbl">Reel getiri bu değerin altına düşerse uyar (%)</div>
+    <input class="input" id="alm-reel" inputmode="numeric" value="${a.reel||''}" placeholder="örn. 5">
+    <div style="height:16px"></div>
+    <button class="btn" onclick="alarmKaydet()">Kaydet</button>`);
+}
+function alarmKaydet(){
+  D.alarmlar={dolar:num($('alm-dolar').value), altin:num($('alm-altin').value), reel:num($('alm-reel').value)};
+  veriKaydet();
+  modalKapat();
+  toast('Alarmlar kaydedildi ✓','ok');
+  panelCiz();
+}
+function alarmKontrol(){
+  // panel açılışında son_analiz piyasa verisine ve reel getiriye göre kontrol
+  const a=D.alarmlar, uyarilar=[];
+  const sa=D.son_analiz;
+  if(a.dolar>0 && sa?.piyasa?.dolar && Number(sa.piyasa.dolar)>=a.dolar)
+    uyarilar.push(`Dolar ${Number(sa.piyasa.dolar).toLocaleString('tr-TR')}₺ — eşiğin ${a.dolar}₺ aşıldı`);
+  if(a.altin>0 && sa?.piyasa?.gramAltin && Number(sa.piyasa.gramAltin)>=a.altin)
+    uyarilar.push(`Gram altın ${Number(sa.piyasa.gramAltin).toLocaleString('tr-TR')}₺ — eşiğin ${a.altin}₺ aşıldı`);
+  const reel=hesapla().reelMevduat;
+  if(a.reel>0 && reel<a.reel)
+    uyarilar.push(`Reel getirin %${reel} — eşiğin %${a.reel} altına düştü`);
+  return uyarilar;
+}
+
+/* ═══════ RAPOR / YAZDIR ═══════ */
+function raporYazdir(){
+  const ctx=hesapla();
+  const h=HEDEFLER[D.profil.hedef]||HEDEFLER.buyut;
+  const tarih=new Date().toLocaleDateString('tr-TR',{day:'2-digit',month:'long',year:'numeric'});
+  const dagRows=VARLIKLAR.filter(v=>(D.portfoy[v.k]||0)>0).map(v=>{
+    const t=D.portfoy[v.k], y=Math.round(t/ctx.toplam*100);
+    return `<tr><td>${v.ad}</td><td style="text-align:right">${fmt(t)}</td><td style="text-align:right">%${y}</td></tr>`;
+  }).join('');
+  const sa=D.son_analiz;
+  const icgoruRows=(sa?.icgoruler||[]).map(i=>`<li><b>${esc(i.baslik)}:</b> ${esc(i.detay)}</li>`).join('');
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>Fagent Raporu</title>
+    <style>
+      body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:700px;margin:40px auto;padding:0 20px;color:#1a1a1a;line-height:1.6}
+      h1{color:#0e9b6f;font-size:24px;letter-spacing:.1em;border-bottom:3px solid #0e9b6f;padding-bottom:10px}
+      h2{font-size:15px;color:#555;margin-top:28px;text-transform:uppercase;letter-spacing:.05em}
+      table{width:100%;border-collapse:collapse;margin-top:8px}
+      td,th{padding:8px 4px;border-bottom:1px solid #ddd;font-size:14px}
+      th{text-align:left;color:#888;font-size:12px}
+      .big{font-size:28px;font-weight:700;color:#0e9b6f}
+      .meta{color:#888;font-size:13px}
+      ul{padding-left:18px} li{margin-bottom:6px;font-size:14px}
+      .foot{margin-top:40px;font-size:11px;color:#aaa;border-top:1px solid #eee;padding-top:12px}
+      @media print{body{margin:0}}
+    </style></head><body>
+    <h1>FAGENT · FİNANSAL RAPOR</h1>
+    <p class="meta">${esc(D.profil.isim||'Kullanıcı')} · ${tarih}</p>
+    <h2>Portföy Özeti</h2>
+    <p class="big">${fmt(ctx.toplam)}</p>
+    <p class="meta">Mevduat reel getirisi: %${ctx.reelMevduat} (faiz %${D.profil.mevduatFaizi} − enflasyon %${D.profil.enflasyon})</p>
+    <h2>Varlık Dağılımı</h2>
+    <table><tr><th>Varlık</th><th style="text-align:right">Tutar</th><th style="text-align:right">Oran</th></tr>${dagRows}</table>
+    <h2>Hedef</h2>
+    <p>${h.ad} · Vade: ${h.ufuk}${D.profil.hedefTutar>0?` · Hedef tutarı: ${fmt(D.profil.hedefTutar)} (%${Math.round(ctx.toplam/D.profil.hedefTutar*100)} tamamlandı)`:''}</p>
+    ${sa?.ozet?`<h2>Ajan Değerlendirmesi</h2><p>${esc(sa.ozet)}</p>`:''}
+    ${icgoruRows?`<h2>İçgörüler</h2><ul>${icgoruRows}</ul>`:''}
+    <div class="foot">Bu rapor Fagent prototipi tarafından üretilmiştir. İçeriği yatırım tavsiyesi değildir. İşlem defteri kullanıcı girişine dayalı simülasyondur.</div>
+    <script>setTimeout(()=>window.print(),400)<\/script>
+    </body></html>`);
+  win.document.close();
+  toast('Rapor hazırlandı — yazdır veya PDF kaydet','ok');
+}
+
+/* ═══════ SSS / YARDIM ═══════ */
+function yardimModal(){
+  modalAc(`<div class="mh">Yardım</div>
+    <h3>❓ Sık sorulan sorular</h3>
+    <div style="font-size:13px;line-height:1.7;margin-top:14px">
+      <p style="font-weight:600;color:var(--text);margin-top:14px">Reel getiri nedir?</p>
+      <p style="color:var(--muted)">Paranın enflasyondan arındırılmış gerçek kazancı. Mevduat %45 faiz verse ama enflasyon %35 ise, reel getirin yaklaşık %7.4'tür. Asıl önemli olan budur.</p>
+      <p style="font-weight:600;color:var(--text);margin-top:14px">Ajan nasıl çalışıyor?</p>
+      <p style="color:var(--muted)">Portföyünü, hedefini ve risk profilini bilir. Sorduğunda web'den güncel dolar/altın/TÜFE verisini çekip sana özel yorum yapar.</p>
+      <p style="font-weight:600;color:var(--text);margin-top:14px">Verilerim güvende mi?</p>
+      <p style="color:var(--muted)">Tüm veriler yalnızca senin tarayıcında saklanır. Hiçbir sunucuya gitmez. İstersen PIN kilidi koyabilir, yedek alabilirsin.</p>
+      <p style="font-weight:600;color:var(--text);margin-top:14px">Hedef uyumu ne demek?</p>
+      <p style="color:var(--muted)">Seçtiğin hedefin (ev, pasif gelir vb.) ideal bir varlık dağılımı vardır. Uyum skoru, mevcut dağılımının bu ideale ne kadar yakın olduğunu gösterir.</p>
+      <p style="font-weight:600;color:var(--text);margin-top:14px">İşlemler gerçek mi?</p>
+      <p style="color:var(--muted)">Hayır, bu bir prototip. İşlem defteri senin manuel girdiğin simülasyondur, gerçek bankana bağlı değildir.</p>
+      <p style="font-weight:600;color:var(--text);margin-top:14px">Telefona nasıl yüklerim?</p>
+      <p style="color:var(--muted)">Tarayıcı menüsünden "Ana ekrana ekle" de — Fagent uygulama gibi açılır.</p>
+    </div>
+    <div style="height:16px"></div>
+    <button class="btn" onclick="modalKapat()">Anladım</button>`);
+}
+
+function buyukMetinToggle(){
+  D.ayarlar.buyukMetin=!D.ayarlar.buyukMetin;
+  veriKaydet();
+  buyukMetinUygula();
+  toast(D.ayarlar.buyukMetin?'Büyük metin açıldı':'Büyük metin kapatıldı','ok');
+}
+function buyukMetinUygula(){
+  document.documentElement.style.fontSize=D.ayarlar.buyukMetin?'18px':'16px';
+  const btn=$('metinbtn');
+  if(btn) btn.textContent=D.ayarlar.buyukMetin?'🔠 Büyük metin: Açık':'🔠 Büyük metin: Kapalı';
+}
+
+/* ═══════ ZAPİER ENTEGRASYONU ═══════ */
+/* ═══════ FATURA YÖNETİMİ ═══════ */
+function faturaListesiCiz(){
+  const el = document.getElementById('faturaListesi');
+  if(!el) return;
+  if(!D.faturalar || D.faturalar.length === 0){
+    el.innerHTML = '<div class="sub" style="margin:0 0 8px;color:var(--faint)">Henüz fatura yok.</div>';
+    return;
+  }
+  el.innerHTML = D.faturalar.map((f,i) => {
+    const bugun = new Date();
+    const vade = new Date(f.vadeTarihi);
+    const gun = Math.round((vade - bugun)/(1000*60*60*24));
+    const renk = gun <= 0 ? 'var(--red)' : gun <= 3 ? 'var(--amber)' : 'var(--muted)';
+    const ne = gun < 0 ? `${Math.abs(gun)} gün geçti` : gun === 0 ? 'bugün' : `${gun} gün kaldı`;
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-size:13px;font-weight:600">${esc(f.ad)}</div>
+        <div style="font-size:11px;color:${renk}">${fmt(f.tutar)} · ${ne}</div>
+      </div>
+      <button onclick="faturaGuncelle(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:18px;padding:4px">×</button>
+    </div>`;
+  }).join('');
+}
+
+function faturaEkle(){
+  const ad = document.getElementById('faturaAd')?.value.trim();
+  const tutar = parseFloat(document.getElementById('faturaTutar')?.value)||0;
+  const vade = document.getElementById('faturaVade')?.value;
+  if(!ad || tutar <= 0 || !vade){ toast('Ad, tutar ve vade tarihi gerekli','err'); return; }
+  if(!D.faturalar) D.faturalar = [];
+  D.faturalar.push({ad, tutar, vadeTarihi:vade});
+  veriKaydet();
+  document.getElementById('faturaAd').value = '';
+  document.getElementById('faturaTutar').value = '';
+  document.getElementById('faturaVade').value = '';
+  faturaListesiCiz();
+  toast(ad+' eklendi ✓','ok');
+  panelCiz();
+}
+
+function faturaGuncelle(idx){
+  if(!confirm('Bu faturayı silmek istiyor musun?')) return;
+  D.faturalar.splice(idx,1);
+  veriKaydet();
+  faturaListesiCiz();
+  toast('Fatura silindi','ok');
+  panelCiz();
+}
+
+function zapierKaydet(){
+  const url=$('azapier').value.trim();
+  if(url && !url.startsWith('https://hooks.zapier.com/')){
+    toast('Geçerli bir Zapier webhook URL\'si gir','err'); return;
+  }
+  D.zapier.webhookUrl=url;
+  veriKaydet();
+  const d=$('zapierdurum');
+  if(d) d.textContent=url?'✓ Webhook kaydedildi':'Webhook kaldırıldı';
+  if(d) d.style.color=url?'var(--emerald)':'var(--muted)';
+  toast(url?'Zapier bağlandı ✓':'Zapier bağlantısı kaldırıldı', url?'ok':'');
+}
+
+async function zapierTest(){
+  const url=D.zapier.webhookUrl||$('azapier').value.trim();
+  if(!url){ toast('Önce webhook URL\'sini gir','err'); return; }
+  const d=$('zapierdurum');
+  if(d){ d.textContent='⟳ Test gönderiliyor…'; d.style.color='var(--muted)'; }
+  try{
+    await zapierGonder([{
+      tip:'bilgi', ikon:'◉',
+      baslik:'Fagent bağlantı testi',
+      detay:'Bu bir test mesajıdır. Bağlantın çalışıyor!',
+      aksiyon:'Yapılandırman tamam, bildirimler çalışacak'
+    }], true);
+    if(d){ d.textContent='✓ Test başarılı — Zapier\'ı kontrol et'; d.style.color='var(--emerald)'; }
+    toast('Test gönderildi ✓','ok');
+  }catch(e){
+    if(d){ d.textContent='✗ Hata: '+e.message; d.style.color='var(--red)'; }
+    toast('Zapier hatası: '+e.message,'err');
+  }
+}
+
+async function zapierGonder(tetikler, test=false){
+  const url=D.zapier.webhookUrl;
+  if(!url || tetikler.length===0) return;
+  // günde 1 kez gönder (spam önleme) — test modunda bypass
+  if(!test){
+    const bugun=new Date().toISOString().slice(0,10);
+    if(D.zapier.sonGonderim===bugun) return;
+  }
+  const ctx=hesapla();
+  const payload={
+    isim: D.profil.isim||'Kullanıcı',
+    tarih: new Date().toLocaleString('tr-TR'),
+    toplamVarlik: ctx.toplam,
+    toplamVarlikFormatli: '₺'+Math.round(ctx.toplam).toLocaleString('tr-TR'),
+    reelGetiri: ctx.reelMevduat+'%',
+    tetikSayisi: tetikler.length,
+    tetikler: tetikler.map(t=>({
+      tip: t.tip,
+      baslik: t.baslik,
+      detay: t.detay,
+      aksiyon: t.aksiyon
+    })),
+    // Zapier'da mesaj şablonu için kolay alan
+    ozet: tetikler.map(t=>t.baslik).join(' | '),
+    mesaj: `Fagent bildirimi (${new Date().toLocaleDateString('tr-TR')}): ${tetikler.map(t=>`${t.baslik} → ${t.aksiyon}`).join('. ')}`
+  };
+  const r=await fetch(url,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+  });
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  if(!test){
+    D.zapier.sonGonderim=new Date().toISOString().slice(0,10);
+    veriKaydet();
+  }
+}
+
+/* ═══════ SEKMELER ═══════ */
+function sekme(ad){
+  ['panel','islem','ajan','ayar'].forEach(t=>$('tab-'+t).classList.toggle('hide',t!==ad));
+  document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('on',b.dataset.tab===ad));
+  // yumuşak giriş animasyonu
+  const aktif=$('tab-'+ad);
+  if(aktif){ aktif.style.animation='none'; void aktif.offsetWidth; aktif.style.animation='sekmeGir .28s ease both'; }
+  if(ad==='islem') defterCiz();
+  if(ad==='ajan'){ chatCiz(); acilisAnalizi(); }
+  if(ad==='ayar') ayarDoldur();
+  window.scrollTo(0,0);
+}
+
+function hepsiniCiz(){
+  $('topuser').textContent=(D.profil.isim||'').toLowerCase()||'tek dosya';
+  defterCiz(); ayarDoldur(); chatCiz(); panelCiz();
+}
+
+document.addEventListener('click',e=>{
+  const c=e.target.closest('#tipchips .chip');
+  if(c){ tip=c.dataset.tip; document.querySelectorAll('#tipchips .chip').forEach(x=>x.classList.toggle('on',x===c)); $('hedefwrap').classList.toggle('hide',tip!=='tasi'); $('lblvar').textContent=tip==='tasi'?'Kaynak varlık':'Varlık'; }
+  const fc=e.target.closest('#defterFiltre .chip');
+  if(fc){ defterAktifFiltre=fc.dataset.f; document.querySelectorAll('#defterFiltre .chip').forEach(x=>x.classList.toggle('on',x===fc)); defterCiz(); }
+  const n=e.target.closest('.navbtn');
+  if(n) sekme(n.dataset.tab);
+});
+
+/* ═══════ BAŞLAT ═══════ */
+buyukMetinUygula();
+
+// PIN kilidi varsa önce onu göster
+if(D.pin){
+  pinModu='ac'; pinGirilen='';
+  $('pinlock').classList.remove('hide');
+  $('pinhint').textContent='4 haneli kodunu gir'; $('pinhint').style.color='var(--muted)';
+  pinPadCiz();
+}
+
+if(!D.kuruldu && hesapla().toplam===0 && D.islemler.length===0){
+  obBaslat();
+} else {
+  hepsiniCiz();
+  setTimeout(()=>{
+    D.son_ziyaret={ts:new Date().toISOString(), toplam:hesapla().toplam};
+    veriKaydet();
+  }, 1500);
+}
+</script>
+</body>
+</html>
