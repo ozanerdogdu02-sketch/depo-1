@@ -274,7 +274,8 @@
     <div style="height:14px"></div>
     <div class="card">
       <div class="eyebrow" style="color:var(--sky)">Ajan anahtarı (AI özellikleri için)</div>
-      <div class="sub" style="margin:0 0 8px">Ajan analizi ve sohbeti için Anthropic API anahtarı. Yalnızca bu tarayıcıda saklanır. <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a></div>
+      <div class="sub" style="margin:0 0 8px">Ajan analizi ve sohbeti için Anthropic API anahtarı. İstekler yalnızca <b>api.anthropic.com</b> adresine gider. <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a></div>
+      <div class="sub" style="margin:0 0 8px;color:var(--amber)">⚠ Anahtar bu tarayıcıda <b>şifrelenmeden</b> saklanır. Ortak/başkasının cihazında kullanma; bittiğinde alanı boşaltıp kaydet. Anahtarını yalnızca güvendiğin yedek dosyalarını içe aktar — kötü niyetli yedekler anahtarı çalmaya çalışabilir.</div>
       <input class="input" id="aapikey" type="password" placeholder="sk-ant-..." style="font-family:var(--mono)">
       <div style="height:10px"></div>
       <button class="btn ghost" onclick="anahtarKaydet()">Anahtarı kaydet</button>
@@ -451,6 +452,9 @@ const num = s => {
   return isNaN(n)?0:n;
 };
 const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// İkon alanı: yalnızca kısa, HTML içermeyen bir dize (emoji) tut. Yedek içe aktarma
+// üzerinden gelebilecek zararlı işaretlemeyi (XSS) kaynakta temizler.
+const temizIkon = s => { const t=String(s??'').replace(/[<>&"']/g,'').trim().slice(0,4); return t||'🎯'; };
 const saat = iso => { const d=new Date(iso); return isNaN(d)?'':d.toLocaleString('tr-TR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); };
 const gun = iso => { const d=new Date(iso); return isNaN(d)?'':d.toLocaleString('tr-TR',{day:'2-digit',month:'short'}); };
 function toast(m,tur){ const t=$('toast'); t.textContent=m; t.className='toast show'+(tur?' '+tur:''); clearTimeout(t._t); t._t=setTimeout(()=>t.className='toast',2900); }
@@ -474,7 +478,8 @@ function veriYukle(){
       m.zapier={...m.zapier,...(v.zapier||{})};
       m.faturalar=Array.isArray(v.faturalar)?v.faturalar:[];
       m.tetikHafiza=v.tetikHafiza||{};
-      m.hedefler=Array.isArray(v.hedefler)?v.hedefler:[];
+      // ikon alanını içe aktarma sırasında temizle (XSS'e karşı derinlemesine savunma)
+      m.hedefler=(Array.isArray(v.hedefler)?v.hedefler:[]).map(h=>({...h, ikon:temizIkon(h.ikon)}));
       m.rozetler=v.rozetler||{};
       m.kuruldu=!!v.kuruldu;
       // eski hedef metinlerini anahtara çevir
@@ -1320,7 +1325,7 @@ function hedeflerimKart(){
     const renk = yuzde>=100?'var(--emerald)':yuzde>=50?'var(--sky)':'var(--violet)';
     return `<div style="margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px">
-        <span>${h.ikon||'🎯'} ${esc(h.ad)}</span>
+        <span>${esc(h.ikon||'🎯')} ${esc(h.ad)}</span>
         <span class="mono" style="color:${renk}">%${yuzde}</span></div>
       <div class="bar" style="height:7px;margin-bottom:0"><div style="width:${yuzde}%;background:${renk}"></div></div>
     </div>`;
@@ -1331,7 +1336,7 @@ function hedeflerimKart(){
 function hedefEkle(){
   const ad = $('hedefAd')?.value.trim();
   const tutar = parseFloat($('hedefTutarYeni')?.value)||0;
-  const ikon = $('hedefIkon')?.value.trim() || '🎯';
+  const ikon = temizIkon($('hedefIkon')?.value);
   if(!ad || tutar <= 0){ toast('Hedef adı ve tutarı gerekli','err'); return; }
   if(!D.hedefler) D.hedefler = [];
   D.hedefler.push({id:'h'+Date.now(), ad, ikon, hedefTutar:tutar});
@@ -1362,7 +1367,7 @@ function hedeflerListesiCiz(){
   el.innerHTML = D.hedefler.map((h,i) => {
     const yuzde = Math.min(100, Math.round(ctx.toplam / h.hedefTutar * 100));
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
-      <div><div style="font-size:13px;font-weight:600">${h.ikon} ${esc(h.ad)}</div>
+      <div><div style="font-size:13px;font-weight:600">${esc(h.ikon)} ${esc(h.ad)}</div>
       <div style="font-size:11px;color:var(--muted)">${fmt(h.hedefTutar)} · %${yuzde}</div></div>
       <button onclick="hedefSilParalel(${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:18px;padding:4px">×</button>
     </div>`;
@@ -1479,7 +1484,7 @@ function keyModal(){
       <b style="color:var(--text)">4.</b> Aşağıya yapıştır.
     </div>
     <div class="card" style="margin:0 0 12px;background:var(--surface2)">
-      <div style="font-size:12px;color:var(--muted)">✓ Anahtar yalnızca senin tarayıcında saklanır, hiçbir yere gönderilmez.<br>✓ Ödemeli kullanımda verin modele eğitim için kullanılmaz.</div>
+      <div style="font-size:12px;color:var(--muted)">✓ Anahtar bu tarayıcıda (şifresiz) saklanır ve yalnızca api.anthropic.com'a istek başlığında gönderilir; başka bir sunucuya iletilmez.<br>✓ Ödemeli kullanımda verin modele eğitim için kullanılmaz.<br>⚠ Ortak cihazlarda kullanma; yalnızca güvendiğin yedekleri içe aktar.</div>
     </div>
     <input class="input" id="m-apikey" type="password" placeholder="sk-ant-..." value="${esc(APIKEY)}">
     <div style="height:12px"></div>
@@ -1895,7 +1900,7 @@ function iceAktar(ev){
   r.onload=()=>{
     try{
       const v=JSON.parse(r.result);
-      if(!v.profil||!v.portfoy) throw new Error('geçersiz');
+      if(!v || typeof v!=='object' || Array.isArray(v) || typeof v.profil!=='object' || typeof v.portfoy!=='object') throw new Error('geçersiz');
       localStorage.setItem(LS_VERI,JSON.stringify(v));
       D=veriYukle();
       toast('Yedek geri yüklendi ✓','ok');
