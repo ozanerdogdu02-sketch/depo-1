@@ -1,8 +1,8 @@
+import { useEffect, useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { useApp } from '../context/AppContext';
-import { BookOpen, Dumbbell, Brain, TrendingUp, CheckCircle2 } from 'lucide-react';
-
-const RADIAN = Math.PI / 180;
+import { BookOpen, Dumbbell, Brain, TrendingUp, CheckCircle2, Flame, Sparkles, CalendarCheck } from 'lucide-react';
+import { fetchMyMetrics, MyMetrics } from '../lib/api';
 
 function DonutRing({ value, total, color, label }: { value: number; total: number; color: string; label: string }) {
   const pct = Math.round((value / total) * 100);
@@ -50,6 +50,53 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: { valu
   return null;
 }
 
+function ValueProof() {
+  const [metrics, setMetrics] = useState<MyMetrics | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchMyMetrics()
+      .then(m => { if (!cancelled) setMetrics(m); })
+      .catch(() => {}); // Sunucu kapalıysa panel sessizce gizlenir, uygulama bozulmaz.
+    return () => { cancelled = true; };
+  }, []);
+
+  if (!metrics) return null;
+
+  const items = [
+    { icon: Flame, label: 'Aktif Seri', value: `${metrics.streak} gün` },
+    { icon: CalendarCheck, label: 'Aktif Gün', value: String(metrics.activeDays) },
+    { icon: Brain, label: 'BDT Kaydı', value: String(metrics.moodEntries) },
+    { icon: Sparkles, label: 'AI Desteği', value: String(metrics.aiAssists) },
+  ];
+
+  return (
+    <div className="glass" style={{ padding: '22px 24px', marginBottom: 28 }}>
+      <div className="section-header">
+        <span className="section-title">Değer Kanıtı — Bu Uygulama Sana Ne Kazandırdı?</span>
+        {metrics.moodTrendDelta !== null && (
+          <span className="section-badge" style={{ color: metrics.moodTrendDelta >= 0 ? '#86efac' : '#fca5a5' }}>
+            Ruh hali trendi: {metrics.moodTrendDelta >= 0 ? '+' : ''}{metrics.moodTrendDelta}
+          </span>
+        )}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+        {items.map(({ icon: Icon, label, value }) => (
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Icon size={15} color="#a5b4fc" />
+            </div>
+            <div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: '#f1f5f9' }}>{value}</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { topics, sports, moodEntries, weeklyGoal } = useApp();
 
@@ -77,6 +124,8 @@ export default function Dashboard() {
         <h1 className="page-title">Genel Bakış</h1>
         <p className="page-subtitle">Tüm gelişim alanlarındaki ilerlemeniz</p>
       </div>
+
+      <ValueProof />
 
       {/* Stat Cards */}
       <div className="stat-grid">

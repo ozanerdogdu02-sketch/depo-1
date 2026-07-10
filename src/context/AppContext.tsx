@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
+import { track } from '../lib/api';
 
 export interface FinancialTopic {
   id: string;
@@ -94,11 +95,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [sports, setSports] = useState<SportSession[]>(initialSports);
   const [moodEntries, setMoodEntries] = useState<MoodEntry[]>(initialMoodEntries);
 
-  const toggleTopic = (id: string) =>
+  const toggleTopic = (id: string) => {
+    const topic = topics.find(t => t.id === id);
+    if (topic) track('topic_toggled', { completed: !topic.completed });
     setTopics(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+  };
 
-  const toggleSport = (id: string) =>
+  const toggleSport = (id: string) => {
+    const session = sports.find(s => s.id === id);
+    if (session) track('sport_toggled', { completed: !session.completed });
     setSports(prev => prev.map(s => s.id === id ? { ...s, completed: !s.completed } : s));
+  };
 
   const addMoodEntry = (entry: Omit<MoodEntry, 'id'>) =>
     setMoodEntries(prev => [{ ...entry, id: `m${Date.now()}` }, ...prev]);

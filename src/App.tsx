@@ -4,6 +4,7 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Education from './pages/Education';
 import MoodJournal from './pages/MoodJournal';
+import Admin from './pages/Admin';
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/education" element={<Education />} />
             <Route path="/mood" element={<MoodJournal />} />
+            <Route path="/admin" element={<Admin />} />
           </Routes>
         </Layout>
       </BrowserRouter>

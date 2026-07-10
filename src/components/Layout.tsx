@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { LayoutDashboard, BookOpen, Brain, Sparkles, TrendingUp } from 'lucide-react';
+import { track } from '../lib/api';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -50,6 +52,12 @@ function Sidebar() {
 }
 
 export default function Layout({ children }: { children: React.ReactNode }) {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    track('page_view', { page: pathname });
+  }, [pathname]);
+
   return (
     <div className="app-shell">
       <div className="bg-orb bg-orb-1" />

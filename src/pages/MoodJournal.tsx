@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Plus, Brain, RefreshCw, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { useApp, MoodEntry } from '../context/AppContext';
-import { aiReframe } from '../lib/api';
+import { aiReframe, track } from '../lib/api';
 
 const SCORE_LABELS = ['', 'Çok Kötü', 'Kötü', 'Orta', 'İyi', 'Çok İyi'];
 const SCORE_EMOJIS = ['', '😞', '😕', '😐', '🙂', '😊'];
@@ -89,6 +89,7 @@ export default function MoodJournal() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiDemo, setAiDemo] = useState(false);
+  const [aiUsed, setAiUsed] = useState(false);
 
   const handleAiReframe = async () => {
     if (!form.situation || !form.automaticThought || aiLoading) return;
@@ -103,6 +104,7 @@ export default function MoodJournal() {
       });
       setForm(f => ({ ...f, reframedThought }));
       setAiDemo(demo);
+      setAiUsed(true);
     } catch (err) {
       setAiError(err instanceof Error ? err.message : 'AI önerisi alınamadı.');
     } finally {
@@ -127,9 +129,12 @@ export default function MoodJournal() {
       reframedThought: form.reframedThought || form.automaticThought,
       emotion: form.emotion.length ? form.emotion.join(', ') : 'Tanımlanmamış',
     });
+    // KVKK: yalnızca sayısal özet gönderilir, günlük metni asla gönderilmez.
+    track('mood_entry_created', { score: form.score, emotionCount: form.emotion.length, usedAi: aiUsed });
     setForm(emptyForm);
     setAiDemo(false);
     setAiError(null);
+    setAiUsed(false);
     setSubmitted(true);
     setShowForm(false);
     setTimeout(() => setSubmitted(false), 2500);
@@ -300,7 +305,7 @@ export default function MoodJournal() {
             <button className="btn-primary" onClick={handleSubmit} disabled={!form.score || !form.situation || !form.automaticThought}>
               Kaydet
             </button>
-            <button className="btn-ghost" onClick={() => { setShowForm(false); setForm(emptyForm); setAiDemo(false); setAiError(null); }}>
+            <button className="btn-ghost" onClick={() => { setShowForm(false); setForm(emptyForm); setAiDemo(false); setAiError(null); setAiUsed(false); }}>
               İptal
             </button>
           </div>

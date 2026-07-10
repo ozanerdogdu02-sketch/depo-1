@@ -115,7 +115,7 @@ export default function Education() {
 
         {/* Day Cards */}
         <div className="sport-grid">
-          {sports.map((session, i) => {
+          {sports.map(session => {
             const dayName = DAY_NAMES[new Date(session.date).getDay() === 0 ? 6 : new Date(session.date).getDay() - 1];
             const icon = SPORT_ICONS[session.type] || '🏃';
             return (
