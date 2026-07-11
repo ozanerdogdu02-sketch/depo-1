@@ -1,0 +1,40 @@
+# depo-1 — Proje Hafızası
+
+Bu repo iki bağımsız uygulama içerir. Gelecek oturumlarda çalışmaya buradan başla.
+
+## 1. FAGENT — GÜNCEL SÜRÜM (öncelikli proje)
+
+- **Konum:** `fagent/` (kendi package.json'ı olan bağımsız Vite + React + TS uygulaması)
+- **Ne:** API anahtarı GEREKTİRMEYEN yatırımcı paneli — Panel, İşlemler, Projeksiyon, Demo Ajan (analiz + sohbet, yerel kurallar, `fagent/src/agent.ts`)
+- **Veri:** yalnızca tarayıcıda (`localStorage`, anahtar: `fagent.portfolio.v1`)
+- **Korunan sürüm:** `fagent-stable` dalı = commit `e753c56` (fagent v1.0.0). Bu dalı silme/üzerine yazma.
+- **Canlı site hedefi:** https://fagentai.netlify.app (kullanıcının Netlify hesabı)
+- **Netlify ayarları:** Base directory `fagent` · Build command `npm run build` · Publish directory `fagent/dist`
+- **Geliştirme:** `cd fagent && npm install && npm run dev` · doğrulama: `npm run typecheck && npm run build`
+- Kullanıcının Bolt'ta yaptığı orijinal FAGENT'a erişilemedi; bu, ekran görüntüsüne sadık sıfırdan yazımdır.
+
+## 2. Aura Finance (BDT günlüğü + abonelik demosu)
+
+- **Konum:** repo kökü (`src/`) + `server/`
+- İstemci: Dashboard, Eğitim, BDT Günlüğü (AI yeniden çerçeveleme), `/pricing` (demo abonelik, günde 3 AI hakkı), `/admin` (x-admin-key ile metrikler)
+- Backend yokken de tamamen çalışır (yerel demo yanıtlar) — statik yayına uygun.
+
+## Background/Sunucu Scripti (`server/` — İLERİDE LAZIM)
+
+Express sunucusu; şu an yayında kullanılmıyor ama **gerçek AI'a geçişte devreye girecek**:
+
+- `server/index.js` — uçlar: `POST /api/auth/session` (anonim JWT), `POST /api/ai/chat`
+  (Anthropic proxy; anahtar yalnızca `.env`'de), `POST /api/events`, `GET /api/metrics/me`,
+  `GET /api/admin/metrics`. Rate limit: AI 10/dk, olaylar 60/dk.
+- `server/ai.js` — Anthropic çağrısı (`claude-opus-4-8`), girdi doğrulama, anahtarsızsa demo yanıt.
+- `server/analytics.js` — KVKK-uyumlu beyaz listeli olay kaydı (JSONL) + metrik hesapları.
+- Çalıştırma: `cp .env.example .env` doldur → `npm run server` (kökten).
+- FAGENT'a gerçek AI eklemek için plan: bu sunucuyu Render/Railway'e koy,
+  `fagent/src/agent.ts` içindeki `analyzePortfolio`/`chatReply` çağrılarını
+  `/api/ai/chat` proxy çağrısıyla değiştir; anahtar yoksa mevcut yerel kurallara düş.
+
+## Kurallar
+
+- Model: `claude-opus-4-8` (server/ai.js, `AI_MODEL` env ile değiştirilebilir)
+- API anahtarları asla istemci koduna girmez; istemci her zaman anahtarsız da çalışmalı.
+- Analitik asla serbest metin loglamaz (KVKK) — `server/analytics.js` beyaz listesi.
