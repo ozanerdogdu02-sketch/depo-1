@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { Plus, Brain, RefreshCw, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Plus, Brain, RefreshCw, ChevronDown, ChevronUp, Sparkles, Crown } from 'lucide-react';
 import { useApp, MoodEntry } from '../context/AppContext';
 import { aiReframe, track } from '../lib/api';
+import { useSubscription, registerAiUse, FREE_DAILY_AI_LIMIT } from '../lib/subscription';
 
 const SCORE_LABELS = ['', 'Çok Kötü', 'Kötü', 'Orta', 'İyi', 'Çok İyi'];
 const SCORE_EMOJIS = ['', '😞', '😕', '😐', '🙂', '😊'];
@@ -90,9 +92,14 @@ export default function MoodJournal() {
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiDemo, setAiDemo] = useState(false);
   const [aiUsed, setAiUsed] = useState(false);
+  const { plan, canUseAi, aiRemainingToday } = useSubscription();
 
   const handleAiReframe = async () => {
     if (!form.situation || !form.automaticThought || aiLoading) return;
+    if (!canUseAi) {
+      track('paywall_viewed', { source: 'mood' });
+      return;
+    }
     setAiLoading(true);
     setAiError(null);
     try {
@@ -105,6 +112,7 @@ export default function MoodJournal() {
       setForm(f => ({ ...f, reframedThought }));
       setAiDemo(demo);
       setAiUsed(true);
+      registerAiUse();
     } catch (err) {
       setAiError(err instanceof Error ? err.message : 'AI önerisi alınamadı.');
     } finally {
@@ -270,19 +278,29 @@ export default function MoodJournal() {
               <label className="form-label" style={{ margin: 0, color: '#a5b4fc' }}>Bilişsel Yeniden Çerçeveleme</label>
               <button
                 onClick={handleAiReframe}
-                disabled={aiLoading || !form.situation || !form.automaticThought}
+                disabled={aiLoading || !form.situation || !form.automaticThought || !canUseAi}
                 style={{
                   marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6,
                   padding: '5px 12px', borderRadius: 10, fontSize: 12, fontWeight: 600,
-                  cursor: aiLoading || !form.situation || !form.automaticThought ? 'not-allowed' : 'pointer',
+                  cursor: aiLoading || !form.situation || !form.automaticThought || !canUseAi ? 'not-allowed' : 'pointer',
                   border: '1px solid rgba(99,102,241,0.4)', background: 'rgba(99,102,241,0.15)',
-                  color: '#a5b4fc', opacity: aiLoading || !form.situation || !form.automaticThought ? 0.5 : 1,
+                  color: '#a5b4fc', opacity: aiLoading || !form.situation || !form.automaticThought || !canUseAi ? 0.5 : 1,
                 }}
               >
                 <Sparkles size={12} />
                 {aiLoading ? 'Öneri hazırlanıyor…' : 'AI ile Öneri Al'}
+                {plan === 'free' && aiRemainingToday !== null && (
+                  <span style={{ fontSize: 10, opacity: 0.7 }}>({aiRemainingToday}/{FREE_DAILY_AI_LIMIT})</span>
+                )}
               </button>
             </div>
+            {!canUseAi && (
+              <p style={{ fontSize: 12, color: '#fbbf24', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Crown size={12} />
+                Bugünkü {FREE_DAILY_AI_LIMIT} ücretsiz AI önerini kullandın.
+                <Link to="/pricing" style={{ color: '#fbbf24', fontWeight: 600 }}>Premium ile sınırsız kullan →</Link>
+              </p>
+            )}
             {aiError && (
               <p style={{ fontSize: 12, color: '#fca5a5', marginBottom: 8 }}>{aiError}</p>
             )}

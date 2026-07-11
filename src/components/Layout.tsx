@@ -1,16 +1,19 @@
 import { useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Brain, Sparkles, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Brain, Sparkles, TrendingUp, Crown } from 'lucide-react';
 import { track } from '../lib/api';
+import { useSubscription } from '../lib/subscription';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/education', icon: BookOpen, label: 'Eğitim & Aktivite' },
   { to: '/mood', icon: Brain, label: 'BDT Günlüğü' },
+  { to: '/pricing', icon: Crown, label: 'Abonelik' },
 ];
 
 function Sidebar() {
   const location = useLocation();
+  const { plan } = useSubscription();
 
   return (
     <aside className="sidebar">
@@ -22,6 +25,11 @@ function Sidebar() {
           <div className="logo-title">Aura</div>
           <div className="logo-sub">Finance</div>
         </div>
+        {plan === 'premium' && (
+          <span title="Premium üye" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: '#fbbf24', border: '1px solid rgba(251,191,36,0.35)', background: 'rgba(251,191,36,0.1)', padding: '3px 8px', borderRadius: 8 }}>
+            <Crown size={10} /> PRO
+          </span>
+        )}
       </div>
 
       <nav className="sidebar-nav">

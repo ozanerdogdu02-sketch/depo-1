@@ -9,6 +9,8 @@ const FEATURE_LABELS: Record<string, string> = {
   ai_reframe_used: 'AI Yeniden Çerçeveleme',
   topic_toggled: 'Konu İşaretleme',
   sport_toggled: 'Spor İşaretleme',
+  plan_changed: 'Plan Değişikliği',
+  paywall_viewed: 'Paywall Görüntüleme',
 };
 
 export default function Admin() {

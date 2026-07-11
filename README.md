@@ -57,6 +57,24 @@ npm run build   # çıktı: dist/
 3. Kayıt firmasının DNS panelinde hosting'in verdiği kayıtları gir
    (genelde kök alan için `A`/`ALIAS`, `www` için `CNAME`). SSL sertifikası otomatik gelir.
 
+## Abonelik Sistemi
+
+- **Ücretsiz plan:** tüm takip özellikleri + günde 3 AI yeniden çerçeveleme önerisi.
+- **Premium plan (demo):** sınırsız AI önerisi. `/pricing` sayfasından tek tıkla geçilir;
+  gerçek ödeme alınmaz, kart bilgisi istenmez ve bu durum arayüzde açıkça belirtilir.
+- Plan ve günlük AI kotası tarayıcıda (`localStorage`) tutulur; kota her gün sıfırlanır.
+- Paywall: ücretsiz kullanıcı kotayı bitirince AI butonu kilitlenir ve Premium bağlantısı gösterilir.
+- Olaylar: `plan_changed` ve `paywall_viewed` analitiğe düşer (dönüşüm hunisi ölçümü için).
+
+### Gerçek Ödemeye Geçiş (yol haritası)
+
+1. [Stripe](https://stripe.com) (küresel) veya [İyzico](https://iyzico.com) (Türkiye, TL tahsilat) hesabı aç.
+2. `server/`'a bir `POST /api/billing/checkout` ucu ekle: sağlayıcının Checkout oturumunu
+   oluşturur ve URL döndürür (gizli anahtar yalnızca sunucuda).
+3. Sağlayıcı webhook'u (`payment_succeeded`) planı sunucuda kullanıcı kimliğine (JWT `uid`) bağlar;
+   `src/lib/subscription.ts` içindeki `upgradeToPremium()` yerine sunucudan plan sorgulanır.
+4. İstemcide değişecek tek nokta `subscription.ts` — sayfalar ve kota mantığı aynen kalır.
+
 ## KVKK Notu
 
 Analitik olayları yalnızca olay adı, zaman damgası, anonim kullanıcı kimliği (rastgele UUID) ve dar bir sayısal/enum özellik kümesi içerir. Günlük metinleri, durumlar ve düşünceler **hiçbir zaman** sunucuda loglanmaz; beyaz liste dışındaki alanlar sunucuda atılır.

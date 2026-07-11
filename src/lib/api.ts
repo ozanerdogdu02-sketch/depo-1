@@ -85,7 +85,9 @@ export type EventName =
   | 'mood_entry_created'
   | 'ai_reframe_used'
   | 'topic_toggled'
-  | 'sport_toggled';
+  | 'sport_toggled'
+  | 'plan_changed'
+  | 'paywall_viewed';
 
 // Ateşle-unut: analitik hiçbir zaman kullanıcı akışını bloklamaz veya bozmaz.
 export function track(name: EventName, props: Record<string, unknown> = {}): void {

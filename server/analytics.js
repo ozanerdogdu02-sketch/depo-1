@@ -13,6 +13,8 @@ const EVENT_WHITELIST = new Set([
   'ai_reframe_used',
   'topic_toggled',
   'sport_toggled',
+  'plan_changed',
+  'paywall_viewed',
 ]);
 
 const ALLOWED_PROPS = {
@@ -25,6 +27,8 @@ const ALLOWED_PROPS = {
   ai_reframe_used: { demo: v => typeof v === 'boolean' },
   topic_toggled: { completed: v => typeof v === 'boolean' },
   sport_toggled: { completed: v => typeof v === 'boolean' },
+  plan_changed: { plan: v => v === 'free' || v === 'premium' },
+  paywall_viewed: { source: v => v === 'pricing' || v === 'mood' },
 };
 
 let events = [];

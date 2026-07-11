@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import Education from './pages/Education';
 import MoodJournal from './pages/MoodJournal';
 import Admin from './pages/Admin';
+import Pricing from './pages/Pricing';
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
             <Route path="/education" element={<Education />} />
             <Route path="/mood" element={<MoodJournal />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/pricing" element={<Pricing />} />
           </Routes>
         </Layout>
       </BrowserRouter>
