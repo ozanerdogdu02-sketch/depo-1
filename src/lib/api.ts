@@ -1,11 +1,13 @@
 const TOKEN_KEY = 'aura.session.token';
 
 let sessionPromise: Promise<string> | null = null;
+let backendDown = false; // Statik hosting'de gereksiz istek tekrarını önler.
 
 async function createSession(): Promise<string> {
   const res = await fetch('/api/auth/session', { method: 'POST' });
   if (!res.ok) throw new Error('Oturum açılamadı.');
   const { token } = (await res.json()) as { token: string };
+  if (typeof token !== 'string' || !token) throw new Error('Geçersiz oturum yanıtı.');
   localStorage.setItem(TOKEN_KEY, token);
   return token;
 }
@@ -13,7 +15,12 @@ async function createSession(): Promise<string> {
 async function getToken(): Promise<string> {
   const stored = localStorage.getItem(TOKEN_KEY);
   if (stored) return stored;
-  if (!sessionPromise) sessionPromise = createSession().finally(() => { sessionPromise = null; });
+  if (backendDown) throw new Error('Sunucu erişilebilir değil.');
+  if (!sessionPromise) {
+    sessionPromise = createSession()
+      .catch(err => { backendDown = true; throw err; })
+      .finally(() => { sessionPromise = null; });
+  }
   return sessionPromise;
 }
 
@@ -43,14 +50,34 @@ export interface ReframeResponse {
   demo: boolean;
 }
 
+// Sunucu hiç yokken (statik hosting) kullanılan yerel şablon yanıt —
+// site API anahtarı ve backend olmadan da uçtan uca çalışır.
+function localReframe({ automaticThought }: ReframeRequest): ReframeResponse {
+  return {
+    reframedThought:
+      `Bu düşüncenin ("${automaticThought.slice(0, 120)}") şu an sana ağır geldiğini görüyorum ve bu anlaşılır. ` +
+      'Yine de bu, anın verdiği bir yorum; kanıtlara baktığında ilerlediğin ve iyi giden alanlar da var. ' +
+      'Tek bir zor an, tüm gidişatı tanımlamaz — küçük adımlar saymaya devam ediyor.',
+    demo: true,
+  };
+}
+
+class RateLimitedError extends Error {}
+
 export async function aiReframe(body: ReframeRequest): Promise<ReframeResponse> {
-  const res = await authedFetch('/api/ai/chat', { method: 'POST', body: JSON.stringify(body) });
-  if (res.status === 429) throw new Error('Çok fazla istek gönderildi, lütfen biraz bekle.');
-  if (!res.ok) {
-    const data = (await res.json().catch(() => null)) as { message?: string } | null;
-    throw new Error(data?.message ?? 'AI servisine ulaşılamadı.');
+  try {
+    const res = await authedFetch('/api/ai/chat', { method: 'POST', body: JSON.stringify(body) });
+    if (res.status === 429) throw new RateLimitedError('Çok fazla istek gönderildi, lütfen biraz bekle.');
+    if (!res.ok) throw new Error('AI servisine ulaşılamadı.');
+    const data = (await res.json()) as ReframeResponse;
+    if (typeof data?.reframedThought !== 'string') throw new Error('Geçersiz AI yanıtı.');
+    return data;
+  } catch (err) {
+    // Gerçek rate limit mesajını kullanıcıya göster; diğer her durumda
+    // (backend yok, ağ hatası, geçersiz yanıt) yerel demo yanıta düş.
+    if (err instanceof RateLimitedError) throw err;
+    return localReframe(body);
   }
-  return (await res.json()) as ReframeResponse;
 }
 
 export type EventName =

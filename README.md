@@ -30,6 +30,33 @@ npm run dev            # Vite → http://localhost:5173 (/api istekleri sunucuya
 | `GET /api/metrics/me` | JWT | Kullanıcının kendi "değer kanıtı" metrikleri |
 | `GET /api/admin/metrics` | `x-admin-key` | Admin paneli metrikleri (`/admin` sayfası) |
 
+## Yayınlama (Deploy) — API Anahtarsız Statik Site
+
+Uygulama backend olmadan da tamamen çalışır: sunucuya ulaşılamadığında AI butonu
+yerel demo yanıt üretir, analitik sessizce devre dışı kalır. Yani `dist/` klasörü
+herhangi bir statik hosting'e atılabilir:
+
+```bash
+npm run build   # çıktı: dist/
+```
+
+- **Netlify** (önerilen, ücretsiz): [app.netlify.com](https://app.netlify.com) → "Add new site" →
+  GitHub reposunu bağla (build komutu `npm run build`, publish dizini `dist`) veya `dist/`
+  klasörünü sürükle-bırak. SPA yönlendirmesi için `public/_redirects` hazır.
+- **Vercel** (ücretsiz): [vercel.com](https://vercel.com) → "Import Project" → repoyu seç,
+  Vite otomatik algılanır. `vercel.json` hazır.
+- **GitHub Pages**: mümkün ama `BrowserRouter` için ek ayar ister; Netlify/Vercel daha kolay.
+
+İleride gerçek AI yanıtı istersen `server/`'ı Render/Railway/Fly.io gibi bir yere koyup
+`ANTHROPIC_API_KEY` tanımlaman yeterli — istemci kodu değişmez.
+
+## Domain Bağlama
+
+1. Domain satın al (aşağıdaki kayıt firmalarından biri).
+2. Netlify/Vercel panelinde **Domain settings → Add custom domain** ile alan adını ekle.
+3. Kayıt firmasının DNS panelinde hosting'in verdiği kayıtları gir
+   (genelde kök alan için `A`/`ALIAS`, `www` için `CNAME`). SSL sertifikası otomatik gelir.
+
 ## KVKK Notu
 
 Analitik olayları yalnızca olay adı, zaman damgası, anonim kullanıcı kimliği (rastgele UUID) ve dar bir sayısal/enum özellik kümesi içerir. Günlük metinleri, durumlar ve düşünceler **hiçbir zaman** sunucuda loglanmaz; beyaz liste dışındaki alanlar sunucuda atılır.

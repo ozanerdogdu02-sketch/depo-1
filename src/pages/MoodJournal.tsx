@@ -288,7 +288,7 @@ export default function MoodJournal() {
             )}
             {aiDemo && !aiError && (
               <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>
-                Demo modu: sunucuda API anahtarı tanımlı olmadığı için örnek bir öneri gösterildi.
+                Demo modu: AI servisi yapılandırılmadığı için örnek bir öneri gösterildi.
               </p>
             )}
             <textarea
