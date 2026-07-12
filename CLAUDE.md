@@ -6,8 +6,10 @@ Bu repo iki bağımsız uygulama içerir. Gelecek oturumlarda çalışmaya burad
 
 - **Konum:** `fagent/` (kendi package.json'ı olan bağımsız Vite + React + TS uygulaması)
 - **Ne:** API anahtarı GEREKTİRMEYEN yatırımcı paneli — Panel, İşlemler, Projeksiyon, Demo Ajan (analiz + sohbet, yerel kurallar, `fagent/src/agent.ts`)
+- **Yerleşim:** sol sabit menü (Fintables'tan yerleşim ilhamı, `.sidebar`/`.side-nav`/`.side-link` — `fagent/src/index.css`), mobilde üstte yatay bara döner. İşlemler sekmesinde her zaman görünür "Nasıl İşlem Eklerim?" rehber kartı var.
+- **Bilinçli sınır:** gerçek piyasa verisi (hisse/fon/endeks fiyatları) YOK ve eklenmeyecek — anahtarsız/ücretsiz veri kaynağı olmadığı için sahte fiyat göstermek yanıltıcı olur. Kullanıcıyla bu netleştirildi (2026-07-12).
 - **Veri:** yalnızca tarayıcıda (`localStorage`, anahtar: `fagent.portfolio.v1`)
-- **Korunan sürüm:** `fagent-stable` dalı = commit `e753c56` (fagent v1.0.0). Bu dalı silme/üzerine yazma.
+- **Korunan sürüm:** `fagent-stable` dalı = commit `e753c56` (fagent v1.0.0, sol menü öncesi). Bu dalı silme/üzerine yazma — `main` bundan sonra da güncellenmeye devam edebilir.
 - **Canlı site hedefi:** https://fagentai.netlify.app (kullanıcının Netlify hesabı)
 - **Netlify ayarları:** Base directory `fagent` · Build command `npm run build` · Publish directory `fagent/dist`
 - **Geliştirme:** `cd fagent && npm install && npm run dev` · doğrulama: `npm run typecheck && npm run build`
