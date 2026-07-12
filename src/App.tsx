@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts';
-import { Bot, Send, TrendingUp, Trash2, RotateCcw } from 'lucide-react';
+import { Bot, Send, TrendingUp, Trash2, RotateCcw, LayoutDashboard, ArrowLeftRight, BookOpen } from 'lucide-react';
 import { usePortfolio, actions, totalValue, fmtTL, ASSET_LABELS, AssetType } from './store';
 import { analyzePortfolio, chatReply, AgentMessage } from './agent';
 
@@ -56,9 +56,9 @@ function Panel() {
         <div className="sub">{s.holdings.length} varlık · veriler tarayıcında saklanır</div>
       </div>
 
-      {pieData.length > 0 && (
-        <div className="card">
-          <div className="card-title">Sınıf Dağılımı</div>
+      <div className="card">
+        <div className="card-title">Sınıf Dağılımı</div>
+        {pieData.length > 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
             <PieChart width={180} height={180}>
               <Pie data={pieData} cx={85} cy={85} innerRadius={52} outerRadius={78} dataKey="value" strokeWidth={0}>
@@ -78,8 +78,10 @@ function Panel() {
               ))}
             </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <p className="sub">Henüz varlık eklenmedi — buraya bir varlık ekleyince dağılım grafiği burada görünecek.</p>
+        )}
+      </div>
 
       <div className="card">
         <div className="card-title">Varlıklar</div>
@@ -139,6 +141,17 @@ function Islemler() {
 
   return (
     <div className="fade">
+      <div className="card">
+        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <BookOpen size={13} /> Nasıl İşlem Eklerim?
+        </div>
+        <ol style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingLeft: 18, fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.6 }}>
+          <li>Aşağıdan bir varlık seç — yoksa önce <strong style={{ color: 'var(--text)' }}>Panel</strong> sekmesinden varlık ekle.</li>
+          <li>Alış ya da Satış seç.</li>
+          <li>Tutarı gir ve Kaydet'e bas — varlığın bakiyesi otomatik güncellenir.</li>
+        </ol>
+      </div>
+
       <div className="card">
         <div className="card-title">Yeni İşlem</div>
         {s.holdings.length === 0 ? (
@@ -316,54 +329,70 @@ function Ajan() {
   );
 }
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'panel', label: 'PANEL' },
-  { id: 'islemler', label: 'İŞLEMLER' },
-  { id: 'projeksiyon', label: 'PROJEKSİYON' },
-  { id: 'ajan', label: 'AJAN' },
-];
+function SideLink({ active, onClick, icon: Icon, label }: {
+  active: boolean;
+  onClick: () => void;
+  icon: typeof Bot;
+  label: string;
+}) {
+  return (
+    <button className={`side-link ${active ? 'side-link-active' : ''}`} onClick={onClick} aria-current={active ? 'page' : undefined}>
+      <Icon size={15} />
+      {label}
+    </button>
+  );
+}
 
 export default function App() {
   const s = usePortfolio();
   const [tab, setTab] = useState<Tab>('panel');
 
+  const resetAll = () => {
+    if (confirm('Tüm veriler silinsin ve başa dönülsün mü?')) actions.reset();
+  };
+
   return (
-    <div className="shell">
-      <header className="topbar">
-        <span className="brand">FAGENT</span>
-        <span className="topbar-right">yatırımcı</span>
-      </header>
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="side-brand">
+          <span className="brand">FAGENT</span>
+          <span className="side-role">yatırımcı</span>
+        </div>
 
-      <div className="status-pill">
-        <span className="status-dot" />
-        ANAHTARSIZ MOD — HER ŞEY AÇIK
-      </div>
+        <div className="status-pill">
+          <span className="status-dot" />
+          ANAHTARSIZ MOD
+        </div>
 
-      {!s.onboarded ? (
-        <Onboarding />
-      ) : (
-        <>
-          <nav className="tabs" aria-label="Bölümler">
-            {TABS.map(t => (
-              <button key={t.id} className={`tab ${tab === t.id ? 'tab-active' : ''}`} onClick={() => setTab(t.id)}>
-                {t.label}
-              </button>
-            ))}
-            <button
-              className="tab"
-              style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              onClick={() => { if (confirm('Tüm veriler silinsin ve başa dönülsün mü?')) actions.reset(); }}
-              title="Verileri sıfırla"
-            >
-              <RotateCcw size={12} /> SIFIRLA
+        {s.onboarded && (
+          <>
+            <nav className="side-nav" aria-label="Bölümler">
+              <SideLink active={tab === 'panel'} onClick={() => setTab('panel')} icon={LayoutDashboard} label="PANEL" />
+              <SideLink active={tab === 'islemler'} onClick={() => setTab('islemler')} icon={ArrowLeftRight} label="İŞLEMLER" />
+              <SideLink active={tab === 'projeksiyon'} onClick={() => setTab('projeksiyon')} icon={TrendingUp} label="PROJEKSİYON" />
+              <SideLink active={tab === 'ajan'} onClick={() => setTab('ajan')} icon={Bot} label="AJAN" />
+            </nav>
+            <button className="side-reset" onClick={resetAll} title="Verileri sıfırla">
+              <RotateCcw size={13} /> SIFIRLA
             </button>
-          </nav>
-          {tab === 'panel' && <Panel />}
-          {tab === 'islemler' && <Islemler />}
-          {tab === 'projeksiyon' && <Projeksiyon />}
-          {tab === 'ajan' && <Ajan />}
-        </>
-      )}
+          </>
+        )}
+      </aside>
+
+      <main className="main">
+        <div className="main-inner">
+          {!s.onboarded ? (
+            <Onboarding />
+          ) : (
+            <>
+              {tab === 'panel' && <Panel />}
+              {tab === 'islemler' && <Islemler />}
+              {tab === 'projeksiyon' && <Projeksiyon />}
+              {tab === 'ajan' && <Ajan />}
+            </>
+          )}
+        </div>
+      </main>
     </div>
   );
 }
