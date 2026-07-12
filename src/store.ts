@@ -16,8 +16,10 @@ export interface Holding {
 
 export interface Txn {
   id: string;
-  date: string; // YYYY-MM-DD
-  holdingName: string;
+  date: string; // YYYY-MM-DD, yerel tarih
+  holdingId: string; // hangi varlığa ait olduğunu KESİN belirler (isim çakışmasına karşı)
+  holdingName: string; // işlem anındaki varlık adı — görüntüleme/CSV için; varlık sonradan silinse/adı
+                        // değişse de bu kayıt sabit kalır (muhasebe defteri mantığı)
   kind: 'alis' | 'satis';
   amount: number; // TL
 }
@@ -41,6 +43,25 @@ const KEY = 'fagent.portfolio.v1';
 
 const EMPTY: PortfolioState = { onboarded: false, holdings: [], txns: [] };
 
+// UTC değil, kullanıcının kendi yerel takvim günü — new Date().toISOString().slice(0,10)
+// gece yarısına yakın saatlerde (TR UTC+3) yanlış günü verebilirdi.
+function localDateString(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+export function todayLocalDate(): string {
+  return localDateString(new Date());
+}
+
+function sameDayOffset(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return localDateString(d);
+}
+
 // Örnek veri, kâr/zarar özelliğini gösterebilmek için maliyet ≠ güncel değer içerir.
 const SAMPLE: PortfolioState = {
   onboarded: true,
@@ -52,18 +73,12 @@ const SAMPLE: PortfolioState = {
     { id: 'h5', name: 'Vadeli Mevduat', type: 'mevduat', amount: 31200, costBasis: 30000 },
   ],
   txns: [
-    { id: 't1', date: sameDayOffset(-21), holdingName: 'BIST 30 Fonu', kind: 'alis', amount: 15000 },
-    { id: 't2', date: sameDayOffset(-14), holdingName: 'THYAO', kind: 'alis', amount: 8000 },
-    { id: 't3', date: sameDayOffset(-7), holdingName: 'Gram Altın', kind: 'alis', amount: 6000 },
-    { id: 't4', date: sameDayOffset(-2), holdingName: 'USD', kind: 'satis', amount: 3000 },
+    { id: 't1', date: sameDayOffset(-21), holdingId: 'h1', holdingName: 'BIST 30 Fonu', kind: 'alis', amount: 15000 },
+    { id: 't2', date: sameDayOffset(-14), holdingId: 'h2', holdingName: 'THYAO', kind: 'alis', amount: 8000 },
+    { id: 't3', date: sameDayOffset(-7), holdingId: 'h3', holdingName: 'Gram Altın', kind: 'alis', amount: 6000 },
+    { id: 't4', date: sameDayOffset(-2), holdingId: 'h4', holdingName: 'USD', kind: 'satis', amount: 3000 },
   ],
 };
-
-function sameDayOffset(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
 
 let state: PortfolioState = load();
 const listeners = new Set<() => void>();
@@ -79,7 +94,15 @@ function load(): PortfolioState {
       ...h,
       costBasis: typeof h.costBasis === 'number' ? h.costBasis : h.amount,
     }));
-    return { ...parsed, holdings };
+    // Eski sürümden gelen işlemlerde holdingId yoksa, isimle en iyi çabayla eşleştirilir
+    // (yalnızca görüntüleme için kullanılır, gelecekteki işlemler zaten ID ile çalışır).
+    const txns = parsed.txns.map(t => ({
+      ...t,
+      holdingId: typeof t.holdingId === 'string' && t.holdingId
+        ? t.holdingId
+        : (holdings.find(h => h.name === t.holdingName)?.id ?? ''),
+    }));
+    return { ...parsed, holdings, txns };
   } catch {
     return EMPTY;
   }
@@ -90,6 +113,9 @@ function commit(next: PortfolioState): void {
   localStorage.setItem(KEY, JSON.stringify(next));
   listeners.forEach(fn => fn());
 }
+
+// Ad çakışması kontrolü için: büyük/küçük harf ve baş/son boşluk duyarsız karşılaştırma.
+const normalizeName = (name: string) => name.trim().toLocaleLowerCase('tr-TR');
 
 export const actions = {
   startWithSample(): void {
@@ -104,7 +130,8 @@ export const actions = {
   },
   addHolding(name: string, type: AssetType, amount: number, quantity?: number, symbol?: string): void {
     const trimmedName = name.trim();
-    const holding: Holding = { id: `h${Date.now()}`, name: trimmedName, type, amount, costBasis: amount };
+    const id = `h${Date.now()}`;
+    const holding: Holding = { id, name: trimmedName, type, amount, costBasis: amount };
     if (quantity !== undefined && symbol) {
       holding.quantity = quantity;
       holding.symbol = symbol;
@@ -112,19 +139,28 @@ export const actions = {
     }
     // Yeni varlığın ilk tutarı da bir yatırım hareketidir — işlem geçmişine (ve
     // dolayısıyla net yatırım grafiğine) yansısın diye örtük bir 'alış' kaydı düşülür.
-    const txn: Txn = { id: `t${Date.now()}`, date: new Date().toISOString().slice(0, 10), holdingName: trimmedName, kind: 'alis', amount };
+    const txn: Txn = { id: `t${Date.now()}`, date: todayLocalDate(), holdingId: id, holdingName: trimmedName, kind: 'alis', amount };
     commit({ ...state, holdings: [...state.holdings, holding], txns: [txn, ...state.txns] });
   },
+  // Bu isimde (büyük/küçük harf duyarsız) bir varlık zaten var mı? UI, ekleme öncesi bunu kontrol eder.
+  holdingNameExists(name: string): boolean {
+    const key = normalizeName(name);
+    return state.holdings.some(h => normalizeName(h.name) === key);
+  },
   // CSV içe aktarma — mevcut varlıklara EKLENİR, üzerine yazmaz (geri alınabilir: tek tek silinebilir).
-  importHoldings(rows: { name: string; type: AssetType; costBasis: number; amount: number }[]): void {
-    const imported: Holding[] = rows.map((r, i) => ({
-      id: `h${Date.now()}-${i}`,
-      name: r.name,
-      type: r.type,
-      amount: r.amount,
-      costBasis: r.costBasis,
-    }));
-    commit({ ...state, holdings: [...state.holdings, ...imported] });
+  // Aynı isimde (mevcutlarla ya da dosya içinde tekrar eden) satırlar atlanır ve sayılır.
+  importHoldings(rows: { name: string; type: AssetType; costBasis: number; amount: number }[]): { imported: number; duplicates: number } {
+    const seenNames = new Set(state.holdings.map(h => normalizeName(h.name)));
+    const toImport: Holding[] = [];
+    let duplicates = 0;
+    rows.forEach((r, i) => {
+      const key = normalizeName(r.name);
+      if (seenNames.has(key)) { duplicates++; return; }
+      seenNames.add(key);
+      toImport.push({ id: `h${Date.now()}-${i}`, name: r.name.trim(), type: r.type, amount: r.amount, costBasis: r.costBasis });
+    });
+    if (toImport.length > 0) commit({ ...state, holdings: [...state.holdings, ...toImport] });
+    return { imported: toImport.length, duplicates };
   },
   removeHolding(id: string): void {
     commit({ ...state, holdings: state.holdings.filter(h => h.id !== id) });
@@ -141,10 +177,13 @@ export const actions = {
     );
     commit({ ...state, holdings });
   },
-  addTxn(holdingName: string, kind: Txn['kind'], amount: number): void {
-    const txn: Txn = { id: `t${Date.now()}`, date: new Date().toISOString().slice(0, 10), holdingName, kind, amount };
+  // holdingId ile eşleşir (isimle değil) — iki varlık aynı adı taşısa bile karışmaz.
+  addTxn(holdingId: string, kind: Txn['kind'], amount: number): void {
+    const holding = state.holdings.find(h => h.id === holdingId);
+    if (!holding) return; // savunma: varlık bu sırada silinmiş olabilir
+    const txn: Txn = { id: `t${Date.now()}`, date: todayLocalDate(), holdingId, holdingName: holding.name, kind, amount };
     const holdings = state.holdings.map(h => {
-      if (h.name !== holdingName) return h;
+      if (h.id !== holdingId) return h;
       if (kind === 'alis') {
         // Alış: hem güncel değer hem maliyet aynı miktarda artar.
         return { ...h, amount: h.amount + amount, costBasis: h.costBasis + amount };

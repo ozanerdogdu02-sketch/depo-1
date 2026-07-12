@@ -98,7 +98,9 @@ export function parseHoldingsCsv(text: string): ImportResult {
   const lines = clean.split(/\r\n|\n/).filter(l => l.trim().length > 0);
   if (lines.length === 0) return { rows: [], skipped: 0 };
 
-  const startIdx = /varlık/i.test(lines[0]) ? 1 : 0;
+  const firstCells = parseCsvLine(lines[0]);
+  const looksLikeHeader = (firstCells[0] ?? '').trim().toLocaleLowerCase('tr-TR') === 'varlık';
+  const startIdx = looksLikeHeader ? 1 : 0;
   const rows: ParsedHoldingRow[] = [];
   let skipped = 0;
 
