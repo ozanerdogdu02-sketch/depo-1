@@ -5,7 +5,7 @@ import {
   Search, CalendarDays, BarChart3, PieChart as PieChartIcon, Bitcoin, Pencil, Check, X, Download,
   RefreshCw, Loader2, Wifi, Upload,
 } from 'lucide-react';
-import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, ASSET_LABELS, AssetType, Holding } from './store';
+import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, todayLocalDate, ASSET_LABELS, AssetType, Holding } from './store';
 import { analyzePortfolio, chatReply, AgentMessage } from './agent';
 import { exportHoldingsCsv, exportTxnsCsv, parseHoldingsCsv } from './csv';
 import { CURRENCIES, COINS, fetchTryRate, fetchCryptoTryPrice, MarketFetchError } from './market';
@@ -62,6 +62,7 @@ function Panel({ assetType, title, query }: PanelProps) {
   const [name, setName] = useState('');
   const [type, setType] = useState<AssetType>(assetType ?? 'hisse');
   const [amount, setAmount] = useState('');
+  const [nameError, setNameError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
 
@@ -115,9 +116,13 @@ function Panel({ assetType, title, query }: PanelProps) {
   const addHolding = () => {
     const n = Number(amount);
     if (!name.trim() || !Number.isFinite(n) || n <= 0) return;
+    if (actions.holdingNameExists(name)) {
+      setNameError('Bu isimde bir varlık zaten var — farklı bir ad seç.');
+      return;
+    }
     const canLink = (type === 'doviz' || type === 'kripto') && linkedQuantity !== null;
     actions.addHolding(name, type, Math.round(n), canLink ? linkedQuantity : undefined, canLink ? liveSymbol : undefined);
-    setName(''); setAmount(''); setLinkedQuantity(null); setLiveQuantity(''); setLiveError(null);
+    setName(''); setAmount(''); setLinkedQuantity(null); setLiveQuantity(''); setLiveError(null); setNameError(null);
   };
 
   const changeType = (t: AssetType) => {
@@ -168,13 +173,11 @@ function Panel({ assetType, title, query }: PanelProps) {
         setImportMsg({ text: 'Dosyada içe aktarılabilir geçerli satır bulunamadı.', ok: false });
         return;
       }
-      actions.importHoldings(rows);
-      setImportMsg({
-        text: skipped > 0
-          ? `${rows.length} varlık eklendi, ${skipped} satır atlandı (eksik/geçersiz veri).`
-          : `${rows.length} varlık başarıyla eklendi.`,
-        ok: true,
-      });
+      const { imported, duplicates } = actions.importHoldings(rows);
+      const parts: string[] = [`${imported} varlık eklendi`];
+      if (duplicates > 0) parts.push(`${duplicates} satır isim çakışması nedeniyle atlandı`);
+      if (skipped > 0) parts.push(`${skipped} satır eksik/geçersiz veri nedeniyle atlandı`);
+      setImportMsg({ text: `${parts.join(', ')}.`, ok: imported > 0 });
     } catch {
       setImportMsg({ text: 'Dosya okunamadı — geçerli bir CSV olduğundan emin ol.', ok: false });
     }
@@ -380,7 +383,12 @@ function Panel({ assetType, title, query }: PanelProps) {
         <div className="grid-2" style={{ marginTop: 16 }}>
           <div>
             <label className="field" htmlFor="h-name">Varlık adı</label>
-            <input id="h-name" className="input" placeholder="ör. BIST 30 Fonu" value={name} onChange={e => setName(e.target.value)} />
+            <input
+              id="h-name" className="input" placeholder="ör. BIST 30 Fonu" value={name}
+              onChange={e => { setName(e.target.value); setNameError(null); }}
+              onKeyDown={e => { if (e.key === 'Enter') addHolding(); }}
+            />
+            {nameError && <p className="hint" style={{ marginTop: 4, color: 'var(--red)' }}>{nameError}</p>}
           </div>
           <div>
             <label className="field" htmlFor="h-type">Tür</label>
@@ -414,6 +422,7 @@ function Panel({ assetType, title, query }: PanelProps) {
                   id="h-live-qty" className="input" type="number" min="0" step="any" placeholder={type === 'doviz' ? '500' : '0.01'}
                   value={liveQuantity}
                   onChange={e => { setLiveQuantity(e.target.value); setLinkedQuantity(null); }}
+                  onKeyDown={e => { if (e.key === 'Enter') calculateLive(); }}
                 />
               </div>
             </div>
@@ -436,7 +445,11 @@ function Panel({ assetType, title, query }: PanelProps) {
         <div className="row" style={{ marginTop: 12, alignItems: 'flex-end' }}>
           <div style={{ flex: 1 }}>
             <label className="field" htmlFor="h-amount">Tutar (TL)</label>
-            <input id="h-amount" className="input" type="number" min="1" placeholder="10000" value={amount} onChange={e => { setAmount(e.target.value); setLinkedQuantity(null); }} />
+            <input
+              id="h-amount" className="input" type="number" min="1" placeholder="10000" value={amount}
+              onChange={e => { setAmount(e.target.value); setLinkedQuantity(null); }}
+              onKeyDown={e => { if (e.key === 'Enter') addHolding(); }}
+            />
           </div>
           <button className="btn btn-primary btn-inline" onClick={addHolding} disabled={!name.trim() || !(Number(amount) > 0)}>Ekle</button>
         </div>
@@ -447,7 +460,7 @@ function Panel({ assetType, title, query }: PanelProps) {
 
 function Bugun() {
   const s = usePortfolio();
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = todayLocalDate();
   const todaysTxns = useMemo(() => s.txns.filter(t => t.date === todayStr), [s.txns, todayStr]);
   const buyTotal = todaysTxns.filter(t => t.kind === 'alis').reduce((sum, t) => sum + t.amount, 0);
   const sellTotal = todaysTxns.filter(t => t.kind === 'satis').reduce((sum, t) => sum + t.amount, 0);
@@ -509,18 +522,25 @@ function Bugun() {
 
 function Islemler({ query }: { query: string }) {
   const s = usePortfolio();
-  const [holdingName, setHoldingName] = useState('');
+  const [holdingId, setHoldingId] = useState('');
   const [kind, setKind] = useState<'alis' | 'satis'>('alis');
   const [amount, setAmount] = useState('');
+  const [amountError, setAmountError] = useState<string | null>(null);
 
-  const selected = holdingName || s.holdings[0]?.name || '';
+  const selectedId = holdingId || s.holdings[0]?.id || '';
+  const selectedHolding = s.holdings.find(h => h.id === selectedId);
   const visibleTxns = useMemo(() => s.txns.filter(t => matchesSearch(t.holdingName, query)), [s.txns, query]);
 
   const add = () => {
     const n = Number(amount);
-    if (!selected || !Number.isFinite(n) || n <= 0) return;
-    actions.addTxn(selected, kind, Math.round(n));
+    if (!selectedHolding || !Number.isFinite(n) || n <= 0) return;
+    if (kind === 'satis' && n > selectedHolding.amount) {
+      setAmountError(`Bakiyeyi aşamaz — ${selectedHolding.name} için güncel değer ${fmtTL(selectedHolding.amount)}.`);
+      return;
+    }
+    actions.addTxn(selectedHolding.id, kind, Math.round(n));
     setAmount('');
+    setAmountError(null);
   };
 
   return (
@@ -545,13 +565,19 @@ function Islemler({ query }: { query: string }) {
             <div className="grid-2">
               <div>
                 <label className="field" htmlFor="t-holding">Varlık</label>
-                <select id="t-holding" className="select" value={selected} onChange={e => setHoldingName(e.target.value)}>
-                  {s.holdings.map(h => <option key={h.id} value={h.name}>{h.name}</option>)}
+                <select
+                  id="t-holding" className="select" value={selectedId}
+                  onChange={e => { setHoldingId(e.target.value); setAmountError(null); }}
+                >
+                  {s.holdings.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
                 </select>
               </div>
               <div>
                 <label className="field" htmlFor="t-kind">İşlem türü</label>
-                <select id="t-kind" className="select" value={kind} onChange={e => setKind(e.target.value as 'alis' | 'satis')}>
+                <select
+                  id="t-kind" className="select" value={kind}
+                  onChange={e => { setKind(e.target.value as 'alis' | 'satis'); setAmountError(null); }}
+                >
                   <option value="alis">Alış</option>
                   <option value="satis">Satış</option>
                 </select>
@@ -560,10 +586,17 @@ function Islemler({ query }: { query: string }) {
             <div className="row" style={{ marginTop: 12, alignItems: 'flex-end' }}>
               <div style={{ flex: 1 }}>
                 <label className="field" htmlFor="t-amount">Tutar (TL)</label>
-                <input id="t-amount" className="input" type="number" min="1" placeholder="5000" value={amount} onChange={e => setAmount(e.target.value)} />
+                <input
+                  id="t-amount" className="input" type="number" min="1"
+                  max={kind === 'satis' ? selectedHolding?.amount : undefined}
+                  placeholder="5000" value={amount}
+                  onChange={e => { setAmount(e.target.value); setAmountError(null); }}
+                  onKeyDown={e => { if (e.key === 'Enter') add(); }}
+                />
               </div>
               <button className="btn btn-primary btn-inline" onClick={add} disabled={!(Number(amount) > 0)}>Kaydet</button>
             </div>
+            {amountError && <p className="hint" style={{ marginTop: 8, color: 'var(--red)' }}>{amountError}</p>}
           </>
         )}
       </div>
