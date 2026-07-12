@@ -2,10 +2,11 @@ import { useMemo, useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import {
   Bot, Send, TrendingUp, Trash2, RotateCcw, LayoutDashboard, ArrowLeftRight, BookOpen,
-  Search, CalendarDays, BarChart3, PieChart as PieChartIcon, Bitcoin,
+  Search, CalendarDays, BarChart3, PieChart as PieChartIcon, Bitcoin, Pencil, Check, X, Download,
 } from 'lucide-react';
-import { usePortfolio, actions, totalValue, fmtTL, ASSET_LABELS, AssetType } from './store';
+import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, ASSET_LABELS, AssetType, Holding } from './store';
 import { analyzePortfolio, chatReply, AgentMessage } from './agent';
+import { exportHoldingsCsv, exportTxnsCsv } from './csv';
 
 const PIE_COLORS = ['#2dd4a7', '#38bdf8', '#fbbf24', '#a78bfa', '#f87171', '#f472b6'];
 
@@ -49,6 +50,8 @@ function Panel({ assetType, title, query }: PanelProps) {
   const [name, setName] = useState('');
   const [type, setType] = useState<AssetType>(assetType ?? 'hisse');
   const [amount, setAmount] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
 
   // Sınıfa göre filtrelenmiş (aramadan etkilenmeyen) gerçek toplam — arama sadece listeyi daraltır.
   const classHoldings = useMemo(
@@ -60,6 +63,8 @@ function Panel({ assetType, title, query }: PanelProps) {
     [classHoldings, query],
   );
   const total = classHoldings.reduce((sum, h) => sum + h.amount, 0);
+  const cost = classHoldings.reduce((sum, h) => sum + h.costBasis, 0);
+  const { abs: pnlAbs, pct: pnlPct } = pnlOf(total, cost);
 
   const pieData = useMemo(() => {
     const byType = new Map<AssetType, number>();
@@ -74,6 +79,17 @@ function Panel({ assetType, title, query }: PanelProps) {
     setName(''); setAmount('');
   };
 
+  const startEdit = (h: Holding) => {
+    setEditingId(h.id);
+    setEditValue(String(h.amount));
+  };
+  const saveEdit = () => {
+    const n = Number(editValue);
+    if (editingId && Number.isFinite(n) && n >= 0) actions.updateHoldingValue(editingId, Math.round(n));
+    setEditingId(null);
+  };
+  const cancelEdit = () => setEditingId(null);
+
   const emptyLabel = assetType ? ASSET_LABELS[assetType].toLocaleLowerCase('tr-TR') : 'varlık';
 
   return (
@@ -82,6 +98,20 @@ function Panel({ assetType, title, query }: PanelProps) {
         <div className="card-title">{title ?? 'Toplam Portföy'}</div>
         <div className="big-number mono">{fmtTL(total)}</div>
         <div className="sub">{classHoldings.length} varlık · veriler tarayıcında saklanır</div>
+        {classHoldings.length > 0 && (
+          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--line)' }}>
+            <div>
+              <div className="sub" style={{ marginBottom: 2 }}>Toplam Maliyet</div>
+              <div className="mono" style={{ fontSize: 15, fontWeight: 600 }}>{fmtTL(cost)}</div>
+            </div>
+            <div>
+              <div className="sub" style={{ marginBottom: 2 }}>Kâr / Zarar</div>
+              <div className="mono" style={{ fontSize: 15, fontWeight: 600, color: pnlAbs >= 0 ? 'var(--accent)' : 'var(--red)' }}>
+                {fmtSigned(pnlAbs)} ({fmtPct(pnlPct)})
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {!assetType && (
@@ -114,25 +144,70 @@ function Panel({ assetType, title, query }: PanelProps) {
       )}
 
       <div className="card">
-        <div className="card-title">Varlıklar</div>
+        <div className="card-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span>Varlıklar</span>
+          {classHoldings.length > 0 && (
+            <button className="mini-btn" onClick={() => exportHoldingsCsv(classHoldings)}>
+              <Download size={11} /> CSV
+            </button>
+          )}
+        </div>
         {classHoldings.length === 0 && <p className="sub">Henüz {emptyLabel} eklenmedi — aşağıdan ekle.</p>}
         {classHoldings.length > 0 && visibleHoldings.length === 0 && (
           <p className="sub">Aramanla eşleşen varlık yok.</p>
         )}
-        {visibleHoldings.map(h => (
-          <div key={h.id} className="list-row">
-            <span>
-              {h.name} <span className="badge" style={{ marginLeft: 6 }}>{ASSET_LABELS[h.type]}</span>
-            </span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span className="mono">{fmtTL(h.amount)}</span>
-              <button aria-label={`${h.name} varlığını sil`} onClick={() => actions.removeHolding(h.id)}
-                style={{ background: 'none', border: 'none', color: 'var(--faint)', cursor: 'pointer', padding: 4 }}>
-                <Trash2 size={15} />
-              </button>
-            </span>
-          </div>
-        ))}
+        {classHoldings.length > 0 && (
+          <p className="hint" style={{ marginBottom: 10 }}>
+            Güncel değeri kalem ikonuyla kendin güncellersin — otomatik piyasa verisi çekilmez.
+          </p>
+        )}
+        {visibleHoldings.map(h => {
+          const { abs, pct } = pnlOf(h.amount, h.costBasis);
+          const isEditing = editingId === h.id;
+          return (
+            <div key={h.id} className="list-row" style={{ alignItems: 'flex-start' }}>
+              <div>
+                <div>{h.name} <span className="badge" style={{ marginLeft: 6 }}>{ASSET_LABELS[h.type]}</span></div>
+                <div className="sub" style={{ marginTop: 4, fontSize: 12 }}>
+                  Maliyet: {fmtTL(h.costBasis)} ·{' '}
+                  <span style={{ color: abs >= 0 ? 'var(--accent)' : 'var(--red)' }}>{fmtSigned(abs)} ({fmtPct(pct)})</span>
+                </div>
+              </div>
+              {isEditing ? (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                  <input
+                    className="input" type="number" min="0" autoFocus
+                    style={{ width: 110, padding: '6px 10px', fontSize: 13 }}
+                    value={editValue}
+                    onChange={e => setEditValue(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
+                    aria-label={`${h.name} güncel değerini gir`}
+                  />
+                  <button aria-label="kaydet" onClick={saveEdit}
+                    style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 4 }}>
+                    <Check size={16} />
+                  </button>
+                  <button aria-label="vazgeç" onClick={cancelEdit}
+                    style={{ background: 'none', border: 'none', color: 'var(--faint)', cursor: 'pointer', padding: 4 }}>
+                    <X size={16} />
+                  </button>
+                </span>
+              ) : (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                  <span className="mono">{fmtTL(h.amount)}</span>
+                  <button aria-label={`${h.name} güncel değerini güncelle`} title="Güncel değeri güncelle" onClick={() => startEdit(h)}
+                    style={{ background: 'none', border: 'none', color: 'var(--faint)', cursor: 'pointer', padding: 4 }}>
+                    <Pencil size={14} />
+                  </button>
+                  <button aria-label={`${h.name} varlığını sil`} onClick={() => actions.removeHolding(h.id)}
+                    style={{ background: 'none', border: 'none', color: 'var(--faint)', cursor: 'pointer', padding: 4 }}>
+                    <Trash2 size={15} />
+                  </button>
+                </span>
+              )}
+            </div>
+          );
+        })}
         <div className="grid-2" style={{ marginTop: 16 }}>
           <div>
             <label className="field" htmlFor="h-name">Varlık adı</label>
@@ -163,6 +238,9 @@ function Bugun() {
   const todaysTxns = useMemo(() => s.txns.filter(t => t.date === todayStr), [s.txns, todayStr]);
   const buyTotal = todaysTxns.filter(t => t.kind === 'alis').reduce((sum, t) => sum + t.amount, 0);
   const sellTotal = todaysTxns.filter(t => t.kind === 'satis').reduce((sum, t) => sum + t.amount, 0);
+  const value = totalValue(s);
+  const cost = totalCost(s);
+  const { abs: pnlAbs, pct: pnlPct } = pnlOf(value, cost);
 
   return (
     <div className="fade">
@@ -170,8 +248,22 @@ function Bugun() {
         <div className="card-title">
           Bugün — {new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
         </div>
-        <div className="big-number mono">{fmtTL(totalValue(s))}</div>
+        <div className="big-number mono">{fmtTL(value)}</div>
         <div className="sub">güncel toplam portföy değeri</div>
+        {s.holdings.length > 0 && (
+          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--line)' }}>
+            <div>
+              <div className="sub" style={{ marginBottom: 2 }}>Toplam Maliyet</div>
+              <div className="mono" style={{ fontSize: 15, fontWeight: 600 }}>{fmtTL(cost)}</div>
+            </div>
+            <div>
+              <div className="sub" style={{ marginBottom: 2 }}>Kâr / Zarar</div>
+              <div className="mono" style={{ fontSize: 15, fontWeight: 600, color: pnlAbs >= 0 ? 'var(--accent)' : 'var(--red)' }}>
+                {fmtSigned(pnlAbs)} ({fmtPct(pnlPct)})
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid-2">
@@ -264,7 +356,14 @@ function Islemler({ query }: { query: string }) {
       </div>
 
       <div className="card">
-        <div className="card-title">İşlem Geçmişi</div>
+        <div className="card-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span>İşlem Geçmişi</span>
+          {s.txns.length > 0 && (
+            <button className="mini-btn" onClick={() => exportTxnsCsv(s.txns)}>
+              <Download size={11} /> CSV
+            </button>
+          )}
+        </div>
         {s.txns.length === 0 && <p className="sub">Henüz işlem yok.</p>}
         {s.txns.length > 0 && visibleTxns.length === 0 && <p className="sub">Aramanla eşleşen işlem yok.</p>}
         {visibleTxns.map(t => (

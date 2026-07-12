@@ -121,6 +121,15 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   text-transform: uppercase; color: var(--faint); margin-bottom: 14px;
 }
 
+.mini-btn {
+  display: inline-flex; align-items: center; gap: 5px; text-transform: none;
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.03em;
+  padding: 5px 9px; border-radius: 7px; cursor: pointer;
+  border: 1px solid var(--line); background: transparent; color: var(--muted);
+  transition: all 0.15s ease;
+}
+.mini-btn:hover { color: var(--text); border-color: rgba(148, 180, 200, 0.3); }
+
 .big-number { font-size: 34px; font-weight: 800; font-variant-numeric: tabular-nums; }
 .sub { font-size: 13px; color: var(--muted); }
 

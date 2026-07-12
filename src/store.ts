@@ -6,7 +6,8 @@ export interface Holding {
   id: string;
   name: string;
   type: AssetType;
-  amount: number; // TL
+  amount: number; // TL — güncel değer (kullanıcı girer/günceller, otomatik piyasa verisi çekilmez)
+  costBasis: number; // TL — net yatırılan tutar (alış/satış işlemlerinden otomatik hesaplanır)
 }
 
 export interface Txn {
@@ -36,14 +37,15 @@ const KEY = 'fagent.portfolio.v1';
 
 const EMPTY: PortfolioState = { onboarded: false, holdings: [], txns: [] };
 
+// Örnek veri, kâr/zarar özelliğini gösterebilmek için maliyet ≠ güncel değer içerir.
 const SAMPLE: PortfolioState = {
   onboarded: true,
   holdings: [
-    { id: 'h1', name: 'BIST 30 Fonu', type: 'fon', amount: 45000 },
-    { id: 'h2', name: 'THYAO', type: 'hisse', amount: 28000 },
-    { id: 'h3', name: 'Gram Altın', type: 'altin', amount: 22000 },
-    { id: 'h4', name: 'USD', type: 'doviz', amount: 15000 },
-    { id: 'h5', name: 'Vadeli Mevduat', type: 'mevduat', amount: 30000 },
+    { id: 'h1', name: 'BIST 30 Fonu', type: 'fon', amount: 48500, costBasis: 45000 },
+    { id: 'h2', name: 'THYAO', type: 'hisse', amount: 25200, costBasis: 28000 },
+    { id: 'h3', name: 'Gram Altın', type: 'altin', amount: 23800, costBasis: 22000 },
+    { id: 'h4', name: 'USD', type: 'doviz', amount: 15000, costBasis: 15000 },
+    { id: 'h5', name: 'Vadeli Mevduat', type: 'mevduat', amount: 31200, costBasis: 30000 },
   ],
   txns: [
     { id: 't1', date: sameDayOffset(-21), holdingName: 'BIST 30 Fonu', kind: 'alis', amount: 15000 },
@@ -68,7 +70,12 @@ function load(): PortfolioState {
     if (!raw) return EMPTY;
     const parsed = JSON.parse(raw) as PortfolioState;
     if (!Array.isArray(parsed.holdings) || !Array.isArray(parsed.txns)) return EMPTY;
-    return parsed;
+    // Eski sürümden gelen veride costBasis yoksa, kâr/zarar sıfır kabul edilir (amount'a eşitlenir).
+    const holdings = parsed.holdings.map(h => ({
+      ...h,
+      costBasis: typeof h.costBasis === 'number' ? h.costBasis : h.amount,
+    }));
+    return { ...parsed, holdings };
   } catch {
     return EMPTY;
   }
@@ -92,18 +99,30 @@ export const actions = {
     commit(EMPTY);
   },
   addHolding(name: string, type: AssetType, amount: number): void {
-    const holding: Holding = { id: `h${Date.now()}`, name: name.trim(), type, amount };
+    const holding: Holding = { id: `h${Date.now()}`, name: name.trim(), type, amount, costBasis: amount };
     commit({ ...state, holdings: [...state.holdings, holding] });
   },
   removeHolding(id: string): void {
     commit({ ...state, holdings: state.holdings.filter(h => h.id !== id) });
   },
+  // Kullanıcının kendi girdiği güncel değer — otomatik piyasa verisi çekilmez, maliyeti değiştirmez.
+  updateHoldingValue(id: string, newAmount: number): void {
+    const holdings = state.holdings.map(h => h.id === id ? { ...h, amount: Math.max(0, newAmount) } : h);
+    commit({ ...state, holdings });
+  },
   addTxn(holdingName: string, kind: Txn['kind'], amount: number): void {
     const txn: Txn = { id: `t${Date.now()}`, date: new Date().toISOString().slice(0, 10), holdingName, kind, amount };
     const holdings = state.holdings.map(h => {
       if (h.name !== holdingName) return h;
-      const next = kind === 'alis' ? h.amount + amount : Math.max(0, h.amount - amount);
-      return { ...h, amount: next };
+      if (kind === 'alis') {
+        // Alış: hem güncel değer hem maliyet aynı miktarda artar.
+        return { ...h, amount: h.amount + amount, costBasis: h.costBasis + amount };
+      }
+      // Satış: güncel değer düşer; maliyet, kalan pozisyonun oranına göre orantılı azaltılır
+      // (ağırlıklı ortalama maliyet yöntemi — kâr/zarar yüzdesi satıştan etkilenmez).
+      const nextAmount = Math.max(0, h.amount - amount);
+      const ratio = h.amount > 0 ? nextAmount / h.amount : 0;
+      return { ...h, amount: nextAmount, costBasis: h.costBasis * ratio };
     });
     commit({ ...state, holdings, txns: [txn, ...state.txns] });
   },
@@ -120,6 +139,21 @@ export function usePortfolio(): PortfolioState {
 }
 
 export const totalValue = (s: PortfolioState) => s.holdings.reduce((sum, h) => sum + h.amount, 0);
+export const totalCost = (s: PortfolioState) => s.holdings.reduce((sum, h) => sum + h.costBasis, 0);
+
+export interface Pnl {
+  abs: number; // TL — kâr(+)/zarar(-)
+  pct: number; // % — maliyete göre
+}
+
+export function pnlOf(amount: number, costBasis: number): Pnl {
+  const abs = amount - costBasis;
+  const pct = costBasis > 0 ? (abs / costBasis) * 100 : 0;
+  return { abs, pct };
+}
 
 export const fmtTL = (n: number) =>
   n.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 });
+
+export const fmtPct = (n: number) => `${n >= 0 ? '+' : ''}${n.toFixed(1)}%`;
+export const fmtSigned = (n: number) => `${n >= 0 ? '+' : ''}${fmtTL(n)}`;
