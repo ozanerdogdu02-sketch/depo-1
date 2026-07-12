@@ -6,6 +6,7 @@ import {
   investmentHistoryOf,
 } from './store';
 import { AgentMemoryProfile, mostAskedTopic, mostMentionedHolding } from './agentMemory';
+import { TrainedFact, findBestMatch } from './agentTraining';
 
 export interface ChartSpec {
   kind: 'pie' | 'area' | 'bar';
@@ -26,6 +27,7 @@ export interface AgentReply {
   text: string;
   chart?: ChartSpec;
   intentId?: string;
+  trainedFactId?: string; // dolu ise bu yanıt öğretilmiş bir bilgiden geldi (kullanım sayacı için)
 }
 
 // intentId -> okunabilir Türkçe etiket. Kişiselleştirilmiş karşılamada ve "beni ne
@@ -36,6 +38,7 @@ const INTENT_LABELS: Record<string, string> = {
   'grafik-dagilim': 'dağılım grafiği',
   'grafik-yatirim': 'yatırım geçmişi grafiği',
   'grafik-pnl': 'kâr/zarar grafiği',
+  trained: 'senin öğrettiğin bir konu',
 };
 
 // Kullanıcının serbest metninde geçen varlık adlarını bulur — "öğe (entity) belleği" için:
@@ -211,6 +214,7 @@ const CHAT_RULES: Rule[] = [
       '• "dağılımımı çiz" ya da "yatırım grafiğimi göster" — sohbet içinde grafik çizerim',
       '• enflasyon, faiz, altın, risk, projeksiyon gibi genel konular',
       '• "beni ne hatırlıyorsun" — zamanla hangi konularla ilgilendiğini öğrenirim (yalnızca tarayıcında saklanır)',
+      '• "Ajanı Eğit" panelinden bana yeni soru-cevaplar öğretebilirsin — öğrettiğin bilgi her zaman diğer cevaplarımdan önce gelir',
     ].join('\n'),
   },
   {
@@ -311,9 +315,16 @@ export function chatReply(
   userText: string,
   history: AgentMessage[] = [],
   memory?: AgentMemoryProfile,
+  trainedFacts: TrainedFact[] = [],
 ): AgentReply {
   const text = userText.trim();
   if (!text) return { text: 'Bir şey yazmadın — bir soru sorabilir ya da "yardım" yazabilirsin.' };
+
+  // Kullanıcının doğrudan öğrettiği bilgiler — built-in kurallardan ÖNCE kontrol edilir,
+  // çünkü kullanıcı bunu bilerek/isteyerek öğretti; ajanın davranışını gerçekten
+  // değiştirebilmesi bunun anlamlı olmasının şartı.
+  const trained = findBestMatch(trainedFacts, text);
+  if (trained) return { text: trained.answer, intentId: 'trained', trainedFactId: trained.id };
 
   // Ajanın kendisi hakkında ne bildiğini soran meta-sorular (uzun süreli bellek şeffaflığı).
   const memoryReply = memoryQueryReply(memory, text);
