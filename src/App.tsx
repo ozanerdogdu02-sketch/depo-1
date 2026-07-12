@@ -1,12 +1,22 @@
 import { useMemo, useState } from 'react';
 import { PieChart, Pie, Cell, Tooltip, AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts';
-import { Bot, Send, TrendingUp, Trash2, RotateCcw, LayoutDashboard, ArrowLeftRight, BookOpen } from 'lucide-react';
+import {
+  Bot, Send, TrendingUp, Trash2, RotateCcw, LayoutDashboard, ArrowLeftRight, BookOpen,
+  Search, CalendarDays, BarChart3, PieChart as PieChartIcon, Bitcoin,
+} from 'lucide-react';
 import { usePortfolio, actions, totalValue, fmtTL, ASSET_LABELS, AssetType } from './store';
 import { analyzePortfolio, chatReply, AgentMessage } from './agent';
 
 const PIE_COLORS = ['#2dd4a7', '#38bdf8', '#fbbf24', '#a78bfa', '#f87171', '#f472b6'];
 
-type Tab = 'panel' | 'islemler' | 'projeksiyon' | 'ajan';
+type Tab = 'panel' | 'bugun' | 'hisseler' | 'fonlar' | 'kripto' | 'islemler' | 'projeksiyon' | 'ajan';
+
+// Küçük/büyük harf ve Türkçe karakter (İ/ı) duyarlı olmayan basit alt-metin araması.
+function matchesSearch(name: string, query: string): boolean {
+  const q = query.trim().toLocaleLowerCase('tr-TR');
+  if (!q) return true;
+  return name.toLocaleLowerCase('tr-TR').includes(q);
+}
 
 function Onboarding() {
   return (
@@ -28,18 +38,34 @@ function Onboarding() {
   );
 }
 
-function Panel() {
+interface PanelProps {
+  assetType?: AssetType;
+  title?: string;
+  query: string;
+}
+
+function Panel({ assetType, title, query }: PanelProps) {
   const s = usePortfolio();
-  const total = totalValue(s);
   const [name, setName] = useState('');
-  const [type, setType] = useState<AssetType>('hisse');
+  const [type, setType] = useState<AssetType>(assetType ?? 'hisse');
   const [amount, setAmount] = useState('');
+
+  // Sınıfa göre filtrelenmiş (aramadan etkilenmeyen) gerçek toplam — arama sadece listeyi daraltır.
+  const classHoldings = useMemo(
+    () => s.holdings.filter(h => !assetType || h.type === assetType),
+    [s.holdings, assetType],
+  );
+  const visibleHoldings = useMemo(
+    () => classHoldings.filter(h => matchesSearch(h.name, query)),
+    [classHoldings, query],
+  );
+  const total = classHoldings.reduce((sum, h) => sum + h.amount, 0);
 
   const pieData = useMemo(() => {
     const byType = new Map<AssetType, number>();
-    for (const h of s.holdings) byType.set(h.type, (byType.get(h.type) ?? 0) + h.amount);
+    for (const h of classHoldings) byType.set(h.type, (byType.get(h.type) ?? 0) + h.amount);
     return [...byType.entries()].map(([t, v]) => ({ name: ASSET_LABELS[t], value: v }));
-  }, [s.holdings]);
+  }, [classHoldings]);
 
   const addHolding = () => {
     const n = Number(amount);
@@ -48,45 +74,52 @@ function Panel() {
     setName(''); setAmount('');
   };
 
+  const emptyLabel = assetType ? ASSET_LABELS[assetType].toLocaleLowerCase('tr-TR') : 'varlık';
+
   return (
     <div className="fade">
       <div className="card">
-        <div className="card-title">Toplam Portföy</div>
+        <div className="card-title">{title ?? 'Toplam Portföy'}</div>
         <div className="big-number mono">{fmtTL(total)}</div>
-        <div className="sub">{s.holdings.length} varlık · veriler tarayıcında saklanır</div>
+        <div className="sub">{classHoldings.length} varlık · veriler tarayıcında saklanır</div>
       </div>
 
-      <div className="card">
-        <div className="card-title">Sınıf Dağılımı</div>
-        {pieData.length > 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
-            <PieChart width={180} height={180}>
-              <Pie data={pieData} cx={85} cy={85} innerRadius={52} outerRadius={78} dataKey="value" strokeWidth={0}>
-                {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-              </Pie>
-              <Tooltip formatter={v => fmtTL(Number(v))} contentStyle={{ background: '#16212c', border: '1px solid rgba(148,180,200,0.2)', borderRadius: 10, fontSize: 13 }} />
-            </PieChart>
-            <div style={{ flex: 1, minWidth: 200 }}>
-              {pieData.map((d, i) => (
-                <div key={d.name} className="list-row">
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ width: 9, height: 9, borderRadius: '50%', background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                    {d.name}
-                  </span>
-                  <span className="mono sub">{fmtTL(d.value)} · %{total ? Math.round((d.value / total) * 100) : 0}</span>
-                </div>
-              ))}
+      {!assetType && (
+        <div className="card">
+          <div className="card-title">Sınıf Dağılımı</div>
+          {pieData.length > 0 ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+              <PieChart width={180} height={180}>
+                <Pie data={pieData} cx={85} cy={85} innerRadius={52} outerRadius={78} dataKey="value" strokeWidth={0}>
+                  {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                </Pie>
+                <Tooltip formatter={v => fmtTL(Number(v))} contentStyle={{ background: '#16212c', border: '1px solid rgba(148,180,200,0.2)', borderRadius: 10, fontSize: 13 }} />
+              </PieChart>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                {pieData.map((d, i) => (
+                  <div key={d.name} className="list-row">
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ width: 9, height: 9, borderRadius: '50%', background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                      {d.name}
+                    </span>
+                    <span className="mono sub">{fmtTL(d.value)} · %{total ? Math.round((d.value / total) * 100) : 0}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        ) : (
-          <p className="sub">Henüz varlık eklenmedi — buraya bir varlık ekleyince dağılım grafiği burada görünecek.</p>
-        )}
-      </div>
+          ) : (
+            <p className="sub">Henüz varlık eklenmedi — buraya bir varlık ekleyince dağılım grafiği burada görünecek.</p>
+          )}
+        </div>
+      )}
 
       <div className="card">
         <div className="card-title">Varlıklar</div>
-        {s.holdings.length === 0 && <p className="sub">Henüz varlık yok — aşağıdan ekle.</p>}
-        {s.holdings.map(h => (
+        {classHoldings.length === 0 && <p className="sub">Henüz {emptyLabel} eklenmedi — aşağıdan ekle.</p>}
+        {classHoldings.length > 0 && visibleHoldings.length === 0 && (
+          <p className="sub">Aramanla eşleşen varlık yok.</p>
+        )}
+        {visibleHoldings.map(h => (
           <div key={h.id} className="list-row">
             <span>
               {h.name} <span className="badge" style={{ marginLeft: 6 }}>{ASSET_LABELS[h.type]}</span>
@@ -124,13 +157,59 @@ function Panel() {
   );
 }
 
-function Islemler() {
+function Bugun() {
+  const s = usePortfolio();
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todaysTxns = useMemo(() => s.txns.filter(t => t.date === todayStr), [s.txns, todayStr]);
+  const buyTotal = todaysTxns.filter(t => t.kind === 'alis').reduce((sum, t) => sum + t.amount, 0);
+  const sellTotal = todaysTxns.filter(t => t.kind === 'satis').reduce((sum, t) => sum + t.amount, 0);
+
+  return (
+    <div className="fade">
+      <div className="card">
+        <div className="card-title">
+          Bugün — {new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+        </div>
+        <div className="big-number mono">{fmtTL(totalValue(s))}</div>
+        <div className="sub">güncel toplam portföy değeri</div>
+      </div>
+
+      <div className="grid-2">
+        <div className="card">
+          <div className="card-title">Bugünkü Alışlar</div>
+          <div className="big-number mono" style={{ fontSize: 24, color: 'var(--accent)' }}>{fmtTL(buyTotal)}</div>
+        </div>
+        <div className="card">
+          <div className="card-title">Bugünkü Satışlar</div>
+          <div className="big-number mono" style={{ fontSize: 24, color: 'var(--red)' }}>{fmtTL(sellTotal)}</div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">Bugünkü İşlemler</div>
+        {todaysTxns.length === 0 && <p className="sub">Bugün henüz işlem yapılmadı.</p>}
+        {todaysTxns.map(t => (
+          <div key={t.id} className="list-row">
+            <span>
+              <span className={`badge ${t.kind === 'alis' ? 'badge-green' : 'badge-red'}`}>{t.kind === 'alis' ? 'ALIŞ' : 'SATIŞ'}</span>
+              <span style={{ marginLeft: 10 }}>{t.holdingName}</span>
+            </span>
+            <span className="mono sub">{t.kind === 'alis' ? '+' : '−'}{fmtTL(t.amount)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Islemler({ query }: { query: string }) {
   const s = usePortfolio();
   const [holdingName, setHoldingName] = useState('');
   const [kind, setKind] = useState<'alis' | 'satis'>('alis');
   const [amount, setAmount] = useState('');
 
   const selected = holdingName || s.holdings[0]?.name || '';
+  const visibleTxns = useMemo(() => s.txns.filter(t => matchesSearch(t.holdingName, query)), [s.txns, query]);
 
   const add = () => {
     const n = Number(amount);
@@ -187,7 +266,8 @@ function Islemler() {
       <div className="card">
         <div className="card-title">İşlem Geçmişi</div>
         {s.txns.length === 0 && <p className="sub">Henüz işlem yok.</p>}
-        {s.txns.map(t => (
+        {s.txns.length > 0 && visibleTxns.length === 0 && <p className="sub">Aramanla eşleşen işlem yok.</p>}
+        {visibleTxns.map(t => (
           <div key={t.id} className="list-row">
             <span>
               <span className={`badge ${t.kind === 'alis' ? 'badge-green' : 'badge-red'}`}>{t.kind === 'alis' ? 'ALIŞ' : 'SATIŞ'}</span>
@@ -329,16 +409,18 @@ function Ajan() {
   );
 }
 
-function SideLink({ active, onClick, icon: Icon, label }: {
+function SideLink({ active, onClick, icon: Icon, label, badge }: {
   active: boolean;
   onClick: () => void;
   icon: typeof Bot;
   label: string;
+  badge?: string;
 }) {
   return (
     <button className={`side-link ${active ? 'side-link-active' : ''}`} onClick={onClick} aria-current={active ? 'page' : undefined}>
       <Icon size={15} />
       {label}
+      {badge && <span className="side-badge">{badge}</span>}
     </button>
   );
 }
@@ -346,6 +428,7 @@ function SideLink({ active, onClick, icon: Icon, label }: {
 export default function App() {
   const s = usePortfolio();
   const [tab, setTab] = useState<Tab>('panel');
+  const [query, setQuery] = useState('');
 
   const resetAll = () => {
     if (confirm('Tüm veriler silinsin ve başa dönülsün mü?')) actions.reset();
@@ -366,11 +449,27 @@ export default function App() {
 
         {s.onboarded && (
           <>
+            <div className="side-search">
+              <Search size={14} />
+              <input
+                type="text"
+                placeholder="Ara…"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                aria-label="Varlık ve işlemlerde ara"
+              />
+            </div>
+
             <nav className="side-nav" aria-label="Bölümler">
               <SideLink active={tab === 'panel'} onClick={() => setTab('panel')} icon={LayoutDashboard} label="PANEL" />
+              <SideLink active={tab === 'bugun'} onClick={() => setTab('bugun')} icon={CalendarDays} label="BUGÜN" />
+              <SideLink active={tab === 'hisseler'} onClick={() => setTab('hisseler')} icon={BarChart3} label="HİSSELER" />
+              <SideLink active={tab === 'fonlar'} onClick={() => setTab('fonlar')} icon={PieChartIcon} label="FONLAR" />
+              <SideLink active={tab === 'kripto'} onClick={() => setTab('kripto')} icon={Bitcoin} label="KRİPTO VARLIKLAR" />
               <SideLink active={tab === 'islemler'} onClick={() => setTab('islemler')} icon={ArrowLeftRight} label="İŞLEMLER" />
               <SideLink active={tab === 'projeksiyon'} onClick={() => setTab('projeksiyon')} icon={TrendingUp} label="PROJEKSİYON" />
-              <SideLink active={tab === 'ajan'} onClick={() => setTab('ajan')} icon={Bot} label="AJAN" />
+              <div className="side-divider" />
+              <SideLink active={tab === 'ajan'} onClick={() => setTab('ajan')} icon={Bot} label="AJAN" badge="YENİ" />
             </nav>
             <button className="side-reset" onClick={resetAll} title="Verileri sıfırla">
               <RotateCcw size={13} /> SIFIRLA
@@ -385,8 +484,12 @@ export default function App() {
             <Onboarding />
           ) : (
             <>
-              {tab === 'panel' && <Panel />}
-              {tab === 'islemler' && <Islemler />}
+              {tab === 'panel' && <Panel query={query} />}
+              {tab === 'bugun' && <Bugun />}
+              {tab === 'hisseler' && <Panel assetType="hisse" title="Toplam Hisse" query={query} />}
+              {tab === 'fonlar' && <Panel assetType="fon" title="Toplam Fon" query={query} />}
+              {tab === 'kripto' && <Panel assetType="kripto" title="Toplam Kripto Varlık" query={query} />}
+              {tab === 'islemler' && <Islemler query={query} />}
               {tab === 'projeksiyon' && <Projeksiyon />}
               {tab === 'ajan' && <Ajan />}
             </>
