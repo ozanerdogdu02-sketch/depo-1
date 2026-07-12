@@ -99,6 +99,19 @@ function Panel({ assetType, title, query }: PanelProps) {
     return [...byType.entries()].map(([t, v]) => ({ name: ASSET_LABELS[t], value: v }));
   }, [classHoldings]);
 
+  // Net yatırım tutarı geçmişi — YALNIZCA kendi işlem kayıtlarından türetilir, piyasa
+  // fiyatı içermez. "Ne kadar para yatırdın" grafiğidir, "portföyün ne kadar değerdeydi" değil.
+  const investmentHistory = useMemo(() => {
+    const sorted = [...s.txns].sort((a, b) => a.date.localeCompare(b.date));
+    const byDate = new Map<string, number>();
+    let running = 0;
+    for (const t of sorted) {
+      running += t.kind === 'alis' ? t.amount : -t.amount;
+      byDate.set(t.date, Math.max(0, running));
+    }
+    return [...byDate.entries()].map(([tarih, tutar]) => ({ tarih, tutar }));
+  }, [s.txns]);
+
   const addHolding = () => {
     const n = Number(amount);
     if (!name.trim() || !Number.isFinite(n) || n <= 0) return;
@@ -202,6 +215,35 @@ function Panel({ assetType, title, query }: PanelProps) {
           </div>
         )}
       </div>
+
+      {!assetType && investmentHistory.length >= 2 && (
+        <div className="card">
+          <div className="card-title">Net Yatırım Tutarı Geçmişi</div>
+          <ResponsiveContainer width="100%" height={160}>
+            <AreaChart data={investmentHistory} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
+              <defs>
+                <linearGradient id="investGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#38bdf8" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="tarih" tick={{ fill: 'rgba(214,228,238,0.4)', fontSize: 11 }} axisLine={false} tickLine={false}
+                tickFormatter={d => new Date(d).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })} />
+              <YAxis tick={{ fill: 'rgba(214,228,238,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `${Math.round(v / 1000)}K`} width={40} />
+              <Tooltip
+                labelFormatter={d => new Date(d).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                formatter={v => [fmtTL(Number(v)), 'Net yatırım']}
+                contentStyle={{ background: '#16212c', border: '1px solid rgba(148,180,200,0.2)', borderRadius: 10, fontSize: 13 }}
+              />
+              <Area type="monotone" dataKey="tutar" stroke="#38bdf8" strokeWidth={2.5} fill="url(#investGrad)" />
+            </AreaChart>
+          </ResponsiveContainer>
+          <p className="hint" style={{ marginTop: 8 }}>
+            Bu grafik yatırdığın net tutarı gösterir, piyasa performansını değil (fiyat verisi çekilmez).
+            Güncel değerin {fmtTL(total)} — aradaki fark ({fmtSigned(pnlAbs)}) kâr/zararını yansıtır.
+          </p>
+        </div>
+      )}
 
       {!assetType && (
         <div className="card">

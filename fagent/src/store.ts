@@ -103,13 +103,17 @@ export const actions = {
     commit(EMPTY);
   },
   addHolding(name: string, type: AssetType, amount: number, quantity?: number, symbol?: string): void {
-    const holding: Holding = { id: `h${Date.now()}`, name: name.trim(), type, amount, costBasis: amount };
+    const trimmedName = name.trim();
+    const holding: Holding = { id: `h${Date.now()}`, name: trimmedName, type, amount, costBasis: amount };
     if (quantity !== undefined && symbol) {
       holding.quantity = quantity;
       holding.symbol = symbol;
       holding.lastFetchedAt = new Date().toISOString();
     }
-    commit({ ...state, holdings: [...state.holdings, holding] });
+    // Yeni varlığın ilk tutarı da bir yatırım hareketidir — işlem geçmişine (ve
+    // dolayısıyla net yatırım grafiğine) yansısın diye örtük bir 'alış' kaydı düşülür.
+    const txn: Txn = { id: `t${Date.now()}`, date: new Date().toISOString().slice(0, 10), holdingName: trimmedName, kind: 'alis', amount };
+    commit({ ...state, holdings: [...state.holdings, holding], txns: [txn, ...state.txns] });
   },
   // CSV içe aktarma — mevcut varlıklara EKLENİR, üzerine yazmaz (geri alınabilir: tek tek silinebilir).
   importHoldings(rows: { name: string; type: AssetType; costBasis: number; amount: number }[]): void {
