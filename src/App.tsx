@@ -1,13 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { PieChart, Pie, Cell, Tooltip, AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import {
   Bot, Send, TrendingUp, Trash2, RotateCcw, LayoutDashboard, ArrowLeftRight, BookOpen,
   Search, CalendarDays, BarChart3, PieChart as PieChartIcon, Bitcoin, Pencil, Check, X, Download,
-  RefreshCw, Loader2, Wifi,
+  RefreshCw, Loader2, Wifi, Upload,
 } from 'lucide-react';
 import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, ASSET_LABELS, AssetType, Holding } from './store';
 import { analyzePortfolio, chatReply, AgentMessage } from './agent';
-import { exportHoldingsCsv, exportTxnsCsv } from './csv';
+import { exportHoldingsCsv, exportTxnsCsv, parseHoldingsCsv } from './csv';
 import { CURRENCIES, COINS, fetchTryRate, fetchCryptoTryPrice, MarketFetchError } from './market';
 
 const PIE_COLORS = ['#2dd4a7', '#38bdf8', '#fbbf24', '#a78bfa', '#f87171', '#f472b6'];
@@ -76,6 +76,10 @@ function Panel({ assetType, title, query }: PanelProps) {
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
   const [refreshError, setRefreshError] = useState<{ id: string; message: string } | null>(null);
 
+  // CSV içe aktarma
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const [importMsg, setImportMsg] = useState<{ text: string; ok: boolean } | null>(null);
+
   // Sınıfa göre filtrelenmiş (aramadan etkilenmeyen) gerçek toplam — arama sadece listeyi daraltır.
   const classHoldings = useMemo(
     () => s.holdings.filter(h => !assetType || h.type === assetType),
@@ -138,6 +142,30 @@ function Panel({ assetType, title, query }: PanelProps) {
     } finally {
       setRefreshingId(null);
     }
+  };
+
+  const handleImportFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // aynı dosya tekrar seçilebilsin diye sıfırla
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const { rows, skipped } = parseHoldingsCsv(text);
+      if (rows.length === 0) {
+        setImportMsg({ text: 'Dosyada içe aktarılabilir geçerli satır bulunamadı.', ok: false });
+        return;
+      }
+      actions.importHoldings(rows);
+      setImportMsg({
+        text: skipped > 0
+          ? `${rows.length} varlık eklendi, ${skipped} satır atlandı (eksik/geçersiz veri).`
+          : `${rows.length} varlık başarıyla eklendi.`,
+        ok: true,
+      });
+    } catch {
+      setImportMsg({ text: 'Dosya okunamadı — geçerli bir CSV olduğundan emin ol.', ok: false });
+    }
+    setTimeout(() => setImportMsg(null), 6000);
   };
 
   const startEdit = (h: Holding) => {
@@ -207,12 +235,26 @@ function Panel({ assetType, title, query }: PanelProps) {
       <div className="card">
         <div className="card-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>Varlıklar</span>
-          {classHoldings.length > 0 && (
-            <button className="mini-btn" onClick={() => exportHoldingsCsv(classHoldings)}>
-              <Download size={11} /> CSV
+          <span style={{ display: 'flex', gap: 6 }}>
+            <input
+              ref={importInputRef} type="file" accept=".csv,text/csv" onChange={handleImportFile}
+              style={{ display: 'none' }} aria-label="CSV dosyası seç"
+            />
+            <button className="mini-btn" onClick={() => importInputRef.current?.click()}>
+              <Upload size={11} /> İçe Aktar
             </button>
-          )}
+            {classHoldings.length > 0 && (
+              <button className="mini-btn" onClick={() => exportHoldingsCsv(classHoldings)}>
+                <Download size={11} /> CSV
+              </button>
+            )}
+          </span>
         </div>
+        {importMsg && (
+          <p className="hint" style={{ marginBottom: 10, color: importMsg.ok ? 'var(--accent)' : 'var(--red)' }}>
+            {importMsg.ok ? '✓' : '✗'} {importMsg.text}
+          </p>
+        )}
         {classHoldings.length === 0 && <p className="sub">Henüz {emptyLabel} eklenmedi — aşağıdan ekle.</p>}
         {classHoldings.length > 0 && visibleHoldings.length === 0 && (
           <p className="sub">Aramanla eşleşen varlık yok.</p>
