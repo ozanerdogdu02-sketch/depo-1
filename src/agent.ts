@@ -5,6 +5,7 @@ import {
   PortfolioState, totalValue, fmtTL, fmtPct, fmtSigned, pnlOf, ASSET_LABELS, AssetType,
   investmentHistoryOf,
 } from './store';
+import { AgentMemoryProfile, mostAskedTopic, mostMentionedHolding } from './agentMemory';
 
 export interface ChartSpec {
   kind: 'pie' | 'area' | 'bar';
@@ -25,6 +26,23 @@ export interface AgentReply {
   text: string;
   chart?: ChartSpec;
   intentId?: string;
+}
+
+// intentId -> okunabilir Türkçe etiket. Kişiselleştirilmiş karşılamada ve "beni ne
+// hatırlıyorsun" yanıtında kullanılır.
+const INTENT_LABELS: Record<string, string> = {
+  analiz: 'genel analiz',
+  dagilim: 'sınıf dağılımı',
+  'grafik-dagilim': 'dağılım grafiği',
+  'grafik-yatirim': 'yatırım geçmişi grafiği',
+  'grafik-pnl': 'kâr/zarar grafiği',
+};
+
+// Kullanıcının serbest metninde geçen varlık adlarını bulur — "öğe (entity) belleği" için:
+// agentMemory bu isimleri biriktirip zamanla "en çok bahsedilen varlık"ı çıkarabilir.
+export function extractMentionedHoldings(s: PortfolioState, text: string): string[] {
+  const q = text.toLocaleLowerCase('tr-TR');
+  return s.holdings.filter(h => q.includes(h.name.toLocaleLowerCase('tr-TR'))).map(h => h.name);
 }
 
 function allocation(s: PortfolioState): { type: AssetType; amount: number; pct: number }[] {
@@ -192,6 +210,7 @@ const CHAT_RULES: Rule[] = [
       '• "en çok kazandıran ne" / "en çok kaybettiren ne" — kıyaslama',
       '• "dağılımımı çiz" ya da "yatırım grafiğimi göster" — sohbet içinde grafik çizerim',
       '• enflasyon, faiz, altın, risk, projeksiyon gibi genel konular',
+      '• "beni ne hatırlıyorsun" — zamanla hangi konularla ilgilendiğini öğrenirim (yalnızca tarayıcında saklanır)',
     ].join('\n'),
   },
   {
@@ -241,6 +260,41 @@ const CHAT_RULES: Rule[] = [
   },
 ];
 
+// Kullanıcı ajanın kendisi hakkında ne öğrendiğini sorarsa (şeffaflık — KVKK'ya uyumlu:
+// bu bilgi yalnızca tarayıcıda tutulur, açıkça belirtilir).
+function memoryQueryReply(memory: AgentMemoryProfile | undefined, text: string): string | undefined {
+  if (!/beni (ne )?hat[ıi]rl|hakkımda ne biliyorsun|profilim(i)?( ne)?|hafızan(da)?/i.test(text)) return undefined;
+  if (!memory || memory.totalTurns === 0) {
+    return 'Henüz hakkında bir şey öğrenmedim — birkaç soru sorunca hangi konularla ilgilendiğini fark etmeye başlarım. Bu bilgi yalnızca tarayıcında saklanır, hiçbir yere gönderilmez.';
+  }
+  const topic = mostAskedTopic(memory);
+  const holding = mostMentionedHolding(memory);
+  const parts = [`Şimdiye kadar ${memory.totalTurns} mesaj konuştuk.`];
+  if (topic) parts.push(`En çok "${INTENT_LABELS[topic] ?? topic}" konusunu soruyorsun.`);
+  if (holding) parts.push(`En sık bahsettiğin varlık: ${holding}.`);
+  parts.push('Bu bilgi yalnızca tarayıcında saklanır, hiçbir sunucuya gönderilmez — "SIFIRLA" ile bunu da silebilirsin.');
+  return parts.join(' ');
+}
+
+// Karşılama mesajını üretir — birkaç turdan sonra dönen kullanıcıyı önceki ilgi alanlarına
+// göre kişiselleştirilmiş karşılar. Bu, dersteki "kendini geliştiren ajan" (insight agent)
+// deseninin anahtarsız/yerel karşılığıdır: gözlemle → depola → gelecekte kullan.
+export function buildGreeting(memory?: AgentMemoryProfile): string {
+  const base =
+    'Merhaba! Ben FAGENT demo ajanı — anahtar gerektirmeden çalışırım. "Analiz Et" butonuna basabilir, ' +
+    'portföyün hakkında soru sorabilir ya da "dağılımımı çiz" gibi bir istekle senin için grafik çizmemi isteyebilirsin.';
+  if (!memory || memory.totalTurns < 3) {
+    return `${base} "yardım" yazarsan neler yapabildiğimi listelerim.`;
+  }
+  const topic = mostAskedTopic(memory);
+  const holding = mostMentionedHolding(memory);
+  const bits = ['Tekrar merhaba!'];
+  if (topic) bits.push(`Önceki konuşmalarımızda en çok "${INTENT_LABELS[topic] ?? topic}" hakkında konuşmuştuk.`);
+  if (holding) bits.push(`${holding} de sık geçen bir konuydu.`);
+  bits.push('Kaldığımız yerden devam edebiliriz, ya da "beni ne hatırlıyorsun" yazarak profilini görebilirsin.');
+  return bits.join(' ');
+}
+
 const FOLLOWUP_TEST = /^(devam et|biraz daha( anlat)?|detaylandır|peki|başka|daha fazla|derinleş)/i;
 
 // Önceki ajan mesajlarından intentId taşıyan en son olanı bulur (kısa süreli "bağlam hafızası").
@@ -252,9 +306,18 @@ function lastIntentFrom(history: AgentMessage[]): string | undefined {
   return undefined;
 }
 
-export function chatReply(s: PortfolioState, userText: string, history: AgentMessage[] = []): AgentReply {
+export function chatReply(
+  s: PortfolioState,
+  userText: string,
+  history: AgentMessage[] = [],
+  memory?: AgentMemoryProfile,
+): AgentReply {
   const text = userText.trim();
   if (!text) return { text: 'Bir şey yazmadın — bir soru sorabilir ya da "yardım" yazabilirsin.' };
+
+  // Ajanın kendisi hakkında ne bildiğini soran meta-sorular (uzun süreli bellek şeffaflığı).
+  const memoryReply = memoryQueryReply(memory, text);
+  if (memoryReply) return { text: memoryReply };
 
   // Takip cümlesi ("devam et", "biraz daha anlat"...) — son konuşulan konuyu genişlet.
   if (FOLLOWUP_TEST.test(text)) {

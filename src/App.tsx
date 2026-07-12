@@ -6,7 +6,8 @@ import {
   RefreshCw, Loader2, Wifi, Upload,
 } from 'lucide-react';
 import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, investmentHistoryOf, todayLocalDate, ASSET_LABELS, AssetType, Holding } from './store';
-import { analyzePortfolio, chatReply, AgentMessage, ChartSpec } from './agent';
+import { analyzePortfolio, chatReply, buildGreeting, extractMentionedHoldings, AgentMessage, ChartSpec } from './agent';
+import { getProfile, recordTurn, resetMemory } from './agentMemory';
 import { exportHoldingsCsv, exportTxnsCsv, parseHoldingsCsv } from './csv';
 import { CURRENCIES, COINS, fetchTryRate, fetchCryptoTryPrice, MarketFetchError } from './market';
 
@@ -744,15 +745,13 @@ function AgentChartView({ chart }: { chart: ChartSpec }) {
 
 function Ajan() {
   const s = usePortfolio();
-  const [messages, setMessages] = useState<AgentMessage[]>([
-    {
-      role: 'agent',
-      text: 'Merhaba! Ben FAGENT demo ajanı — anahtar gerektirmeden çalışırım. "Analiz Et" butonuna basabilir, portföyün hakkında soru sorabilir ya da "dağılımımı çiz" gibi bir istekle senin için grafik çizmemi isteyebilirsin. "yardım" yazarsan neler yapabildiğimi listelerim.',
-    },
+  const [messages, setMessages] = useState<AgentMessage[]>(() => [
+    { role: 'agent', text: buildGreeting(getProfile()) },
   ]);
   const [input, setInput] = useState('');
 
   const runAnalysis = () => {
+    recordTurn('analiz', []);
     setMessages(m => [
       ...m,
       { role: 'user', text: 'Portföyümü analiz et' },
@@ -764,7 +763,8 @@ function Ajan() {
     const text = input.trim();
     if (!text) return;
     const userMsg: AgentMessage = { role: 'user', text };
-    const reply = chatReply(s, text, messages);
+    const reply = chatReply(s, text, messages, getProfile());
+    recordTurn(reply.intentId, extractMentionedHoldings(s, text));
     setMessages(m => [...m, userMsg, { role: 'agent', text: reply.text, chart: reply.chart, intentId: reply.intentId }]);
     setInput('');
   };
@@ -831,7 +831,10 @@ export default function App() {
   const [query, setQuery] = useState('');
 
   const resetAll = () => {
-    if (confirm('Tüm veriler silinsin ve başa dönülsün mü?')) actions.reset();
+    if (confirm('Tüm veriler silinsin ve başa dönülsün mü?')) {
+      actions.reset();
+      resetMemory();
+    }
   };
 
   return (
