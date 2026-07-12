@@ -111,6 +111,17 @@ export const actions = {
     }
     commit({ ...state, holdings: [...state.holdings, holding] });
   },
+  // CSV içe aktarma — mevcut varlıklara EKLENİR, üzerine yazmaz (geri alınabilir: tek tek silinebilir).
+  importHoldings(rows: { name: string; type: AssetType; costBasis: number; amount: number }[]): void {
+    const imported: Holding[] = rows.map((r, i) => ({
+      id: `h${Date.now()}-${i}`,
+      name: r.name,
+      type: r.type,
+      amount: r.amount,
+      costBasis: r.costBasis,
+    }));
+    commit({ ...state, holdings: [...state.holdings, ...imported] });
+  },
   removeHolding(id: string): void {
     commit({ ...state, holdings: state.holdings.filter(h => h.id !== id) });
   },
