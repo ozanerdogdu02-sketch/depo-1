@@ -3,11 +3,12 @@ import { PieChart, Pie, Cell, Tooltip, AreaChart, Area, BarChart, Bar, XAxis, YA
 import {
   Bot, Send, TrendingUp, Trash2, RotateCcw, LayoutDashboard, ArrowLeftRight, BookOpen,
   Search, CalendarDays, BarChart3, PieChart as PieChartIcon, Bitcoin, Pencil, Check, X, Download,
-  RefreshCw, Loader2, Wifi, Upload,
+  RefreshCw, Loader2, Wifi, Upload, GraduationCap, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, investmentHistoryOf, todayLocalDate, ASSET_LABELS, AssetType, Holding } from './store';
 import { analyzePortfolio, chatReply, buildGreeting, extractMentionedHoldings, AgentMessage, ChartSpec } from './agent';
 import { getProfile, recordTurn, resetMemory } from './agentMemory';
+import { getTrainedFacts, teach, deleteFact, recordFactUse, resetTraining, TrainedFact } from './agentTraining';
 import { exportHoldingsCsv, exportTxnsCsv, parseHoldingsCsv } from './csv';
 import { CURRENCIES, COINS, fetchTryRate, fetchCryptoTryPrice, MarketFetchError } from './market';
 
@@ -743,12 +744,90 @@ function AgentChartView({ chart }: { chart: ChartSpec }) {
   );
 }
 
+function TeachPanel({ facts, onTeach, onDelete }: {
+  facts: TrainedFact[];
+  onTeach: (q: string, a: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const [a, setA] = useState('');
+
+  const submit = () => {
+    if (!q.trim() || !a.trim()) return;
+    onTeach(q, a);
+    setQ(''); setA('');
+  };
+
+  return (
+    <div className="card">
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+        }}
+        aria-expanded={open}
+      >
+        <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 0 }}>
+          <GraduationCap size={14} /> Ajanı Eğit {facts.length > 0 && <span className="badge">{facts.length}</span>}
+        </span>
+        {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+      </button>
+      {open && (
+        <div style={{ marginTop: 14 }}>
+          <p className="hint" style={{ marginBottom: 10 }}>
+            Bir soru-cevap öğret — bundan sonra benzer bir soru sorduğunda ajan önce bunu kullanır (built-in
+            cevaplardan önce gelir). Bu bir yapay zeka eğitimi değil: kelime örtüşmesine göre eşleşen, senin
+            yazdığın sabit bir cevap kartıdır. Yalnızca tarayıcında saklanır.
+          </p>
+          <div>
+            <label className="field" htmlFor="teach-q">Soru</label>
+            <input id="teach-q" className="input" placeholder='ör. "temettü nedir"' value={q} onChange={e => setQ(e.target.value)} />
+          </div>
+          <div style={{ marginTop: 10 }}>
+            <label className="field" htmlFor="teach-a">Cevap</label>
+            <textarea
+              id="teach-a" className="input" rows={3} style={{ resize: 'vertical', fontFamily: 'inherit' }}
+              placeholder="Ajanın bu soruya vereceği cevabı yaz…" value={a} onChange={e => setA(e.target.value)}
+            />
+          </div>
+          <div className="row" style={{ marginTop: 10 }}>
+            <button className="btn btn-primary btn-inline" onClick={submit} disabled={!q.trim() || !a.trim()}>
+              <GraduationCap size={15} /> Öğret
+            </button>
+          </div>
+          {facts.length > 0 && (
+            <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--line)' }}>
+              <div className="sub" style={{ marginBottom: 8 }}>Öğretilmiş bilgiler</div>
+              {facts.map(f => (
+                <div key={f.id} className="list-row" style={{ alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{f.question}</div>
+                    <div className="sub" style={{ marginTop: 2, fontSize: 12.5 }}>{f.answer}</div>
+                    <div className="hint" style={{ marginTop: 2 }}>{f.timesUsed} kez kullanıldı</div>
+                  </div>
+                  <button aria-label={`"${f.question}" öğretisini sil`} onClick={() => onDelete(f.id)}
+                    style={{ background: 'none', border: 'none', color: 'var(--faint)', cursor: 'pointer', padding: 4, flexShrink: 0 }}>
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Ajan() {
   const s = usePortfolio();
   const [messages, setMessages] = useState<AgentMessage[]>(() => [
     { role: 'agent', text: buildGreeting(getProfile()) },
   ]);
   const [input, setInput] = useState('');
+  const [facts, setFacts] = useState<TrainedFact[]>(() => getTrainedFacts());
 
   const runAnalysis = () => {
     recordTurn('analiz', []);
@@ -763,11 +842,18 @@ function Ajan() {
     const text = input.trim();
     if (!text) return;
     const userMsg: AgentMessage = { role: 'user', text };
-    const reply = chatReply(s, text, messages, getProfile());
+    const reply = chatReply(s, text, messages, getProfile(), facts);
     recordTurn(reply.intentId, extractMentionedHoldings(s, text));
+    if (reply.trainedFactId) {
+      recordFactUse(reply.trainedFactId);
+      setFacts(getTrainedFacts());
+    }
     setMessages(m => [...m, userMsg, { role: 'agent', text: reply.text, chart: reply.chart, intentId: reply.intentId }]);
     setInput('');
   };
+
+  const handleTeach = (q: string, a: string) => setFacts(teach(q, a));
+  const handleDeleteFact = (id: string) => setFacts(deleteFact(id));
 
   return (
     <div className="fade">
@@ -805,6 +891,8 @@ function Ajan() {
           Bu ajan yerel kurallarla çalışır; API anahtarı istemez ve verin tarayıcından çıkmaz. Yanıtları yatırım tavsiyesi değildir.
         </p>
       </div>
+
+      <TeachPanel facts={facts} onTeach={handleTeach} onDelete={handleDeleteFact} />
     </div>
   );
 }
@@ -834,6 +922,7 @@ export default function App() {
     if (confirm('Tüm veriler silinsin ve başa dönülsün mü?')) {
       actions.reset();
       resetMemory();
+      resetTraining();
     }
   };
 
