@@ -163,6 +163,19 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 .badge-green { color: var(--accent); border-color: rgba(45, 212, 167, 0.35); background: var(--accent-dim); }
 .badge-red { color: var(--red); border-color: rgba(248, 113, 113, 0.35); background: rgba(248, 113, 113, 0.1); }
+.badge-live {
+  display: inline-flex; align-items: center; gap: 3px;
+  color: var(--blue); border-color: rgba(56, 189, 248, 0.35); background: rgba(56, 189, 248, 0.1);
+}
+
+.live-link-box {
+  margin-top: 14px; padding: 14px; border-radius: 12px;
+  background: rgba(56, 189, 248, 0.06); border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.spin-icon { animation: spin 0.9s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin-icon { animation: none; } }
 
 .input, .select {
   width: 100%; padding: 11px 14px; border-radius: 11px;

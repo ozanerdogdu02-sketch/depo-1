@@ -6,8 +6,12 @@ export interface Holding {
   id: string;
   name: string;
   type: AssetType;
-  amount: number; // TL — güncel değer (kullanıcı girer/günceller, otomatik piyasa verisi çekilmez)
+  amount: number; // TL — güncel değer (kullanıcı girer/günceller ya da canlı fiyattan hesaplanır)
   costBasis: number; // TL — net yatırılan tutar (alış/satış işlemlerinden otomatik hesaplanır)
+  // Yalnızca döviz/kripto: canlı fiyata bağlıysa dolu olur (bkz. market.ts).
+  quantity?: number; // elde tutulan birim miktarı (örn. 500 USD, 0.01 BTC)
+  symbol?: string; // ISO kur kodu (USD) ya da CoinGecko id (bitcoin)
+  lastFetchedAt?: string; // ISO zaman damgası — en son canlı fiyat ne zaman çekildi
 }
 
 export interface Txn {
@@ -98,16 +102,28 @@ export const actions = {
     localStorage.removeItem(KEY);
     commit(EMPTY);
   },
-  addHolding(name: string, type: AssetType, amount: number): void {
+  addHolding(name: string, type: AssetType, amount: number, quantity?: number, symbol?: string): void {
     const holding: Holding = { id: `h${Date.now()}`, name: name.trim(), type, amount, costBasis: amount };
+    if (quantity !== undefined && symbol) {
+      holding.quantity = quantity;
+      holding.symbol = symbol;
+      holding.lastFetchedAt = new Date().toISOString();
+    }
     commit({ ...state, holdings: [...state.holdings, holding] });
   },
   removeHolding(id: string): void {
     commit({ ...state, holdings: state.holdings.filter(h => h.id !== id) });
   },
-  // Kullanıcının kendi girdiği güncel değer — otomatik piyasa verisi çekilmez, maliyeti değiştirmez.
+  // Kullanıcının kendi elle girdiği güncel değer — maliyeti değiştirmez, "canlı güncelleme" damgasına dokunmaz.
   updateHoldingValue(id: string, newAmount: number): void {
     const holdings = state.holdings.map(h => h.id === id ? { ...h, amount: Math.max(0, newAmount) } : h);
+    commit({ ...state, holdings });
+  },
+  // Canlı fiyat kaynağından (market.ts) çekilen değer — yalnızca quantity/symbol'ü olan varlıklarda kullanılır.
+  applyLivePrice(id: string, newAmount: number): void {
+    const holdings = state.holdings.map(h =>
+      h.id === id ? { ...h, amount: Math.max(0, newAmount), lastFetchedAt: new Date().toISOString() } : h,
+    );
     commit({ ...state, holdings });
   },
   addTxn(holdingName: string, kind: Txn['kind'], amount: number): void {
