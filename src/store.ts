@@ -222,6 +222,21 @@ export function pnlOf(amount: number, costBasis: number): Pnl {
   return { abs, pct };
 }
 
+export interface InvestmentPoint { tarih: string; tutar: number; }
+
+// Net yatırım tutarı geçmişi — YALNIZCA kendi işlem kayıtlarından türetilir, piyasa
+// fiyatı içermez. Panel grafiği ve Ajan'ın grafik-çizme yeteneği bu tek kaynağı paylaşır.
+export function investmentHistoryOf(s: PortfolioState): InvestmentPoint[] {
+  const sorted = [...s.txns].sort((a, b) => a.date.localeCompare(b.date));
+  const byDate = new Map<string, number>();
+  let running = 0;
+  for (const t of sorted) {
+    running += t.kind === 'alis' ? t.amount : -t.amount;
+    byDate.set(t.date, Math.max(0, running));
+  }
+  return [...byDate.entries()].map(([tarih, tutar]) => ({ tarih, tutar }));
+}
+
 export const fmtTL = (n: number) =>
   n.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 });
 

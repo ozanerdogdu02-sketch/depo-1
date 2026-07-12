@@ -1,12 +1,12 @@
 import { useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { PieChart, Pie, Cell, Tooltip, AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, AreaChart, Area, BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import {
   Bot, Send, TrendingUp, Trash2, RotateCcw, LayoutDashboard, ArrowLeftRight, BookOpen,
   Search, CalendarDays, BarChart3, PieChart as PieChartIcon, Bitcoin, Pencil, Check, X, Download,
   RefreshCw, Loader2, Wifi, Upload,
 } from 'lucide-react';
-import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, todayLocalDate, ASSET_LABELS, AssetType, Holding } from './store';
-import { analyzePortfolio, chatReply, AgentMessage } from './agent';
+import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, investmentHistoryOf, todayLocalDate, ASSET_LABELS, AssetType, Holding } from './store';
+import { analyzePortfolio, chatReply, AgentMessage, ChartSpec } from './agent';
 import { exportHoldingsCsv, exportTxnsCsv, parseHoldingsCsv } from './csv';
 import { CURRENCIES, COINS, fetchTryRate, fetchCryptoTryPrice, MarketFetchError } from './market';
 
@@ -102,16 +102,7 @@ function Panel({ assetType, title, query }: PanelProps) {
 
   // Net yatırım tutarı geçmişi — YALNIZCA kendi işlem kayıtlarından türetilir, piyasa
   // fiyatı içermez. "Ne kadar para yatırdın" grafiğidir, "portföyün ne kadar değerdeydi" değil.
-  const investmentHistory = useMemo(() => {
-    const sorted = [...s.txns].sort((a, b) => a.date.localeCompare(b.date));
-    const byDate = new Map<string, number>();
-    let running = 0;
-    for (const t of sorted) {
-      running += t.kind === 'alis' ? t.amount : -t.amount;
-      byDate.set(t.date, Math.max(0, running));
-    }
-    return [...byDate.entries()].map(([tarih, tutar]) => ({ tarih, tutar }));
-  }, [s.txns]);
+  const investmentHistory = useMemo(() => investmentHistoryOf(s), [s]);
 
   const addHolding = () => {
     const n = Number(amount);
@@ -699,21 +690,82 @@ function Projeksiyon() {
   );
 }
 
+const CHART_TOOLTIP_STYLE = { background: '#16212c', border: '1px solid rgba(148,180,200,0.2)', borderRadius: 10, fontSize: 13 };
+const CHART_AXIS_TICK = { fill: 'rgba(214,228,238,0.4)', fontSize: 11 };
+
+// Ajan'ın sohbet içinde ürettiği grafikleri (pasta/alan/çubuk) çizer — Panel/Projeksiyon'daki
+// aynı Recharts kurulumunu, tek bir ChartSpec'ten türeterek tekrar kullanır.
+function AgentChartView({ chart }: { chart: ChartSpec }) {
+  return (
+    <div style={{ width: 260, marginTop: 8 }}>
+      <div className="sub" style={{ marginBottom: 6, fontSize: 12, fontWeight: 600 }}>{chart.title}</div>
+      {chart.kind === 'pie' && (
+        <ResponsiveContainer width="100%" height={170}>
+          <PieChart>
+            <Pie data={chart.data} dataKey={chart.dataKey} nameKey={chart.nameKey} cx="50%" cy="50%" innerRadius={40} outerRadius={65} strokeWidth={0}>
+              {chart.data.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+            </Pie>
+            <Tooltip formatter={v => fmtTL(Number(v))} contentStyle={CHART_TOOLTIP_STYLE} />
+          </PieChart>
+        </ResponsiveContainer>
+      )}
+      {chart.kind === 'area' && (
+        <ResponsiveContainer width="100%" height={150}>
+          <AreaChart data={chart.data} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
+            <defs>
+              <linearGradient id="agentAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.35} />
+                <stop offset="95%" stopColor="#38bdf8" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <XAxis dataKey={chart.nameKey} tick={CHART_AXIS_TICK} axisLine={false} tickLine={false}
+              tickFormatter={d => new Date(d).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })} />
+            <YAxis tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={v => `${Math.round(v / 1000)}K`} width={36} />
+            <Tooltip formatter={v => fmtTL(Number(v))} contentStyle={CHART_TOOLTIP_STYLE} />
+            <Area type="monotone" dataKey={chart.dataKey} stroke="#38bdf8" strokeWidth={2} fill="url(#agentAreaGrad)" />
+          </AreaChart>
+        </ResponsiveContainer>
+      )}
+      {chart.kind === 'bar' && (
+        <ResponsiveContainer width="100%" height={170}>
+          <BarChart data={chart.data} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
+            <XAxis dataKey={chart.nameKey} tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} hide={chart.data.length > 4} />
+            <YAxis tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={v => `${Math.round(v / 1000)}K`} width={36} />
+            <Tooltip formatter={v => fmtTL(Number(v))} contentStyle={CHART_TOOLTIP_STYLE} />
+            <Bar dataKey={chart.dataKey} radius={[4, 4, 0, 0]}>
+              {chart.data.map((d, i) => <Cell key={i} fill={Number(d[chart.dataKey]) >= 0 ? '#2dd4a7' : '#f87171'} />)}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+    </div>
+  );
+}
+
 function Ajan() {
   const s = usePortfolio();
   const [messages, setMessages] = useState<AgentMessage[]>([
-    { role: 'agent', text: 'Merhaba! Ben FAGENT demo ajanı — anahtar gerektirmeden çalışırım. "Analiz Et" butonuna bas ya da portföyün hakkında soru sor.' },
+    {
+      role: 'agent',
+      text: 'Merhaba! Ben FAGENT demo ajanı — anahtar gerektirmeden çalışırım. "Analiz Et" butonuna basabilir, portföyün hakkında soru sorabilir ya da "dağılımımı çiz" gibi bir istekle senin için grafik çizmemi isteyebilirsin. "yardım" yazarsan neler yapabildiğimi listelerim.',
+    },
   ]);
   const [input, setInput] = useState('');
 
   const runAnalysis = () => {
-    setMessages(m => [...m, { role: 'user', text: 'Portföyümü analiz et' }, ...analyzePortfolio(s).map(text => ({ role: 'agent' as const, text }))]);
+    setMessages(m => [
+      ...m,
+      { role: 'user', text: 'Portföyümü analiz et' },
+      ...analyzePortfolio(s).map(text => ({ role: 'agent' as const, text, intentId: 'analiz' })),
+    ]);
   };
 
   const send = () => {
     const text = input.trim();
     if (!text) return;
-    setMessages(m => [...m, { role: 'user', text }, { role: 'agent', text: chatReply(s, text) }]);
+    const userMsg: AgentMessage = { role: 'user', text };
+    const reply = chatReply(s, text, messages);
+    setMessages(m => [...m, userMsg, { role: 'agent', text: reply.text, chart: reply.chart, intentId: reply.intentId }]);
     setInput('');
   };
 
@@ -725,7 +777,10 @@ function Ajan() {
         </div>
         <div className="chat-box">
           {messages.map((m, i) => (
-            <div key={i} className={`msg ${m.role === 'agent' ? 'msg-agent' : 'msg-user'}`}>{m.text}</div>
+            <div key={i} className={`msg ${m.role === 'agent' ? 'msg-agent' : 'msg-user'}`}>
+              {m.text}
+              {m.chart && <AgentChartView chart={m.chart} />}
+            </div>
           ))}
         </div>
         <div className="row" style={{ marginBottom: 12 }}>
@@ -736,7 +791,7 @@ function Ajan() {
         <div className="row">
           <input
             className="input"
-            placeholder='Soru sor: "dağılım", "risk", "enflasyon"…'
+            placeholder='Soru sor: "dağılım", "risk", "THYAO nasıl gidiyor", "grafik çiz"…'
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') send(); }}
