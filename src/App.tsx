@@ -3,10 +3,12 @@ import { PieChart, Pie, Cell, Tooltip, AreaChart, Area, XAxis, YAxis, Responsive
 import {
   Bot, Send, TrendingUp, Trash2, RotateCcw, LayoutDashboard, ArrowLeftRight, BookOpen,
   Search, CalendarDays, BarChart3, PieChart as PieChartIcon, Bitcoin, Pencil, Check, X, Download,
+  RefreshCw, Loader2, Wifi,
 } from 'lucide-react';
 import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, ASSET_LABELS, AssetType, Holding } from './store';
 import { analyzePortfolio, chatReply, AgentMessage } from './agent';
 import { exportHoldingsCsv, exportTxnsCsv } from './csv';
+import { CURRENCIES, COINS, fetchTryRate, fetchCryptoTryPrice, MarketFetchError } from './market';
 
 const PIE_COLORS = ['#2dd4a7', '#38bdf8', '#fbbf24', '#a78bfa', '#f87171', '#f472b6'];
 
@@ -45,6 +47,16 @@ interface PanelProps {
   query: string;
 }
 
+// Yalnızca döviz/kripto: canlı fiyattan TL değeri hesaplar.
+async function fetchLiveTl(type: AssetType, symbol: string, quantity: number): Promise<number> {
+  const price = type === 'doviz' ? await fetchTryRate(symbol) : await fetchCryptoTryPrice(symbol);
+  return quantity * price;
+}
+
+function formatFetchedAt(iso: string): string {
+  return new Date(iso).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
 function Panel({ assetType, title, query }: PanelProps) {
   const s = usePortfolio();
   const [name, setName] = useState('');
@@ -52,6 +64,17 @@ function Panel({ assetType, title, query }: PanelProps) {
   const [amount, setAmount] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+
+  // Yeni varlık formunda "canlı fiyata bağla" (opsiyonel, yalnızca döviz/kripto)
+  const [liveSymbol, setLiveSymbol] = useState(type === 'kripto' ? COINS[0].id : CURRENCIES[0].code);
+  const [liveQuantity, setLiveQuantity] = useState('');
+  const [liveBusy, setLiveBusy] = useState(false);
+  const [liveError, setLiveError] = useState<string | null>(null);
+  const [linkedQuantity, setLinkedQuantity] = useState<number | null>(null); // Hesapla'ya basılınca dolar
+
+  // Mevcut varlık satırlarında "fiyatı güncelle" akışı
+  const [refreshingId, setRefreshingId] = useState<string | null>(null);
+  const [refreshError, setRefreshError] = useState<{ id: string; message: string } | null>(null);
 
   // Sınıfa göre filtrelenmiş (aramadan etkilenmeyen) gerçek toplam — arama sadece listeyi daraltır.
   const classHoldings = useMemo(
@@ -75,8 +98,46 @@ function Panel({ assetType, title, query }: PanelProps) {
   const addHolding = () => {
     const n = Number(amount);
     if (!name.trim() || !Number.isFinite(n) || n <= 0) return;
-    actions.addHolding(name, type, Math.round(n));
-    setName(''); setAmount('');
+    const canLink = (type === 'doviz' || type === 'kripto') && linkedQuantity !== null;
+    actions.addHolding(name, type, Math.round(n), canLink ? linkedQuantity : undefined, canLink ? liveSymbol : undefined);
+    setName(''); setAmount(''); setLinkedQuantity(null); setLiveQuantity(''); setLiveError(null);
+  };
+
+  const changeType = (t: AssetType) => {
+    setType(t);
+    setLiveSymbol(t === 'kripto' ? COINS[0].id : CURRENCIES[0].code);
+    setLiveQuantity(''); setLinkedQuantity(null); setLiveError(null);
+  };
+
+  const calculateLive = async () => {
+    const q = Number(liveQuantity);
+    if (!Number.isFinite(q) || q <= 0) return;
+    setLiveBusy(true);
+    setLiveError(null);
+    try {
+      const tl = await fetchLiveTl(type, liveSymbol, q);
+      setAmount(String(Math.round(tl)));
+      setLinkedQuantity(q);
+    } catch (err) {
+      setLiveError(err instanceof MarketFetchError ? err.message : 'Fiyat hesaplanamadı.');
+      setLinkedQuantity(null);
+    } finally {
+      setLiveBusy(false);
+    }
+  };
+
+  const refreshPrice = async (h: Holding) => {
+    if (!h.symbol || h.quantity === undefined) return;
+    setRefreshingId(h.id);
+    setRefreshError(null);
+    try {
+      const tl = await fetchLiveTl(h.type, h.symbol, h.quantity);
+      actions.applyLivePrice(h.id, Math.round(tl));
+    } catch (err) {
+      setRefreshError({ id: h.id, message: err instanceof MarketFetchError ? err.message : 'Fiyat güncellenemedi.' });
+    } finally {
+      setRefreshingId(null);
+    }
   };
 
   const startEdit = (h: Holding) => {
@@ -167,11 +228,27 @@ function Panel({ assetType, title, query }: PanelProps) {
           return (
             <div key={h.id} className="list-row" style={{ alignItems: 'flex-start' }}>
               <div>
-                <div>{h.name} <span className="badge" style={{ marginLeft: 6 }}>{ASSET_LABELS[h.type]}</span></div>
+                <div>
+                  {h.name} <span className="badge" style={{ marginLeft: 6 }}>{ASSET_LABELS[h.type]}</span>
+                  {h.symbol && (
+                    <span className="badge badge-live" title="Canlı fiyata bağlı" style={{ marginLeft: 6 }}>
+                      <Wifi size={9} /> CANLI
+                    </span>
+                  )}
+                </div>
                 <div className="sub" style={{ marginTop: 4, fontSize: 12 }}>
                   Maliyet: {fmtTL(h.costBasis)} ·{' '}
                   <span style={{ color: abs >= 0 ? 'var(--accent)' : 'var(--red)' }}>{fmtSigned(abs)} ({fmtPct(pct)})</span>
                 </div>
+                {h.symbol && h.lastFetchedAt && (
+                  <div className="hint" style={{ marginTop: 2 }}>
+                    Son fiyat: {formatFetchedAt(h.lastFetchedAt)}
+                    {h.type === 'doviz' ? ' · ECB günlük referans kuru' : ' · CoinGecko, birkaç dk gecikmeli olabilir'}
+                  </div>
+                )}
+                {refreshError?.id === h.id && (
+                  <div className="hint" style={{ marginTop: 2, color: 'var(--red)' }}>{refreshError.message}</div>
+                )}
               </div>
               {isEditing ? (
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
@@ -195,7 +272,15 @@ function Panel({ assetType, title, query }: PanelProps) {
               ) : (
                 <span style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                   <span className="mono">{fmtTL(h.amount)}</span>
-                  <button aria-label={`${h.name} güncel değerini güncelle`} title="Güncel değeri güncelle" onClick={() => startEdit(h)}
+                  {h.symbol && h.quantity !== undefined && (
+                    <button
+                      aria-label={`${h.name} fiyatını canlı kaynaktan güncelle`} title="Canlı fiyatı çek"
+                      onClick={() => refreshPrice(h)} disabled={refreshingId === h.id}
+                      style={{ background: 'none', border: 'none', color: 'var(--blue)', cursor: refreshingId === h.id ? 'not-allowed' : 'pointer', padding: 4 }}>
+                      {refreshingId === h.id ? <Loader2 size={14} className="spin-icon" /> : <RefreshCw size={14} />}
+                    </button>
+                  )}
+                  <button aria-label={`${h.name} güncel değerini güncelle`} title="Güncel değeri elle güncelle" onClick={() => startEdit(h)}
                     style={{ background: 'none', border: 'none', color: 'var(--faint)', cursor: 'pointer', padding: 4 }}>
                     <Pencil size={14} />
                   </button>
@@ -215,15 +300,59 @@ function Panel({ assetType, title, query }: PanelProps) {
           </div>
           <div>
             <label className="field" htmlFor="h-type">Tür</label>
-            <select id="h-type" className="select" value={type} onChange={e => setType(e.target.value as AssetType)}>
+            <select id="h-type" className="select" value={type} onChange={e => changeType(e.target.value as AssetType)}>
               {Object.entries(ASSET_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>
         </div>
+
+        {(type === 'doviz' || type === 'kripto') && (
+          <div className="live-link-box">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <Wifi size={12} color="var(--blue)" />
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--blue)' }}>Canlı Fiyata Bağla (opsiyonel)</span>
+            </div>
+            <div className="grid-2">
+              <div>
+                <label className="field" htmlFor="h-live-symbol">{type === 'doviz' ? 'Para Birimi' : 'Kripto Para'}</label>
+                <select
+                  id="h-live-symbol" className="select" value={liveSymbol}
+                  onChange={e => { setLiveSymbol(e.target.value); setLinkedQuantity(null); }}
+                >
+                  {(type === 'doviz' ? CURRENCIES.map(c => ({ id: c.code, label: c.label })) : COINS).map(o => (
+                    <option key={o.id} value={o.id}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="field" htmlFor="h-live-qty">Miktar (birim)</label>
+                <input
+                  id="h-live-qty" className="input" type="number" min="0" step="any" placeholder={type === 'doviz' ? '500' : '0.01'}
+                  value={liveQuantity}
+                  onChange={e => { setLiveQuantity(e.target.value); setLinkedQuantity(null); }}
+                />
+              </div>
+            </div>
+            <button
+              type="button" className="mini-btn" style={{ marginTop: 10 }}
+              onClick={calculateLive} disabled={liveBusy || !(Number(liveQuantity) > 0)}
+            >
+              {liveBusy ? <Loader2 size={11} className="spin-icon" /> : <RefreshCw size={11} />}
+              {liveBusy ? 'Hesaplanıyor…' : 'Hesapla ve Doldur'}
+            </button>
+            {liveError && <p className="hint" style={{ marginTop: 8, color: 'var(--red)' }}>{liveError}</p>}
+            {linkedQuantity !== null && !liveError && (
+              <p className="hint" style={{ marginTop: 8, color: 'var(--accent)' }}>
+                ✓ Tutar dolduruldu — "Ekle"ye basınca bu varlık canlı fiyata bağlanır.
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="row" style={{ marginTop: 12, alignItems: 'flex-end' }}>
           <div style={{ flex: 1 }}>
             <label className="field" htmlFor="h-amount">Tutar (TL)</label>
-            <input id="h-amount" className="input" type="number" min="1" placeholder="10000" value={amount} onChange={e => setAmount(e.target.value)} />
+            <input id="h-amount" className="input" type="number" min="1" placeholder="10000" value={amount} onChange={e => { setAmount(e.target.value); setLinkedQuantity(null); }} />
           </div>
           <button className="btn btn-primary btn-inline" onClick={addHolding} disabled={!name.trim() || !(Number(amount) > 0)}>Ekle</button>
         </div>
