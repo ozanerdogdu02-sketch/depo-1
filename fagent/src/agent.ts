@@ -21,6 +21,10 @@ export interface AgentMessage {
   text: string;
   chart?: ChartSpec;
   intentId?: string;
+  trainedFactId?: string; // dolu ise bu yanıt öğretilmiş bir bilgiden geldi
+  isFallback?: boolean; // "anlayamadım" türü — 👍 anlamsız, otomatik öğretilmiş bilgiye terfi engellenmeli
+  ratable?: boolean; // 👍/👎 gösterilsin mi — karşılama mesajı gibi statik metinlerde false
+  rated?: 'up' | 'down';
 }
 
 export interface AgentReply {
@@ -28,6 +32,7 @@ export interface AgentReply {
   chart?: ChartSpec;
   intentId?: string;
   trainedFactId?: string; // dolu ise bu yanıt öğretilmiş bir bilgiden geldi (kullanım sayacı için)
+  isFallback?: boolean;
 }
 
 // intentId -> okunabilir Türkçe etiket. Kişiselleştirilmiş karşılamada ve "beni ne
@@ -215,6 +220,7 @@ const CHAT_RULES: Rule[] = [
       '• enflasyon, faiz, altın, risk, projeksiyon gibi genel konular',
       '• "beni ne hatırlıyorsun" — zamanla hangi konularla ilgilendiğini öğrenirim (yalnızca tarayıcında saklanır)',
       '• "Ajanı Eğit" panelinden bana yeni soru-cevaplar öğretebilirsin — öğrettiğin bilgi her zaman diğer cevaplarımdan önce gelir',
+      '• her cevabımı 👍/👎 ile oylayabilirsin — 👎 dersen doğrusunu öğretmen için soru-cevap formu otomatik açılır',
     ].join('\n'),
   },
   {
@@ -340,7 +346,7 @@ export function chatReply(
         : pnlBarChart(s);
       if (chart) return { text: `${chart.title} grafiğini büyütüyorum:`, chart, intentId: lastIntent };
     }
-    return { text: 'Hangi konuda devam edeyim? "analiz", "dağılım", "risk" ya da bir varlık adı yazabilirsin.' };
+    return { text: 'Hangi konuda devam edeyim? "analiz", "dağılım", "risk" ya da bir varlık adı yazabilirsin.', isFallback: true };
   }
 
   // Grafik isteği — sohbet içinde doğrudan görsel üretir.
@@ -368,5 +374,6 @@ export function chatReply(
     text:
       'Bunu tam olarak anlayamadım. "analiz et", "dağılımım nasıl", "en çok kazandıran ne", bir varlık adı ' +
       '(ör. "THYAO nasıl gidiyor") ya da "dağılımımı çiz" gibi bir grafik isteği deneyebilirsin. "yardım" yazarsan tüm yeteneklerimi listelerim.',
+    isFallback: true,
   };
 }

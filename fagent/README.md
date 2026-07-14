@@ -107,6 +107,22 @@ değildir** — basit ama etkili bir kelime-örtüşmesi sezgiseli. Aynı soru t
 doğrudan sabit cevaplar ekliyor. Bu, klasik "uzman sistem" / örnek-tabanlı akıl yürütme desenidir.
 UI'da ve "yardım" metninde bu açıkça belirtiliyor — yanlış beklenti yaratmamak önemli.
 
+### 5. Geri Bildirim Döngüsü — 👍/👎
+
+Her ratable ajan mesajının altında 👍/👎 butonları var (karşılama mesajı hariç):
+
+- **👍** — eğer yanıt zaten öğretilmiş bir bilgiden geldiyse hiçbir şey yapmaz. Built-in bir kuraldan
+  geldiyse, o soru-cevabı olduğu gibi öğretilmiş bilgiye **otomatik terfi ettirir** — bir sonraki aynı
+  soru artık `findBestMatch` üzerinden (daha hızlı/kesin) gelir.
+- **👎** — kaynağı ne olursa olsun (built-in kural ya da fallback), "Ajanı Eğit" panelini otomatik açar
+  ve **Soru** alanını kullanıcının az önce sorduğu metinle önceden doldurur (`findPrecedingUserText`).
+  Kullanıcı doğru cevabı yazıp öğretir — negatif geri bildirim doğrudan düzeltme akışına bağlanmış olur.
+- Her mesaj yalnızca bir kez oylanabilir.
+
+Bu, "beğenilen ad-hoc cevapları veri setine ekleyip modeli eğitmek" fikrinin anahtarsız/gerçekçi
+karşılığıdır — **model eğitimi değil**, `agentTraining.ts`'e satır ekleme. Gerçek bir öğrenme
+algoritması (RLHF, fine-tuning) burada yok; bu konudaki dürüstlük ilkesi diğer katmanlarla aynı.
+
 ---
 
 ## Gerçek AI'a Geçiş (henüz yapılmadı, planlı)
@@ -155,5 +171,5 @@ Sidebar'daki **SIFIRLA** üçünü de temizler.
 
 Playwright e2e testleri kalıcı repo dosyaları değil (scratchpad'de), ama kapsam şu: sidebar/nav,
 kâr-zarar muhasebesi, canlı fiyat bağlama, CSV içe/dışa aktarma, validasyon kuralları (ad çakışması,
-bakiye aşımı), ajan sohbet/grafik, uzun süreli bellek, eğitilebilir bilgi tabanı — toplam 132 kontrol.
+bakiye aşımı), ajan sohbet/grafik, uzun süreli bellek, eğitilebilir bilgi tabanı, geri bildirim döngüsü (👍/👎) — toplam 143 kontrol.
 Detaylar için repo kökündeki `CLAUDE.md`'ye bakabilirsin (proje hafızası, her oturumda güncellenir).

@@ -3,7 +3,7 @@ import { PieChart, Pie, Cell, Tooltip, AreaChart, Area, BarChart, Bar, XAxis, YA
 import {
   Bot, Send, TrendingUp, Trash2, RotateCcw, LayoutDashboard, ArrowLeftRight, BookOpen,
   Search, CalendarDays, BarChart3, PieChart as PieChartIcon, Bitcoin, Pencil, Check, X, Download,
-  RefreshCw, Loader2, Wifi, Upload, GraduationCap, ChevronDown, ChevronUp,
+  RefreshCw, Loader2, Wifi, Upload, GraduationCap, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown,
 } from 'lucide-react';
 import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, investmentHistoryOf, todayLocalDate, ASSET_LABELS, AssetType, Holding } from './store';
 import { analyzePortfolio, chatReply, buildGreeting, extractMentionedHoldings, AgentMessage, ChartSpec } from './agent';
@@ -744,25 +744,26 @@ function AgentChartView({ chart }: { chart: ChartSpec }) {
   );
 }
 
-function TeachPanel({ facts, onTeach, onDelete }: {
+function TeachPanel({ facts, onTeach, onDelete, open, onToggleOpen, q, a, onQChange, onAChange }: {
   facts: TrainedFact[];
   onTeach: (q: string, a: string) => void;
   onDelete: (id: string) => void;
+  open: boolean;
+  onToggleOpen: () => void;
+  q: string;
+  a: string;
+  onQChange: (v: string) => void;
+  onAChange: (v: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [q, setQ] = useState('');
-  const [a, setA] = useState('');
-
   const submit = () => {
     if (!q.trim() || !a.trim()) return;
     onTeach(q, a);
-    setQ(''); setA('');
   };
 
   return (
     <div className="card">
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={onToggleOpen}
         style={{
           background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
@@ -783,13 +784,13 @@ function TeachPanel({ facts, onTeach, onDelete }: {
           </p>
           <div>
             <label className="field" htmlFor="teach-q">Soru</label>
-            <input id="teach-q" className="input" placeholder='ör. "temettü nedir"' value={q} onChange={e => setQ(e.target.value)} />
+            <input id="teach-q" className="input" placeholder='ör. "temettü nedir"' value={q} onChange={e => onQChange(e.target.value)} />
           </div>
           <div style={{ marginTop: 10 }}>
             <label className="field" htmlFor="teach-a">Cevap</label>
             <textarea
               id="teach-a" className="input" rows={3} style={{ resize: 'vertical', fontFamily: 'inherit' }}
-              placeholder="Ajanın bu soruya vereceği cevabı yaz…" value={a} onChange={e => setA(e.target.value)}
+              placeholder="Ajanın bu soruya vereceği cevabı yaz…" value={a} onChange={e => onAChange(e.target.value)}
             />
           </div>
           <div className="row" style={{ marginTop: 10 }}>
@@ -821,6 +822,15 @@ function TeachPanel({ facts, onTeach, onDelete }: {
   );
 }
 
+// Bir agent mesajından geriye doğru en yakın kullanıcı mesajını bulur — 👎 ile Eğit paneli
+// açıldığında "Soru" alanını otomatik doldurmak için.
+function findPrecedingUserText(messages: AgentMessage[], index: number): string {
+  for (let i = index - 1; i >= 0; i--) {
+    if (messages[i].role === 'user') return messages[i].text;
+  }
+  return '';
+}
+
 function Ajan() {
   const s = usePortfolio();
   const [messages, setMessages] = useState<AgentMessage[]>(() => [
@@ -828,13 +838,16 @@ function Ajan() {
   ]);
   const [input, setInput] = useState('');
   const [facts, setFacts] = useState<TrainedFact[]>(() => getTrainedFacts());
+  const [teachOpen, setTeachOpen] = useState(false);
+  const [teachQ, setTeachQ] = useState('');
+  const [teachA, setTeachA] = useState('');
 
   const runAnalysis = () => {
     recordTurn('analiz', []);
     setMessages(m => [
       ...m,
       { role: 'user', text: 'Portföyümü analiz et' },
-      ...analyzePortfolio(s).map(text => ({ role: 'agent' as const, text, intentId: 'analiz' })),
+      ...analyzePortfolio(s).map(text => ({ role: 'agent' as const, text, intentId: 'analiz', ratable: true })),
     ]);
   };
 
@@ -848,12 +861,43 @@ function Ajan() {
       recordFactUse(reply.trainedFactId);
       setFacts(getTrainedFacts());
     }
-    setMessages(m => [...m, userMsg, { role: 'agent', text: reply.text, chart: reply.chart, intentId: reply.intentId }]);
+    setMessages(m => [...m, userMsg, {
+      role: 'agent', text: reply.text, chart: reply.chart, intentId: reply.intentId,
+      trainedFactId: reply.trainedFactId, isFallback: reply.isFallback, ratable: true,
+    }]);
     setInput('');
   };
 
-  const handleTeach = (q: string, a: string) => setFacts(teach(q, a));
+  const handleTeach = (q: string, a: string) => {
+    setFacts(teach(q, a));
+    setTeachQ(''); setTeachA('');
+  };
   const handleDeleteFact = (id: string) => setFacts(deleteFact(id));
+
+  // 👍: zaten öğretilmiş bir bilgiyse yapacak bir şey yok. Built-in bir kuraldan geldiyse
+  // (öğretilmiş DEĞİL, fallback DEĞİL) bu cevabı olduğu gibi öğretilmiş bilgiye "terfi ettirir" —
+  // aynı soru bir daha sorulduğunda artık kesin/hızlı yoldan (findBestMatch) gelir.
+  // 👎: hangi kaynaktan geldiğine bakılmaksızın "Ajanı Eğit" panelini, ilgili soruyla
+  // (ve öğretilmiş bir cevapsa mevcut metinle) önceden doldurulmuş halde açar — kullanıcı
+  // düzeltmeyi doğrudan yazar, bu da chatReply'nin bir sonraki turda kullanacağı gerçek veriyi üretir.
+  const rate = (index: number, rating: 'up' | 'down') => {
+    const msg = messages[index];
+    if (msg.role !== 'agent' || !msg.ratable || msg.rated) return;
+    setMessages(m => m.map((mm, i) => i === index ? { ...mm, rated: rating } : mm));
+
+    if (rating === 'up') {
+      if (!msg.trainedFactId && !msg.isFallback) {
+        const question = findPrecedingUserText(messages, index);
+        if (question) setFacts(teach(question, msg.text));
+      }
+      return;
+    }
+
+    const question = findPrecedingUserText(messages, index);
+    setTeachQ(question);
+    setTeachA(msg.trainedFactId ? msg.text : '');
+    setTeachOpen(true);
+  };
 
   return (
     <div className="fade">
@@ -866,6 +910,28 @@ function Ajan() {
             <div key={i} className={`msg ${m.role === 'agent' ? 'msg-agent' : 'msg-user'}`}>
               {m.text}
               {m.chart && <AgentChartView chart={m.chart} />}
+              {m.role === 'agent' && m.ratable && (
+                <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
+                  <button
+                    aria-label="Bu cevabı beğendim" title="Beğendim" disabled={!!m.rated}
+                    onClick={() => rate(i, 'up')}
+                    style={{
+                      background: 'none', border: 'none', cursor: m.rated ? 'default' : 'pointer', padding: 3,
+                      color: m.rated === 'up' ? 'var(--accent)' : 'var(--faint)', opacity: m.rated && m.rated !== 'up' ? 0.35 : 1,
+                    }}>
+                    <ThumbsUp size={13} />
+                  </button>
+                  <button
+                    aria-label="Bu cevabı beğenmedim, düzeltmek istiyorum" title="Beğenmedim — düzelt" disabled={!!m.rated}
+                    onClick={() => rate(i, 'down')}
+                    style={{
+                      background: 'none', border: 'none', cursor: m.rated ? 'default' : 'pointer', padding: 3,
+                      color: m.rated === 'down' ? 'var(--red)' : 'var(--faint)', opacity: m.rated && m.rated !== 'down' ? 0.35 : 1,
+                    }}>
+                    <ThumbsDown size={13} />
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -892,7 +958,11 @@ function Ajan() {
         </p>
       </div>
 
-      <TeachPanel facts={facts} onTeach={handleTeach} onDelete={handleDeleteFact} />
+      <TeachPanel
+        facts={facts} onTeach={handleTeach} onDelete={handleDeleteFact}
+        open={teachOpen} onToggleOpen={() => setTeachOpen(o => !o)}
+        q={teachQ} a={teachA} onQChange={setTeachQ} onAChange={setTeachA}
+      />
     </div>
   );
 }
