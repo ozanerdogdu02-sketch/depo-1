@@ -25,6 +25,8 @@ export interface AgentMessage {
   isFallback?: boolean; // "anlayamadım" türü — 👍 anlamsız, otomatik öğretilmiş bilgiye terfi engellenmeli
   ratable?: boolean; // 👍/👎 gösterilsin mi — karşılama mesajı gibi statik metinlerde false
   rated?: 'up' | 'down';
+  pendingAction?: PendingAction; // dolu ise Onayla/Vazgeç butonları gösterilir
+  actionResolved?: 'confirmed' | 'cancelled';
 }
 
 export interface AgentReply {
@@ -33,6 +35,17 @@ export interface AgentReply {
   intentId?: string;
   trainedFactId?: string; // dolu ise bu yanıt öğretilmiş bir bilgiden geldi (kullanım sayacı için)
   isFallback?: boolean;
+  pendingAction?: PendingAction;
+}
+
+// Ajanın chat üzerinden ÖNERDİĞİ ama henüz UYGULAMADIĞI bir işlem — kullanıcı onaylamadan
+// hiçbir gerçek veri değişikliği olmaz (bkz. App.tsx'teki Onayla/Vazgeç butonları). agent.ts
+// saf kalmaya devam ediyor: burada yalnızca komut ayrıştırılıyor, actions.addTxn hiç çağrılmıyor.
+export interface PendingAction {
+  kind: 'alis' | 'satis';
+  holdingId: string;
+  holdingName: string;
+  amount: number;
 }
 
 // intentId -> okunabilir Türkçe etiket. Kişiselleştirilmiş karşılamada ve "beni ne
@@ -163,6 +176,34 @@ function detectChartRequest(s: PortfolioState, text: string): { chart: ChartSpec
   return chart ? { chart, intentId: chart.title === 'Sınıf Dağılımı' ? 'grafik-dagilim' : 'grafik-yatirim' } : undefined;
 }
 
+// --- İşlem komutları (aksiyon alma) -----------------------------------------
+
+// Kullanıcının "THYAO'dan 500 TL sat" gibi bir alım/satım komutu verip vermediğini algılar.
+// Bilinçli olarak SIKI kurallar: tutar + tek anlamlı fiil (al/sat) + TAM OLARAK bir varlıkla
+// eşleşme gerekir; herhangi biri eksik/belirsizse undefined döner ve normal akışa (soru-cevap)
+// düşülür — yanlış algılanan bir "işlem" gerçek veriyi bozabileceğinden yanlış negatif, yanlış
+// pozitiften çok daha güvenlidir. Bu fonksiyon SAF'tır: hiçbir actions.* çağrısı yapmaz, yalnızca
+// "kullanıcı bunu istiyor gibi görünüyor" tespitini döner — gerçek uygulama App.tsx'te, kullanıcı
+// onayladıktan SONRA gerçekleşir.
+function detectTradeCommand(s: PortfolioState, text: string): PendingAction | undefined {
+  const amountMatch = text.match(/(\d[\d.,]*)\s*(tl|₺)?/i);
+  if (!amountMatch) return undefined;
+  const amountStr = amountMatch[1].replace(/\./g, '').replace(',', '.');
+  const amount = Math.round(Number(amountStr));
+  if (!Number.isFinite(amount) || amount <= 0) return undefined;
+
+  const isSell = /\b(sat|satış|satayım|satmak istiyorum)\b/i.test(text);
+  const isBuy = /\b(al|alış|ekle|alayım|almak istiyorum)\b/i.test(text);
+  if (isSell === isBuy) return undefined; // ikisi de yok ya da ikisi de var (belirsiz) — atla
+
+  const lower = text.toLocaleLowerCase('tr-TR');
+  const candidates = s.holdings.filter(h => lower.includes(h.name.toLocaleLowerCase('tr-TR')));
+  if (candidates.length !== 1) return undefined; // hiç ya da birden fazla eşleşme — güvenli değil
+
+  const holding = candidates[0];
+  return { kind: isSell ? 'satis' : 'alis', holdingId: holding.id, holdingName: holding.name, amount };
+}
+
 // --- Varlık bazlı sorgular -------------------------------------------------
 
 function bestWorstReply(s: PortfolioState, text: string): string | undefined {
@@ -215,6 +256,7 @@ const CHAT_RULES: Rule[] = [
       '• "analiz et" — portföyünün genel değerlendirmesi',
       '• "dağılımım nasıl" — sınıf bazlı ağırlıklar',
       '• "THYAO nasıl gidiyor" gibi varlık bazlı sorular',
+      '• "THYAO\'dan 500 TL sat" gibi bir komutla gerçek işlem önerebilirim — onaylarsan uygularım',
       '• "en çok kazandıran ne" / "en çok kaybettiren ne" — kıyaslama',
       '• "dağılımımı çiz" ya da "yatırım grafiğimi göster" — sohbet içinde grafik çizerim',
       '• enflasyon, faiz, altın, risk, projeksiyon gibi genel konular',
@@ -331,6 +373,17 @@ export function chatReply(
   // değiştirebilmesi bunun anlamlı olmasının şartı.
   const trained = findBestMatch(trainedFacts, text);
   if (trained) return { text: trained.answer, intentId: 'trained', trainedFactId: trained.id };
+
+  // Alım/satım komutu — gerçek veri değişikliği burada YAPILMAZ, yalnızca önerilir.
+  // Kullanıcı sohbet balonundaki Onayla/Vazgeç ile onaylamadan actions.addTxn çağrılmaz.
+  const pendingAction = detectTradeCommand(s, text);
+  if (pendingAction) {
+    const verb = pendingAction.kind === 'alis' ? 'almak' : 'satmak';
+    return {
+      text: `${pendingAction.holdingName} için ${fmtTL(pendingAction.amount)} ${verb} istediğini anladım. Onaylıyor musun?`,
+      pendingAction,
+    };
+  }
 
   // Ajanın kendisi hakkında ne bildiğini soran meta-sorular (uzun süreli bellek şeffaflığı).
   const memoryReply = memoryQueryReply(memory, text);

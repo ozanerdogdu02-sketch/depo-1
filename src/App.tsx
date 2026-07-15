@@ -863,9 +863,50 @@ function Ajan() {
     }
     setMessages(m => [...m, userMsg, {
       role: 'agent', text: reply.text, chart: reply.chart, intentId: reply.intentId,
-      trainedFactId: reply.trainedFactId, isFallback: reply.isFallback, ratable: true,
+      trainedFactId: reply.trainedFactId, isFallback: reply.isFallback, ratable: !reply.pendingAction,
+      pendingAction: reply.pendingAction,
     }]);
     setInput('');
+  };
+
+  // Ajan bir alım/satım komutu ÖNERDİĞİNDE (pendingAction) burada onaylanana kadar hiçbir
+  // gerçek veri değişmez — actions.addTxn yalnızca kullanıcı "Onayla"ya bastığında çağrılır.
+  // Bakiye aşımı kontrolü İşlemler sekmesindekiyle birebir aynı (bkz. Islemler bileşeni).
+  const resolveAction = (index: number, confirmed: boolean) => {
+    const msg = messages[index];
+    if (!msg.pendingAction || msg.actionResolved) return;
+    const { kind, holdingId, holdingName, amount } = msg.pendingAction;
+
+    if (!confirmed) {
+      setMessages(m => [
+        ...m.map((mm, i) => i === index ? { ...mm, actionResolved: 'cancelled' as const } : mm),
+        { role: 'agent', text: 'Tamam, işlemi iptal ettim.' },
+      ]);
+      return;
+    }
+
+    const holding = s.holdings.find(h => h.id === holdingId);
+    if (!holding) {
+      setMessages(m => [
+        ...m.map((mm, i) => i === index ? { ...mm, actionResolved: 'cancelled' as const } : mm),
+        { role: 'agent', text: `${holdingName} artık portföyünde yok — işlemi uygulayamadım.` },
+      ]);
+      return;
+    }
+    if (kind === 'satis' && amount > holding.amount) {
+      setMessages(m => [
+        ...m.map((mm, i) => i === index ? { ...mm, actionResolved: 'cancelled' as const } : mm),
+        { role: 'agent', text: `Bakiyeyi aşamaz — ${holdingName} için güncel değer ${fmtTL(holding.amount)}. İşlemi uygulamadım.` },
+      ]);
+      return;
+    }
+
+    actions.addTxn(holdingId, kind, amount);
+    const newAmount = kind === 'alis' ? holding.amount + amount : Math.max(0, holding.amount - amount);
+    setMessages(m => [
+      ...m.map((mm, i) => i === index ? { ...mm, actionResolved: 'confirmed' as const } : mm),
+      { role: 'agent', text: `Yaptım — ${holdingName} için ${fmtTL(amount)} ${kind === 'alis' ? 'alış' : 'satış'} işlendi. Güncel değer: ${fmtTL(newAmount)}.` },
+    ]);
   };
 
   const handleTeach = (q: string, a: string) => {
@@ -910,6 +951,22 @@ function Ajan() {
             <div key={i} className={`msg ${m.role === 'agent' ? 'msg-agent' : 'msg-user'}`}>
               {m.text}
               {m.chart && <AgentChartView chart={m.chart} />}
+              {m.role === 'agent' && m.pendingAction && (
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  <button
+                    className="btn btn-primary btn-inline" style={{ padding: '4px 10px', fontSize: 12.5 }}
+                    disabled={!!m.actionResolved} onClick={() => resolveAction(i, true)}
+                  >
+                    {m.actionResolved === 'confirmed' ? 'Onaylandı ✓' : 'Onayla'}
+                  </button>
+                  <button
+                    className="btn btn-secondary btn-inline" style={{ padding: '4px 10px', fontSize: 12.5 }}
+                    disabled={!!m.actionResolved} onClick={() => resolveAction(i, false)}
+                  >
+                    {m.actionResolved === 'cancelled' ? 'Vazgeçildi' : 'Vazgeç'}
+                  </button>
+                </div>
+              )}
               {m.role === 'agent' && m.ratable && (
                 <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
                   <button
