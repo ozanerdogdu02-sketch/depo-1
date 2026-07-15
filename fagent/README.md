@@ -123,6 +123,17 @@ Bu, "beğenilen ad-hoc cevapları veri setine ekleyip modeli eğitmek" fikrinin 
 karşılığıdır — **model eğitimi değil**, `agentTraining.ts`'e satır ekleme. Gerçek bir öğrenme
 algoritması (RLHF, fine-tuning) burada yok; bu konudaki dürüstlük ilkesi diğer katmanlarla aynı.
 
+### 6. Aksiyon Alma — Onayla/Vazgeç
+
+Ajan artık salt bilgi vermekle kalmıyor, sohbette verilen bir komutu gerçekten uygulayabiliyor:
+"THYAO'dan 500 TL sat" gibi bir mesaj yazarsan, ajan `detectTradeCommand()` ile bunu ayrıştırır ve
+"Onaylıyor musun?" diye sorar. **Onayla**'ya basmadan hiçbir gerçek veri değişmez — `agent.ts` bu
+akışta da saf kalır, `actions.addTxn` yalnızca `App.tsx`'teki `resolveAction()` içinde, onay sonrası
+çağrılır. Tespit bilinçli olarak sıkı: tutar + tek anlamlı fiil (al/sat) + tam olarak bir varlıkla
+eşleşme şart; biri eksikse normal soru-cevap akışına düşülür (yanlış negatif, verinin yanlışlıkla
+değişmesinden çok daha güvenli). Onaylansa bile bakiye aşımı gibi durumlar İşlemler sekmesindekiyle
+aynı kurala göre reddedilir.
+
 ---
 
 ## Gerçek AI'a Geçiş (henüz yapılmadı, planlı)
@@ -171,5 +182,5 @@ Sidebar'daki **SIFIRLA** üçünü de temizler.
 
 Playwright e2e testleri kalıcı repo dosyaları değil (scratchpad'de), ama kapsam şu: sidebar/nav,
 kâr-zarar muhasebesi, canlı fiyat bağlama, CSV içe/dışa aktarma, validasyon kuralları (ad çakışması,
-bakiye aşımı), ajan sohbet/grafik, uzun süreli bellek, eğitilebilir bilgi tabanı, geri bildirim döngüsü (👍/👎) — toplam 143 kontrol.
+bakiye aşımı), ajan sohbet/grafik, uzun süreli bellek, eğitilebilir bilgi tabanı, geri bildirim döngüsü (👍/👎), aksiyon alma (Onayla/Vazgeç) — toplam 154 kontrol.
 Detaylar için repo kökündeki `CLAUDE.md`'ye bakabilirsin (proje hafızası, her oturumda güncellenir).

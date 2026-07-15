@@ -88,9 +88,31 @@ Kullanıcı gerçek "sürekli gelişen ajan" için endüstri standardı adımlar
 - Her mesaj yalnızca BİR KEZ oylanabilir (`rated` set edildikten sonra butonlar `disabled`, tıklanan yön renkli/dolu, diğeri soluk kalır).
 - `agent.ts` hâlâ saf: fallback'i işaretlemek dışında `chatReply`'nin imzası değişmedi.
 
-### 1.10 Test kapsamı (scratchpad, kalıcı repo dosyası değil)
+### 1.10 Ajan aksiyon alma — Onayla/Vazgeç (`agent.ts` + `App.tsx`)
 
-`fagent-sidebar-e2e.mjs`, `fagent-nav-e2e.mjs`, `fagent-pnl-e2e.mjs`, `fagent-live-e2e.mjs` (ağ `page.route()` ile taklit), `fagent-import-e2e.mjs`, `fagent-chart-e2e.mjs`, `fagent-validation-e2e.mjs` (ad çakışması engelleme + bakiye-aşımı engelleme testleri), `fagent-agent-e2e.mjs` (küçük sohbet, varlık bazlı sorgu, en iyi/kötü kıyaslama, üç grafik türünün sohbet içinde DOM'a çizildiğinin doğrulanması, bağlam hafızası/takip cümlesi, fallback), `fagent-memory-e2e.mjs` (localStorage'a yazma, konu/varlık sayaçları, sayfa yenileme sonrası kişiselleştirilmiş karşılama, SIFIRLA'nın hafızayı da temizlemesi), `fagent-teach-e2e.mjs` (öğretme, fuzzy eşleşme, düzeltme/üzerine yazma, built-in kuralın önüne geçme, kullanım sayacı, silme, SIFIRLA'nın öğretilen bilgiyi de temizlemesi), `fagent-feedback-e2e.mjs` (👍 ile otomatik terfi, 👎 ile önceden dolu Eğit paneli açma, fallback'te de oylama, tek-seferlik oylama kilidi) — Playwright + `/opt/pw-browsers/chromium`, toplam 143 kontrol. Yeni bir davranış eklenince ilgili dosyaya test eklenmeli; store.ts'in genel API'si (`actions.*`) değişirse tüm dosyalar taranıp stale selector/mesaj metni kontrol edilmeli (örnek: `#t-holding option value` isimden ID'ye geçince `page.selectOption(..., { label })` kullanan testler etkilenmedi ama `value` ile seçen olsaydı kırılırdı).
+"En büyük eksik ajan sadece konuşuyor, hiçbir şey yapmıyor" tespitinden sonra eklendi. Kullanıcı
+sohbette "THYAO'dan 500 TL sat" gibi bir komut yazarsa, ajan gerçekten `actions.addTxn` çağırabilir —
+ama yalnızca kullanıcı açıkça onayladıktan sonra.
+
+- **`detectTradeCommand()`** (agent.ts, SAF fonksiyon): tutar (`\d[\d.,]*` + opsiyonel "TL"/"₺") + tam
+  olarak bir alış/satış fiili (`al|alış|ekle|alayım` / `sat|satış|satayım`) + metinde TAM OLARAK bir
+  varlık adının geçmesi gerekir. Herhangi biri eksik/belirsizse (0 ya da >1 varlık eşleşmesi, fiil yok
+  ya da ikisi birden var) `undefined` döner ve normal soru-cevap akışına düşülür — yanlış negatif,
+  yanlış pozitiften (verinin yanlışlıkla değişmesi) çok daha güvenli kabul edildi.
+- **`AgentReply`/`AgentMessage`'a eklenen `pendingAction?: PendingAction`** (`{ kind, holdingId,
+  holdingName, amount }`) ve `actionResolved?: 'confirmed' | 'cancelled'`. `chatReply` bu durumda
+  **hiçbir gerçek veri değiştirmez** — yalnızca "Bunu yapmak istediğini anladım, onaylıyor musun?"
+  metnini ve `pendingAction`'ı döner; `agent.ts` bu haliyle de saf/test edilebilir kalıyor.
+- **`App.tsx`'teki `resolveAction()`:** Onayla'ya basınca İşlemler sekmesindekiyle BİREBİR aynı
+  güvenlik kontrolü uygulanır (varlık hâlâ var mı, `satis` tutarı güncel değeri aşıyor mu) — aşıyorsa
+  onaylansa bile reddedilir ("Bakiyeyi aşamaz..."). Geçerliyse `actions.addTxn` çağrılır ve güncel
+  değeri içeren bir onay mesajı eklenir. Vazgeç'e basınca hiçbir `actions.*` çağrısı yapılmaz.
+- Her öneri yalnızca BİR KEZ çözümlenebilir (`actionResolved` set edilince butonlar `disabled`).
+  `pendingAction` içeren mesajlarda `ratable` false'a çekilir (👍/👎 yerine Onayla/Vazgeç gösterilir).
+
+### 1.11 Test kapsamı (scratchpad, kalıcı repo dosyası değil)
+
+`fagent-sidebar-e2e.mjs`, `fagent-nav-e2e.mjs`, `fagent-pnl-e2e.mjs`, `fagent-live-e2e.mjs` (ağ `page.route()` ile taklit), `fagent-import-e2e.mjs`, `fagent-chart-e2e.mjs`, `fagent-validation-e2e.mjs` (ad çakışması engelleme + bakiye-aşımı engelleme testleri), `fagent-agent-e2e.mjs` (küçük sohbet, varlık bazlı sorgu, en iyi/kötü kıyaslama, üç grafik türünün sohbet içinde DOM'a çizildiğinin doğrulanması, bağlam hafızası/takip cümlesi, fallback), `fagent-memory-e2e.mjs` (localStorage'a yazma, konu/varlık sayaçları, sayfa yenileme sonrası kişiselleştirilmiş karşılama, SIFIRLA'nın hafızayı da temizlemesi), `fagent-teach-e2e.mjs` (öğretme, fuzzy eşleşme, düzeltme/üzerine yazma, built-in kuralın önüne geçme, kullanım sayacı, silme, SIFIRLA'nın öğretilen bilgiyi de temizlemesi), `fagent-feedback-e2e.mjs` (👍 ile otomatik terfi, 👎 ile önceden dolu Eğit paneli açma, fallback'te de oylama, tek-seferlik oylama kilidi), `fagent-action-e2e.mjs` (onaylanan işlemin gerçekten uygulanması, vazgeçilenin uygulanmaması, bakiye aşımının onaya rağmen reddi, belirsiz komutların normal cevaba düşmesi) — Playwright + `/opt/pw-browsers/chromium`, toplam 154 kontrol. Yeni bir davranış eklenince ilgili dosyaya test eklenmeli; store.ts'in genel API'si (`actions.*`) değişirse tüm dosyalar taranıp stale selector/mesaj metni kontrol edilmeli (örnek: `#t-holding option value` isimden ID'ye geçince `page.selectOption(..., { label })` kullanan testler etkilenmedi ama `value` ile seçen olsaydı kırılırdı).
 
 ## 2. Aura Finance (BDT günlüğü + abonelik demosu)
 
