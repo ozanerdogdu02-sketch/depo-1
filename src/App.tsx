@@ -4,9 +4,10 @@ import {
   Bot, Send, TrendingUp, Trash2, RotateCcw, LayoutDashboard, ArrowLeftRight, BookOpen,
   Search, CalendarDays, BarChart3, PieChart as PieChartIcon, Bitcoin, Pencil, Check, X, Download,
   RefreshCw, Loader2, Wifi, Upload, GraduationCap, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown,
+  Sparkles, AlertTriangle, CheckCircle2,
 } from 'lucide-react';
 import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, investmentHistoryOf, todayLocalDate, ASSET_LABELS, AssetType, Holding } from './store';
-import { analyzePortfolio, chatReply, buildGreeting, extractMentionedHoldings, AgentMessage, ChartSpec } from './agent';
+import { analyzePortfolio, chatReply, buildGreeting, extractMentionedHoldings, proactiveInsights, AgentMessage, ChartSpec, Insight } from './agent';
 import { getProfile, recordTurn, resetMemory } from './agentMemory';
 import { getTrainedFacts, teach, deleteFact, recordFactUse, resetTraining, TrainedFact } from './agentTraining';
 import { exportHoldingsCsv, exportTxnsCsv, parseHoldingsCsv } from './csv';
@@ -60,6 +61,59 @@ async function fetchLiveTl(type: AssetType, symbol: string, quantity: number): P
 
 function formatFetchedAt(iso: string): string {
   return new Date(iso).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+// Enflasyon oranı için resmi/ücretsiz/anahtarsız bir CORS-açık API bulunmadığından (TÜİK dahil),
+// oran bir VARSAYIM olarak kullanıcıya bırakılır — tıpkı Projeksiyon sekmesindeki beklenen getiri
+// gibi. Sabit/uydurma bir "canlı" oran gösterilmez; arayüzde "senin varsayımın" olarak etiketlenir.
+const DEFAULT_INFLATION_PCT = 40;
+
+function insightVisual(level: Insight['level']): { icon: typeof AlertTriangle; color: string } {
+  if (level === 'uyari') return { icon: AlertTriangle, color: 'var(--red)' };
+  if (level === 'iyi') return { icon: CheckCircle2, color: 'var(--accent)' };
+  return { icon: Sparkles, color: 'var(--blue)' };
+}
+
+// FAGENT'ın Bloki'den ayrıştığı çekirdek: kullanıcı SORMADAN, panel açılır açılmaz otomatik
+// yüzeye çıkan proaktif içgörüler + gerçek reel getiri (enflasyon karşısında alım gücü) uyarısı.
+function ProactiveInsightsCard() {
+  const s = usePortfolio();
+  const [inflation, setInflation] = useState(DEFAULT_INFLATION_PCT);
+  const insights = useMemo(() => proactiveInsights(s, inflation), [s, inflation]);
+  if (insights.length === 0) return null;
+
+  return (
+    <div className="card" style={{ borderColor: 'rgba(56,189,248,0.35)' }}>
+      <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Sparkles size={14} color="var(--blue)" /> Proaktif İçgörüler
+        <span className="badge" style={{ marginLeft: 2, color: 'var(--blue)', borderColor: 'rgba(56,189,248,0.4)' }}>OTOMATİK</span>
+      </div>
+      <p className="hint" style={{ marginBottom: 12 }}>
+        Bunları sen sormadan, portföyünü açar açmaz hesapladım.
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {insights.map((ins, i) => {
+          const { icon: Icon, color } = insightVisual(ins.level);
+          return (
+            <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <Icon size={16} color={color} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span style={{ fontSize: 13.5, lineHeight: 1.5 }}>{ins.text}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
+        <label htmlFor="inflation-input" className="hint" style={{ margin: 0 }}>Enflasyon varsayımın (%):</label>
+        <input
+          id="inflation-input" className="input" type="number" min="0" max="200"
+          style={{ width: 72, padding: '5px 8px', fontSize: 13 }}
+          value={inflation}
+          onChange={e => setInflation(Math.min(200, Math.max(0, Number(e.target.value))))}
+        />
+        <span className="hint" style={{ margin: 0 }}>— reel getiri bu orana göre hesaplanır (canlı veri değil, senin varsayımın).</span>
+      </div>
+    </div>
+  );
 }
 
 function Panel({ assetType, title, query }: PanelProps) {
@@ -214,6 +268,8 @@ function Panel({ assetType, title, query }: PanelProps) {
           </div>
         )}
       </div>
+
+      {!assetType && <ProactiveInsightsCard />}
 
       {!assetType && investmentHistory.length >= 2 && (
         <div className="card">

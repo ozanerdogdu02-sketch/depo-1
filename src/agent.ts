@@ -2,7 +2,7 @@
 // sohbet eder. Niyet algılama + kısa süreli bağlam hafızası + grafik çizme içerir.
 // Gerçek AI'a geçiş: bu modüldeki fonksiyonları bir sunucu proxy çağrısıyla değiştirmek yeterli.
 import {
-  PortfolioState, Holding, totalValue, fmtTL, fmtPct, fmtSigned, pnlOf, ASSET_LABELS, AssetType,
+  PortfolioState, Holding, totalValue, totalCost, fmtTL, fmtPct, fmtSigned, pnlOf, ASSET_LABELS, AssetType,
   investmentHistoryOf,
 } from './store';
 import { AgentMemoryProfile, mostAskedTopic, mostMentionedHolding } from './agentMemory';
@@ -139,6 +139,73 @@ export function analyzePortfolio(s: PortfolioState): string[] {
 
   notes.push('Not: Bu analiz demo ajan tarafından yerel kurallarla üretildi; yatırım tavsiyesi değildir.');
   return notes;
+}
+
+// --- Proaktif içgörüler (kullanıcı sormadan) --------------------------------
+
+export type InsightLevel = 'uyari' | 'iyi' | 'bilgi';
+export interface Insight {
+  level: InsightLevel;
+  text: string;
+}
+
+// FAGENT'ın Bloki'den ayrıştığı çekirdek yetenek: kullanıcı hiçbir şey SORMADAN, portföyü
+// açar açmaz en kritik içgörüleri otomatik yüzeye çıkarır. Reel getiri hesabı gerçek: atıl
+// nakit benzeri varlıkların (mevduat/döviz/stablecoin) enflasyon karşısındaki yıllık alım gücü
+// kaybını somut TL olarak gösterir. SAF fonksiyon — I/O yok, enflasyon varsayımı dışarıdan
+// (kullanıcı düzenleyebilir) geçirilir; sabit/uydurma bir oran gömülmez.
+export function proactiveInsights(s: PortfolioState, inflationPct: number): Insight[] {
+  const out: Insight[] = [];
+  const total = totalValue(s);
+  if (total <= 0) return out;
+
+  const alloc = allocation(s);
+  const top = alloc[0];
+
+  // 1) Konsantrasyon riski
+  if (top && top.pct > 50) {
+    out.push({
+      level: 'uyari',
+      text: `Portföyünün %${top.pct.toFixed(0)}'ı tek sınıfta (${ASSET_LABELS[top.type]}). Bu sınıf sert düşerse tüm portföyün doğrudan etkilenir.`,
+    });
+  }
+
+  // 2) Reel getiri — atıl nakit benzeri varlıkların enflasyon karşısındaki yıllık erimesi.
+  //    En savunulabilir "reel getiri" uyarısı budur: getiri üretmeyen nakit, her yıl enflasyon
+  //    kadar alım gücü kaybeder — bu vade karışıklığı içermeyen, matematiksel olarak net bir gerçek.
+  const cashLikeValue = s.holdings
+    .filter(h => h.type === 'mevduat' || h.type === 'doviz' || isStablecoin(h))
+    .reduce((a, h) => a + h.amount, 0);
+  const cashLikePct = (cashLikeValue / total) * 100;
+  if (cashLikeValue > 0 && inflationPct > 0 && cashLikePct >= 12) {
+    const annualErosion = cashLikeValue * (inflationPct / 100);
+    out.push({
+      level: 'uyari',
+      text: `Nakit benzeri varlıkların ${fmtTL(cashLikeValue)} (portföyün %${cashLikePct.toFixed(0)}'ı). ` +
+        `%${inflationPct} enflasyon varsayımıyla bu kısım yılda ~${fmtTL(annualErosion)} reel değer kaybediyor — ` +
+        `getiri üreten bir sınıfa kaydırmayı değerlendirebilirsin.`,
+    });
+  }
+
+  // 3) Çeşitlendirme olumlu geri bildirimi (denge kurulmuşsa)
+  if ((!top || top.pct <= 50) && alloc.length >= 4) {
+    out.push({
+      level: 'iyi',
+      text: `${alloc.length} varlık sınıfına yayılmışsın — tek bir şoka bağımlılığın düşük, sağlam bir denge.`,
+    });
+  }
+
+  // 4) Genel kâr/zarar bilgisi (nötr, referans)
+  const cost = totalCost(s);
+  if (cost > 0) {
+    const { abs, pct } = pnlOf(total, cost);
+    out.push({
+      level: abs >= 0 ? 'iyi' : 'uyari',
+      text: `Toplam nominal getirin ${fmtSigned(abs)} (${fmtPct(pct)}). Bu, maliyetine göre — enflasyondan arındırılmış reel getiri için yukarıdaki nakit uyarısına bak.`,
+    });
+  }
+
+  return out;
 }
 
 // --- Grafik çizme --------------------------------------------------------
