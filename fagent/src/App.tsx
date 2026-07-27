@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { PieChart, Pie, Cell, Tooltip, AreaChart, Area, BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, AreaChart, Area, BarChart, Bar, LineChart, Line, Legend, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import {
   Bot, Send, TrendingUp, Trash2, RotateCcw, LayoutDashboard, ArrowLeftRight, BookOpen,
   Search, CalendarDays, BarChart3, PieChart as PieChartIcon, Bitcoin, Pencil, Check, X, Download,
@@ -16,6 +16,17 @@ import { CURRENCIES, COINS, fetchTryRate, fetchCryptoTryPrice, MarketFetchError 
 const PIE_COLORS = ['#2dd4a7', '#38bdf8', '#fbbf24', '#a78bfa', '#f87171', '#f472b6'];
 
 type Tab = 'panel' | 'bugun' | 'hisseler' | 'fonlar' | 'kripto' | 'islemler' | 'projeksiyon' | 'ajan';
+
+// Varlık ekleme formunda, seçili türe göre örnek ad ipucu — kripto sekmesinde "BIST 30 Fonu"
+// gibi yanıltıcı bir örnek yerine "Bitcoin" göstermek için (kullanıcı geri bildirimi).
+const NAME_PLACEHOLDERS: Record<AssetType, string> = {
+  hisse: 'ör. THYAO',
+  fon: 'ör. BIST 30 Fonu',
+  doviz: 'ör. USD',
+  altin: 'ör. Gram Altın',
+  kripto: 'ör. Bitcoin',
+  mevduat: 'ör. Vadeli Mevduat',
+};
 
 // Küçük/büyük harf ve Türkçe karakter (İ/ı) duyarlı olmayan basit alt-metin araması.
 function matchesSearch(name: string, query: string): boolean {
@@ -260,12 +271,28 @@ function Panel({ assetType, title, query }: PanelProps) {
               <div className="mono" style={{ fontSize: 15, fontWeight: 600 }}>{fmtTL(cost)}</div>
             </div>
             <div>
-              <div className="sub" style={{ marginBottom: 2 }}>Kâr / Zarar</div>
+              <div className="sub" style={{ marginBottom: 2 }}>Kâr / Zarar <span style={{ opacity: 0.6 }}>(gerçekleşmemiş)</span></div>
               <div className="mono" style={{ fontSize: 15, fontWeight: 600, color: pnlAbs >= 0 ? 'var(--accent)' : 'var(--red)' }}>
                 {fmtSigned(pnlAbs)} ({fmtPct(pnlPct)})
               </div>
             </div>
+            {/* Gerçekleşmiş K/Z portföyün geneline aittir (bir sınıfa değil), o yüzden yalnızca ana Panel'de
+                ve bir satış gerçekleşmişse gösterilir. Elde tutulan kâğıt kâr ile satıştan cebe girenin farkı. */}
+            {!assetType && s.realizedPnl !== 0 && (
+              <div>
+                <div className="sub" style={{ marginBottom: 2 }}>Kâr / Zarar <span style={{ opacity: 0.6 }}>(gerçekleşmiş)</span></div>
+                <div className="mono" style={{ fontSize: 15, fontWeight: 600, color: s.realizedPnl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
+                  {fmtSigned(s.realizedPnl)}
+                </div>
+              </div>
+            )}
           </div>
+        )}
+        {!assetType && s.realizedPnl !== 0 && (
+          <p className="hint" style={{ marginTop: 10 }}>
+            <strong style={{ color: 'var(--text)' }}>Gerçekleşmemiş</strong>: elindeki varlıkların değer değişimi (henüz satmadın).{' '}
+            <strong style={{ color: 'var(--text)' }}>Gerçekleşmiş</strong>: sattığın pozisyonlardan cebe giren net kâr/zarar (satış komisyonu düşülmüş).
+          </p>
         )}
       </div>
 
@@ -440,7 +467,7 @@ function Panel({ assetType, title, query }: PanelProps) {
           <div>
             <label className="field" htmlFor="h-name">Varlık adı</label>
             <input
-              id="h-name" className="input" placeholder="ör. BIST 30 Fonu" value={name}
+              id="h-name" className="input" placeholder={NAME_PLACEHOLDERS[type]} value={name}
               onChange={e => { setName(e.target.value); setNameError(null); }}
               onKeyDown={e => { if (e.key === 'Enter') addHolding(); }}
             />
@@ -539,11 +566,19 @@ function Bugun() {
               <div className="mono" style={{ fontSize: 15, fontWeight: 600 }}>{fmtTL(cost)}</div>
             </div>
             <div>
-              <div className="sub" style={{ marginBottom: 2 }}>Kâr / Zarar</div>
+              <div className="sub" style={{ marginBottom: 2 }}>Kâr / Zarar <span style={{ opacity: 0.6 }}>(gerçekleşmemiş)</span></div>
               <div className="mono" style={{ fontSize: 15, fontWeight: 600, color: pnlAbs >= 0 ? 'var(--accent)' : 'var(--red)' }}>
                 {fmtSigned(pnlAbs)} ({fmtPct(pnlPct)})
               </div>
             </div>
+            {s.realizedPnl !== 0 && (
+              <div>
+                <div className="sub" style={{ marginBottom: 2 }}>Kâr / Zarar <span style={{ opacity: 0.6 }}>(gerçekleşmiş)</span></div>
+                <div className="mono" style={{ fontSize: 15, fontWeight: 600, color: s.realizedPnl >= 0 ? 'var(--accent)' : 'var(--red)' }}>
+                  {fmtSigned(s.realizedPnl)}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -581,6 +616,7 @@ function Islemler({ query }: { query: string }) {
   const [holdingId, setHoldingId] = useState('');
   const [kind, setKind] = useState<'alis' | 'satis'>('alis');
   const [amount, setAmount] = useState('');
+  const [commission, setCommission] = useState('');
   const [amountError, setAmountError] = useState<string | null>(null);
 
   const selectedId = holdingId || s.holdings[0]?.id || '';
@@ -594,8 +630,11 @@ function Islemler({ query }: { query: string }) {
       setAmountError(`Bakiyeyi aşamaz — ${selectedHolding.name} için güncel değer ${fmtTL(selectedHolding.amount)}.`);
       return;
     }
-    actions.addTxn(selectedHolding.id, kind, Math.round(n));
+    const feeRaw = Number(commission);
+    const fee = Number.isFinite(feeRaw) && feeRaw > 0 ? Math.round(feeRaw) : 0;
+    actions.addTxn(selectedHolding.id, kind, Math.round(n), fee);
     setAmount('');
+    setCommission('');
     setAmountError(null);
   };
 
@@ -639,8 +678,8 @@ function Islemler({ query }: { query: string }) {
                 </select>
               </div>
             </div>
-            <div className="row" style={{ marginTop: 12, alignItems: 'flex-end' }}>
-              <div style={{ flex: 1 }}>
+            <div className="grid-2" style={{ marginTop: 12 }}>
+              <div>
                 <label className="field" htmlFor="t-amount">Tutar (TL)</label>
                 <input
                   id="t-amount" className="input" type="number" min="1"
@@ -650,9 +689,23 @@ function Islemler({ query }: { query: string }) {
                   onKeyDown={e => { if (e.key === 'Enter') add(); }}
                 />
               </div>
+              <div>
+                <label className="field" htmlFor="t-commission">Komisyon (TL, opsiyonel)</label>
+                <input
+                  id="t-commission" className="input" type="number" min="0" step="any"
+                  placeholder="0" value={commission}
+                  onChange={e => setCommission(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') add(); }}
+                />
+              </div>
+            </div>
+            <div className="row" style={{ marginTop: 12, alignItems: 'flex-end', justifyContent: 'flex-end' }}>
               <button className="btn btn-primary btn-inline" onClick={add} disabled={!(Number(amount) > 0)}>Kaydet</button>
             </div>
             {amountError && <p className="hint" style={{ marginTop: 8, color: 'var(--red)' }}>{amountError}</p>}
+            <p className="hint" style={{ marginTop: 8 }}>
+              Komisyon girersen gerçek maliyete katılır: alışta maliyeti artırır, satışta gerçekleşen kârdan düşülür — böylece kâr/zarar daha gerçekçi olur.
+            </p>
           </>
         )}
       </div>
@@ -675,7 +728,8 @@ function Islemler({ query }: { query: string }) {
               <span style={{ marginLeft: 10 }}>{t.holdingName}</span>
             </span>
             <span className="mono sub">
-              {t.kind === 'alis' ? '+' : '−'}{fmtTL(t.amount)} · {new Date(t.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
+              {t.kind === 'alis' ? '+' : '−'}{fmtTL(t.amount)}
+              {t.commission ? ` · komisyon ${fmtTL(t.commission)}` : ''} · {new Date(t.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
             </span>
           </div>
         ))}
@@ -684,26 +738,59 @@ function Islemler({ query }: { query: string }) {
   );
 }
 
+// Tek bir yıllık getiri oranıyla, aylık bileşik + aylık katkı yaparak süre sonu değeri üretir.
+function projectFinalValue(start: number, monthly: number, annualPct: number, years: number): number {
+  const monthlyRate = Math.pow(1 + annualPct / 100, 1 / 12) - 1;
+  let value = start;
+  for (let m = 1; m <= years * 12; m++) value = value * (1 + monthlyRate) + monthly;
+  return value;
+}
+
+// Üç senaryo — düşük / orta / yüksek getiri. Kullanıcının geri bildirimi: tek bir "beklenen getiri"
+// yerine bir aralık göstermek + enflasyonun (reel getiri) etkisini vurgulamak daha dürüst.
+const SCENARIOS = [
+  { key: 'dusuk', label: 'Düşük', color: '#f87171', defaultRate: 20 },
+  { key: 'orta', label: 'Orta', color: '#38bdf8', defaultRate: 35 },
+  { key: 'yuksek', label: 'Yüksek', color: '#2dd4a7', defaultRate: 50 },
+] as const;
+
 function Projeksiyon() {
   const s = usePortfolio();
   const [monthly, setMonthly] = useState(5000);
-  const [annualPct, setAnnualPct] = useState(30);
   const [years, setYears] = useState(10);
+  const [rates, setRates] = useState<{ dusuk: number; orta: number; yuksek: number }>({ dusuk: 20, orta: 35, yuksek: 50 });
+  const [inflation, setInflation] = useState(DEFAULT_INFLATION_PCT);
+
+  const start = totalValue(s);
+  const inflationFactor = Math.pow(1 + inflation / 100, years); // süre sonu fiyat seviyesi (bugüne indirgeme böleni)
 
   const data = useMemo(() => {
-    const start = totalValue(s);
-    const monthlyRate = Math.pow(1 + annualPct / 100, 1 / 12) - 1;
-    const points: { yil: string; deger: number }[] = [];
-    let value = start;
+    const monthlyRates = {
+      dusuk: Math.pow(1 + rates.dusuk / 100, 1 / 12) - 1,
+      orta: Math.pow(1 + rates.orta / 100, 1 / 12) - 1,
+      yuksek: Math.pow(1 + rates.yuksek / 100, 1 / 12) - 1,
+    };
+    const points: { yil: string; dusuk: number; orta: number; yuksek: number }[] = [];
+    let vLow = start, vMid = start, vHigh = start;
     for (let m = 0; m <= years * 12; m++) {
-      if (m > 0) value = value * (1 + monthlyRate) + monthly;
-      if (m % 12 === 0) points.push({ yil: `${m / 12}. yıl`, deger: Math.round(value) });
+      if (m > 0) {
+        vLow = vLow * (1 + monthlyRates.dusuk) + monthly;
+        vMid = vMid * (1 + monthlyRates.orta) + monthly;
+        vHigh = vHigh * (1 + monthlyRates.yuksek) + monthly;
+      }
+      if (m % 12 === 0) points.push({ yil: `${m / 12}. yıl`, dusuk: Math.round(vLow), orta: Math.round(vMid), yuksek: Math.round(vHigh) });
     }
     return points;
-  }, [s, monthly, annualPct, years]);
+  }, [start, monthly, rates, years]);
 
-  const final = data[data.length - 1]?.deger ?? 0;
-  const invested = totalValue(s) + monthly * 12 * years;
+  const invested = start + monthly * 12 * years;
+
+  // Her senaryo için: nominal süre sonu değeri + reel (bugünkü alım gücüyle) değeri.
+  const results = SCENARIOS.map(sc => {
+    const nominal = projectFinalValue(start, monthly, rates[sc.key], years);
+    const real = nominal / inflationFactor;
+    return { ...sc, nominal, real };
+  });
 
   return (
     <div className="fade">
@@ -715,9 +802,20 @@ function Projeksiyon() {
             <input id="p-monthly" className="input" type="number" min="0" value={monthly} onChange={e => setMonthly(Math.max(0, Number(e.target.value)))} />
           </div>
           <div>
-            <label className="field" htmlFor="p-rate">Beklenen yıllık getiri (%)</label>
-            <input id="p-rate" className="input" type="number" min="0" max="200" value={annualPct} onChange={e => setAnnualPct(Math.min(200, Math.max(0, Number(e.target.value))))} />
+            <label className="field" htmlFor="p-inflation">Enflasyon varsayımın (%)</label>
+            <input id="p-inflation" className="input" type="number" min="0" max="200" value={inflation} onChange={e => setInflation(Math.min(200, Math.max(0, Number(e.target.value))))} />
           </div>
+        </div>
+        <div className="grid-3" style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+          {SCENARIOS.map(sc => (
+            <div key={sc.key}>
+              <label className="field" htmlFor={`p-rate-${sc.key}`} style={{ color: sc.color }}>{sc.label} getiri (%)</label>
+              <input
+                id={`p-rate-${sc.key}`} className="input" type="number" min="0" max="200" value={rates[sc.key]}
+                onChange={e => setRates(r => ({ ...r, [sc.key]: Math.min(200, Math.max(0, Number(e.target.value))) }))}
+              />
+            </div>
+          ))}
         </div>
         <div style={{ marginTop: 12 }}>
           <label className="field" htmlFor="p-years">Süre: {years} yıl</label>
@@ -726,29 +824,40 @@ function Projeksiyon() {
       </div>
 
       <div className="card">
-        <div className="card-title">{years} Yıl Sonunda</div>
-        <div className="big-number mono" style={{ color: 'var(--accent)' }}>{fmtTL(final)}</div>
-        <div className="sub">
-          Yatırılan toplam: {fmtTL(invested)} · Getiri: {fmtTL(Math.max(0, final - invested))}
+        <div className="card-title">{years} Yıl Sonunda — 3 Senaryo</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 4 }}>
+          {results.map(r => (
+            <div key={r.key} style={{ borderTop: `2px solid ${r.color}`, paddingTop: 8 }}>
+              <div className="sub" style={{ color: r.color, fontWeight: 600 }}>{r.label} (%{rates[r.key]})</div>
+              <div className="mono" style={{ fontSize: 17, fontWeight: 700 }}>{fmtTL(r.nominal)}</div>
+              <div className="sub" style={{ marginTop: 4 }}>Bugünkü alım gücü:</div>
+              <div className="mono" style={{ fontSize: 13.5, fontWeight: 600, color: r.real >= invested ? 'var(--accent)' : 'var(--red)' }}>
+                {fmtTL(r.real)}
+              </div>
+            </div>
+          ))}
         </div>
-        <div style={{ marginTop: 18 }}>
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
-              <defs>
-                <linearGradient id="projGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#2dd4a7" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#2dd4a7" stopOpacity={0} />
-                </linearGradient>
-              </defs>
+        <p className="hint" style={{ marginTop: 6 }}>
+          Yatırılan toplam: {fmtTL(invested)}. Üstteki büyük rakamlar <strong style={{ color: 'var(--text)' }}>nominal</strong> (kâğıt üzerinde);
+          altındaki <strong style={{ color: 'var(--text)' }}>bugünkü alım gücü</strong> ise %{inflation} enflasyona göre düzeltilmiş <strong style={{ color: 'var(--text)' }}>reel</strong> değerdir —
+          yani {years} yıl sonraki paranın bugünkü karşılığı.
+        </p>
+        <div style={{ marginTop: 14 }}>
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
               <XAxis dataKey="yil" tick={{ fill: 'rgba(214,228,238,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: 'rgba(214,228,238,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `${Math.round(v / 1000)}K`} width={44} />
-              <Tooltip formatter={v => fmtTL(Number(v))} contentStyle={{ background: '#16212c', border: '1px solid rgba(148,180,200,0.2)', borderRadius: 10, fontSize: 13 }} />
-              <Area type="monotone" dataKey="deger" stroke="#2dd4a7" strokeWidth={2.5} fill="url(#projGrad)" />
-            </AreaChart>
+              <Tooltip formatter={(v, n) => [fmtTL(Number(v)), String(n)]} contentStyle={{ background: '#16212c', border: '1px solid rgba(148,180,200,0.2)', borderRadius: 10, fontSize: 13 }} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Line type="monotone" dataKey="yuksek" name="Yüksek" stroke="#2dd4a7" strokeWidth={2.5} dot={false} />
+              <Line type="monotone" dataKey="orta" name="Orta" stroke="#38bdf8" strokeWidth={2.5} dot={false} />
+              <Line type="monotone" dataKey="dusuk" name="Düşük" stroke="#f87171" strokeWidth={2.5} dot={false} />
+            </LineChart>
           </ResponsiveContainer>
         </div>
         <p className="hint" style={{ marginTop: 10 }}>
           Sabit getiri varsayımıyla bileşik hesap — gerçek piyasa getirisi dalgalanır; bu bir projeksiyon aracıdır, taahhüt değildir.
+          Enflasyon reel getiriyi ciddi biçimde eritebilir: nominal büyüme etkileyici görünse de asıl önemli olan bugünkü alım gücüdür.
         </p>
       </div>
     </div>

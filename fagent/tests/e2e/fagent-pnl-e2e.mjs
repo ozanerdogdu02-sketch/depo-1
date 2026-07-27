@@ -61,6 +61,30 @@ check('Satış sonrası THYAO değeri ₺15.000', await thyaoRow2.locator('text=
 check('Satış sonrası maliyet orantılı düştü (₺14.000, 28000×0.5)', await thyaoRow2.locator('text=Maliyet: ₺14.000').count() > 0);
 check('Kâr oranı satıştan bağımsız korundu (+7.1%)', await thyaoRow2.locator('text=+7.1%').count() > 0);
 
+// --- Gerçekleşmiş kâr/zarar (satıştan cebe giren) ayrı gösteriliyor mu ---
+// 15000 satıldı, satılan payın maliyeti 30000×(1-0.5)=... aslında costBasis 28000'in yarısı = 14000.
+// Gerçekleşen kâr = 15000 − 14000 = +1000 (komisyon 0). Bu, gerçekleşmemiş K/Z'den AYRI görünmeli.
+check('"gerçekleşmiş" etiketi Panel özetinde görünür', await page.locator('text=gerçekleşmiş').count() > 0);
+check('"gerçekleşmemiş" etiketi Panel özetinde görünür', await page.locator('text=gerçekleşmemiş').count() > 0);
+const realizedRow = page.locator('div', { hasText: /Kâr \/ Zarar \(gerçekleşmiş\)/ }).last();
+console.log('  (gerçekleşmiş blok metni:', (await realizedRow.textContent())?.replace(/\s+/g, ' '), ')');
+check('Gerçekleşmiş K/Z = +₺1.000', await page.locator('text=+₺1.000').count() > 0);
+
+// --- Komisyonlu satış: komisyon gerçekleşen kârdan düşülür ---
+await page.locator('.side-link', { hasText: 'İŞLEMLER' }).click();
+await page.waitForTimeout(300);
+await page.selectOption('#t-holding', { label: 'Gram Altın' }); // değer 23800, maliyet 22000
+await page.selectOption('#t-kind', 'satis');
+await page.fill('#t-amount', '11900'); // yarısını sat → satılan maliyet 11000, brüt kâr +900
+await page.fill('#t-commission', '400'); // komisyon 400 → net gerçekleşen +500
+await page.getByRole('button', { name: 'Kaydet', exact: true }).click();
+await page.waitForTimeout(300);
+check('Komisyon işlem geçmişinde görünür', await page.locator('text=komisyon ₺400').count() > 0);
+await page.locator('.side-link', { hasText: 'PANEL' }).click();
+await page.waitForTimeout(300);
+// Toplam gerçekleşmiş = önceki +1000 + bu satıştan (11900 − 11000 − 400) = +500 → toplam +1500.
+check('Komisyon sonrası gerçekleşmiş K/Z toplam +₺1.500', await page.locator('text=+₺1.500').count() > 0);
+
 // --- CSV dışa aktarma ---
 await page.locator('.side-link', { hasText: 'PANEL' }).click();
 await page.waitForTimeout(200);

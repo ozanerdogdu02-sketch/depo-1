@@ -21,13 +21,18 @@ export interface Txn {
   holdingName: string; // işlem anındaki varlık adı — görüntüleme/CSV için; varlık sonradan silinse/adı
                         // değişse de bu kayıt sabit kalır (muhasebe defteri mantığı)
   kind: 'alis' | 'satis';
-  amount: number; // TL
+  amount: number; // TL — işlem tutarı (komisyon HARİÇ)
+  commission?: number; // TL — bu işlemde ödenen komisyon/işlem ücreti (opsiyonel; yoksa 0 kabul edilir)
 }
 
 export interface PortfolioState {
   onboarded: boolean;
   holdings: Holding[];
   txns: Txn[];
+  // Kapatılan (satılan) pozisyonlardan bugüne dek GERÇEKLEŞMİŞ kâr/zarar toplamı (satış komisyonu
+  // düşülmüş). Güncel varlıklardaki değer artışı (gerçekleşmemiş) bundan AYRI tutulur — böylece
+  // "elimde duran kâğıt kâr" ile "cebe giren gerçek kâr" karışmaz.
+  realizedPnl: number;
 }
 
 export const ASSET_LABELS: Record<AssetType, string> = {
@@ -41,7 +46,7 @@ export const ASSET_LABELS: Record<AssetType, string> = {
 
 const KEY = 'fagent.portfolio.v1';
 
-const EMPTY: PortfolioState = { onboarded: false, holdings: [], txns: [] };
+const EMPTY: PortfolioState = { onboarded: false, holdings: [], txns: [], realizedPnl: 0 };
 
 // UTC değil, kullanıcının kendi yerel takvim günü — new Date().toISOString().slice(0,10)
 // gece yarısına yakın saatlerde (TR UTC+3) yanlış günü verebilirdi.
@@ -65,6 +70,7 @@ function sameDayOffset(days: number): string {
 // Örnek veri, kâr/zarar özelliğini gösterebilmek için maliyet ≠ güncel değer içerir.
 const SAMPLE: PortfolioState = {
   onboarded: true,
+  realizedPnl: 0,
   holdings: [
     { id: 'h1', name: 'BIST 30 Fonu', type: 'fon', amount: 48500, costBasis: 45000 },
     { id: 'h2', name: 'THYAO', type: 'hisse', amount: 25200, costBasis: 28000 },
@@ -87,6 +93,7 @@ const SAMPLE: PortfolioState = {
 // Bilinçli kurgu: biri kârda, biri zararda, biri stabil — analiz ve kâr/zarar grafiği anlamlı çıksın.
 const CRYPTO_SAMPLE: PortfolioState = {
   onboarded: true,
+  realizedPnl: 0,
   holdings: [
     { id: 'c1', name: 'Bitcoin', type: 'kripto', amount: 42500, costBasis: 35000, quantity: 0.01, symbol: 'bitcoin' },
     { id: 'c2', name: 'Ethereum', type: 'kripto', amount: 42000, costBasis: 48000, quantity: 0.3, symbol: 'ethereum' },
@@ -123,7 +130,11 @@ function load(): PortfolioState {
         ? t.holdingId
         : (holdings.find(h => h.name === t.holdingName)?.id ?? ''),
     }));
-    return { ...parsed, holdings, txns };
+    // Eski sürümde realizedPnl alanı yoktu — geçmiş satışlardan geriye dönük yeniden
+    // hesaplanamaz (o an ki maliyet işlem kaydında tutulmuyordu), bu yüzden 0'dan başlar
+    // ve bundan sonraki satışlardan itibaren birikir.
+    const realizedPnl = typeof parsed.realizedPnl === 'number' ? parsed.realizedPnl : 0;
+    return { ...parsed, holdings, txns, realizedPnl };
   } catch {
     return EMPTY;
   }
@@ -202,23 +213,34 @@ export const actions = {
     commit({ ...state, holdings });
   },
   // holdingId ile eşleşir (isimle değil) — iki varlık aynı adı taşısa bile karışmaz.
-  addTxn(holdingId: string, kind: Txn['kind'], amount: number): void {
+  // commission: bu işlemde ödenen komisyon/ücret (opsiyonel). Alışta maliyete eklenir
+  // (gerçek maliyet fiyat + ücrettir); satışta gerçekleşen kârdan düşülür.
+  addTxn(holdingId: string, kind: Txn['kind'], amount: number, commission = 0): void {
     const holding = state.holdings.find(h => h.id === holdingId);
     if (!holding) return; // savunma: varlık bu sırada silinmiş olabilir
-    const txn: Txn = { id: `t${Date.now()}`, date: todayLocalDate(), holdingId, holdingName: holding.name, kind, amount };
+    const fee = Math.max(0, commission);
+    const txn: Txn = {
+      id: `t${Date.now()}`, date: todayLocalDate(), holdingId, holdingName: holding.name, kind, amount,
+      ...(fee > 0 ? { commission: fee } : {}),
+    };
+    let realizedDelta = 0;
     const holdings = state.holdings.map(h => {
       if (h.id !== holdingId) return h;
       if (kind === 'alis') {
-        // Alış: hem güncel değer hem maliyet aynı miktarda artar.
-        return { ...h, amount: h.amount + amount, costBasis: h.costBasis + amount };
+        // Alış: güncel değer alış tutarı kadar artar; maliyet, alış tutarı + komisyon kadar artar
+        // (ödediğin ücret de bir maliyettir — reel kârı düşürür).
+        return { ...h, amount: h.amount + amount, costBasis: h.costBasis + amount + fee };
       }
       // Satış: güncel değer düşer; maliyet, kalan pozisyonun oranına göre orantılı azaltılır
-      // (ağırlıklı ortalama maliyet yöntemi — kâr/zarar yüzdesi satıştan etkilenmez).
+      // (ağırlıklı ortalama maliyet yöntemi — gerçekleşmemiş kâr/zarar yüzdesi satıştan etkilenmez).
       const nextAmount = Math.max(0, h.amount - amount);
       const ratio = h.amount > 0 ? nextAmount / h.amount : 0;
+      const soldCost = h.costBasis * (1 - ratio); // satılan payın maliyeti
+      // Gerçekleşen kâr = eline geçen (tutar − komisyon) − satılan payın maliyeti.
+      realizedDelta = (amount - fee) - soldCost;
       return { ...h, amount: nextAmount, costBasis: h.costBasis * ratio };
     });
-    commit({ ...state, holdings, txns: [txn, ...state.txns] });
+    commit({ ...state, holdings, txns: [txn, ...state.txns], realizedPnl: state.realizedPnl + realizedDelta });
   },
 };
 
