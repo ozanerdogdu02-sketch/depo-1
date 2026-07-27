@@ -2,7 +2,7 @@
 // sohbet eder. Niyet algılama + kısa süreli bağlam hafızası + grafik çizme içerir.
 // Gerçek AI'a geçiş: bu modüldeki fonksiyonları bir sunucu proxy çağrısıyla değiştirmek yeterli.
 import {
-  PortfolioState, totalValue, fmtTL, fmtPct, fmtSigned, pnlOf, ASSET_LABELS, AssetType,
+  PortfolioState, Holding, totalValue, fmtTL, fmtPct, fmtSigned, pnlOf, ASSET_LABELS, AssetType,
   investmentHistoryOf,
 } from './store';
 import { AgentMemoryProfile, mostAskedTopic, mostMentionedHolding } from './agentMemory';
@@ -75,6 +75,17 @@ function allocation(s: PortfolioState): { type: AssetType; amount: number; pct: 
     .sort((a, b) => b.amount - a.amount);
 }
 
+// Stablecoin tespiti — canlı fiyata bağlıysa CoinGecko id'sinden, değilse addan.
+// Kripto yatırımcısı için stablecoin fiilen nakit pozisyonudur; analizde öyle sayılır.
+const STABLECOIN_IDS = new Set(['tether', 'usd-coin', 'dai', 'binance-usd', 'true-usd']);
+const STABLECOIN_NAME_TEST = /\b(usdt|usdc|tether|dai|busd|tusd|fdusd|stablecoin)\b/i;
+
+function isStablecoin(h: Holding): boolean {
+  if (h.type !== 'kripto') return false;
+  if (h.symbol && STABLECOIN_IDS.has(h.symbol)) return true;
+  return STABLECOIN_NAME_TEST.test(h.name);
+}
+
 export function analyzePortfolio(s: PortfolioState): string[] {
   const total = totalValue(s);
   if (!s.holdings.length) {
@@ -101,11 +112,19 @@ export function analyzePortfolio(s: PortfolioState): string[] {
     notes.push('Çeşitlendirme orta düzeyde. Farklı davranan sınıflar (ör. altın + hisse + mevduat) birlikte tutulduğunda dalgalanma yumuşar.');
   }
 
-  const cashLike = alloc.filter(a => a.type === 'mevduat' || a.type === 'doviz').reduce((s2, a) => s2 + a.pct, 0);
+  // Nakit benzeri oran — mevduat/döviz + STABLECOIN'ler. Stablecoin'i kripto sayıp likidite
+  // uyarısı vermek, USDT'yi nakit pozisyonu olarak tutan kripto yatırımcısı için yanlış olurdu.
+  const stableValue = s.holdings.filter(isStablecoin).reduce((sum, h) => sum + h.amount, 0);
+  const stablePct = total > 0 ? (stableValue / total) * 100 : 0;
+  const cashLike =
+    alloc.filter(a => a.type === 'mevduat' || a.type === 'doviz').reduce((s2, a) => s2 + a.pct, 0) + stablePct;
+  const cashLabel = stablePct > 0 ? 'mevduat/döviz/stablecoin' : 'mevduat/döviz';
   if (cashLike < 10) {
-    notes.push('Nakit benzeri (mevduat/döviz) oranın %10\'un altında — acil durum tamponu için biraz likidite ayırmak rahatlatır.');
+    notes.push(`Nakit benzeri (${cashLabel}) oranın %10'un altında — acil durum tamponu için biraz likidite ayırmak rahatlatır.`);
   } else if (cashLike > 60) {
     notes.push(`Nakit benzeri ağırlık yüksek (%${cashLike.toFixed(0)}). Enflasyonist ortamda uzun vadede reel getiri erimesi riskine dikkat.`);
+  } else if (stablePct >= 10) {
+    notes.push(`Portföyünün %${stablePct.toFixed(0)}'ı stablecoin — bunu nakit pozisyonu olarak sayıyorum, dalgalanmaya karşı tamponun var.`);
   }
 
   const recentSells = s.txns.slice(0, 10).filter(t => t.kind === 'satis').length;
