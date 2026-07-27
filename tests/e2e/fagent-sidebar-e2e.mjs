@@ -46,7 +46,7 @@ const check = (label, ok) => { console.log(`${ok ? '✓' : '✗'} ${label}`); if
   // Projeksiyon: grafik var mı
   await page.click('.side-link:has-text("PROJEKSİYON")');
   await page.waitForTimeout(400);
-  check('Projeksiyon grafiği çizildi', await page.locator('.recharts-area').count() > 0);
+  check('Projeksiyon grafiği çizildi (3 senaryo çizgisi)', await page.locator('.recharts-line').count() >= 3);
   await page.screenshot({ path: `${out}/s5-projeksiyon.png` });
 
   // Ajan: analiz + sohbet
