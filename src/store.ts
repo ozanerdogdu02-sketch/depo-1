@@ -80,6 +80,27 @@ const SAMPLE: PortfolioState = {
   ],
 };
 
+// Kripto ağırlıklı örnek portföy — kripto borsası/kripto yatırımcısı senaryosu için.
+// Tüm varlıklar CANLI FİYATA BAĞLI (quantity + symbol dolu): kullanıcı satırdaki yenile
+// ikonuyla CoinGecko'dan gerçek fiyatı çekebilir. Buradaki `amount` değerleri yalnızca
+// başlangıç yer tutucusudur — ilk yenilemede gerçek piyasa değeriyle değişir.
+// Bilinçli kurgu: biri kârda, biri zararda, biri stabil — analiz ve kâr/zarar grafiği anlamlı çıksın.
+const CRYPTO_SAMPLE: PortfolioState = {
+  onboarded: true,
+  holdings: [
+    { id: 'c1', name: 'Bitcoin', type: 'kripto', amount: 42500, costBasis: 35000, quantity: 0.01, symbol: 'bitcoin' },
+    { id: 'c2', name: 'Ethereum', type: 'kripto', amount: 42000, costBasis: 48000, quantity: 0.3, symbol: 'ethereum' },
+    { id: 'c3', name: 'Solana', type: 'kripto', amount: 50000, costBasis: 40000, quantity: 25, symbol: 'solana' },
+    { id: 'c4', name: 'Tether', type: 'kripto', amount: 42000, costBasis: 42000, quantity: 1000, symbol: 'tether' },
+  ],
+  txns: [
+    { id: 'ct1', date: sameDayOffset(-30), holdingId: 'c1', holdingName: 'Bitcoin', kind: 'alis', amount: 35000 },
+    { id: 'ct2', date: sameDayOffset(-21), holdingId: 'c2', holdingName: 'Ethereum', kind: 'alis', amount: 48000 },
+    { id: 'ct3', date: sameDayOffset(-14), holdingId: 'c4', holdingName: 'Tether', kind: 'alis', amount: 42000 },
+    { id: 'ct4', date: sameDayOffset(-7), holdingId: 'c3', holdingName: 'Solana', kind: 'alis', amount: 40000 },
+  ],
+};
+
 let state: PortfolioState = load();
 const listeners = new Set<() => void>();
 
@@ -120,6 +141,9 @@ const normalizeName = (name: string) => name.trim().toLocaleLowerCase('tr-TR');
 export const actions = {
   startWithSample(): void {
     commit(structuredClone(SAMPLE));
+  },
+  startWithCryptoSample(): void {
+    commit(structuredClone(CRYPTO_SAMPLE));
   },
   startEmpty(): void {
     commit({ ...EMPTY, onboarded: true });

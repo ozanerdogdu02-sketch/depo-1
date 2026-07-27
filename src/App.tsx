@@ -32,7 +32,10 @@ function Onboarding() {
         Panelin boş görünüyor. Hızlı başlamak için örnek veriyle dene, sonra kendi rakamlarını gir.
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 440, margin: '0 auto' }}>
-        <button className="btn btn-primary" onClick={actions.startWithSample}>Örnek veriyle başla</button>
+        <button className="btn btn-primary" onClick={actions.startWithSample}>Karma örnek portföy</button>
+        <button className="btn btn-secondary" onClick={actions.startWithCryptoSample}>
+          <Bitcoin size={15} /> Kripto örnek portföyü (canlı fiyatlı)
+        </button>
         <button className="btn btn-secondary" onClick={actions.startEmpty}>Kendi paramı gireceğim</button>
       </div>
       <p className="hint" style={{ marginTop: 20 }}>
@@ -297,9 +300,13 @@ function Panel({ assetType, title, query }: PanelProps) {
         {classHoldings.length > 0 && visibleHoldings.length === 0 && (
           <p className="sub">Aramanla eşleşen varlık yok.</p>
         )}
+        {/* Metin, listede canlı fiyata bağlı varlık olup olmamasına göre değişir — kripto/döviz
+            portföyünde "otomatik veri çekilmez" demek yanlış olurdu (çekiliyor). */}
         {classHoldings.length > 0 && (
           <p className="hint" style={{ marginBottom: 10 }}>
-            Güncel değeri kalem ikonuyla kendin güncellersin — otomatik piyasa verisi çekilmez.
+            {classHoldings.some(h => h.symbol)
+              ? 'CANLI etiketli varlıklarda 🔄 ikonuyla güncel piyasa fiyatını çekebilirsin; diğerlerini kalem ikonuyla kendin güncellersin.'
+              : 'Güncel değeri kalem ikonuyla kendin güncellersin — otomatik piyasa verisi çekilmez.'}
           </p>
         )}
         {visibleHoldings.map(h => {
