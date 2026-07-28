@@ -42,6 +42,43 @@ check('Hafıza sorgusu artık dağılım konusunu içeriyor', memReply?.includes
 check('Hafıza sorgusu THYAO\'yu içeriyor', memReply?.includes('THYAO') ?? false);
 check('Hafıza yanıtı gizlilik notunu içeriyor (yalnızca tarayıcında)', memReply?.includes('tarayıcında') ?? false);
 
+// --- BLOK 1: "Ajan Ne Biliyor?" paneli — şeffaf, düzenlenebilir bellek ---
+const memToggle = page.getByRole('button', { name: /Ajan Ne Biliyor/ });
+check('AJAN sekmesinde "Ajan Ne Biliyor?" paneli var', await memToggle.count() > 0);
+await memToggle.click(); // paneli aç
+await page.waitForTimeout(200);
+check('Panel açılınca risk/mod/vade seçicileri görünür',
+  await page.locator('#mem-risk').count() > 0 && await page.locator('#mem-mode').count() > 0 && await page.locator('#mem-vade').count() > 0);
+
+// Tercihleri düzenle
+await page.selectOption('#mem-risk', 'yuksek');
+await page.selectOption('#mem-mode', 'agresif');
+await page.selectOption('#mem-vade', 'uzun');
+await page.locator('[data-testid="agent-memory-body"] .mini-btn', { hasText: 'Kripto' }).click();
+await page.waitForTimeout(200);
+
+const memPrefs = JSON.parse(await page.evaluate(() => localStorage.getItem('fagent.agent.memory.v1')) ?? '{}');
+check('Risk seviyesi tercihine yazıldı (yuksek)', memPrefs.prefs?.riskLevel === 'yuksek');
+check('Ajan modu tercihine yazıldı (agresif)', memPrefs.prefs?.agentMode === 'agresif');
+check('Vade tercihine yazıldı (uzun)', memPrefs.prefs?.vade === 'uzun');
+check('İlgi alanı Kripto eklendi', Array.isArray(memPrefs.prefs?.interests) && memPrefs.prefs.interests.includes('kripto'));
+check('Son sorular belleğe yazıldı', Array.isArray(memPrefs.recentQuestions) && memPrefs.recentQuestions.length > 0);
+
+// Portföy bağlamı canlı türetiliyor (bellekte kopyalanmıyor ama panelde görünüyor)
+check('Panel portföy bağlamında bir varlığı (THYAO) gösteriyor',
+  await page.locator('[data-testid="agent-memory-body"]', { hasText: 'THYAO' }).count() > 0);
+
+// Analiz çalışınca son analiz zamanı belleğe düşüyor
+await page.getByRole('button', { name: /Analiz Et/ }).click();
+await page.waitForTimeout(300);
+const memAnalysis = JSON.parse(await page.evaluate(() => localStorage.getItem('fagent.agent.memory.v1')) ?? '{}');
+check('Analiz sonrası lastAnalysisAt belleğe yazıldı', typeof memAnalysis.lastAnalysisAt === 'string' && memAnalysis.lastAnalysisAt.length > 0);
+
+// Hafıza sorgusu artık tercihleri de yansıtıyor
+await ask('hakkımda ne biliyorsun');
+const memReply2 = await page.locator('.msg-agent').last().textContent();
+check('Hafıza yanıtı risk/mod tercihlerini içeriyor', (memReply2?.includes('risk seviyen') ?? false) && (memReply2?.includes('agresif') ?? false));
+
 // --- Sayfa yenilenince (yeni "oturum") kişiselleştirilmiş karşılama gelmeli ---
 await page.reload({ waitUntil: 'networkidle' });
 await page.waitForTimeout(300);
