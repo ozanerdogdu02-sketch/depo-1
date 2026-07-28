@@ -5,7 +5,7 @@ import {
   PortfolioState, Holding, totalValue, totalCost, fmtTL, fmtPct, fmtSigned, pnlOf, ASSET_LABELS, AssetType,
   investmentHistoryOf,
 } from './store';
-import { AgentMemoryProfile, mostAskedTopic, mostMentionedHolding } from './agentMemory';
+import { AgentMemoryProfile, RiskLevel, AgentMode, VadeTercihi, mostAskedTopic, mostMentionedHolding } from './agentMemory';
 import { TrainedFact, findBestMatch } from './agentTraining';
 
 export interface ChartSpec {
@@ -58,6 +58,11 @@ const INTENT_LABELS: Record<string, string> = {
   'grafik-pnl': 'kâr/zarar grafiği',
   trained: 'senin öğrettiğin bir konu',
 };
+
+// BLOK 1 — tercih etiketleri (bellek şeffaflığı metinleri için).
+const RISK_LABELS: Record<RiskLevel, string> = { dusuk: 'düşük', orta: 'orta', yuksek: 'yüksek' };
+const MODE_LABELS: Record<AgentMode, string> = { temkinli: 'temkinli', dengeli: 'dengeli', agresif: 'agresif' };
+const VADE_LABELS: Record<VadeTercihi, string> = { kisa: 'kısa', orta: 'orta', uzun: 'uzun' };
 
 // Kullanıcının serbest metninde geçen varlık adlarını bulur — "öğe (entity) belleği" için:
 // agentMemory bu isimleri biriktirip zamanla "en çok bahsedilen varlık"ı çıkarabilir.
@@ -408,9 +413,20 @@ function memoryQueryReply(memory: AgentMemoryProfile | undefined, text: string):
   const topic = mostAskedTopic(memory);
   const holding = mostMentionedHolding(memory);
   const parts = [`Şimdiye kadar ${memory.totalTurns} mesaj konuştuk.`];
+  // Kullanıcının belirlediği tercihler (BLOK 1 — genişletilmiş bellek).
+  parts.push(
+    `Seni şöyle tanıyorum: risk seviyen ${RISK_LABELS[memory.prefs.riskLevel]}, ` +
+    `ajan modun ${MODE_LABELS[memory.prefs.agentMode]}, vade tercihin ${VADE_LABELS[memory.prefs.vade]}.`,
+  );
+  if (memory.prefs.interests.length) {
+    parts.push(`İlgi alanların: ${memory.prefs.interests.join(', ')}.`);
+  }
   if (topic) parts.push(`En çok "${INTENT_LABELS[topic] ?? topic}" konusunu soruyorsun.`);
   if (holding) parts.push(`En sık bahsettiğin varlık: ${holding}.`);
-  parts.push('Bu bilgi yalnızca tarayıcında saklanır, hiçbir sunucuya gönderilmez — "SIFIRLA" ile bunu da silebilirsin.');
+  if (memory.recentQuestions.length) {
+    parts.push(`Son sorularından bazıları: ${memory.recentQuestions.slice(0, 3).map(q => `"${q}"`).join(', ')}.`);
+  }
+  parts.push('Tüm bunları "Ajan Ne Biliyor?" panelinde görüp düzenleyebilirsin. Bu bilgi yalnızca tarayıcında saklanır, hiçbir sunucuya gönderilmez — "SIFIRLA" ile bunu da silebilirsin.');
   return parts.join(' ');
 }
 

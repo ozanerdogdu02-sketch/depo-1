@@ -8,7 +8,10 @@ import {
 } from 'lucide-react';
 import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, investmentHistoryOf, todayLocalDate, ASSET_LABELS, AssetType, Holding } from './store';
 import { analyzePortfolio, chatReply, buildGreeting, extractMentionedHoldings, proactiveInsights, AgentMessage, ChartSpec, Insight } from './agent';
-import { getProfile, recordTurn, resetMemory } from './agentMemory';
+import {
+  getProfile, recordTurn, resetMemory, updatePrefs, recordQuestion, recordAdvice, recordAnalysis,
+  AgentMemoryProfile, AgentPrefs, RiskLevel, AgentMode, VadeTercihi,
+} from './agentMemory';
 import { getTrainedFacts, teach, deleteFact, recordFactUse, resetTraining, TrainedFact } from './agentTraining';
 import { exportHoldingsCsv, exportTxnsCsv, parseHoldingsCsv } from './csv';
 import { CURRENCIES, COINS, fetchTryRate, fetchCryptoTryPrice, MarketFetchError } from './market';
@@ -1004,8 +1007,153 @@ function findPrecedingUserText(messages: AgentMessage[], index: number): string 
   return '';
 }
 
+// BLOK 1 — "Ajan Ne Biliyor?" paneli. Ajanın belleğini kullanıcıya ŞEFFAF gösterir:
+// (1) kullanıcının düzenlediği tercihler, (2) portföyden türetilen bağlam (özet, takip edilen
+// varlıklar, veri güncelliği), (3) ajanın gözlemlediği son sorular/öneriler. Hiçbiri sunucuya
+// gitmez — tamamı tarayıcıda. Bu, ajanı "cevap veren bot"tan "seni tanıyan asistan"a yaklaştırır.
+const RISK_OPTIONS: { v: RiskLevel; label: string }[] = [
+  { v: 'dusuk', label: 'Düşük' }, { v: 'orta', label: 'Orta' }, { v: 'yuksek', label: 'Yüksek' },
+];
+const MODE_OPTIONS: { v: AgentMode; label: string }[] = [
+  { v: 'temkinli', label: 'Temkinli' }, { v: 'dengeli', label: 'Dengeli' }, { v: 'agresif', label: 'Agresif' },
+];
+const VADE_OPTIONS: { v: VadeTercihi; label: string }[] = [
+  { v: 'kisa', label: 'Kısa' }, { v: 'orta', label: 'Orta' }, { v: 'uzun', label: 'Uzun' },
+];
+
+function AgentMemoryCard({ mem, open, onToggle, onPrefs }: {
+  mem: AgentMemoryProfile;
+  open: boolean;
+  onToggle: () => void;
+  onPrefs: (patch: Partial<AgentPrefs>) => void;
+}) {
+  const s = usePortfolio();
+  const value = totalValue(s);
+  const cost = totalCost(s);
+  const { abs: pnlAbs, pct: pnlPct } = pnlOf(value, cost);
+
+  // Veri güncelliği: canlı fiyata bağlı varlıklardaki en son çekim zamanı (yoksa manuel giriş).
+  const lastFetched = s.holdings
+    .map(h => h.lastFetchedAt).filter((x): x is string => !!x)
+    .sort().slice(-1)[0];
+
+  const toggleInterest = (t: AssetType) => {
+    const has = mem.prefs.interests.includes(t);
+    onPrefs({ interests: has ? mem.prefs.interests.filter(x => x !== t) : [...mem.prefs.interests, t] });
+  };
+
+  return (
+    <div className="card" style={{ borderColor: 'rgba(56,189,248,0.35)' }}>
+      <button
+        onClick={onToggle}
+        style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'inherit',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+      >
+        <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
+          <Bot size={14} color="var(--blue)" /> Ajan Ne Biliyor?
+          <span className="badge" style={{ color: 'var(--blue)', borderColor: 'rgba(56,189,248,0.4)' }}>HAFIZA</span>
+        </span>
+        {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+      </button>
+
+      {open && (
+        <div style={{ marginTop: 12 }} data-testid="agent-memory-body">
+          {/* 1) Kullanıcının belirlediği tercihler — düzenlenebilir */}
+          <div className="sub" style={{ fontWeight: 600, marginBottom: 6 }}>Seni nasıl tanıyorum (düzenleyebilirsin)</div>
+          <div className="grid-2" style={{ gap: 10 }}>
+            <div>
+              <label className="field" htmlFor="mem-risk">Risk seviyesi</label>
+              <select id="mem-risk" className="select" value={mem.prefs.riskLevel} onChange={e => onPrefs({ riskLevel: e.target.value as RiskLevel })}>
+                {RISK_OPTIONS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="field" htmlFor="mem-mode">Ajan modu</label>
+              <select id="mem-mode" className="select" value={mem.prefs.agentMode} onChange={e => onPrefs({ agentMode: e.target.value as AgentMode })}>
+                {MODE_OPTIONS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{ marginTop: 10 }}>
+            <label className="field" htmlFor="mem-vade">Vade tercihi</label>
+            <select id="mem-vade" className="select" value={mem.prefs.vade} onChange={e => onPrefs({ vade: e.target.value as VadeTercihi })}>
+              {VADE_OPTIONS.map(o => <option key={o.v} value={o.v}>{o.label}</option>)}
+            </select>
+          </div>
+          <div style={{ marginTop: 10 }}>
+            <div className="field">İlgi alanların</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {(Object.keys(ASSET_LABELS) as AssetType[]).map(t => {
+                const active = mem.prefs.interests.includes(t);
+                return (
+                  <button
+                    key={t} type="button" className="mini-btn" onClick={() => toggleInterest(t)}
+                    aria-pressed={active}
+                    style={{ borderColor: active ? 'var(--blue)' : undefined, color: active ? 'var(--blue)' : undefined, fontWeight: active ? 600 : 400 }}
+                  >
+                    {active ? '✓ ' : ''}{ASSET_LABELS[t]}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 2) Portföyden türetilen bağlam (canlı — bellekte kopyalanmaz) */}
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
+            <div className="sub" style={{ fontWeight: 600, marginBottom: 6 }}>Portföy bağlamı</div>
+            {s.holdings.length === 0 ? (
+              <p className="hint" style={{ margin: 0 }}>Henüz varlık yok — Panel'den ekleyince buradan görürüm.</p>
+            ) : (
+              <>
+                <div className="hint" style={{ margin: '0 0 6px' }}>
+                  Özet: <span className="mono">{fmtTL(value)}</span> güncel değer ·
+                  maliyet <span className="mono">{fmtTL(cost)}</span> ·
+                  K/Z <span className="mono" style={{ color: pnlAbs >= 0 ? 'var(--accent)' : 'var(--red)' }}>{fmtSigned(pnlAbs)} ({fmtPct(pnlPct)})</span>
+                </div>
+                <div className="hint" style={{ margin: '0 0 6px' }}>
+                  Takip edilen varlıklar: {s.holdings.map(h => h.name).join(', ')}
+                </div>
+                <div className="hint" style={{ margin: 0 }}>
+                  Veri güncelliği: {lastFetched ? `son canlı fiyat ${formatFetchedAt(lastFetched)}` : 'canlı bağlı varlık yok — değerler manuel giriş'}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* 3) Ajanın gözlemledikleri */}
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
+            <div className="sub" style={{ fontWeight: 600, marginBottom: 6 }}>Konuşmamızdan hatırladıklarım</div>
+            <div className="hint" style={{ margin: '0 0 6px' }}>
+              Toplam {mem.totalTurns} mesaj · son analiz: {mem.lastAnalysisAt ? formatFetchedAt(mem.lastAnalysisAt) : 'henüz yok'}
+            </div>
+            {mem.recentQuestions.length > 0 && (
+              <div className="hint" style={{ margin: '0 0 6px' }}>
+                Son soruların: {mem.recentQuestions.slice(0, 5).map(q => `"${q}"`).join(' · ')}
+              </div>
+            )}
+            {mem.recentAdvice.length > 0 && (
+              <div className="hint" style={{ margin: 0 }}>
+                Son öneri/uyarılarım: {mem.recentAdvice.slice(0, 3).map(a => `“${a}”`).join(' · ')}
+              </div>
+            )}
+          </div>
+
+          <p className="hint" style={{ marginTop: 12, color: 'var(--faint)' }}>
+            🔒 Bu bellek yalnızca tarayıcında saklanır, hiçbir sunucuya gönderilmez. "SIFIRLA" ile tamamını silebilirsin.
+            Bu bir yatırım tavsiyesi değildir; tercihler yalnızca ajanın bağlamını kişiselleştirir.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Ajan() {
   const s = usePortfolio();
+  const [mem, setMem] = useState<AgentMemoryProfile>(() => getProfile());
+  const [memoryOpen, setMemoryOpen] = useState(false);
+  const refreshMem = () => setMem(getProfile());
+  const handlePrefs = (patch: Partial<AgentPrefs>) => { updatePrefs(patch); refreshMem(); };
   const [messages, setMessages] = useState<AgentMessage[]>(() => [
     { role: 'agent', text: buildGreeting(getProfile()) },
   ]);
@@ -1017,10 +1165,14 @@ function Ajan() {
 
   const runAnalysis = () => {
     recordTurn('analiz', []);
+    recordAnalysis();
+    const lines = analyzePortfolio(s);
+    if (lines[0]) recordAdvice(lines[0]); // ilk analiz cümlesini "son öneri" olarak belleğe düş
+    refreshMem();
     setMessages(m => [
       ...m,
       { role: 'user', text: 'Portföyümü analiz et' },
-      ...analyzePortfolio(s).map(text => ({ role: 'agent' as const, text, intentId: 'analiz', ratable: true })),
+      ...lines.map(text => ({ role: 'agent' as const, text, intentId: 'analiz', ratable: true })),
     ]);
   };
 
@@ -1030,6 +1182,10 @@ function Ajan() {
     const userMsg: AgentMessage = { role: 'user', text };
     const reply = chatReply(s, text, messages, getProfile(), facts);
     recordTurn(reply.intentId, extractMentionedHoldings(s, text));
+    recordQuestion(text);
+    // Ajanın verdiği anlamlı (fallback/öneri-bekleyen olmayan) cevapları "son öneri/uyarı" belleğine düş.
+    if (!reply.isFallback && !reply.pendingAction) recordAdvice(reply.text);
+    refreshMem();
     if (reply.trainedFactId) {
       recordFactUse(reply.trainedFactId);
       setFacts(getTrainedFacts());
@@ -1115,6 +1271,8 @@ function Ajan() {
 
   return (
     <div className="fade">
+      <AgentMemoryCard mem={mem} open={memoryOpen} onToggle={() => setMemoryOpen(o => !o)} onPrefs={handlePrefs} />
+
       <div className="card">
         <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Bot size={14} /> Demo Ajan — Anahtarsız
