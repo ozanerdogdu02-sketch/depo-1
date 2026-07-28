@@ -12,10 +12,11 @@ import { getProfile, recordTurn, resetMemory } from './agentMemory';
 import { getTrainedFacts, teach, deleteFact, recordFactUse, resetTraining, TrainedFact } from './agentTraining';
 import { exportHoldingsCsv, exportTxnsCsv, parseHoldingsCsv } from './csv';
 import { CURRENCIES, COINS, fetchTryRate, fetchCryptoTryPrice, MarketFetchError } from './market';
+import { CryptoMarket } from './CryptoMarket';
 
 const PIE_COLORS = ['#2dd4a7', '#38bdf8', '#fbbf24', '#a78bfa', '#f87171', '#f472b6'];
 
-type Tab = 'panel' | 'bugun' | 'hisseler' | 'fonlar' | 'kripto' | 'islemler' | 'projeksiyon' | 'ajan';
+type Tab = 'panel' | 'bugun' | 'hisseler' | 'fonlar' | 'kripto' | 'kriptopiyasa' | 'islemler' | 'projeksiyon' | 'ajan';
 
 // Varlık ekleme formunda, seçili türe göre örnek ad ipucu — kripto sekmesinde "BIST 30 Fonu"
 // gibi yanıltıcı bir örnek yerine "Bitcoin" göstermek için (kullanıcı geri bildirimi).
@@ -1257,6 +1258,7 @@ export default function App() {
               <SideLink active={tab === 'hisseler'} onClick={() => setTab('hisseler')} icon={BarChart3} label="HİSSELER" />
               <SideLink active={tab === 'fonlar'} onClick={() => setTab('fonlar')} icon={PieChartIcon} label="FONLAR" />
               <SideLink active={tab === 'kripto'} onClick={() => setTab('kripto')} icon={Bitcoin} label="KRİPTO VARLIKLAR" />
+              <SideLink active={tab === 'kriptopiyasa'} onClick={() => setTab('kriptopiyasa')} icon={TrendingUp} label="KRİPTO PİYASASI" />
               <SideLink active={tab === 'islemler'} onClick={() => setTab('islemler')} icon={ArrowLeftRight} label="İŞLEMLER" />
               <SideLink active={tab === 'projeksiyon'} onClick={() => setTab('projeksiyon')} icon={TrendingUp} label="PROJEKSİYON" />
               <div className="side-divider" />
@@ -1280,6 +1282,7 @@ export default function App() {
               {tab === 'hisseler' && <Panel assetType="hisse" title="Toplam Hisse" query={query} />}
               {tab === 'fonlar' && <Panel assetType="fon" title="Toplam Fon" query={query} />}
               {tab === 'kripto' && <Panel assetType="kripto" title="Toplam Kripto Varlık" query={query} />}
+              {tab === 'kriptopiyasa' && <CryptoMarket />}
               {tab === 'islemler' && <Islemler query={query} />}
               {tab === 'projeksiyon' && <Projeksiyon />}
               {tab === 'ajan' && <Ajan />}

@@ -13,7 +13,7 @@ await page.getByRole('button', { name: 'Karma örnek portföy' }).click();
 await page.waitForTimeout(400);
 
 // Yeni sekmeler sidebar'da var mı
-for (const label of ['PANEL', 'BUGÜN', 'HİSSELER', 'FONLAR', 'KRİPTO VARLIKLAR', 'İŞLEMLER', 'PROJEKSİYON', 'AJAN']) {
+for (const label of ['PANEL', 'BUGÜN', 'HİSSELER', 'FONLAR', 'KRİPTO VARLIKLAR', 'KRİPTO PİYASASI', 'İŞLEMLER', 'PROJEKSİYON', 'AJAN']) {
   check(`Sidebar'da "${label}" linki var`, await page.locator('.side-link', { hasText: label }).count() === 1);
 }
 check('AJAN yanında YENİ rozeti var', await page.locator('.side-link', { hasText: 'AJAN' }).locator('.side-badge').count() > 0);
