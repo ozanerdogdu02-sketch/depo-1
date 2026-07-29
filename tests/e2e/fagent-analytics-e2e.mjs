@@ -61,15 +61,21 @@ const ces = await ask('ne kadar çeşitlenmişim');
 check('Çeşitlenme HHI ile cevaplanıyor', ces.includes('HHI'));
 check('Etkin varlık sayısı veriliyor', ces.includes('etkin olarak'));
 
-// --- DÜRÜST SINIR: fiyat serisi olmadan ölçülemeyenler ---
+// --- Risk metrikleri: artık HESAPLANIYOR (gerçek tarihsel fiyattan), ama kapsam dürüstçe belirtiliyor ---
+// Not: bu davranış bilinçli olarak değişti — önceden ajan "hesaplayamıyorum" diyordu. CoinGecko
+// /market_chart ve Frankfurter zaman serisi anahtarsız erişilebilir olduğu için artık hesaplıyoruz.
 const vol = await ask('volatilitem ne kadar');
-check('Volatilite sorusunda uydurmuyor, hesaplayamadığını söylüyor', vol.includes('hesaplayamıyorum'));
-check('Nedenini açıklıyor (fiyat serisi yok)', /FİYAT SERİSİ|fiyat geçmişi/.test(vol));
-check('Bunun yerine ölçebildiklerini sayıyor', vol.includes('HHI') || vol.includes('XIRR'));
+check('Volatilite sorusu Risk Analizi kartına yönlendiriyor', vol.includes('Risk Analizi'));
+check('Gerçek veri kaynakları belirtiliyor (CoinGecko / ECB)', vol.includes('CoinGecko') && vol.includes('ECB'));
+check('Geçmiş fiyat serisi gerektiği açıklanıyor', /GEÇMİŞ FİYAT SERİSİ|fiyat serisi/i.test(vol));
 check('Volatilite cevabı fallback DEĞİL', !vol.includes('tam olarak anlayamadım'));
 
+// Karma örnek portföyde canlı fiyata bağlı varlık YOK — ajan bunu dürüstçe söylemeli.
+check('Kapsanamayan varlıklar için dürüst uyarı veriyor', /kapsanabilen|kapsayamıyorum|YOK/i.test(vol));
+check('BIST/TEFAS/altın sınırını açıklıyor', /BIST|TEFAS|altın/.test(vol));
+
 const sharpe = await ask('sharpe oranım kaç');
-check('Sharpe da dürüstçe reddediliyor', sharpe.includes('hesaplayamıyorum'));
+check('Sharpe da aynı akışa yönlendiriliyor', sharpe.includes('Risk Analizi'));
 
 await page.screenshot({ path: `${out}/an2-durust-sinir.png` });
 
