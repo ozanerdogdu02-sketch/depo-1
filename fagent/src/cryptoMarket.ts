@@ -9,6 +9,8 @@ export interface CryptoMarketCoin {
   priceTry: number; // güncel fiyat (TRY)
   change24hPct: number; // 24s değişim yüzdesi (+/-)
   marketCapTry: number; // piyasa değeri (TRY)
+  rank?: number; // piyasa değeri sıralaması
+  sparkline?: number[]; // son 7 günün fiyat serisi — satır içi mini grafik için
 }
 
 export class CryptoMarketError extends Error {}
@@ -23,8 +25,12 @@ export class CryptoMarketError extends Error {}
    güncel olmayabilir, bu yüzden `stale` bayrağı ve zaman damgasıyla birlikte döner;
    arayüz bunu kullanıcıya açıkça yazar. */
 
-const CACHE_KEY = 'fagent.cryptomarket.cache.v1';
+const CACHE_KEY = 'fagent.cryptomarket.cache.v2'; // v2: sparkline + rank alanları eklendi
 const FRESH_MS = 90_000; // 90 sn içinde tekrar istek atma (sekmeye her girişte çağrıyı önler)
+
+// CoinGecko tek istekte en fazla 250 coin döner. 20 yerine 250 çekmek AYNI istek maliyetine
+// mal olur (rate limit açısından fark yok) ama kullanıcıya çok daha geniş bir evren sunar.
+export const DEFAULT_COIN_COUNT = 250;
 
 export interface MarketSnapshot {
   coins: CryptoMarketCoin[];
@@ -60,7 +66,7 @@ export function clearMarketCache(): void {
 
 // Arayüzün kullandığı giriş noktası: taze önbellek varsa ağa hiç çıkmaz; ağ başarısız olursa
 // (rate limit dahil) elindeki son gerçek veriyi `stale: true` ile döner. İkisi de yoksa hata fırlatır.
-export async function loadTopCoins(count = 20, opts: { force?: boolean } = {}): Promise<MarketSnapshot> {
+export async function loadTopCoins(count = DEFAULT_COIN_COUNT, opts: { force?: boolean } = {}): Promise<MarketSnapshot> {
   const cached = readCache();
 
   if (!opts.force && cached && Date.now() - new Date(cached.fetchedAt).getTime() < FRESH_MS) {
@@ -77,10 +83,12 @@ export async function loadTopCoins(count = 20, opts: { force?: boolean } = {}): 
 }
 
 // En büyük `count` coini piyasa değerine göre döner. Yalnızca CoinGecko genel ucu — anahtar yok.
-export async function fetchTopCoins(count = 20): Promise<CryptoMarketCoin[]> {
+export async function fetchTopCoins(count = DEFAULT_COIN_COUNT): Promise<CryptoMarketCoin[]> {
+  // sparkline=true: son 7 günün fiyat serisini de getirir — EK İSTEK MALİYETİ YOK,
+  // satır içi mini grafikler bu veriden çizilir.
   const url =
     'https://api.coingecko.com/api/v3/coins/markets' +
-    `?vs_currency=try&order=market_cap_desc&per_page=${count}&page=1&sparkline=false&price_change_percentage=24h`;
+    `?vs_currency=try&order=market_cap_desc&per_page=${Math.min(250, count)}&page=1&sparkline=true&price_change_percentage=24h`;
 
   let res: Response;
   try {
@@ -117,6 +125,9 @@ export async function fetchTopCoins(count = 20): Promise<CryptoMarketCoin[]> {
       continue; // tek bozuk satır tüm listeyi düşürmesin; ama uydurma değerle de doldurmayız
     }
     const change = item.price_change_percentage_24h;
+    // sparkline_in_7d.price: 7 günlük saatlik seri (~168 nokta). Mini grafik için yeterli;
+    // bozuk/eksik gelirse alan boş bırakılır (grafik çizilmez, uydurma veri üretilmez).
+    const spark = item.sparkline_in_7d?.price;
     coins.push({
       id: item.id,
       symbol: item.symbol,
@@ -124,6 +135,10 @@ export async function fetchTopCoins(count = 20): Promise<CryptoMarketCoin[]> {
       priceTry: item.current_price,
       change24hPct: typeof change === 'number' && Number.isFinite(change) ? change : 0,
       marketCapTry: item.market_cap,
+      rank: typeof item.market_cap_rank === 'number' ? item.market_cap_rank : undefined,
+      sparkline: Array.isArray(spark) && spark.length > 2 && spark.every((p: unknown) => typeof p === 'number' && Number.isFinite(p))
+        ? spark
+        : undefined,
     });
   }
 
