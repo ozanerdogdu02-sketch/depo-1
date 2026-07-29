@@ -520,21 +520,35 @@ const CHAT_RULES: Rule[] = [
       ].join('\n\n');
     },
   },
-  // ── DÜRÜST SINIR: fiyat zaman serisi olmadan ölçülemeyenler ───────────────────────
-  // Bunları uydurmak "sahte veri gösterme" ilkesini çiğnerdi.
+  // ── Risk metrikleri: GERÇEK tarihsel fiyattan hesaplanır, ama kapsam sınırlıdır ───
+  // Hesap ağ isteği gerektirdiği için burada yapılmaz (agent.ts SAF kalır) — kullanıcı
+  // Panel'deki Risk Analizi kartına yönlendirilir ve kapsamın ne olduğu baştan söylenir.
   {
-    id: 'olcemiyorum',
-    test: /volatilite|standart sapma|sharpe|beta\b|oynaklık|drawdown|düşüş oranı|korelasyon/i,
-    reply: () =>
-      [
-        'Bunu dürüstçe söylemem gerek: hesaplayamıyorum.',
-        'Volatilite, Sharpe oranı, beta, korelasyon ve maksimum düşüş (drawdown) hesaplamak için ' +
-        'varlıklarının GEÇMİŞ FİYAT SERİSİ gerekir. Bende ise yalnızca senin işlem kayıtların ve ' +
-        'güncel değerlerin var — fiyat geçmişi tutmuyorum.',
-        'Uydurma bir "risk skoru" üretmektense hesaplayamadığımı söylemeyi tercih ediyorum. ' +
-        'Bunun yerine ölçebildiklerim: konsantrasyon riski (HHI), para-ağırlıklı yıllık getiri (XIRR), ' +
-        'reel getiri ve varlık bazlı kâr/zarar katkıları.',
-      ].join('\n\n'),
+    id: 'risk-metrik',
+    test: /volatilite|standart sapma|sharpe|beta\b|oynaklık|drawdown|düşüş oranı|korelasyon|risk analizi/i,
+    reply: (s) => {
+      const canCover = s.holdings.filter(h => h.symbol && (h.type === 'kripto' || h.type === 'doviz'));
+      const lines = [
+        'Bunları hesaplıyorum — **Panel** sekmesindeki "Risk Analizi" kartını aç ve "Hesapla"ya bas.',
+        'Volatilite, maksimum düşüş ve Sharpe oranı GEÇMİŞ FİYAT SERİSİ ister. Bu seriyi son 90 gün için ' +
+        'gerçek kaynaklardan çekiyorum: kripto için CoinGecko, döviz için ECB (Frankfurter). ' +
+        'Portföy volatilitesini varlıkların ağırlıklı endeksinden hesaplıyorum, yani korelasyon etkisi de içinde.',
+      ];
+      if (canCover.length === 0) {
+        lines.push(
+          '⚠ Ama şu an portföyünde fiyat geçmişi çekilebilen bir varlık YOK. Bu hesap yalnızca ' +
+          'CANLI FİYATA BAĞLI kripto ve döviz varlıkları için mümkün; BIST hissesi, TEFAS fonu ve altın için ' +
+          'anahtarsız tarihsel kaynak bulunmadığından onları kapsayamıyorum. Kripto Piyasası sekmesinden bir coin ' +
+          'eklersen ya da bir dövizi canlı fiyata bağlarsan hesaplayabilirim.',
+        );
+      } else {
+        lines.push(
+          `Şu an ${canCover.length} varlığın kapsanabiliyor (${canCover.map(h => h.name).join(', ')}). ` +
+          'Kapsam dışı kalanları rapor açıkça yazar — hesaba katılmayanı varmış gibi göstermem.',
+        );
+      }
+      return lines.join('\n\n');
+    },
   },
   // Yedekleme / geri yükleme. Bu yetenekler üründe ZATEN VAR (Panel ve İşlemler kartlarındaki
   // CSV düğmeleri) ama ajan bunları bilmiyordu; "portföyümü aklında tut, sonra geri döneyim"

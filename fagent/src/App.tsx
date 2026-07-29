@@ -16,6 +16,7 @@ import { getTrainedFacts, teach, deleteFact, recordFactUse, resetTraining, Train
 import { exportHoldingsCsv, exportTxnsCsv, parseHoldingsCsv } from './csv';
 import { CURRENCIES, COINS, fetchTryRate, fetchCryptoTryPrice, MarketFetchError } from './market';
 import { CryptoMarket } from './CryptoMarket';
+import { RiskPanel } from './RiskPanel';
 
 const PIE_COLORS = ['#2dd4a7', '#38bdf8', '#fbbf24', '#a78bfa', '#f87171', '#f472b6'];
 
@@ -301,6 +302,7 @@ function Panel({ assetType, title, query }: PanelProps) {
       </div>
 
       {!assetType && <ProactiveInsightsCard />}
+      {!assetType && s.holdings.length > 0 && <RiskPanel />}
 
       {!assetType && investmentHistory.length >= 2 && (
         <div className="card">
