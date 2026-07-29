@@ -28,9 +28,11 @@ export class CryptoMarketError extends Error {}
 const CACHE_KEY = 'fagent.cryptomarket.cache.v2'; // v2: sparkline + rank alanları eklendi
 const FRESH_MS = 90_000; // 90 sn içinde tekrar istek atma (sekmeye her girişte çağrıyı önler)
 
-// CoinGecko tek istekte en fazla 250 coin döner. 20 yerine 250 çekmek AYNI istek maliyetine
-// mal olur (rate limit açısından fark yok) ama kullanıcıya çok daha geniş bir evren sunar.
-export const DEFAULT_COIN_COUNT = 250;
+// CoinGecko tek istekte en fazla 250 coin döner ve rate limit açısından 20 ile 250 arasında
+// fark yoktur. ANCAK sparkline=true ile her coin ~168 fiyat noktası taşır: 250 coin birkaç MB
+// yanıt demektir ve mobilde ilk açılış belirgin yavaşlar. 100 hem geniş bir evren sunar hem
+// yükü ~2,5 kat azaltır — kullanıcının gerçekten göz gezdirdiği aralık zaten ilk 100.
+export const DEFAULT_COIN_COUNT = 100;
 
 export interface MarketSnapshot {
   coins: CryptoMarketCoin[];
@@ -62,6 +64,19 @@ function writeCache(coins: CryptoMarketCoin[]): string {
 
 export function clearMarketCache(): void {
   try { localStorage.removeItem(CACHE_KEY); } catch { /* yok */ }
+}
+
+// Önbellekteki son veriyi AĞI BEKLEMEDEN, senkron döner. Arayüz bunu ilk çizimde kullanır:
+// kullanıcı boş ekran yerine anında (bayat olabilecek) gerçek fiyatları görür, taze veri
+// arka planda gelince sessizce güncellenir. Algılanan hız üzerindeki en büyük etki budur.
+export function cachedSnapshot(): MarketSnapshot | undefined {
+  const c = readCache();
+  if (!c) return undefined;
+  return {
+    coins: c.coins,
+    fetchedAt: c.fetchedAt,
+    stale: Date.now() - new Date(c.fetchedAt).getTime() >= FRESH_MS,
+  };
 }
 
 // Arayüzün kullandığı giriş noktası: taze önbellek varsa ağa hiç çıkmaz; ağ başarısız olursa
