@@ -7,6 +7,10 @@ import {
 } from './store';
 import { AgentMemoryProfile, RiskLevel, AgentMode, VadeTercihi, mostAskedTopic, mostMentionedHolding } from './agentMemory';
 import { TrainedFact, findBestMatch } from './agentTraining';
+import {
+  realReturnPct, xirrOf, concentrationOf, attributionOf, contributionOf, investmentPaceOf,
+  parseInflationPct,
+} from './analytics';
 
 export interface ChartSpec {
   kind: 'pie' | 'area' | 'bar';
@@ -250,6 +254,116 @@ function pnlBarChart(s: PortfolioState): ChartSpec | undefined {
   };
 }
 
+/* ─────────────────────────  Grafik yorumlama  ─────────────────────────
+   Ajan artık "işte grafiğin" deyip susmuyor; grafiğin ne söylediğini analytics.ts'teki
+   gerçek finans matematiğiyle okuyor. Bloki'den ayrışma noktası: Bloki reel getiri
+   formülünü açıklayıp hesabı kullanıcıya bırakıyordu, Fagent hesabı kendisi yapıyor. */
+
+const VARSAYILAN_ENFLASYON = 40; // kullanıcı metinde oran vermezse (arayüzdeki varsayımla aynı)
+
+// Sınıf dağılımı (pasta) okuması — Herfindahl konsantrasyonu + etkin varlık sayısı.
+function readAllocationChart(s: PortfolioState): string {
+  const c = concentrationOf(s);
+  if (!c) return '';
+  const lines: string[] = [];
+  lines.push(
+    `Grafiği okuyalım: en büyük pozisyonun ${c.topName} ve tek başına portföyün %${c.topWeightPct.toFixed(1)}'ini tutuyor.`,
+  );
+  // HHI kavramını kısaca açıklayarak veriyoruz — sayıyı anlamsız bırakmamak için.
+  lines.push(
+    `Yoğunlaşmayı Herfindahl endeksiyle ölçüyorum (ağırlıkların karelerinin toplamı): HHI = ${c.hhi.toFixed(3)}. ` +
+    `Bunun tersi "etkin varlık sayısı"nı verir: ${c.nominalN} varlığın var ama çeşitlenmen etkin olarak ` +
+    `${c.effectiveN.toFixed(1)} varlığa denk geliyor.`,
+  );
+  if (c.level === 'yuksek') {
+    lines.push('Bu yoğun bir dağılım (HHI > 0,25) — tek bir varlıktaki sert hareket portföyün tamamını belirgin biçimde etkiler.');
+  } else if (c.level === 'orta') {
+    lines.push('Bu orta düzey bir yoğunlaşma (HHI 0,15–0,25). Dağıtık sayılmak için ağırlıkların daha dengeli olması gerekir.');
+  } else {
+    lines.push('Bu dağıtık sayılır (HHI < 0,15) — tek bir varlığa bağımlılığın düşük.');
+  }
+  return lines.join(' ');
+}
+
+// Net yatırım geçmişi (alan) okuması — tempo + katkı/getiri ayrıştırması + XIRR.
+function readInvestmentChart(s: PortfolioState): string {
+  const lines: string[] = [];
+  const pace = investmentPaceOf(s);
+  const attr = attributionOf(s);
+
+  if (pace) {
+    lines.push(
+      `Grafiği okuyalım: ${Math.round(pace.days)} gündür (${pace.months.toFixed(1)} ay) yatırım yapıyorsun; ` +
+      `${pace.buyCount} alış, ${pace.sellCount} satış. Net yatırdığın tutar ${fmtTL(pace.totalInvested)}` +
+      (pace.months >= 1 ? `, aylık ortalama ${fmtTL(pace.monthlyAverage)}.` : '.'),
+    );
+  }
+  if (attr) {
+    lines.push(
+      `Çizgi yatırdığın parayı gösterir; güncel değerin ${fmtTL(attr.value)}. ` +
+      `Aradaki ${fmtSigned(attr.gain)} getiridir — yani bugünkü servetinin %${Math.abs(attr.gainSharePct).toFixed(1)}'i ` +
+      `${attr.gain >= 0 ? 'kazançtan' : 'kayıptan'} geliyor, kalanı senin koyduğun para.`,
+    );
+  }
+
+  // XIRR — para-ağırlıklı yıllık getiri. Kısa geçmişte yıllıklandırma yanıltıcı olur, söylüyoruz.
+  const x = xirrOf(s);
+  if (x) {
+    if (x.reliable) {
+      const real = realReturnPct(x.annualPct, VARSAYILAN_ENFLASYON);
+      lines.push(
+        `Para-ağırlıklı yıllık getirin (XIRR) %${x.annualPct.toFixed(1)}. ` +
+        `%${VARSAYILAN_ENFLASYON} enflasyon varsayımıyla reel karşılığı %${real.toFixed(1)} ` +
+        `(Fisher: (1+nominal)/(1+enflasyon)−1; "nominal eksi enflasyon" kestirmesi burada yanıltır).`,
+      );
+    } else {
+      lines.push(
+        `Geçmişin ${Math.round(x.years * 365)} günlük — bu kadar kısa bir süreyi yıllığa çevirmek yanıltıcı olur, ` +
+        `o yüzden yıllık getiri (XIRR) hesabını güvenilir bulmuyorum.`,
+      );
+    }
+  }
+  return lines.join(' ');
+}
+
+// Varlık bazlı kâr/zarar (çubuk) okuması — katkı payları.
+function readPnlChart(s: PortfolioState): string {
+  const c = contributionOf(s);
+  if (!c) return '';
+  const lines: string[] = [];
+  lines.push(`Grafiği okuyalım: net kâr/zararın ${fmtSigned(c.totalPnl)}.`);
+  if (c.winners.length) {
+    const w = c.winners[0];
+    lines.push(
+      `Kazandıranların toplamı ${fmtTL(c.grossGain)}; en büyük katkı ${w.name} ` +
+      `(${fmtSigned(w.pnl)}, toplam hareketin %${w.sharePct.toFixed(0)}'ı).`,
+    );
+  }
+  if (c.losers.length) {
+    const l = c.losers[0];
+    lines.push(
+      `Kaybettirenlerin toplamı ${fmtTL(c.grossLoss)}; en çok ${l.name} ` +
+      `(${fmtSigned(l.pnl)}, %${l.sharePct.toFixed(0)}).`,
+    );
+  }
+  if (c.winners.length && c.losers.length) {
+    lines.push(
+      c.totalPnl >= 0
+        ? 'Kazançlar kayıpları karşılamış durumda; net sonuç pozitif.'
+        : 'Kayıplar kazançları aşıyor; net sonuç negatif.',
+    );
+  }
+  return lines.join(' ');
+}
+
+// Bir grafiğe ait sayısal okumayı döner.
+function readChart(s: PortfolioState, intentId: string): string {
+  if (intentId === 'grafik-dagilim') return readAllocationChart(s);
+  if (intentId === 'grafik-yatirim') return readInvestmentChart(s);
+  if (intentId === 'grafik-pnl') return readPnlChart(s);
+  return '';
+}
+
 function detectChartRequest(s: PortfolioState, text: string): { chart: ChartSpec; intentId: string } | undefined {
   // "graf" kökü kullanılır — "grafik" kelimesi iyelik ekiyle "grafiğimi/grafiğini" gibi ünsüz
   // yumuşamasına uğrar (k→ğ), tam "grafik" eşleşmesi bu biçimleri kaçırırdı.
@@ -325,7 +439,7 @@ function holdingLookupReply(s: PortfolioState, text: string): string | undefined
 
 // --- Genel niyetler ---------------------------------------------------------
 
-type Rule = { id?: string; test: RegExp; reply: (s: PortfolioState) => string };
+type Rule = { id?: string; test: RegExp; reply: (s: PortfolioState, text: string) => string };
 
 const CHAT_RULES: Rule[] = [
   {
@@ -339,6 +453,88 @@ const CHAT_RULES: Rule[] = [
   {
     test: /merhaba|selam|naber|nasılsın/i,
     reply: () => 'Merhaba! Portföyün hakkında soru sorabilir, "analiz et" yazabilir ya da "dağılımımı çiz" gibi bir istekle grafik çizmemi isteyebilirsin.',
+  },
+  // ── İleri matematik: reel getiri (Fisher) ──────────────────────────────────────────
+  // Bloki bu soruda formülü açıklayıp hesabı kullanıcıya bırakıyordu; biz hesaplıyoruz.
+  {
+    id: 'reel-getiri',
+    test: /reel getiri|reel kazanç|enflasyondan arınd|enflasyona göre.*(getiri|kazanç|durum)|alım gücü/i,
+    reply: (s, text) => {
+      const attr = attributionOf(s);
+      if (!attr) return 'Reel getiriyi hesaplamak için önce portföyüne varlık eklemen gerek.';
+      // Kullanıcı "%55 enflasyona göre..." gibi bir oran verdiyse onu kullan.
+      const inf = parseInflationPct(text) ?? VARSAYILAN_ENFLASYON;
+      const realTotal = realReturnPct(attr.totalReturnPct, inf);
+      const lines = [
+        `Toplam nominal getirin %${attr.totalReturnPct.toFixed(2)} (${fmtSigned(attr.gain)} / maliyet ${fmtTL(attr.invested)}).`,
+        `%${inf} enflasyon varsayımıyla REEL getirin %${realTotal.toFixed(2)}.`,
+        `Hesap Fisher denklemiyle: (1 + nominal) / (1 + enflasyon) − 1. Yaygın "nominal eksi enflasyon" kestirmesi ` +
+        `%${(attr.totalReturnPct - inf).toFixed(2)} derdi — yüksek enflasyonda bu kestirme sapar, doğrusu yukarıdaki.`,
+      ];
+      const x = xirrOf(s);
+      if (x?.reliable) {
+        lines.push(
+          `Zamana yayılmış katkıların olduğu için asıl ölçüt para-ağırlıklı yıllık getiri (XIRR): %${x.annualPct.toFixed(1)}, ` +
+          `reel karşılığı %${realReturnPct(x.annualPct, inf).toFixed(1)}.`,
+        );
+      }
+      lines.push(`Enflasyon varsayımını değiştirmek istersen "%55 enflasyona göre reel getirim ne" gibi yazabilirsin.`);
+      return lines.join('\n\n');
+    },
+  },
+  // ── İleri matematik: yıllık getiri (XIRR) ──────────────────────────────────────────
+  {
+    id: 'yillik-getiri',
+    test: /yıllık getiri|xirr|irr|yıllıklandır|bileşik getiri|cagr/i,
+    reply: (s) => {
+      const x = xirrOf(s);
+      if (!x) return 'Yıllık getiriyi hesaplamak için işlem geçmişi gerekiyor — henüz yeterli veri yok.';
+      if (!x.reliable) {
+        return `İşlem geçmişin ${Math.round(x.years * 365)} günlük. Bu kadar kısa bir dönemi yıllığa çevirmek ` +
+          `matematiksel olarak mümkün ama yanıltıcı olur (birkaç günlük hareket yıla ölçeklenince abartılı görünür), ` +
+          `o yüzden sana bir yıllık getiri rakamı vermiyorum. En az bir aylık geçmiş biriktiğinde hesaplarım.`;
+      }
+      return [
+        `Para-ağırlıklı yıllık getirin (XIRR) %${x.annualPct.toFixed(2)}.`,
+        `Bu, basit "son değer / ilk değer" hesabından farklıdır: paranı zaman içinde parça parça koyduğun için ` +
+        `her katkının portföyde kaldığı süre ağırlıklandırılır. Teknik olarak nakit akışlarının iç verim oranıdır — ` +
+        `Σ CF/(1+r)^(gün/365) = 0 denklemini çözerim.`,
+        `%${VARSAYILAN_ENFLASYON} enflasyon varsayımıyla reel karşılığı %${realReturnPct(x.annualPct, VARSAYILAN_ENFLASYON).toFixed(2)}.`,
+      ].join('\n\n');
+    },
+  },
+  // ── İleri matematik: çeşitlenme / konsantrasyon ────────────────────────────────────
+  {
+    id: 'cesitlenme',
+    test: /çeşitlen|konsantrasyon|yoğunlaş|herfindahl|hhi|ne kadar dağı/i,
+    reply: (s) => {
+      const c = concentrationOf(s);
+      if (!c) return 'Çeşitlenmeni ölçmek için portföyünde varlık olması gerek.';
+      return [
+        `Konsantrasyonunu Herfindahl-Hirschman endeksiyle ölçüyorum: HHI = ${c.hhi.toFixed(3)}.`,
+        `Bu, her varlığın ağırlığının karesinin toplamıdır. Tersi "etkin varlık sayısı"nı verir: ` +
+        `nominal olarak ${c.nominalN} varlığın var, ama ağırlıklar eşit olmadığı için çeşitlenmen ` +
+        `etkin olarak ${c.effectiveN.toFixed(1)} varlığa denk.`,
+        `En büyük pozisyon ${c.topName} (%${c.topWeightPct.toFixed(1)}). Seviye: ` +
+        (c.level === 'yuksek' ? 'yoğun (HHI > 0,25).' : c.level === 'orta' ? 'orta (HHI 0,15–0,25).' : 'dağıtık (HHI < 0,15).'),
+      ].join('\n\n');
+    },
+  },
+  // ── DÜRÜST SINIR: fiyat zaman serisi olmadan ölçülemeyenler ───────────────────────
+  // Bunları uydurmak "sahte veri gösterme" ilkesini çiğnerdi.
+  {
+    id: 'olcemiyorum',
+    test: /volatilite|standart sapma|sharpe|beta\b|oynaklık|drawdown|düşüş oranı|korelasyon/i,
+    reply: () =>
+      [
+        'Bunu dürüstçe söylemem gerek: hesaplayamıyorum.',
+        'Volatilite, Sharpe oranı, beta, korelasyon ve maksimum düşüş (drawdown) hesaplamak için ' +
+        'varlıklarının GEÇMİŞ FİYAT SERİSİ gerekir. Bende ise yalnızca senin işlem kayıtların ve ' +
+        'güncel değerlerin var — fiyat geçmişi tutmuyorum.',
+        'Uydurma bir "risk skoru" üretmektense hesaplayamadığımı söylemeyi tercih ediyorum. ' +
+        'Bunun yerine ölçebildiklerim: konsantrasyon riski (HHI), para-ağırlıklı yıllık getiri (XIRR), ' +
+        'reel getiri ve varlık bazlı kâr/zarar katkıları.',
+      ].join('\n\n'),
   },
   // Yedekleme / geri yükleme. Bu yetenekler üründe ZATEN VAR (Panel ve İşlemler kartlarındaki
   // CSV düğmeleri) ama ajan bunları bilmiyordu; "portföyümü aklında tut, sonra geri döneyim"
@@ -516,7 +712,14 @@ export function chatReply(
       const chart = lastIntent === 'grafik-dagilim' ? allocationChart(s)
         : lastIntent === 'grafik-yatirim' ? investmentHistoryChart(s)
         : pnlBarChart(s);
-      if (chart) return { text: `${chart.title} grafiğini büyütüyorum:`, chart, intentId: lastIntent };
+      if (chart) {
+        const reading = readChart(s, lastIntent);
+        return {
+          text: reading ? `${chart.title} grafiğini biraz daha açayım.\n\n${reading}` : `${chart.title} grafiğini büyütüyorum:`,
+          chart,
+          intentId: lastIntent,
+        };
+      }
     }
     return { text: 'Hangi konuda devam edeyim? "analiz", "dağılım", "risk" ya da bir varlık adı yazabilirsin.', isFallback: true };
   }
@@ -524,7 +727,12 @@ export function chatReply(
   // Grafik isteği — sohbet içinde doğrudan görsel üretir.
   const chartReq = detectChartRequest(s, text);
   if (chartReq) {
-    return { text: `İşte "${chartReq.chart.title}" grafiğin:`, chart: chartReq.chart, intentId: chartReq.intentId };
+    const reading = readChart(s, chartReq.intentId);
+    return {
+      text: reading ? `İşte "${chartReq.chart.title}" grafiğin.\n\n${reading}` : `İşte "${chartReq.chart.title}" grafiğin:`,
+      chart: chartReq.chart,
+      intentId: chartReq.intentId,
+    };
   }
 
   // En iyi/en kötü performans kıyaslaması.
@@ -534,7 +742,7 @@ export function chatReply(
   // Genel niyet kuralları (analiz, dağılım, risk, enflasyon, küçük sohbet...).
   for (const rule of CHAT_RULES) {
     if (rule.test.test(text)) {
-      return { text: rule.reply(s), intentId: rule.id };
+      return { text: rule.reply(s, text), intentId: rule.id };
     }
   }
 
