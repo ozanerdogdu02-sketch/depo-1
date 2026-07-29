@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Loader2, RefreshCw, Search, Plus, CheckCircle2, AlertTriangle, ArrowUpDown } from 'lucide-react';
 import { usePortfolio, actions, fmtTL, fmtPct, AssetType } from './store';
-import { CryptoMarketCoin, CryptoMarketError, loadTopCoins, formatMarketCap, DEFAULT_COIN_COUNT } from './cryptoMarket';
+import {
+  CryptoMarketCoin, CryptoMarketError, loadTopCoins, cachedSnapshot, formatMarketCap, DEFAULT_COIN_COUNT,
+} from './cryptoMarket';
 
 const KRIPTO: AssetType = 'kripto';
 const PAGE_SIZE = 50; // 250 satırı birden çizmek ağır olurdu; kademeli gösteriyoruz
@@ -38,9 +40,12 @@ function Sparkline({ prices, up }: { prices: number[]; up: boolean }) {
 
 export function CryptoMarket() {
   const s = usePortfolio();
-  const [coins, setCoins] = useState<CryptoMarketCoin[] | null>(null);
-  const [fetchedAt, setFetchedAt] = useState<string | null>(null);
-  const [stale, setStale] = useState(false);
+  // İlk çizimde önbellekteki gerçek fiyatları HEMEN göster — ağ yanıtı beklenmez.
+  // Böylece sekmeye ikinci girişte ekran anında dolu gelir, taze veri arka planda güncellenir.
+  const initial = cachedSnapshot();
+  const [coins, setCoins] = useState<CryptoMarketCoin[] | null>(initial?.coins ?? null);
+  const [fetchedAt, setFetchedAt] = useState<string | null>(initial?.fetchedAt ?? null);
+  const [stale, setStale] = useState(initial?.stale ?? false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -59,8 +64,10 @@ export function CryptoMarket() {
       setFetchedAt(snap.fetchedAt);
       setStale(snap.stale);
     } catch (err) {
+      // Elimizde önbellekten gelen gerçek fiyatlar varsa onları SİLME — hata mesajını
+      // göster ama ekranı boşaltma. (loadTopCoins zaten önbellek varken hata fırlatmaz;
+      // bu yalnızca hiç veri yokken çalışır, yine de savunma amaçlı bırakıyoruz.)
       setError(err instanceof CryptoMarketError ? err.message : 'Piyasa verisi alınamadı.');
-      setCoins(null);
     } finally {
       setLoading(false);
     }
