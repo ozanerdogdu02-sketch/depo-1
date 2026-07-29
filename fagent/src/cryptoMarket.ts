@@ -13,6 +13,69 @@ export interface CryptoMarketCoin {
 
 export class CryptoMarketError extends Error {}
 
+/* ─────────────────────────  Önbellek  ─────────────────────────
+   CoinGecko'nun ANAHTARSIZ genel ucu ağır rate-limitli. Limite takılınca 429 dönüyor ve o
+   yanıtta CORS başlığı olmadığı için tarayıcı fetch'i hata fırlatıyor — yani rate limit,
+   koda "ağ hatası" gibi görünüyor. Çözüm anahtar eklemek DEĞİL (anahtarsızlık ürünün
+   çekirdek ilkesi); çağrı sayısını düşürmek ve son BAŞARILI yanıtı saklamak.
+
+   Dürüstlük: önbellekten gelen veri SAHTE DEĞİL — gerçekten çekilmiş fiyatlardır. Ama
+   güncel olmayabilir, bu yüzden `stale` bayrağı ve zaman damgasıyla birlikte döner;
+   arayüz bunu kullanıcıya açıkça yazar. */
+
+const CACHE_KEY = 'fagent.cryptomarket.cache.v1';
+const FRESH_MS = 90_000; // 90 sn içinde tekrar istek atma (sekmeye her girişte çağrıyı önler)
+
+export interface MarketSnapshot {
+  coins: CryptoMarketCoin[];
+  fetchedAt: string; // ISO — bu veri ne zaman ÇEKİLDİ
+  stale: boolean;    // true ise: ağdan alınamadı, önbellekten sunuluyor
+}
+
+interface CachedPayload { coins: CryptoMarketCoin[]; fetchedAt: string }
+
+function readCache(): CachedPayload | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CachedPayload;
+    if (!Array.isArray(parsed.coins) || parsed.coins.length === 0 || typeof parsed.fetchedAt !== 'string') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(coins: CryptoMarketCoin[]): string {
+  const fetchedAt = new Date().toISOString();
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ coins, fetchedAt }));
+  } catch { /* kota dolu olabilir — önbelleksiz de çalışır */ }
+  return fetchedAt;
+}
+
+export function clearMarketCache(): void {
+  try { localStorage.removeItem(CACHE_KEY); } catch { /* yok */ }
+}
+
+// Arayüzün kullandığı giriş noktası: taze önbellek varsa ağa hiç çıkmaz; ağ başarısız olursa
+// (rate limit dahil) elindeki son gerçek veriyi `stale: true` ile döner. İkisi de yoksa hata fırlatır.
+export async function loadTopCoins(count = 20, opts: { force?: boolean } = {}): Promise<MarketSnapshot> {
+  const cached = readCache();
+
+  if (!opts.force && cached && Date.now() - new Date(cached.fetchedAt).getTime() < FRESH_MS) {
+    return { coins: cached.coins, fetchedAt: cached.fetchedAt, stale: false };
+  }
+
+  try {
+    const coins = await fetchTopCoins(count);
+    return { coins, fetchedAt: writeCache(coins), stale: false };
+  } catch (err) {
+    if (cached) return { coins: cached.coins, fetchedAt: cached.fetchedAt, stale: true };
+    throw err;
+  }
+}
+
 // En büyük `count` coini piyasa değerine göre döner. Yalnızca CoinGecko genel ucu — anahtar yok.
 export async function fetchTopCoins(count = 20): Promise<CryptoMarketCoin[]> {
   const url =
@@ -23,9 +86,19 @@ export async function fetchTopCoins(count = 20): Promise<CryptoMarketCoin[]> {
   try {
     res = await fetch(url);
   } catch {
-    throw new CryptoMarketError('Piyasa servisine ulaşılamadı — internet bağlantını kontrol et.');
+    // NOT: CoinGecko rate limit (429) yanıtında CORS başlığı göndermediği için tarayıcı yanıtı
+    // bloke eder ve fetch buraya düşer — yani bu dal çoğu zaman "ağ yok" değil "limit doldu"dur.
+    throw new CryptoMarketError(
+      'Piyasa verisi alınamadı. CoinGecko ücretsiz servisinin kısa süreli istek sınırına takılmış olabilir — birkaç dakika sonra tekrar dene.',
+    );
   }
-  if (!res.ok) throw new CryptoMarketError('Piyasa servisi şu an yanıt vermiyor (çok sık denenmiş olabilir).');
+  if (!res.ok) {
+    throw new CryptoMarketError(
+      res.status === 429
+        ? 'CoinGecko ücretsiz servisinin istek sınırına takıldık — birkaç dakika sonra tekrar dene.'
+        : 'Piyasa servisi şu an yanıt vermiyor.',
+    );
+  }
 
   const data = await res.json().catch(() => null);
   if (!Array.isArray(data)) throw new CryptoMarketError('Piyasa verisi okunamadı — beklenen biçimde değil.');

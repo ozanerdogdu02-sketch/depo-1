@@ -52,9 +52,19 @@ export async function fetchCryptoTryPrice(coinId: string): Promise<number> {
   try {
     res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(coinId)}&vs_currencies=try`);
   } catch {
-    throw new MarketFetchError('Fiyat servisine ulaşılamadı — internet bağlantını kontrol et.');
+    // CoinGecko rate limit (429) yanıtı CORS başlığı taşımadığından tarayıcı onu bloke eder ve
+    // fetch buraya düşer — bu dal çoğu zaman "internet yok" değil "istek sınırı doldu"dur.
+    throw new MarketFetchError(
+      'Fiyat alınamadı. CoinGecko ücretsiz servisinin istek sınırına takılmış olabilir — birkaç dakika sonra tekrar dene.',
+    );
   }
-  if (!res.ok) throw new MarketFetchError('Fiyat servisi şu an yanıt vermiyor (çok sık denenmiş olabilir).');
+  if (!res.ok) {
+    throw new MarketFetchError(
+      res.status === 429
+        ? 'CoinGecko ücretsiz servisinin istek sınırına takıldık — birkaç dakika sonra tekrar dene.'
+        : 'Fiyat servisi şu an yanıt vermiyor.',
+    );
+  }
   const data = await res.json().catch(() => null);
   const price = data?.[coinId]?.try;
   if (typeof price !== 'number' || !Number.isFinite(price)) throw new MarketFetchError('Fiyat verisi okunamadı.');

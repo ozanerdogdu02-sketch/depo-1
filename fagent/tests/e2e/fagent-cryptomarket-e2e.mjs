@@ -68,15 +68,41 @@ check('Eklenen coin Kripto Varlıklar panelinde görünüyor', await page.locato
 check('Eklenen coin tutarı ₺10.000', await page.locator('.list-row', { hasText: 'Bitcoin' }).locator('text=₺10.000').count() > 0);
 await page.screenshot({ path: `${out}/cm2-portfoye-eklendi.png` });
 
-// --- Ağ hatasında Türkçe hata + "Tekrar dene" ---
+// --- Ağ hatası + ÖNBELLEK: son gerçek fiyatlar bayat etiketiyle gösterilmeli ---
+// (CoinGecko ücretsiz ucu rate-limitli; limite takılınca elde veri varsa onu dürüstçe
+//  "şu tarihteki son gerçek fiyatlar" diye göstermek, hiçbir şey göstermemekten iyi.)
 mockFail = true;
 await page.locator('.side-link', { hasText: 'KRİPTO PİYASASI' }).click();
 await page.waitForTimeout(300);
 await page.locator('.mini-btn', { hasText: 'Yenile' }).click();
-await page.waitForTimeout(500);
-check('Ağ hatasında Türkçe hata mesajı görünür', await page.locator('text=/yanıt vermiyor|ulaşılamadı|okunamadı/').count() > 0);
+await page.waitForTimeout(600);
+check('Ağ hatasında önbellekteki coinler hâlâ listeleniyor', await page.locator('.list-row', { hasText: 'Bitcoin' }).count() > 0);
+check('Bayat veri uyarısı görünür', await page.locator('text=/Canlı fiyat alınamadı/').count() > 0);
+check('Uyarı istek sınırını açıklıyor', await page.locator('text=/istek sınırı/').count() > 0);
+await page.screenshot({ path: `${out}/cm3-bayat-onbellek.png` });
+
+// --- Önbellek YOKKEN ağ hatası: net hata + "Tekrar dene" ---
+await page.evaluate(() => localStorage.removeItem('fagent.cryptomarket.cache.v1'));
+await page.locator('.mini-btn', { hasText: 'Yenile' }).click();
+await page.waitForTimeout(600);
+check('Önbelleksiz hatada Türkçe hata mesajı görünür', await page.locator('text=/istek sınırına takıl|yanıt vermiyor|alınamadı/').count() > 0);
 check('"Tekrar dene" butonu görünür', await page.getByRole('button', { name: /Tekrar dene/ }).count() > 0);
-await page.screenshot({ path: `${out}/cm3-hata.png` });
+await page.screenshot({ path: `${out}/cm4-hata.png` });
+
+// --- Önbellek istek sayısını gerçekten azaltıyor mu (sekme değişiminde ağa çıkmamalı) ---
+mockFail = false;
+await page.evaluate(() => localStorage.removeItem('fagent.cryptomarket.cache.v1'));
+let apiCalls = 0;
+page.on('request', r => { if (r.url().includes('api.coingecko.com')) apiCalls++; });
+await page.getByRole('button', { name: /Tekrar dene/ }).click();
+await page.waitForTimeout(600);
+const afterFirst = apiCalls;
+await page.locator('.side-link', { hasText: 'PANEL' }).click();
+await page.waitForTimeout(300);
+await page.locator('.side-link', { hasText: 'KRİPTO PİYASASI' }).click();
+await page.waitForTimeout(600);
+console.log(`  (ilk yükleme: ${afterFirst} çağrı · sekmeye dönüş sonrası toplam: ${apiCalls})`);
+check('Sekmeye tekrar girişte yeni ağ isteği ATILMADI (önbellek)', apiCalls === afterFirst);
 
 await browser.close();
 console.log(failed ? 'FAGENT_CRYPTOMARKET_E2E_FAILED' : 'FAGENT_CRYPTOMARKET_E2E_OK');
