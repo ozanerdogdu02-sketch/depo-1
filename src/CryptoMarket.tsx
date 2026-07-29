@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Loader2, RefreshCw, Search, Plus, CheckCircle2 } from 'lucide-react';
+import { Loader2, RefreshCw, Search, Plus, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { usePortfolio, actions, fmtTL, fmtPct, AssetType } from './store';
-import { CryptoMarketCoin, CryptoMarketError, fetchTopCoins, formatMarketCap } from './cryptoMarket';
+import { CryptoMarketCoin, CryptoMarketError, loadTopCoins, formatMarketCap } from './cryptoMarket';
 
 const KRIPTO: AssetType = 'kripto';
 
@@ -11,18 +11,24 @@ const KRIPTO: AssetType = 'kripto';
 export function CryptoMarket() {
   const s = usePortfolio();
   const [coins, setCoins] = useState<CryptoMarketCoin[] | null>(null);
+  const [fetchedAt, setFetchedAt] = useState<string | null>(null);
+  const [stale, setStale] = useState(false); // veri önbellekten geldi (ağ başarısız)
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [amounts, setAmounts] = useState<Record<string, string>>({});
   const [added, setAdded] = useState<Record<string, boolean>>({});
 
-  const load = async () => {
+  // force=true yalnızca "Yenile" düğmesinde — sekmeye her girişte ağa çıkmayı önlemek
+  // (ve böylece ücretsiz servisin istek sınırına takılmamak) için ilk yükleme önbelleği kullanır.
+  const load = async (force = false) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchTopCoins(20);
-      setCoins(data);
+      const snap = await loadTopCoins(20, { force });
+      setCoins(snap.coins);
+      setFetchedAt(snap.fetchedAt);
+      setStale(snap.stale);
     } catch (err) {
       setError(err instanceof CryptoMarketError ? err.message : 'Piyasa verisi alınamadı.');
       setCoins(null);
@@ -31,7 +37,7 @@ export function CryptoMarket() {
     }
   };
 
-  // İlk açılışta otomatik çek.
+  // İlk açılışta yükle (taze önbellek varsa ağa çıkmaz).
   useEffect(() => { load(); }, []);
 
   const visible = useMemo(() => {
@@ -59,14 +65,28 @@ export function CryptoMarket() {
       <div className="card">
         <div className="card-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>Kripto Piyasası</span>
-          <button className="mini-btn" onClick={load} disabled={loading}>
+          <button className="mini-btn" onClick={() => load(true)} disabled={loading}>
             {loading ? <Loader2 size={11} className="spin-icon" /> : <RefreshCw size={11} />}
             {loading ? 'Yükleniyor…' : 'Yenile'}
           </button>
         </div>
         <p className="sub">
           {coins ? `${coins.length} coin · ` : ''}CoinGecko genel API üzerinden en büyük coinler (anahtarsız, birkaç dakika gecikmeli olabilir).
+          {fetchedAt && ` · Fiyatlar ${new Date(fetchedAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} itibarıyla.`}
         </p>
+
+        {/* Bayat veri uyarısı — önbellekteki fiyatlar GERÇEK ama güncel olmayabilir. Bunu
+            gizlemek "sahte veri göstermeme" ilkesine aykırı olurdu; açıkça yazıyoruz. */}
+        {stale && coins && (
+          <p className="hint" style={{ marginTop: 8, color: 'var(--amber, #fbbf24)', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+            <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 2 }} />
+            <span>
+              Canlı fiyat alınamadı (ücretsiz servisin istek sınırı) — aşağıdakiler
+              <strong> {new Date(fetchedAt!).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</strong> tarihindeki
+              son gerçek fiyatlar. Birkaç dakika sonra "Yenile" ile güncelleyebilirsin.
+            </span>
+          </p>
+        )}
 
         {coins && coins.length > 0 && (
           <div style={{ position: 'relative', marginTop: 12 }}>
@@ -90,7 +110,7 @@ export function CryptoMarket() {
       {error && (
         <div className="card" style={{ borderColor: 'rgba(248,113,113,0.4)' }}>
           <p className="hint" style={{ color: 'var(--red)', marginBottom: 10 }}>{error}</p>
-          <button className="btn btn-primary btn-inline" onClick={load} disabled={loading}>
+          <button className="btn btn-primary btn-inline" onClick={() => load(true)} disabled={loading}>
             {loading ? <Loader2 size={13} className="spin-icon" /> : <RefreshCw size={13} />} Tekrar dene
           </button>
         </div>
