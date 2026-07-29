@@ -6,7 +6,7 @@ import {
   RefreshCw, Loader2, Wifi, Upload, GraduationCap, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown,
   Sparkles, AlertTriangle, CheckCircle2,
 } from 'lucide-react';
-import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, investmentHistoryOf, todayLocalDate, ASSET_LABELS, AssetType, Holding } from './store';
+import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, fmtCompact, investmentHistoryOf, todayLocalDate, ASSET_LABELS, AssetType, Holding } from './store';
 import { analyzePortfolio, chatReply, buildGreeting, extractMentionedHoldings, proactiveInsights, AgentMessage, ChartSpec, Insight } from './agent';
 import {
   getProfile, recordTurn, resetMemory, updatePrefs, recordQuestion, recordAdvice, recordAnalysis,
@@ -315,7 +315,7 @@ function Panel({ assetType, title, query }: PanelProps) {
               </defs>
               <XAxis dataKey="tarih" tick={{ fill: 'rgba(214,228,238,0.4)', fontSize: 11 }} axisLine={false} tickLine={false}
                 tickFormatter={d => new Date(d).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })} />
-              <YAxis tick={{ fill: 'rgba(214,228,238,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `${Math.round(v / 1000)}K`} width={40} />
+              <YAxis tick={{ fill: 'rgba(214,228,238,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => fmtCompact(Number(v))} width={40} />
               <Tooltip
                 labelFormatter={d => new Date(d).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
                 formatter={v => [fmtTL(Number(v)), 'Net yatırım']}
@@ -850,7 +850,7 @@ function Projeksiyon() {
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
               <XAxis dataKey="yil" tick={{ fill: 'rgba(214,228,238,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: 'rgba(214,228,238,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `${Math.round(v / 1000)}K`} width={44} />
+              <YAxis tick={{ fill: 'rgba(214,228,238,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => fmtCompact(Number(v))} width={44} />
               <Tooltip formatter={(v, n) => [fmtTL(Number(v)), String(n)]} contentStyle={{ background: '#16212c', border: '1px solid rgba(148,180,200,0.2)', borderRadius: 10, fontSize: 13 }} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
               <Line type="monotone" dataKey="yuksek" name="Yüksek" stroke="#2dd4a7" strokeWidth={2.5} dot={false} />
@@ -898,7 +898,7 @@ function AgentChartView({ chart }: { chart: ChartSpec }) {
             </defs>
             <XAxis dataKey={chart.nameKey} tick={CHART_AXIS_TICK} axisLine={false} tickLine={false}
               tickFormatter={d => new Date(d).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })} />
-            <YAxis tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={v => `${Math.round(v / 1000)}K`} width={36} />
+            <YAxis tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={v => fmtCompact(Number(v))} width={36} />
             <Tooltip formatter={v => fmtTL(Number(v))} contentStyle={CHART_TOOLTIP_STYLE} />
             <Area type="monotone" dataKey={chart.dataKey} stroke="#38bdf8" strokeWidth={2} fill="url(#agentAreaGrad)" />
           </AreaChart>
@@ -908,7 +908,7 @@ function AgentChartView({ chart }: { chart: ChartSpec }) {
         <ResponsiveContainer width="100%" height={170}>
           <BarChart data={chart.data} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
             <XAxis dataKey={chart.nameKey} tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} hide={chart.data.length > 4} />
-            <YAxis tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={v => `${Math.round(v / 1000)}K`} width={36} />
+            <YAxis tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={v => fmtCompact(Number(v))} width={36} />
             <Tooltip formatter={v => fmtTL(Number(v))} contentStyle={CHART_TOOLTIP_STYLE} />
             <Bar dataKey={chart.dataKey} radius={[4, 4, 0, 0]}>
               {chart.data.map((d, i) => <Cell key={i} fill={Number(d[chart.dataKey]) >= 0 ? '#2dd4a7' : '#f87171'} />)}
