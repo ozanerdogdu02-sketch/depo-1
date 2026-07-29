@@ -74,6 +74,17 @@ await page.getByRole('button', { name: 'Analiz Et' }).click();
 await page.waitForTimeout(300);
 check('Analiz Et butonu hâlâ mesaj üretiyor', (await page.locator('.msg-agent').last().textContent())?.includes('Not: Bu analiz') ?? false);
 
+// --- Ajan ürünün KENDİ özelliklerini biliyor mu (yedek/geri yükleme) ---
+// Regresyon: "portföyümü aklında tut, sonra geri döneyim" gibi doğal bir istek fallback'e düşüyordu.
+await ask('şuanki portföyümü aklında tut birazdan işlemleri silicem geri dönmek istiyorum');
+const yedek1 = await page.locator('.msg-agent').last().textContent();
+check('Yedekleme isteği fallback\'e DÜŞMÜYOR', !(yedek1 ?? '').includes('tam olarak anlayamadım'));
+check('Cevap CSV yedeğini anlatıyor', (yedek1 ?? '').includes('CSV'));
+check('Cevap "İçe Aktar" ile geri yüklemeyi anlatıyor', (yedek1 ?? '').includes('İçe Aktar'));
+
+await ask('nasıl yedek alırım');
+check('"nasıl yedek alırım" da aynı cevabı veriyor', ((await page.locator('.msg-agent').last().textContent()) ?? '').includes('CSV'));
+
 await browser.close();
 console.log(failed ? 'FAGENT_AGENT_E2E_FAILED' : 'FAGENT_AGENT_E2E_OK');
 process.exit(failed ? 1 : 0);

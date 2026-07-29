@@ -340,6 +340,22 @@ const CHAT_RULES: Rule[] = [
     test: /merhaba|selam|naber|nasılsın/i,
     reply: () => 'Merhaba! Portföyün hakkında soru sorabilir, "analiz et" yazabilir ya da "dağılımımı çiz" gibi bir istekle grafik çizmemi isteyebilirsin.',
   },
+  // Yedekleme / geri yükleme. Bu yetenekler üründe ZATEN VAR (Panel ve İşlemler kartlarındaki
+  // CSV düğmeleri) ama ajan bunları bilmiyordu; "portföyümü aklında tut, sonra geri döneyim"
+  // gibi son derece doğal bir istek fallback'e düşüyordu. Ajanın kendi ürününü bilmesi şart.
+  {
+    id: 'yedek',
+    test: /yedek|geri yükle|geri dön(mek|üş)|kaybetme|kaybolur|csv|dışa aktar|içe aktar|aklında tut|not al|kaydet/i,
+    reply: () => [
+      'Portföyünü yedekleyip sonra geri yükleyebilirsin — bunu senin yerine ben hatırlamam, ama dosyaya alman için hazır bir yol var:',
+      '',
+      '• **Yedek al:** Panel\'deki "CSV" düğmesi varlıklarını, İşlemler\'deki "CSV" düğmesi işlem geçmişini indirir.',
+      '• **Geri yükle:** Panel\'deki "İçe Aktar" düğmesiyle varlık CSV\'sini geri okutursun (mevcutların üzerine yazmaz, ekler).',
+      '',
+      'Yani işlemleri silmeden ÖNCE Panel\'den CSV al; sonra geri dönmek istediğinde "İçe Aktar" ile aynı dosyayı yükle.',
+      'Not: verilerin yalnızca bu tarayıcıda tutulur — "SIFIRLA" dersen kalıcı olarak silinir, o yüzden önce yedek alman iyi olur.',
+    ].join('\n'),
+  },
   {
     test: /yardım|ne yapabilirsin|neler yapabilirsin|komutlar|nasıl kullan/i,
     reply: () => [
@@ -351,6 +367,7 @@ const CHAT_RULES: Rule[] = [
       '• "en çok kazandıran ne" / "en çok kaybettiren ne" — kıyaslama',
       '• "dağılımımı çiz" ya da "yatırım grafiğimi göster" — sohbet içinde grafik çizerim',
       '• enflasyon, faiz, altın, risk, projeksiyon gibi genel konular',
+      '• "nasıl yedek alırım" — portföyünü CSV\'ye aktarma ve geri yükleme adımları',
       '• "beni ne hatırlıyorsun" — zamanla hangi konularla ilgilendiğini öğrenirim (yalnızca tarayıcında saklanır)',
       '• "Ajanı Eğit" panelinden bana yeni soru-cevaplar öğretebilirsin — öğrettiğin bilgi her zaman diğer cevaplarımdan önce gelir',
       '• her cevabımı 👍/👎 ile oylayabilirsin — 👎 dersen doğrusunu öğretmen için soru-cevap formu otomatik açılır',
