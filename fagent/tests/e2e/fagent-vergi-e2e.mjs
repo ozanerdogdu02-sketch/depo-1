@@ -108,6 +108,50 @@ check('Kripto portföyünde stopaj ₺0', /Varsayılan stopaj:\s*−₺\s?0/.tes
 
 await page.screenshot({ path: `${out}/vergi2-kripto.png` });
 
+/* ── Panel'deki Vergi Sonrası Net Getiri kartı + düzenlenebilir oranlar ──────────
+   Ajan "kendi oranını söyle" diyor; girecek bir yer olmadan bu söz boş kalırdı.
+   Buradaki kritik davranış: kartta girilen oran KALICI ve AJAN DA aynı oranı kullanmalı. */
+await page.locator('.side-link', { hasText: 'PANEL' }).click();
+await page.waitForTimeout(400);
+
+const card = page.locator('.card', { hasText: 'Vergi Sonrası Net Getiri' });
+check('Panel\'de vergi kartı var', await card.count() > 0);
+check('Kart zinciri özetliyor (brüt → stopaj → reel)', (await card.first().innerText()).includes('Brüt kazanç'));
+check('Kartta dayanak (11107) yazılı', (await card.first().innerText()).includes('11107'));
+
+// Oran düzenleme panelini aç
+await card.getByRole('button', { name: 'Stopaj oranlarını düzenle' }).click();
+await page.waitForTimeout(250);
+check('Kripto için oran alanı var', await page.locator('#tax-kripto').count() > 0);
+check('Kripto varsayılanı 0', (await page.locator('#tax-kripto').inputValue()) === '0');
+
+// Kullanıcı kendi oranını giriyor
+await page.fill('#tax-kripto', '20');
+await page.waitForTimeout(350);
+check('Girilen oran "senin girdiğin oran" olarak etiketleniyor',
+  (await card.first().innerText()).includes('senin girdiğin oran'));
+
+const persisted = await page.evaluate(() => localStorage.getItem('fagent.tax.v1'));
+check('Oran localStorage\'a yazıldı', !!persisted && JSON.parse(persisted).kripto === 20);
+
+// AJAN da aynı oranı kullanmalı — iki yerde farklı sayı söylemek en kötüsü
+await page.locator('.side-link', { hasText: 'AJAN' }).click();
+await page.waitForTimeout(350);
+const kriptoVergili = await ask('vergiden sonra ne kalıyor');
+check('Ajan kullanıcının girdiği %20 oranını kullanıyor', /%20/.test(kriptoVergili));
+check('Ajan artık stopajı sıfır göstermiyor', !/Varsayılan stopaj:\s*−₺\s?0\b/.test(kriptoVergili));
+
+await page.screenshot({ path: `${out}/vergi3-oran-duzenleme.png` });
+
+// SIFIRLA oranları da temizlemeli (dördüncü kalıcı katman)
+await page.locator('.side-link', { hasText: 'PANEL' }).click();
+await page.waitForTimeout(200);
+page.once('dialog', d => d.accept());
+await page.locator('.side-reset').click();
+await page.waitForTimeout(400);
+const afterReset = await page.evaluate(() => localStorage.getItem('fagent.tax.v1'));
+check('SIFIRLA vergi oranlarını da temizledi', afterReset === null);
+
 await browser.close();
 console.log(failed ? 'FAGENT_VERGI_E2E_FAILED' : 'FAGENT_VERGI_E2E_OK');
 process.exit(failed ? 1 : 0);

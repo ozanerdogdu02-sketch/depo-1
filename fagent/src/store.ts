@@ -286,12 +286,18 @@ export function investmentHistoryOf(s: PortfolioState): InvestmentPoint[] {
 export const fmtTL = (n: number) =>
   n.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 });
 
+// Ondalık sayı — TÜRKÇE ayraçla (virgül). `toFixed()` her zaman NOKTA üretir; tutarlar
+// zaten `tr-TR` biçiminde basıldığı için (₺140.000) aynı cümlede "%17.5" ile "₺140.000"
+// yan yana gelince tutarsız görünüyordu. Kullanıcıya görünen her ondalık bundan geçmeli.
+export const fmtDec = (n: number, digits = 2) =>
+  n.toLocaleString('tr-TR', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+
 // Yüzde. Çok küçük ama SIFIR OLMAYAN oranlar tek ondalıkta "0.0%" görünüp "hiç kazanç yok"
 // izlenimi veriyordu (ör. +₺3.700 / ₺30.750.120 = %0,012). Bu durumda iki ondalığa geçilir.
 export const fmtPct = (n: number) => {
   const sign = n >= 0 ? '+' : '';
-  if (n !== 0 && Math.abs(n) < 0.05) return `${sign}${n.toFixed(2)}%`;
-  return `${sign}${n.toFixed(1)}%`;
+  if (n !== 0 && Math.abs(n) < 0.05) return `${sign}${fmtDec(n, 2)}%`;
+  return `${sign}${fmtDec(n, 1)}%`;
 };
 
 // Grafik ekseni gibi dar alanlar için kısa sayı. Eski `Math.round(v/1000)+'K'` biçimi HEM
@@ -300,7 +306,9 @@ export const fmtPct = (n: number) => {
 export const fmtCompact = (n: number): string => {
   const abs = Math.abs(n);
   const sign = n < 0 ? '-' : '';
-  const trim = (v: number) => v.toFixed(1).replace(/\.0$/, '');
+  // Önce tam sayıya yuvarlanıp yuvarlanmadığına bak, SONRA Türkçe ayraçla biçimlendir —
+  // sıra tersine dönerse `.0` kırpma regex'i virgüllü çıktıda eşleşmez ("1,0K" gibi kalır).
+  const trim = (v: number) => (Math.round(v * 10) % 10 === 0 ? String(Math.round(v)) : fmtDec(v, 1));
   if (abs >= 1e9) return `${sign}${trim(abs / 1e9)}B`;
   if (abs >= 1e6) return `${sign}${trim(abs / 1e6)}M`;
   if (abs >= 1e3) return `${sign}${Math.round(abs / 1e3)}K`;

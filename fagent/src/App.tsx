@@ -4,15 +4,17 @@ import {
   Bot, Send, TrendingUp, Trash2, RotateCcw, LayoutDashboard, ArrowLeftRight, BookOpen,
   Search, CalendarDays, BarChart3, PieChart as PieChartIcon, Bitcoin, Pencil, Check, X, Download,
   RefreshCw, Loader2, Wifi, Upload, GraduationCap, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown,
-  Sparkles, AlertTriangle, CheckCircle2,
+  Sparkles, AlertTriangle, CheckCircle2, Receipt,
 } from 'lucide-react';
-import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, fmtCompact, investmentHistoryOf, todayLocalDate, ASSET_LABELS, AssetType, Holding } from './store';
+import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, fmtDec, fmtCompact, investmentHistoryOf, todayLocalDate, ASSET_LABELS, AssetType, Holding } from './store';
 import { analyzePortfolio, chatReply, buildGreeting, extractMentionedHoldings, proactiveInsights, AgentMessage, ChartSpec, Insight } from './agent';
 import {
   getProfile, recordTurn, resetMemory, updatePrefs, recordQuestion, recordAdvice, recordAnalysis,
   AgentMemoryProfile, AgentPrefs, RiskLevel, AgentMode, VadeTercihi,
 } from './agentMemory';
 import { getTrainedFacts, teach, deleteFact, recordFactUse, resetTraining, TrainedFact } from './agentTraining';
+import { afterTaxOf, UNVERIFIED_TAX } from './analytics';
+import { getTaxRates, setTaxRate, isCustomRate, resetTaxRates, TaxRates } from './taxRates';
 import { exportHoldingsCsv, exportTxnsCsv, parseHoldingsCsv } from './csv';
 import { CURRENCIES, COINS, fetchTryRate, fetchCryptoTryPrice, MarketFetchError } from './market';
 import { CryptoMarket } from './CryptoMarket';
@@ -133,6 +135,98 @@ function ProactiveInsightsCard() {
         />
         <span className="hint" style={{ margin: 0 }}>— reel getiri bu orana göre hesaplanır (canlı veri değil, senin varsayımın).</span>
       </div>
+    </div>
+  );
+}
+
+// Vergi sonrası net reel getiri kartı — getiri zincirinin tamamı, oranlar DÜZENLENEBİLİR.
+// Ajan kripto/altın/döviz için "oran doğrulayamadım, kendi oranını söyle" diyor; burası o
+// sözün karşılığı. Oranlar taxRates.ts ile kalıcı, ajan da aynı oranları kullanıyor.
+function AfterTaxCard() {
+  const s = usePortfolio();
+  const [inflation, setInflation] = useState(DEFAULT_INFLATION_PCT);
+  const [rates, setRates] = useState<TaxRates>(() => getTaxRates());
+  const [open, setOpen] = useState(false);
+  const result = useMemo(() => afterTaxOf(s, inflation, rates), [s, inflation, rates]);
+  if (!result) return null;
+
+  // Portföyde gerçekten bulunan sınıflar — kullanmadığı sınıfın oranını göstermek gürültü.
+  const presentTypes = [...new Set(s.holdings.map(h => h.type))];
+  const unverifiedPresent = presentTypes.filter(t => UNVERIFIED_TAX.includes(t));
+
+  return (
+    <div className="card">
+      <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Receipt size={14} color="var(--accent)" /> Vergi Sonrası Net Getiri
+      </div>
+      <p className="hint" style={{ marginBottom: 12 }}>
+        Zincirin tamamı: brüt kazanç → stopaj → net kazanç → enflasyon → reel.
+      </p>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
+        <div>
+          <div className="hint" style={{ margin: 0 }}>Brüt kazanç</div>
+          <div className="mono" style={{ fontSize: 17, fontWeight: 700 }}>{fmtSigned(result.grossGain)}</div>
+          <div className="hint" style={{ margin: 0 }}>%{fmtDec(result.grossReturnPct, 2)}</div>
+        </div>
+        <div>
+          <div className="hint" style={{ margin: 0 }}>Varsayılan stopaj</div>
+          <div className="mono" style={{ fontSize: 17, fontWeight: 700, color: 'var(--red)' }}>−{fmtTL(result.tax)}</div>
+          <div className="hint" style={{ margin: 0 }}>net %{fmtDec(result.netReturnPct, 2)}</div>
+        </div>
+        <div>
+          <div className="hint" style={{ margin: 0 }}>Reel net getiri</div>
+          <div
+            className="mono"
+            style={{ fontSize: 17, fontWeight: 700, color: result.realNetReturnPct >= 0 ? 'var(--accent)' : 'var(--red)' }}
+          >
+            %{fmtDec(result.realNetReturnPct, 2)}
+          </div>
+          <div className="hint" style={{ margin: 0 }}>%{inflation} enflasyona göre</div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
+        <label htmlFor="tax-inflation" className="hint" style={{ margin: 0 }}>Enflasyon varsayımın (%):</label>
+        <input
+          id="tax-inflation" className="input" type="number" min="0" max="200"
+          style={{ width: 72, padding: '5px 8px', fontSize: 13 }}
+          value={inflation}
+          onChange={e => setInflation(Math.min(200, Math.max(0, Number(e.target.value))))}
+        />
+        <button className="btn btn-secondary btn-inline" style={{ padding: '4px 10px', fontSize: 12.5 }} onClick={() => setOpen(o => !o)}>
+          {open ? 'Oranları gizle' : 'Stopaj oranlarını düzenle'}
+        </button>
+      </div>
+
+      {open && (
+        <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {presentTypes.map(t => (
+            <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <label htmlFor={`tax-${t}`} style={{ fontSize: 13, minWidth: 84 }}>{ASSET_LABELS[t]}</label>
+              <input
+                id={`tax-${t}`} className="input" type="number" min="0" max="100" step="0.5"
+                style={{ width: 80, padding: '5px 8px', fontSize: 13 }}
+                value={rates[t]}
+                onChange={e => setRates(setTaxRate(t, Number(e.target.value)))}
+              />
+              <span className="hint" style={{ margin: 0 }}>
+                %{isCustomRate(t, rates) ? ' — senin girdiğin oran' : UNVERIFIED_TAX.includes(t) ? ' — doğrulanamadı, varsayılan 0' : ' — varsayılan'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <p className="hint" style={{ marginTop: 12, color: 'var(--faint)' }}>
+        Oranlar 27.03.2026 tarihli 11107 sayılı Cumhurbaşkanı Kararı'na göre varsayılmıştır (fon ve 6 aya
+        kadar vadeli TL mevduat %17,5; BIST pay senedi alım-satımında stopaj yok).
+        {unverifiedPresent.length > 0 && (
+          <> {unverifiedPresent.map(t => ASSET_LABELS[t]).join(', ')} için doğrulanmış bir oran bulunamadığından
+          %0 varsayıldı — bu “vergi yok” demek değil, “oran uydurmuyoruz” demektir; yukarıdan kendi oranını girebilirsin.</>
+        )}
+        {' '}Vade, fon türü ve istisnalar sonucu değiştirir — bu bir vergi beyannamesi değil, bir tahmindir.
+      </p>
     </div>
   );
 }
@@ -307,6 +401,7 @@ function Panel({ assetType, title, query }: PanelProps) {
       </div>
 
       {!assetType && <ProactiveInsightsCard />}
+      {!assetType && s.holdings.length > 0 && <AfterTaxCard />}
       {!assetType && s.holdings.length > 0 && <RiskPanel />}
 
       {!assetType && investmentHistory.length >= 2 && (
@@ -1187,7 +1282,9 @@ function Ajan() {
     const text = input.trim();
     if (!text) return;
     const userMsg: AgentMessage = { role: 'user', text };
-    const reply = chatReply(s, text, messages, getProfile(), facts);
+    // Oranlar her turda TAZE okunuyor — kullanıcı Panel'deki kartta değiştirdiyse ajan da
+    // aynı oranı kullansın (iki yerde farklı sayı söylemek en kötüsü olurdu).
+    const reply = chatReply(s, text, messages, getProfile(), facts, getTaxRates());
     recordTurn(reply.intentId, extractMentionedHoldings(s, text));
     recordQuestion(text);
     // Ajanın verdiği anlamlı (fallback/öneri-bekleyen olmayan) cevapları "son öneri/uyarı" belleğine düş.
@@ -1388,6 +1485,7 @@ export default function App() {
       actions.reset();
       resetMemory();
       resetTraining();
+      resetTaxRates(); // dördüncü kalıcı katman — tam sıfırlama beklentisiyle tutarlı
     }
   };
 

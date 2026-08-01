@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Loader2, RefreshCw, Search, Plus, CheckCircle2, AlertTriangle, ArrowUpDown } from 'lucide-react';
-import { usePortfolio, actions, fmtTL, fmtPct, AssetType } from './store';
+import { usePortfolio, actions, fmtTL, fmtPct, fmtDec, AssetType } from './store';
 import {
   CryptoMarketCoin, CryptoMarketError, loadTopCoins, cachedSnapshot, formatMarketCap, DEFAULT_COIN_COUNT,
 } from './cryptoMarket';
@@ -25,7 +25,7 @@ function Sparkline({ prices, up }: { prices: number[]; up: boolean }) {
       .map((p, i) => {
         const x = (i / (pts.length - 1)) * w;
         const y = h - ((p - min) / range) * h;
-        return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+        return `${i === 0 ? 'M' : 'L'}${fmtDec(x, 1)},${fmtDec(y, 1)}`;
       })
       .join(' ');
   }, [prices]);

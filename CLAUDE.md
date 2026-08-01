@@ -217,6 +217,33 @@ hepsi temizlendi. Yanıt metinlerinde markdown kullanma; `•` madde işareti ve
 **Test yazarken:** SIFIRLA bir `.side-link` DEĞİL, ayrı `.side-reset` düğmesidir ve onay diyaloğu
 açar — `page.once('dialog', d => d.accept())` tıklamadan ÖNCE kurulmalı (bkz. `fagent-memory-e2e.mjs`).
 
+### 1.16 Vergi oranı düzenleme + Türkçe ondalık ayraç
+
+1.15'in iki eksiği kapatıldı.
+
+**Vergi oranları artık düzenlenebilir ve kalıcı** (`taxRates.ts`, anahtar `fagent.tax.v1`).
+Ajan "kripto/altın/döviz için oran doğrulayamadım, kendi oranını söyle" diyordu ama girecek yer
+yoktu — söz boşta kalıyordu. Panel'e `AfterTaxCard` eklendi: zinciri özetler, "Stopaj oranlarını
+düzenle" ile portföyde BULUNAN sınıfların oranı girilir, "senin girdiğin oran" / "doğrulanamadı,
+varsayılan 0" ayrımı gösterilir. **Kritik:** `chatReply`'ye 6. parametre olarak `taxRates`
+geçiliyor ve App.tsx her turda `getTaxRates()` ile TAZE okuyor — kart ile ajanın farklı sayı
+söylemesi en kötü sonuç olurdu. `Rule.reply` imzası da `(s, text, taxRates?)` oldu.
+`agent.ts` ve `analytics.ts` saf kalmaya devam ediyor (localStorage'a yalnızca `taxRates.ts`
+ve App.tsx dokunuyor). SIFIRLA artık DÖRT katmanı temizliyor (portföy + bellek + öğretilen
+bilgi + vergi oranları).
+
+**Ondalık ayraç Türkçeleştirildi** (`store.ts` → `fmtDec(n, digits)`). `toFixed()` her zaman
+NOKTA üretiyordu; tutarlar zaten `tr-TR` olduğu için aynı cümlede "%17.5" ile "₺140.000" yan yana
+gelince tutarsız görünüyordu (önizlemede yakalandı). 45 çağrı `agent.ts` / `RiskPanel.tsx` /
+`CryptoMarket.tsx` / `cryptoMarket.ts` içinde dönüştürüldü; `fmtPct` ve `fmtCompact` de `fmtDec`
+kullanıyor. **`fmtCompact` tuzağı:** `.replace(/\.0$/,'')` kırpması virgüllü çıktıda eşleşmez —
+önce yuvarlama kontrolü, SONRA biçimlendirme yapılacak şekilde düzeltildi.
+**İSTİSNA — `csv.ts`:** CSV alan ayracı zaten virgül, ondalığı da virgül yapmak dosyayı bozar;
+orada `toFixed()` bilinçli olarak kaldı.
+
+Bu değişiklik iki eski testi kırdı (nokta bekliyorlardı) — `fagent-pnl-e2e.mjs` (+7,1% / +0,0%)
+ve `fagent-cryptomarket-e2e.mjs` (₺8,50 T / +2,5% / −1,8%) güncellendi. Toplam **314 kontrol**.
+
 ## 2. Aura Finance (BDT günlüğü + abonelik demosu)
 
 - **Konum:** repo kökü (`src/`) + `server/`

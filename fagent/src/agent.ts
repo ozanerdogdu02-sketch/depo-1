@@ -4,6 +4,7 @@
 import {
   PortfolioState, Holding, totalValue, totalCost, fmtTL, fmtPct, fmtSigned, pnlOf, ASSET_LABELS, AssetType,
   investmentHistoryOf,
+  fmtDec,
 } from './store';
 import { AgentMemoryProfile, RiskLevel, AgentMode, VadeTercihi, mostAskedTopic, mostMentionedHolding } from './agentMemory';
 import { TrainedFact, findBestMatch } from './agentTraining';
@@ -110,7 +111,7 @@ export function analyzePortfolio(s: PortfolioState): string[] {
 
   notes.push(
     `Portföy özeti: toplam ${fmtTL(total)}, ${s.holdings.length} varlık, ${alloc.length} farklı sınıf. ` +
-    `En büyük ağırlık ${ASSET_LABELS[top.type]} (%${top.pct.toFixed(0)}).`,
+    `En büyük ağırlık ${ASSET_LABELS[top.type]} (%${fmtDec(top.pct, 0)}).`,
   );
 
   if (top.pct > 50) {
@@ -134,9 +135,9 @@ export function analyzePortfolio(s: PortfolioState): string[] {
   if (cashLike < 10) {
     notes.push(`Nakit benzeri (${cashLabel}) oranın %10'un altında — acil durum tamponu için biraz likidite ayırmak rahatlatır.`);
   } else if (cashLike > 60) {
-    notes.push(`Nakit benzeri ağırlık yüksek (%${cashLike.toFixed(0)}). Enflasyonist ortamda uzun vadede reel getiri erimesi riskine dikkat.`);
+    notes.push(`Nakit benzeri ağırlık yüksek (%${fmtDec(cashLike, 0)}). Enflasyonist ortamda uzun vadede reel getiri erimesi riskine dikkat.`);
   } else if (stablePct >= 10) {
-    notes.push(`Portföyünün %${stablePct.toFixed(0)}'ı stablecoin — bunu nakit pozisyonu olarak sayıyorum, dalgalanmaya karşı tamponun var.`);
+    notes.push(`Portföyünün %${fmtDec(stablePct, 0)}'ı stablecoin — bunu nakit pozisyonu olarak sayıyorum, dalgalanmaya karşı tamponun var.`);
   }
 
   const recentSells = s.txns.slice(0, 10).filter(t => t.kind === 'satis').length;
@@ -178,7 +179,7 @@ export function proactiveInsights(s: PortfolioState, inflationPct: number): Insi
   if (top && top.pct > 50) {
     out.push({
       level: 'uyari',
-      text: `Portföyünün %${top.pct.toFixed(0)}'ı tek sınıfta (${ASSET_LABELS[top.type]}). Bu sınıf sert düşerse tüm portföyün doğrudan etkilenir.`,
+      text: `Portföyünün %${fmtDec(top.pct, 0)}'ı tek sınıfta (${ASSET_LABELS[top.type]}). Bu sınıf sert düşerse tüm portföyün doğrudan etkilenir.`,
     });
   }
 
@@ -193,7 +194,7 @@ export function proactiveInsights(s: PortfolioState, inflationPct: number): Insi
     const annualErosion = cashLikeValue * (inflationPct / 100);
     out.push({
       level: 'uyari',
-      text: `Nakit benzeri varlıkların ${fmtTL(cashLikeValue)} (portföyün %${cashLikePct.toFixed(0)}'ı). ` +
+      text: `Nakit benzeri varlıkların ${fmtTL(cashLikeValue)} (portföyün %${fmtDec(cashLikePct, 0)}'ı). ` +
         `%${inflationPct} enflasyon varsayımıyla bu kısım yılda ~${fmtTL(annualErosion)} reel değer kaybediyor — ` +
         `nominal bakiyen düşmediği için ekranda görünmeyen bir alım gücü kaybı.`,
     });
@@ -273,13 +274,13 @@ function readAllocationChart(s: PortfolioState): string {
   if (!c) return '';
   const lines: string[] = [];
   lines.push(
-    `Grafiği okuyalım: en büyük pozisyonun ${c.topName} ve tek başına portföyün %${c.topWeightPct.toFixed(1)}'ini tutuyor.`,
+    `Grafiği okuyalım: en büyük pozisyonun ${c.topName} ve tek başına portföyün %${fmtDec(c.topWeightPct, 1)}'ini tutuyor.`,
   );
   // HHI kavramını kısaca açıklayarak veriyoruz — sayıyı anlamsız bırakmamak için.
   lines.push(
-    `Yoğunlaşmayı Herfindahl endeksiyle ölçüyorum (ağırlıkların karelerinin toplamı): HHI = ${c.hhi.toFixed(3)}. ` +
+    `Yoğunlaşmayı Herfindahl endeksiyle ölçüyorum (ağırlıkların karelerinin toplamı): HHI = ${fmtDec(c.hhi, 3)}. ` +
     `Bunun tersi "etkin varlık sayısı"nı verir: ${c.nominalN} varlığın var ama çeşitlenmen etkin olarak ` +
-    `${c.effectiveN.toFixed(1)} varlığa denk geliyor.`,
+    `${fmtDec(c.effectiveN, 1)} varlığa denk geliyor.`,
   );
   if (c.level === 'yuksek') {
     lines.push('Bu yoğun bir dağılım (HHI > 0,25) — tek bir varlıktaki sert hareket portföyün tamamını belirgin biçimde etkiler.');
@@ -299,7 +300,7 @@ function readInvestmentChart(s: PortfolioState): string {
 
   if (pace) {
     lines.push(
-      `Grafiği okuyalım: ${Math.round(pace.days)} gündür (${pace.months.toFixed(1)} ay) yatırım yapıyorsun; ` +
+      `Grafiği okuyalım: ${Math.round(pace.days)} gündür (${fmtDec(pace.months, 1)} ay) yatırım yapıyorsun; ` +
       `${pace.buyCount} alış, ${pace.sellCount} satış. Net yatırdığın tutar ${fmtTL(pace.totalInvested)}` +
       (pace.months >= 1 ? `, aylık ortalama ${fmtTL(pace.monthlyAverage)}.` : '.'),
     );
@@ -307,7 +308,7 @@ function readInvestmentChart(s: PortfolioState): string {
   if (attr) {
     lines.push(
       `Çizgi yatırdığın parayı gösterir; güncel değerin ${fmtTL(attr.value)}. ` +
-      `Aradaki ${fmtSigned(attr.gain)} getiridir — yani bugünkü servetinin %${Math.abs(attr.gainSharePct).toFixed(1)}'i ` +
+      `Aradaki ${fmtSigned(attr.gain)} getiridir — yani bugünkü servetinin %${fmtDec(Math.abs(attr.gainSharePct), 1)}'i ` +
       `${attr.gain >= 0 ? 'kazançtan' : 'kayıptan'} geliyor, kalanı senin koyduğun para.`,
     );
   }
@@ -318,8 +319,8 @@ function readInvestmentChart(s: PortfolioState): string {
     if (x.reliable) {
       const real = realReturnPct(x.annualPct, VARSAYILAN_ENFLASYON);
       lines.push(
-        `Para-ağırlıklı yıllık getirin (XIRR) %${x.annualPct.toFixed(1)}. ` +
-        `%${VARSAYILAN_ENFLASYON} enflasyon varsayımıyla reel karşılığı %${real.toFixed(1)} ` +
+        `Para-ağırlıklı yıllık getirin (XIRR) %${fmtDec(x.annualPct, 1)}. ` +
+        `%${VARSAYILAN_ENFLASYON} enflasyon varsayımıyla reel karşılığı %${fmtDec(real, 1)} ` +
         `(Fisher: (1+nominal)/(1+enflasyon)−1; "nominal eksi enflasyon" kestirmesi burada yanıltır).`,
       );
     } else {
@@ -342,14 +343,14 @@ function readPnlChart(s: PortfolioState): string {
     const w = c.winners[0];
     lines.push(
       `Kazandıranların toplamı ${fmtTL(c.grossGain)}; en büyük katkı ${w.name} ` +
-      `(${fmtSigned(w.pnl)}, toplam hareketin %${w.sharePct.toFixed(0)}'ı).`,
+      `(${fmtSigned(w.pnl)}, toplam hareketin %${fmtDec(w.sharePct, 0)}'ı).`,
     );
   }
   if (c.losers.length) {
     const l = c.losers[0];
     lines.push(
       `Kaybettirenlerin toplamı ${fmtTL(c.grossLoss)}; en çok ${l.name} ` +
-      `(${fmtSigned(l.pnl)}, %${l.sharePct.toFixed(0)}).`,
+      `(${fmtSigned(l.pnl)}, %${fmtDec(l.sharePct, 0)}).`,
     );
   }
   if (c.winners.length && c.losers.length) {
@@ -445,7 +446,13 @@ function holdingLookupReply(s: PortfolioState, text: string): string | undefined
 
 // --- Genel niyetler ---------------------------------------------------------
 
-type Rule = { id?: string; test: RegExp; reply: (s: PortfolioState, text: string) => string };
+// Kurallar oranları 3. parametreden alır — böylece agent.ts saf kalır (localStorage'a
+// dokunmaz), kullanıcının düzenlediği oranlar App.tsx'ten geçirilir.
+type Rule = {
+  id?: string;
+  test: RegExp;
+  reply: (s: PortfolioState, text: string, taxRates?: Record<AssetType, number>) => string;
+};
 
 const CHAT_RULES: Rule[] = [
   {
@@ -472,16 +479,16 @@ const CHAT_RULES: Rule[] = [
       const inf = parseInflationPct(text) ?? VARSAYILAN_ENFLASYON;
       const realTotal = realReturnPct(attr.totalReturnPct, inf);
       const lines = [
-        `Toplam nominal getirin %${attr.totalReturnPct.toFixed(2)} (${fmtSigned(attr.gain)} / maliyet ${fmtTL(attr.invested)}).`,
-        `%${inf} enflasyon varsayımıyla REEL getirin %${realTotal.toFixed(2)}.`,
+        `Toplam nominal getirin %${fmtDec(attr.totalReturnPct, 2)} (${fmtSigned(attr.gain)} / maliyet ${fmtTL(attr.invested)}).`,
+        `%${inf} enflasyon varsayımıyla REEL getirin %${fmtDec(realTotal, 2)}.`,
         `Hesap Fisher denklemiyle: (1 + nominal) / (1 + enflasyon) − 1. Yaygın "nominal eksi enflasyon" kestirmesi ` +
-        `%${(attr.totalReturnPct - inf).toFixed(2)} derdi — yüksek enflasyonda bu kestirme sapar, doğrusu yukarıdaki.`,
+        `%${fmtDec((attr.totalReturnPct - inf), 2)} derdi — yüksek enflasyonda bu kestirme sapar, doğrusu yukarıdaki.`,
       ];
       const x = xirrOf(s);
       if (x?.reliable) {
         lines.push(
-          `Zamana yayılmış katkıların olduğu için asıl ölçüt para-ağırlıklı yıllık getiri (XIRR): %${x.annualPct.toFixed(1)}, ` +
-          `reel karşılığı %${realReturnPct(x.annualPct, inf).toFixed(1)}.`,
+          `Zamana yayılmış katkıların olduğu için asıl ölçüt para-ağırlıklı yıllık getiri (XIRR): %${fmtDec(x.annualPct, 1)}, ` +
+          `reel karşılığı %${fmtDec(realReturnPct(x.annualPct, inf), 1)}.`,
         );
       }
       lines.push(`Enflasyon varsayımını değiştirmek istersen "%55 enflasyona göre reel getirim ne" gibi yazabilirsin.`);
@@ -496,16 +503,16 @@ const CHAT_RULES: Rule[] = [
   {
     id: 'vergi-sonrasi',
     test: /vergi|stopaj|tevkifat|net getiri|net kazanc|net kazanç|cebe (kalan|kal)|eline geçen|vergiden sonra/i,
-    reply: (s, text) => {
+    reply: (s, text, taxRates) => {
       const inf = parseInflationPct(text) ?? VARSAYILAN_ENFLASYON;
-      const r = afterTaxOf(s, inf);
+      const r = afterTaxOf(s, inf, taxRates);
       if (!r) return 'Vergi sonrası getiriyi hesaplamak için önce portföyüne varlık eklemen gerek.';
 
       if (r.grossGain <= 0) {
         return (
           `Şu an toplamda kâr yok (${fmtSigned(r.grossGain)}), dolayısıyla hesaplanacak bir stopaj da yok — ` +
           `vergi kazanç üzerinden alınır, anapara üzerinden değil.\n\n` +
-          `%${inf} enflasyon varsayımıyla reel getirin %${r.realGrossReturnPct.toFixed(2)}.`
+          `%${inf} enflasyon varsayımıyla reel getirin %${fmtDec(r.realGrossReturnPct, 2)}.`
         );
       }
 
@@ -513,11 +520,11 @@ const CHAT_RULES: Rule[] = [
         `Zinciri baştan sona kuralım (maliyet ${fmtTL(r.invested)}):`,
         // NOT: ajan mesajları App.tsx'te DÜZ METİN olarak basılıyor ({m.text}) — markdown
         // ayrıştırılmıyor. Buraya ** yazma, kullanıcıya yıldız olarak görünür.
-        `1) Brüt kazanç: ${fmtSigned(r.grossGain)} → getiri %${r.grossReturnPct.toFixed(2)}\n` +
-        `2) Varsayılan stopaj: −${fmtTL(r.tax)} → net kazanç ${fmtSigned(r.netGain)}, net getiri %${r.netReturnPct.toFixed(2)}\n` +
-        `3) %${inf} enflasyon sonrası REEL net getirin: %${r.realNetReturnPct.toFixed(2)}`,
-        `Vergi hiç olmasaydı reel getirin %${r.realGrossReturnPct.toFixed(2)} olurdu — aradaki ` +
-        `${(r.realGrossReturnPct - r.realNetReturnPct).toFixed(2)} puan stopajın reel maliyeti.`,
+        `1) Brüt kazanç: ${fmtSigned(r.grossGain)} → getiri %${fmtDec(r.grossReturnPct, 2)}\n` +
+        `2) Varsayılan stopaj: −${fmtTL(r.tax)} → net kazanç ${fmtSigned(r.netGain)}, net getiri %${fmtDec(r.netReturnPct, 2)}\n` +
+        `3) %${inf} enflasyon sonrası REEL net getirin: %${fmtDec(r.realNetReturnPct, 2)}`,
+        `Vergi hiç olmasaydı reel getirin %${fmtDec(r.realGrossReturnPct, 2)} olurdu — aradaki ` +
+        `${fmtDec((r.realGrossReturnPct - r.realNetReturnPct), 2)} puan stopajın reel maliyeti.`,
       ];
 
       // Hangi kalemden ne kesildiğini göster — soyut kalmasın.
@@ -559,11 +566,11 @@ const CHAT_RULES: Rule[] = [
           `o yüzden sana bir yıllık getiri rakamı vermiyorum. En az bir aylık geçmiş biriktiğinde hesaplarım.`;
       }
       return [
-        `Para-ağırlıklı yıllık getirin (XIRR) %${x.annualPct.toFixed(2)}.`,
+        `Para-ağırlıklı yıllık getirin (XIRR) %${fmtDec(x.annualPct, 2)}.`,
         `Bu, basit "son değer / ilk değer" hesabından farklıdır: paranı zaman içinde parça parça koyduğun için ` +
         `her katkının portföyde kaldığı süre ağırlıklandırılır. Teknik olarak nakit akışlarının iç verim oranıdır — ` +
         `Σ CF/(1+r)^(gün/365) = 0 denklemini çözerim.`,
-        `%${VARSAYILAN_ENFLASYON} enflasyon varsayımıyla reel karşılığı %${realReturnPct(x.annualPct, VARSAYILAN_ENFLASYON).toFixed(2)}.`,
+        `%${VARSAYILAN_ENFLASYON} enflasyon varsayımıyla reel karşılığı %${fmtDec(realReturnPct(x.annualPct, VARSAYILAN_ENFLASYON), 2)}.`,
       ].join('\n\n');
     },
   },
@@ -575,11 +582,11 @@ const CHAT_RULES: Rule[] = [
       const c = concentrationOf(s);
       if (!c) return 'Çeşitlenmeni ölçmek için portföyünde varlık olması gerek.';
       return [
-        `Konsantrasyonunu Herfindahl-Hirschman endeksiyle ölçüyorum: HHI = ${c.hhi.toFixed(3)}.`,
+        `Konsantrasyonunu Herfindahl-Hirschman endeksiyle ölçüyorum: HHI = ${fmtDec(c.hhi, 3)}.`,
         `Bu, her varlığın ağırlığının karesinin toplamıdır. Tersi "etkin varlık sayısı"nı verir: ` +
         `nominal olarak ${c.nominalN} varlığın var, ama ağırlıklar eşit olmadığı için çeşitlenmen ` +
-        `etkin olarak ${c.effectiveN.toFixed(1)} varlığa denk.`,
-        `En büyük pozisyon ${c.topName} (%${c.topWeightPct.toFixed(1)}). Seviye: ` +
+        `etkin olarak ${fmtDec(c.effectiveN, 1)} varlığa denk.`,
+        `En büyük pozisyon ${c.topName} (%${fmtDec(c.topWeightPct, 1)}). Seviye: ` +
         (c.level === 'yuksek' ? 'yoğun (HHI > 0,25).' : c.level === 'orta' ? 'orta (HHI 0,15–0,25).' : 'dağıtık (HHI < 0,15).'),
       ].join('\n\n');
     },
@@ -664,7 +671,7 @@ const CHAT_RULES: Rule[] = [
     reply: s => {
       const alloc = allocation(s);
       if (!alloc.length) return 'Henüz varlık yok; Panel sekmesinden ekleyebilirsin.';
-      return 'Sınıf dağılımın:\n' + alloc.map(a => `• ${ASSET_LABELS[a.type]}: ${fmtTL(a.amount)} (%${a.pct.toFixed(0)})`).join('\n');
+      return 'Sınıf dağılımın:\n' + alloc.map(a => `• ${ASSET_LABELS[a.type]}: ${fmtTL(a.amount)} (%${fmtDec(a.pct, 0)})`).join('\n');
     },
   },
   {
@@ -690,7 +697,7 @@ const CHAT_RULES: Rule[] = [
       const top = alloc[0];
       if (!top) return 'Risk değerlendirmesi için önce portföyüne varlık ekle.';
       return top.pct > 50
-        ? `Ana riskin konsantrasyon: %${top.pct.toFixed(0)} ağırlıkla ${ASSET_LABELS[top.type]}. Tek sınıfa bağımlılığı azaltmak ilk adım olabilir.`
+        ? `Ana riskin konsantrasyon: %${fmtDec(top.pct, 0)} ağırlıkla ${ASSET_LABELS[top.type]}. Tek sınıfa bağımlılığı azaltmak ilk adım olabilir.`
         : 'Portföyün sınıflara dağılmış durumda; ana riskler piyasa geneli (sistematik) risk ve enflasyon. Vade ufkunu netleştirmek risk toleransını belirlemenin en sağlam yolu.';
     },
   },
@@ -759,6 +766,9 @@ export function chatReply(
   history: AgentMessage[] = [],
   memory?: AgentMemoryProfile,
   trainedFacts: TrainedFact[] = [],
+  // Kullanıcının düzenlediği stopaj oranları (taxRates.ts). Verilmezse DEFAULT_TAX_RATES.
+  // agent.ts saf kalsın diye localStorage'a burada DEĞİL, App.tsx'te dokunuluyor.
+  taxRates?: Record<AssetType, number>,
 ): AgentReply {
   const text = userText.trim();
   if (!text) return { text: 'Bir şey yazmadın — bir soru sorabilir ya da "yardım" yazabilirsin.' };
@@ -822,7 +832,7 @@ export function chatReply(
   // Genel niyet kuralları (analiz, dağılım, risk, enflasyon, küçük sohbet...).
   for (const rule of CHAT_RULES) {
     if (rule.test.test(text)) {
-      return { text: rule.reply(s, text), intentId: rule.id };
+      return { text: rule.reply(s, text, taxRates), intentId: rule.id };
     }
   }
 

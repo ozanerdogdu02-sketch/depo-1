@@ -44,6 +44,7 @@ src/
   agent.ts          — Ajan'ın YANIT MANTIĞI (saf fonksiyonlar, localStorage'a dokunmaz)
   agentMemory.ts    — Ajan'ın UZUN SÜRELİ belleği (kullanım istatistiği, localStorage)
   agentTraining.ts  — Ajan'ın EĞİTİLEBİLİR bilgi tabanı (öğretilen soru-cevaplar, localStorage)
+  taxRates.ts       — kullanıcının düzenlediği stopaj oranları (localStorage)
   analytics.ts      — FİNANSAL MATEMATİK (saf): reel getiri, XIRR, HHI, volatilite,
                       maks. düşüş, Sharpe, korelasyon, kovaryansla çeşitlendirme faydası,
                       vergi sonrası net getiri (DEFAULT_TAX_RATES + afterTaxOf)
@@ -217,12 +218,17 @@ Sidebar'daki **SIFIRLA** üçünü de temizler.
   bir rejim bulunamadığından %0 bırakıldı** — bu "vergi yok" iddiası değil, "oran uydurmuyoruz"
   demektir ve ajan bunu açıkça söyler (`UNVERIFIED_TAX`). Vade, fon türü ve istisnalar sonucu
   değiştirir; hesap bir tahmindir, beyanname değildir.
+- **Ondalık ayraç Türkçe (virgül):** kullanıcıya görünen her ondalık `store.ts` → `fmtDec()`
+  üzerinden geçmeli. `toFixed()` her zaman NOKTA üretir ve tutarlar (`₺140.000`) zaten Türkçe
+  biçimde olduğu için aynı cümlede "%17.5" ile "₺140.000" tutarsız görünüyordu. **İstisna:**
+  `csv.ts` — CSV alan ayracı zaten virgül, ondalığı da virgül yapmak dosyayı bozar, orada
+  `toFixed()` kalır.
 - **Ajan mesajları düz metindir** — `App.tsx` `{m.text}` olarak basar, markdown ayrıştırmaz.
   Yanıt metinlerinde `**kalın**` kullanma; kullanıcıya yıldız olarak görünür.
 
 ## Test Kapsamı
 
-Playwright e2e testleri artık **repo içinde**: `fagent/tests/e2e/` — 19 dosya, **304 kontrol**.
+Playwright e2e testleri artık **repo içinde**: `fagent/tests/e2e/` — 19 dosya, **314 kontrol**.
 
 ```bash
 npm run test:e2e     # Vite dev sunucusunu başlatır, tüm takımları sırayla çalıştırır
