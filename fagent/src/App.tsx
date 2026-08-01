@@ -125,15 +125,17 @@ function ProactiveInsightsCard() {
           );
         })}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
-        <label htmlFor="inflation-input" className="hint" style={{ margin: 0 }}>Enflasyon varsayımın (%):</label>
+      {/* flexWrap + nowrap etiket: dar kolonda etiket iki satıra bölünüp input'a yapışıyordu.
+          Açıklama metni yer kalmayınca kendi satırına iniyor. */}
+      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
+        <label htmlFor="inflation-input" className="hint" style={{ margin: 0, whiteSpace: 'nowrap' }}>Enflasyon varsayımın (%):</label>
         <input
           id="inflation-input" className="input" type="number" min="0" max="200"
           style={{ width: 72, padding: '5px 8px', fontSize: 13 }}
           value={inflation}
           onChange={e => setInflation(Math.min(200, Math.max(0, Number(e.target.value))))}
         />
-        <span className="hint" style={{ margin: 0 }}>— reel getiri bu orana göre hesaplanır (canlı veri değil, senin varsayımın).</span>
+        <span className="hint" style={{ margin: 0, flex: '1 1 240px' }}>— reel getiri bu orana göre hesaplanır (canlı veri değil, senin varsayımın).</span>
       </div>
     </div>
   );
@@ -186,8 +188,8 @@ function AfterTaxCard() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
-        <label htmlFor="tax-inflation" className="hint" style={{ margin: 0 }}>Enflasyon varsayımın (%):</label>
+      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
+        <label htmlFor="tax-inflation" className="hint" style={{ margin: 0, whiteSpace: 'nowrap' }}>Enflasyon varsayımın (%):</label>
         <input
           id="tax-inflation" className="input" type="number" min="0" max="200"
           style={{ width: 72, padding: '5px 8px', fontSize: 13 }}
@@ -363,13 +365,20 @@ function Panel({ assetType, title, query }: PanelProps) {
   const emptyLabel = assetType ? ASSET_LABELS[assetType].toLocaleLowerCase('tr-TR') : 'varlık';
 
   return (
-    <div className="fade">
-      <div className="card">
+    // Ana Panel'de kartlar ızgaraya girer; tür sekmelerinde (Hisseler/Fonlar/Kripto) yalnızca
+    // iki kart olduğu için ızgara gereksiz — orada tek kolon akışı korunur.
+    <div className={`fade${assetType ? '' : ' dash-grid'}`}>
+      <div className={`card${assetType ? '' : ' dash-span-2'}`}>
         <div className="card-title">{title ?? 'Toplam Portföy'}</div>
-        <div className="big-number mono">{fmtTL(total)}</div>
-        <div className="sub">{classHoldings.length} varlık · veriler tarayıcında saklanır</div>
+        {/* Yatay bant: büyük rakam solda, özet istatistikler sağda. Önceden alt alta duruyordu
+            ve tam genişlikte gereksiz dikey yer kaplıyordu. Dar ekranda doğal olarak sarılır. */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', columnGap: 28, rowGap: 14 }}>
+          <div style={{ minWidth: 200 }}>
+            <div className="big-number mono">{fmtTL(total)}</div>
+            <div className="sub">{classHoldings.length} varlık · veriler tarayıcında saklanır</div>
+          </div>
         {classHoldings.length > 0 && (
-          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--line)' }}>
+          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginLeft: 'auto' }}>
             <div>
               <div className="sub" style={{ marginBottom: 2 }}>Toplam Maliyet</div>
               <div className="mono" style={{ fontSize: 15, fontWeight: 600 }}>{fmtTL(cost)}</div>
@@ -392,6 +401,7 @@ function Panel({ assetType, title, query }: PanelProps) {
             )}
           </div>
         )}
+        </div>
         {!assetType && s.realizedPnl !== 0 && (
           <p className="hint" style={{ marginTop: 10 }}>
             <strong style={{ color: 'var(--text)' }}>Gerçekleşmemiş</strong>: elindeki varlıkların değer değişimi (henüz satmadın).{' '}
@@ -400,9 +410,11 @@ function Panel({ assetType, title, query }: PanelProps) {
         )}
       </div>
 
-      {!assetType && <ProactiveInsightsCard />}
-      {!assetType && s.holdings.length > 0 && <AfterTaxCard />}
-      {!assetType && s.holdings.length > 0 && <RiskPanel />}
+      {/* Bu üçü kendi .card'ını render eden bileşenler ve className prop'u almıyorlar —
+          ızgara öğesi olabilmeleri için sade birer div ile sarılıyorlar. */}
+      {!assetType && <div><ProactiveInsightsCard /></div>}
+      {!assetType && s.holdings.length > 0 && <div><AfterTaxCard /></div>}
+      {!assetType && s.holdings.length > 0 && <div className="dash-span-2"><RiskPanel /></div>}
 
       {!assetType && investmentHistory.length >= 2 && (
         <div className="card">
@@ -462,7 +474,7 @@ function Panel({ assetType, title, query }: PanelProps) {
         </div>
       )}
 
-      <div className="card">
+      <div className={`card${assetType ? '' : ' dash-span-2'}`}>
         <div className="card-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>Varlıklar</span>
           <span style={{ display: 'flex', gap: 6 }}>
@@ -1535,7 +1547,9 @@ export default function App() {
       </aside>
 
       <main className="main">
-        <div className="main-inner">
+        {/* Ajan sekmesi dar ölçüde: 1100px'lik sütunda sohbet balonları (max-width %85)
+            ~935px'e ulaşıp okunaklılığı düşürüyordu. */}
+        <div className={`main-inner${tab === 'ajan' ? ' main-inner-narrow' : ''}`}>
           {!s.onboarded ? (
             <Onboarding />
           ) : (
