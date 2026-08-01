@@ -8,6 +8,7 @@ Bu repo iki bağımsız uygulama içerir. Gelecek oturumlarda çalışmaya burad
 - **Ne:** API anahtarı GEREKTİRMEYEN yatırımcı paneli — Panel, Bugün, Hisseler, Fonlar, Kripto Varlıklar (hepsi aynı `Panel` bileşeni, `assetType` prop'uyla tür filtresi), İşlemler, Projeksiyon, Demo Ajan (analiz + geniş kapsamlı sohbet + grafik çizme, yerel kurallar, `fagent/src/agent.ts` — bkz. 1.5)
 - **Yerleşim:** sol sabit menü (Fintables'tan yerleşim ilhamı, `.sidebar`/`.side-nav`/`.side-link` — `fagent/src/index.css`), mobilde üstte yatay bara döner. Sidebar'da canlı arama kutusu (Panel/tür sekmeleri + İşlemler geçmişini filtreler, toplam tutarı etkilemez). AJAN linkinde "YENİ" rozeti. İşlemler sekmesinde her zaman görünür "Nasıl İşlem Eklerim?" rehber kartı var.
 - **Bilinçli sınır — hisse/fon:** BIST hisse ve TEFAS fon verisi için resmi/ücretsiz/anahtarsız bir kaynak YOK (araştırıldı, 2026-07-12) — bulunanlar banka-özel API'ler, ücretli servisler ya da .gov.tr kazıyan kırılgan/ToS-riskli araçlar. Bu ikisi manuel-girişli kalmaya devam ediyor; sahte fiyat gösterilmeyecek.
+- **GÜNCELLEME (2026-08-01) — TEFAS kısıtı değişti, kaynak yokluğu değil artık erişilebilirlik sorunu.** TEFAS 2026'da siteyi Next.js'e taşıdı ve `tefas.gov.tr/api/funds/` altında **anahtar/oturum gerektirmeyen resmî JSON uçları** açtı (eski `fundturkey.com.tr/api/DB/BindHistory` emekli): `fonGnlBlgSiraliGetir` (fiyat/pay/büyüklük), `dagilimSiraliGetirT` (portföy dağılımı). Hız sınırı **6 istek/dk** → önbellek zorunlu. **AMA** site WAF korumalı (resmî TS istemcisi doğrudan HTTP yerine Playwright kullanıyor) ve CORS durumu bilinmiyor. Bu ortamın ağ proxy'si dış API'leri engellediği için buradan test EDİLEMEZ (curl → 403 CONNECT tunnel) — kullanıcının kendi tarayıcısında doğrulanmalı. Sonuç: CORS açıksa `market.ts`/`cryptoMarket.ts` deseniyle `tefas.ts` yazılır ve `priceHistory.ts`'e `'fon'` eklenerek risk kapsamı genişler; kapalıysa Netlify Function proxy / statüko / CSV kararı kullanıcıya ait. **Bu doğrulanmadan kod yazılmayacak.**
 - **Canlı fiyat — döviz/kripto:** `fagent/src/market.ts` — Frankfurter.dev (döviz, ECB günlük kur) ve CoinGecko genel ucu (kripto), ikisi de anahtarsız/CORS-açık. Varlık eklerken opsiyonel "Canlı Fiyata Bağla" kutusu (miktar + sembol seçilir), sonra varlık satırındaki yenile ikonuyla güncellenir. `Holding.quantity`/`symbol`/`lastFetchedAt` bu amaçla eklendi — tamamen opsiyonel, diğer türler etkilenmez. **Not:** bu kum havuzu ortamının ağ proxy'si dış API'lere erişimi engelliyor (netlify.app'te de aynı sorun); test edilirken `page.route()` ile ağ taklit edildi — gerçek ağ doğrulaması kullanıcının kendi tarayıcısında yapılmalı.
 - **Kâr/Zarar takibi:** `Holding.costBasis` (maliyet) ile `amount` (güncel değer) ayrı tutulur. Alışta ikisi artar; satışta maliyet ağırlıklı ortalama yöntemiyle orantılı azalır. Güncel değeri kullanıcı `actions.updateHoldingValue()` ile KENDİSİ günceller (kalem ikonu) — otomatik fiyat çekilmez. Eski (costBasis'siz) localStorage verisi yüklenirken otomatik göç eder (`fagent/src/store.ts` → `load()`).
 - **CSV dışa/içe aktarma:** `fagent/src/csv.ts` — Varlıklar ve İşlemler dışa aktarılır (Panel/İşlemler kartlarındaki "CSV" butonu); Varlıklar için içe aktarma da var ("İçe Aktar" butonu, `parseHoldingsCsv` + `actions.importHoldings` — mevcut varlıklara ekler, üzerine yazmaz, hem eksik/geçersiz satırları hem isim çakışmalarını ayrı ayrı sayıp raporlar).
@@ -159,6 +160,29 @@ Hazırlık sırasında bulunan ve **düzeltilen** iki gerçek sorun:
 `RiskPanel`/`CryptoMarket` dosya haritasına eklendi, test kapsamı **279 kontrol / 18 dosya**
 (`npm run test:e2e`) olarak düzeltildi (154 yazıyordu), kapsam + enflasyon varsayımı sınırları
 "Bilinçli Sınırlar"a eklendi.
+
+### 1.14 Rakip araştırması (2026-08-01) — konumlandırma kayması
+
+Kullanıcı "sektördeki rakiplerden farklı olarak ne yapabilirim" diye sordu; yapılan araştırma
+`docs/toplanti-hazirlik.md` §B.1'deki **"kimse toplamı göstermiyor" argümanını çürüttü**.
+
+- **Konsolide çok-varlıklı takip + AI asistan artık emtia.** Parafokus (17.000+ varlık, 7 kategori,
+  ücretsiz, AI portföy analizi), Finoloji (BIST + TEFAS/BEFAS + kripto + döviz + altın + tahvil +
+  "veriyle konuşan yapay zekâ asistanı"), Horyzon (**hesapsız başlıyor**, AI içgörü, Pro katmanı),
+  Finobi, Portfoy — hepsi toplamı gösteriyor. Horyzon'un hesapsız başlaması gizlilik argümanının
+  bir kısmını da götürüyor.
+- **Doğru konum: "takip uygulaması" değil "analiz katmanı".** Rakiplerin hiçbirinde görülmeyen ve
+  FAGENT'ta zaten olan: Fisher reel getiri, XIRR, kovaryans tabanlı portföy volatilitesi, maks.
+  düşüş, Sharpe, korelasyon, çeşitlendirme faydası, gerçekleşmiş/gerçekleşmemiş K/Z ayrımı,
+  proaktif (sorulmadan) uyarı. Özet cümle: **"gösteren çok, hesaplayan yok."**
+- Kullanıcı kararı: dokümanlara şimdilik **uyarı kutusu** düşüldü (`toplanti-hazirlik.md` §B.1/§B.2,
+  `bloki-vs-fagent.md` §5), tam yeniden yazım sunum aşamasına bırakıldı.
+- **Sırada bekleyen geliştirme yönleri** (hiçbiri yeni veri kaynağı gerektirmiyor): (1) vergiden
+  sonra reel getiri — "brüt → stopaj sonrası net → enflasyon sonrası reel", Türkiye'ye özgü,
+  rakiplerde yok; (2) stres testi/şok senaryosu — `analytics.ts`'teki `correlation`/`portfolioRisk`
+  altyapısı zaten var; (3) karşı-olgusal analiz — "mevduatta tutsaydın / enflasyona endeksleseydin",
+  `priceHistory.ts` hazır. **Bilinçli olarak önerilmeyen:** tek sayılık "portföy sağlık skoru" —
+  rakiplerin oyunu bu, FAGENT'ın gücü sayının arkasındaki matematiği gösterebilmek.
 
 ## 2. Aura Finance (BDT günlüğü + abonelik demosu)
 

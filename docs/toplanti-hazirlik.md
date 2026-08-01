@@ -152,8 +152,13 @@ Türkiye'de bireysel yatırımcı **parçalanmış** durumda:
 | Kripto | BtcTurk'te 5 milyon+ hesap | Borsa uygulamaları |
 
 **Boşluk:** Bu dört kutunun her biri kendi içini gösteriyor. Aynı kişi dört uygulamada dört farklı
-"portföy" görüyor ve hiçbiri **toplamı** vermiyor. Toplam verilmediği için de en önemli soru
-cevapsız kalıyor: *"%32 enflasyonda gerçekte kazanıyor muyum, kaybediyor muyum?"*
+"portföy" görüyor ve **kurumların hiçbiri** toplamı vermiyor. Toplam verilmediği için de en önemli
+soru cevapsız kalıyor: *"%32 enflasyonda gerçekte kazanıyor muyum, kaybediyor muyum?"*
+
+> ⚠ **Dikkat — bu argümanı olduğu gibi kullanma.** Bağımsız yerli uygulamalar (Parafokus, Finoloji,
+> Horyzon, Finobi, Portfoy) toplamı **gösteriyor**; birkaçında AI asistan da var. Boşluk "toplamı
+> kimse göstermiyor" değil, **"gösterilen toplam üzerinde kimse ciddi analiz yapmıyor"**.
+> Ayrıntı ve doğru cümle için B.2'nin sonundaki güncelleme kutusuna bak.
 
 **Neden bu boşluk kapanmamış:**
 - Her kurum kendi varlığını gösterme motivasyonuna sahip; rakibin varlığını göstermek istemez.
@@ -173,8 +178,33 @@ Son madde FAGENT'ın en güçlü konumlandırma argümanı: **bağımsız olduğ
 | **Yurtdışı portföy takipçileri** | Konsolide takip | TL/enflasyon bağlamı yok, TEFAS/BIST kapsamı zayıf, çoğu abonelikli |
 | **FAGENT** | Altı sınıf + reel getiri + risk + proaktif | Canlı BIST/TEFAS fiyatı yok; dağıtım yok |
 
-**Konumlandırma cümlesi:** *"Kurumlar kendi kutusunu gösteriyor, yurtdışı araçları Türkiye'nin
-enflasyon gerçeğini bilmiyor. Ortada bağımsız ve TL-yerlisi bir karar katmanı yok."*
+> ### ⚠ Bu bölüm güncellenmeli — 2026-08-01 rakip araştırması
+>
+> Yukarıdaki tablo **yerli bağımsız uygulamaları atlıyor** ve B.1'deki "kimse toplamı göstermiyor"
+> argümanını fazla güçlü kuruyor. Gerçek durum:
+>
+> | Uygulama | Ne sunuyor |
+> |---|---|
+> | **Parafokus** | 17.000+ varlık, 7 kategori (BIST, kripto, döviz, altın, ABD borsası, emtia, fon), ortalama maliyet, **AI portföy analizi** — tamamen ücretsiz |
+> | **Finoloji** | BIST + global hisse, TEFAS/BEFAS, kripto, döviz, altın, tahvil + **"veriyle konuşan yapay zekâ asistanı"**, fiyat alarmı, ekonomik takvim |
+> | **Horyzon** | Hisse, ETF, kripto, emtia, nakit + pozisyon başına tez + AI içgörü — **hesap gerektirmeden başlıyor**, Pro katmanı var |
+> | **Finobi / Portfoy** | Aynı konsolide çok-varlıklı takip (Portfoy: BIST, ABD, kripto, fon, altın, döviz) |
+>
+> **Sonuç:** Konsolide çok-varlıklı takip **ve** AI asistan artık emtia. Horyzon'un hesapsız
+> başlaması, gizlilik argümanının bir kısmını da götürüyor.
+>
+> **Doğru konumlandırma "tek ekranda gösteren" değil, "gösterileni gerçekten analiz eden" olmalı.**
+> Rakiplerin hiçbirinde görülmeyen ve FAGENT'ta zaten olan: Fisher reel getiri, XIRR, kovaryans
+> tabanlı portföy volatilitesi, maksimum düşüş, Sharpe, korelasyon, çeşitlendirme faydası,
+> gerçekleşmiş/gerçekleşmemiş K/Z ayrımı, ve **sorulmadan çalışan** proaktif uyarı.
+>
+> Tam yeniden yazım sunum aşamasına bırakıldı (kullanıcı kararı). Toplantıya kadar yapılmazsa,
+> B.1'deki "kimse toplamı göstermiyor" cümlesini **kullanma** — odada biri "Parafokus zaten
+> yapıyor" derse sunumun güveni sarsılır. Yerine: *"Gösteren çok; hesaplayan yok."*
+
+**Konumlandırma cümlesi (revize edilmeli):** *"Kurumlar kendi kutusunu gösteriyor, yerli
+uygulamalar toplamı gösteriyor ama hesaplamıyor, yurtdışı araçları Türkiye'nin enflasyon
+gerçeğini bilmiyor. Ortada bağımsız ve TL-yerlisi bir **analiz** katmanı yok."*
 
 ## B.3 Savunulabilirlik — dürüst değerlendirme
 

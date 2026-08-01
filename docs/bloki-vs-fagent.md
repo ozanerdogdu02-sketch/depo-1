@@ -190,6 +190,20 @@ proxy'sine geçiş tek noktadan yapılabilir.
 **Konumlandırma özeti:** Bloki kullanıcıyı **hızlı** yapar, FAGENT **bilinçli** yapar.
 Birlikte, işlemi hızlı ve kararı bilinçli bir yatırımcı deneyimi çıkar.
 
+> ### ⚠ Geniş rekabet notu — 2026-08-01
+>
+> Bu doküman yalnızca **Bloki ↔ FAGENT** eksenini ele alıyor. Daha geniş pazarda FAGENT'ın tek
+> rakibi Bloki değil: **Parafokus, Finoloji, Horyzon, Finobi, Portfoy** gibi bağımsız yerli
+> uygulamalar konsolide çok-varlıklı takip sunuyor ve birkaçında AI asistan da var (Horyzon
+> hesapsız da başlıyor).
+>
+> Yani §4.1'deki "kapsam" avantajı **Bloki'ye karşı** geçerli, ama bu uygulamalara karşı değil.
+> Onlara karşı geçerli olan ayrım §4.2 (proaktiflik) ve §4.3 (matematik derinliği): Fisher reel
+> getiri, XIRR, kovaryans tabanlı risk ve sorulmadan çalışan uyarı hiçbirinde görülmedi.
+>
+> Kısacası: **gösteren çok, hesaplayan yok.** Konumlandırma bunun üzerine kurulmalı.
+> Tam yeniden yazım sunum hazırlığında yapılacak — bkz. `toplanti-hazirlik.md` §B.2.
+
 ---
 
 ## 6. Kaynaklar ve doğruluk notu
