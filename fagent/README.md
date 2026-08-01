@@ -1,7 +1,12 @@
 # FAGENT — Anahtarsız Yatırımcı Paneli
 
-Kişisel portföy takip uygulaması: Panel, Bugün, Hisseler, Fonlar, Kripto Varlıklar, İşlemler,
-Projeksiyon ve bir **Demo Ajan** (sohbet + grafik çizme + hafıza + eğitilebilir bilgi tabanı).
+Kişisel portföy takip uygulaması — dokuz sekme: Panel, Bugün, Hisseler, Fonlar, Kripto Varlıklar,
+**Kripto Piyasa**, İşlemler, Projeksiyon ve bir **Demo Ajan** (sohbet + grafik çizme + hafıza +
+eğitilebilir bilgi tabanı + proaktif içgörüler).
+
+Portföy takibinin ötesinde **gerçek finansal matematik** yapar: reel getiri (Fisher), XIRR,
+Herfindahl yoğunlaşma, volatilite, maksimum düşüş, Sharpe oranı, korelasyon ve çeşitlendirme
+faydası — hepsi gerçek tarihsel fiyat serisinden, anahtarsız kaynaklarla.
 
 > FAGENT'ın BtcTurk'ün yapay zekâ asistanı **Bloki**'den nerede ayrıştığı ve neden onun
 > tamamlayıcısı olduğu: [`../docs/bloki-vs-fagent.md`](../docs/bloki-vs-fagent.md)
@@ -30,7 +35,17 @@ src/
   agent.ts          — Ajan'ın YANIT MANTIĞI (saf fonksiyonlar, localStorage'a dokunmaz)
   agentMemory.ts    — Ajan'ın UZUN SÜRELİ belleği (kullanım istatistiği, localStorage)
   agentTraining.ts  — Ajan'ın EĞİTİLEBİLİR bilgi tabanı (öğretilen soru-cevaplar, localStorage)
+  analytics.ts      — FİNANSAL MATEMATİK (saf): reel getiri, XIRR, HHI, volatilite,
+                      maks. düşüş, Sharpe, korelasyon, kovaryansla çeşitlendirme faydası
+  priceHistory.ts   — tarihsel fiyat serisi (CoinGecko market_chart + Frankfurter/ECB)
+                      + risk raporu; KAPSAM ORANINI (coveragePct) açıkça döner
+  cryptoMarket.ts   — Kripto Piyasa sekmesinin veri katmanı (CoinGecko, önbellekli)
+  RiskPanel.tsx     — risk metrikleri arayüzü (kapsam dışı varlıkları da listeler)
+  CryptoMarket.tsx  — Kripto Piyasa sekmesi (canlı liste + 7 günlük mini grafikler)
 ```
+
+`analytics.ts` de `agent.ts` gibi **saftır** — I/O içermez, doğrudan test edilebilir.
+`priceHistory.ts` ağ erişimi içerir ve bu ayrımı bilinçli olarak tek başına taşır.
 
 `agent.ts` bilinçli olarak **saf** tutuldu: hiçbir I/O (localStorage, ağ) içermez, tüm veri
 (portföy, geçmiş, hafıza, öğretilmiş bilgiler) parametre olarak geçirilir. Bu hem test etmeyi
@@ -180,10 +195,27 @@ Sidebar'daki **SIFIRLA** üçünü de temizler.
   (araştırıldı) — bu ikisi manuel-girişli kalıyor, sahte fiyat gösterilmiyor.
 - **Altın canlı fiyatı yok:** Adayları (gold-api.com vb.) JSON şeması doğrulanamadığı için eklenmedi.
 - Döviz/kripto canlı fiyatı Frankfurter.dev + CoinGecko ile çalışır (anahtarsız, CORS-açık).
+- **Risk metrikleri portföyün tamamını kapsamaz:** tarihsel seri yalnızca canlı fiyata bağlı
+  kripto/döviz için çekilebiliyor. Bu gizlenmez — risk raporu portföyün yüzde kaçını kapsadığını
+  (`coveragePct`) ve kapsam dışı her varlığın nedenini arayüzde açıkça yazar.
+- **Enflasyon oranı elle güncellenen bir varsayımdır** (anahtarsız/CORS-açık bir TÜİK ucu yok).
+  Başlangıç değeri iki yerde tanımlı ve aynı tutulmalı: `App.tsx` → `DEFAULT_INFLATION_PCT`,
+  `agent.ts` → `VARSAYILAN_ENFLASYON`. Kullanıcı arayüzden kendi oranını girebilir.
 
 ## Test Kapsamı
 
-Playwright e2e testleri kalıcı repo dosyaları değil (scratchpad'de), ama kapsam şu: sidebar/nav,
-kâr-zarar muhasebesi, canlı fiyat bağlama, CSV içe/dışa aktarma, validasyon kuralları (ad çakışması,
-bakiye aşımı), ajan sohbet/grafik, uzun süreli bellek, eğitilebilir bilgi tabanı, geri bildirim döngüsü (👍/👎), aksiyon alma (Onayla/Vazgeç) — toplam 154 kontrol.
+Playwright e2e testleri artık **repo içinde**: `fagent/tests/e2e/` — 18 dosya, **279 kontrol**.
+
+```bash
+npm run test:e2e     # Vite dev sunucusunu başlatır, tüm takımları sırayla çalıştırır
+```
+
+Kapsam: sidebar/nav, kâr-zarar muhasebesi, canlı fiyat bağlama, CSV içe/dışa aktarma, validasyon
+kuralları (ad çakışması, bakiye aşımı), ajan sohbet/grafik, uzun süreli bellek, eğitilebilir bilgi
+tabanı, geri bildirim döngüsü (👍/👎), aksiyon alma (Onayla/Vazgeç), proaktif içgörüler, finansal
+analitik (reel getiri/XIRR/HHI), risk metrikleri, Kripto Piyasa sekmesi, projeksiyon.
+
+**Yeni davranış eklerken ilgili takıma kontrol ekle.** Commit öncesi üç doğrulama da geçmeli:
+`npm run typecheck` · `npm run build` · `npm run test:e2e`.
+
 Detaylar için repo kökündeki `CLAUDE.md`'ye bakabilirsin (proje hafızası, her oturumda güncellenir).

@@ -82,7 +82,12 @@ function formatFetchedAt(iso: string): string {
 // Enflasyon oranı için resmi/ücretsiz/anahtarsız bir CORS-açık API bulunmadığından (TÜİK dahil),
 // oran bir VARSAYIM olarak kullanıcıya bırakılır — tıpkı Projeksiyon sekmesindeki beklenen getiri
 // gibi. Sabit/uydurma bir "canlı" oran gösterilmez; arayüzde "senin varsayımın" olarak etiketlenir.
-const DEFAULT_INFLATION_PCT = 40;
+//
+// Başlangıç değeri, otomatik çekilemediği için ELLE güncellenen bir varsayımdır: TÜİK yıllık TÜFE,
+// Haziran 2026 → %32,11 (yuvarlanarak 32). agent.ts'teki VARSAYILAN_ENFLASYON ile aynı tutulmalı —
+// ikisi ayrışırsa Panel'in kartı ile ajanın metni farklı oran söyler. Güncellerken ikisini birlikte
+// değiştir ve fagent-insight-e2e.mjs'i çalıştır.
+const DEFAULT_INFLATION_PCT = 32;
 
 function insightVisual(level: Insight['level']): { icon: typeof AlertTriangle; color: string } {
   if (level === 'uyari') return { icon: AlertTriangle, color: 'var(--red)' };

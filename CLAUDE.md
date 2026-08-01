@@ -133,6 +133,33 @@ o yüzden iş odaklı, tablo ağırlıklı; kod detayı minimum.
 - FAGENT tarafındaki her iddia dosya adıyla eşlendi (satır no verilmedi — kod değişince bayatlamasın).
 - `AGENTS.md` §9 ve `fagent/README.md` başına birer link eklendi. Kod değişikliği yok.
 
+### 1.13 Toplantı hazırlığı + tavsiye sınırı düzeltmesi (`docs/toplanti-hazirlik.md`)
+
+Kullanıcının BtcTurk sunumu için toplantısı var; `bloki-vs-fagent.md`'nin üzerine üç muhatap için
+üç bölümlü hazırlık dokümanı yazıldı (BtcTurk sunumu / yatırımcı / teknik + 5 günlük plan).
+Piyasa sayıları kamuya açık kaynaklardan: enflasyon %32,11 (TÜİK Haz-2026), mevduat 28,26 trilyon TL
+(BDDK), 6,87 mn pay senedi yatırımcısı (MKK), 10,7 mn fon yatırımcısı, BtcTurk 5 mn+ hesap.
+
+Hazırlık sırasında bulunan ve **düzeltilen** iki gerçek sorun:
+
+- **Enflasyon varsayımı %40 → %32.** `App.tsx` `DEFAULT_INFLATION_PCT` ve `agent.ts`
+  `VARSAYILAN_ENFLASYON` **ikisi birden** değişmeli — ayrışırlarsa Panel kartı ile ajanın metni
+  farklı oran söyler. İkisine de kaynak (TÜİK Haz-2026) + "birlikte güncelle" yorumu eklendi.
+  Otomatik çekilemiyor: anahtarsız/CORS-açık bir TÜİK ucu yok, bu bilinçli olarak elle güncellenen
+  bir varsayım.
+- **Yatırım tavsiyesi sınırı.** İki metin emir kipiyle eylem öneriyordu: `proactiveInsights`'taki
+  nakit erimesi uyarısı ("getiri üreten bir sınıfa kaydırmayı değerlendirebilirsin") ve
+  `analyzePortfolio`'daki konsantrasyon uyarısı ("ağırlığı kademeli azaltmayı değerlendirebilirsin").
+  İkisi de **betimleyici** hale getirildi — ne olduğunu söylüyor, ne yapılacağını değil.
+  E2e testi `fagent-insight-e2e.mjs` 'reel değer kaybediyor' ifadesine bağlı, o ifade korundu.
+  Not: ürün zaten üç yerde "yatırım tavsiyesi değildir" uyarısı taşıyor; sorun uyarının yokluğu
+  değil, fiilin kipiydi. Yeni içgörü/analiz metni yazarken bu ayrımı koru.
+
+`fagent/README.md` güncellendi: 9 sekme, `analytics.ts`/`priceHistory.ts`/`cryptoMarket.ts`/
+`RiskPanel`/`CryptoMarket` dosya haritasına eklendi, test kapsamı **279 kontrol / 18 dosya**
+(`npm run test:e2e`) olarak düzeltildi (154 yazıyordu), kapsam + enflasyon varsayımı sınırları
+"Bilinçli Sınırlar"a eklendi.
+
 ## 2. Aura Finance (BDT günlüğü + abonelik demosu)
 
 - **Konum:** repo kökü (`src/`) + `server/`

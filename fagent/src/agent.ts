@@ -113,7 +113,7 @@ export function analyzePortfolio(s: PortfolioState): string[] {
   if (top.pct > 50) {
     notes.push(
       `⚠ Konsantrasyon uyarısı: portföyün yarısından fazlası tek sınıfta (${ASSET_LABELS[top.type]}). ` +
-      'Bu sınıf değer kaybederse toplam portföy sert etkilenir; ağırlığı kademeli azaltmayı değerlendirebilirsin.',
+      'Bu sınıf değer kaybederse toplam portföy sert etkilenir — tek bir şoka bağımlılığın yüksek.',
     );
   } else if (alloc.length >= 4) {
     notes.push('✓ Çeşitlendirme iyi görünüyor: dört veya daha fazla varlık sınıfına yayılmışsın, tek bir şoka bağımlılık düşük.');
@@ -192,7 +192,7 @@ export function proactiveInsights(s: PortfolioState, inflationPct: number): Insi
       level: 'uyari',
       text: `Nakit benzeri varlıkların ${fmtTL(cashLikeValue)} (portföyün %${cashLikePct.toFixed(0)}'ı). ` +
         `%${inflationPct} enflasyon varsayımıyla bu kısım yılda ~${fmtTL(annualErosion)} reel değer kaybediyor — ` +
-        `getiri üreten bir sınıfa kaydırmayı değerlendirebilirsin.`,
+        `nominal bakiyen düşmediği için ekranda görünmeyen bir alım gücü kaybı.`,
     });
   }
 
@@ -259,7 +259,10 @@ function pnlBarChart(s: PortfolioState): ChartSpec | undefined {
    gerçek finans matematiğiyle okuyor. Bloki'den ayrışma noktası: Bloki reel getiri
    formülünü açıklayıp hesabı kullanıcıya bırakıyordu, Fagent hesabı kendisi yapıyor. */
 
-const VARSAYILAN_ENFLASYON = 40; // kullanıcı metinde oran vermezse (arayüzdeki varsayımla aynı)
+// Kullanıcı metinde oran vermezse kullanılır. App.tsx'teki DEFAULT_INFLATION_PCT ile AYNI olmalı —
+// kaynak: TÜİK yıllık TÜFE, Haziran 2026 (%32,11). Otomatik çekilemiyor (anahtarsız/CORS-açık uç yok),
+// bu yüzden elle güncellenen bir varsayım; değiştirirken iki dosyayı birlikte değiştir.
+const VARSAYILAN_ENFLASYON = 32;
 
 // Sınıf dağılımı (pasta) okuması — Herfindahl konsantrasyonu + etkin varlık sayısı.
 function readAllocationChart(s: PortfolioState): string {
