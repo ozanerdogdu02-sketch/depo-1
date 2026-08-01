@@ -9,7 +9,7 @@ import { AgentMemoryProfile, RiskLevel, AgentMode, VadeTercihi, mostAskedTopic, 
 import { TrainedFact, findBestMatch } from './agentTraining';
 import {
   realReturnPct, xirrOf, concentrationOf, attributionOf, contributionOf, investmentPaceOf,
-  parseInflationPct,
+  parseInflationPct, afterTaxOf,
 } from './analytics';
 
 export interface ChartSpec {
@@ -60,6 +60,9 @@ const INTENT_LABELS: Record<string, string> = {
   'grafik-dagilim': 'dağılım grafiği',
   'grafik-yatirim': 'yatırım geçmişi grafiği',
   'grafik-pnl': 'kâr/zarar grafiği',
+  'reel-getiri': 'reel getiri',
+  'vergi-sonrasi': 'vergi sonrası net getiri',
+  'risk-metrik': 'risk metrikleri',
   trained: 'senin öğrettiğin bir konu',
 };
 
@@ -482,6 +485,64 @@ const CHAT_RULES: Rule[] = [
         );
       }
       lines.push(`Enflasyon varsayımını değiştirmek istersen "%55 enflasyona göre reel getirim ne" gibi yazabilirsin.`);
+      lines.push(`Not: bu hesap VERGİ ÖNCESİ. Stopajı da katmak için "vergiden sonra ne kalıyor" diye sorabilirsin.`);
+      return lines.join('\n\n');
+    },
+  },
+  // ── İleri matematik: vergi sonrası net reel getiri ─────────────────────────────────
+  // Zincirin üçüncü halkası: brüt → stopaj → net → enflasyon → reel. Yaygın uygulamalar
+  // brütte durur, bir kısmı reeli hesaplar; vergiyi katan neredeyse yok. Bankaların
+  // göstermek istemediği katman bu — bağımsız bir ürün gösterebilir.
+  {
+    id: 'vergi-sonrasi',
+    test: /vergi|stopaj|tevkifat|net getiri|net kazanc|net kazanç|cebe (kalan|kal)|eline geçen|vergiden sonra/i,
+    reply: (s, text) => {
+      const inf = parseInflationPct(text) ?? VARSAYILAN_ENFLASYON;
+      const r = afterTaxOf(s, inf);
+      if (!r) return 'Vergi sonrası getiriyi hesaplamak için önce portföyüne varlık eklemen gerek.';
+
+      if (r.grossGain <= 0) {
+        return (
+          `Şu an toplamda kâr yok (${fmtSigned(r.grossGain)}), dolayısıyla hesaplanacak bir stopaj da yok — ` +
+          `vergi kazanç üzerinden alınır, anapara üzerinden değil.\n\n` +
+          `%${inf} enflasyon varsayımıyla reel getirin %${r.realGrossReturnPct.toFixed(2)}.`
+        );
+      }
+
+      const lines = [
+        `Zinciri baştan sona kuralım (maliyet ${fmtTL(r.invested)}):`,
+        // NOT: ajan mesajları App.tsx'te DÜZ METİN olarak basılıyor ({m.text}) — markdown
+        // ayrıştırılmıyor. Buraya ** yazma, kullanıcıya yıldız olarak görünür.
+        `1) Brüt kazanç: ${fmtSigned(r.grossGain)} → getiri %${r.grossReturnPct.toFixed(2)}\n` +
+        `2) Varsayılan stopaj: −${fmtTL(r.tax)} → net kazanç ${fmtSigned(r.netGain)}, net getiri %${r.netReturnPct.toFixed(2)}\n` +
+        `3) %${inf} enflasyon sonrası REEL net getirin: %${r.realNetReturnPct.toFixed(2)}`,
+        `Vergi hiç olmasaydı reel getirin %${r.realGrossReturnPct.toFixed(2)} olurdu — aradaki ` +
+        `${(r.realGrossReturnPct - r.realNetReturnPct).toFixed(2)} puan stopajın reel maliyeti.`,
+      ];
+
+      // Hangi kalemden ne kesildiğini göster — soyut kalmasın.
+      const taxed = r.byHolding.filter(h => h.tax > 0).sort((a, b) => b.tax - a.tax);
+      if (taxed.length > 0) {
+        lines.push(
+          'Kalem bazında kesinti:\n' +
+          taxed.map(h => `• ${h.name} (${ASSET_LABELS[h.type]}, %${h.ratePct}): ${fmtTL(h.tax)}`).join('\n'),
+        );
+      }
+
+      lines.push(
+        `Oranlar 27.03.2026 tarihli 11107 sayılı Cumhurbaşkanı Kararı'na göre VARSAYILMIŞTIR ` +
+        `(fon ve 6 aya kadar vadeli TL mevduat %17,5; BIST pay senedi alım-satımında stopaj yok). ` +
+        `Vade, fon türü ve istisnalar sonucu değiştirir — bu bir vergi beyannamesi değil, bir tahmindir.`,
+      );
+
+      if (r.hasUnverified) {
+        lines.push(
+          `Portföyünde kripto/altın/döviz var: bunlar için doğrulanmış bir stopaj oranı bulamadığımdan ` +
+          `%0 varsaydım. Bu "vergi yok" demek değil — "bir oran uydurmuyorum" demek. ` +
+          `Kendi oranını biliyorsan söyle, ona göre hesaplayayım.`,
+        );
+      }
+
       return lines.join('\n\n');
     },
   },
@@ -532,7 +593,7 @@ const CHAT_RULES: Rule[] = [
     reply: (s) => {
       const canCover = s.holdings.filter(h => h.symbol && (h.type === 'kripto' || h.type === 'doviz'));
       const lines = [
-        'Bunları hesaplıyorum — **Panel** sekmesindeki "Risk Analizi" kartını aç ve "Hesapla"ya bas.',
+        'Bunları hesaplıyorum — Panel sekmesindeki "Risk Analizi" kartını aç ve "Hesapla"ya bas.',
         'Volatilite, maksimum düşüş ve Sharpe oranı GEÇMİŞ FİYAT SERİSİ ister. Bu seriyi son 90 gün için ' +
         'gerçek kaynaklardan çekiyorum: kripto için CoinGecko, döviz için ECB (Frankfurter). ' +
         'Portföy volatilitesini varlıkların ağırlıklı endeksinden hesaplıyorum, yani korelasyon etkisi de içinde.',
@@ -562,8 +623,8 @@ const CHAT_RULES: Rule[] = [
     reply: () => [
       'Portföyünü yedekleyip sonra geri yükleyebilirsin — bunu senin yerine ben hatırlamam, ama dosyaya alman için hazır bir yol var:',
       '',
-      '• **Yedek al:** Panel\'deki "CSV" düğmesi varlıklarını, İşlemler\'deki "CSV" düğmesi işlem geçmişini indirir.',
-      '• **Geri yükle:** Panel\'deki "İçe Aktar" düğmesiyle varlık CSV\'sini geri okutursun (mevcutların üzerine yazmaz, ekler).',
+      '• Yedek al: Panel\'deki "CSV" düğmesi varlıklarını, İşlemler\'deki "CSV" düğmesi işlem geçmişini indirir.',
+      '• Geri yükle: Panel\'deki "İçe Aktar" düğmesiyle varlık CSV\'sini geri okutursun (mevcutların üzerine yazmaz, ekler).',
       '',
       'Yani işlemleri silmeden ÖNCE Panel\'den CSV al; sonra geri dönmek istediğinde "İçe Aktar" ile aynı dosyayı yükle.',
       'Not: verilerin yalnızca bu tarayıcıda tutulur — "SIFIRLA" dersen kalıcı olarak silinir, o yüzden önce yedek alman iyi olur.',
@@ -578,6 +639,8 @@ const CHAT_RULES: Rule[] = [
       '• "THYAO nasıl gidiyor" gibi varlık bazlı sorular',
       '• "THYAO\'dan 500 TL sat" gibi bir komutla gerçek işlem önerebilirim — onaylarsan uygularım',
       '• "en çok kazandıran ne" / "en çok kaybettiren ne" — kıyaslama',
+      '• "reel getirim ne" — enflasyondan arındırılmış getiri (Fisher denklemi)',
+      '• "vergiden sonra ne kalıyor" — brüt → stopaj → net → reel zincirinin tamamı',
       '• "dağılımımı çiz" ya da "yatırım grafiğimi göster" — sohbet içinde grafik çizerim',
       '• enflasyon, faiz, altın, risk, projeksiyon gibi genel konular',
       '• "nasıl yedek alırım" — portföyünü CSV\'ye aktarma ve geri yükleme adımları',

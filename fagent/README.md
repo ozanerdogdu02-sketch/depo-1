@@ -5,8 +5,17 @@ Kişisel portföy takip uygulaması — dokuz sekme: Panel, Bugün, Hisseler, Fo
 eğitilebilir bilgi tabanı + proaktif içgörüler).
 
 Portföy takibinin ötesinde **gerçek finansal matematik** yapar: reel getiri (Fisher), XIRR,
-Herfindahl yoğunlaşma, volatilite, maksimum düşüş, Sharpe oranı, korelasyon ve çeşitlendirme
-faydası — hepsi gerçek tarihsel fiyat serisinden, anahtarsız kaynaklarla.
+**vergi sonrası net reel getiri**, Herfindahl yoğunlaşma, volatilite, maksimum düşüş, Sharpe oranı,
+korelasyon ve çeşitlendirme faydası — hepsi gerçek tarihsel fiyat serisinden, anahtarsız kaynaklarla.
+
+Ayrıştığı nokta getiri zincirinin **tamamını** kurması:
+
+```
+BRÜT kazanç → (stopaj) → NET kazanç → (enflasyon) → REEL net getiri
+```
+
+Yaygın uygulamalar brütte durur; bir kısmı reeli hesaplar. Vergi halkasını katan neredeyse yok —
+çünkü mevduat toplayan bir kurum kendi stopajını görünür kılmak istemez. Bağımsız bir ürün yapabilir.
 
 > FAGENT'ın BtcTurk'ün yapay zekâ asistanı **Bloki**'den nerede ayrıştığı ve neden onun
 > tamamlayıcısı olduğu: [`../docs/bloki-vs-fagent.md`](../docs/bloki-vs-fagent.md)
@@ -36,7 +45,8 @@ src/
   agentMemory.ts    — Ajan'ın UZUN SÜRELİ belleği (kullanım istatistiği, localStorage)
   agentTraining.ts  — Ajan'ın EĞİTİLEBİLİR bilgi tabanı (öğretilen soru-cevaplar, localStorage)
   analytics.ts      — FİNANSAL MATEMATİK (saf): reel getiri, XIRR, HHI, volatilite,
-                      maks. düşüş, Sharpe, korelasyon, kovaryansla çeşitlendirme faydası
+                      maks. düşüş, Sharpe, korelasyon, kovaryansla çeşitlendirme faydası,
+                      vergi sonrası net getiri (DEFAULT_TAX_RATES + afterTaxOf)
   priceHistory.ts   — tarihsel fiyat serisi (CoinGecko market_chart + Frankfurter/ECB)
                       + risk raporu; KAPSAM ORANINI (coveragePct) açıkça döner
   cryptoMarket.ts   — Kripto Piyasa sekmesinin veri katmanı (CoinGecko, önbellekli)
@@ -201,10 +211,18 @@ Sidebar'daki **SIFIRLA** üçünü de temizler.
 - **Enflasyon oranı elle güncellenen bir varsayımdır** (anahtarsız/CORS-açık bir TÜİK ucu yok).
   Başlangıç değeri iki yerde tanımlı ve aynı tutulmalı: `App.tsx` → `DEFAULT_INFLATION_PCT`,
   `agent.ts` → `VARSAYILAN_ENFLASYON`. Kullanıcı arayüzden kendi oranını girebilir.
+- **Stopaj oranları da elle güncellenen varsayımdır** (`analytics.ts` → `DEFAULT_TAX_RATES`).
+  Kaynak: 27.03.2026 tarihli 11107 sayılı Cumhurbaşkanı Kararı — fon ve 6 aya kadar vadeli TL
+  mevduat %17,5; BIST pay senedi alım-satımında stopaj yok. **Kripto/altın/döviz için doğrulanmış
+  bir rejim bulunamadığından %0 bırakıldı** — bu "vergi yok" iddiası değil, "oran uydurmuyoruz"
+  demektir ve ajan bunu açıkça söyler (`UNVERIFIED_TAX`). Vade, fon türü ve istisnalar sonucu
+  değiştirir; hesap bir tahmindir, beyanname değildir.
+- **Ajan mesajları düz metindir** — `App.tsx` `{m.text}` olarak basar, markdown ayrıştırmaz.
+  Yanıt metinlerinde `**kalın**` kullanma; kullanıcıya yıldız olarak görünür.
 
 ## Test Kapsamı
 
-Playwright e2e testleri artık **repo içinde**: `fagent/tests/e2e/` — 18 dosya, **279 kontrol**.
+Playwright e2e testleri artık **repo içinde**: `fagent/tests/e2e/` — 19 dosya, **304 kontrol**.
 
 ```bash
 npm run test:e2e     # Vite dev sunucusunu başlatır, tüm takımları sırayla çalıştırır
@@ -213,7 +231,8 @@ npm run test:e2e     # Vite dev sunucusunu başlatır, tüm takımları sırayla
 Kapsam: sidebar/nav, kâr-zarar muhasebesi, canlı fiyat bağlama, CSV içe/dışa aktarma, validasyon
 kuralları (ad çakışması, bakiye aşımı), ajan sohbet/grafik, uzun süreli bellek, eğitilebilir bilgi
 tabanı, geri bildirim döngüsü (👍/👎), aksiyon alma (Onayla/Vazgeç), proaktif içgörüler, finansal
-analitik (reel getiri/XIRR/HHI), risk metrikleri, Kripto Piyasa sekmesi, projeksiyon.
+analitik (reel getiri/XIRR/HHI), **vergi sonrası net getiri**, risk metrikleri, Kripto Piyasa
+sekmesi, projeksiyon.
 
 **Yeni davranış eklerken ilgili takıma kontrol ekle.** Commit öncesi üç doğrulama da geçmeli:
 `npm run typecheck` · `npm run build` · `npm run test:e2e`.

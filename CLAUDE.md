@@ -184,6 +184,39 @@ Kullanıcı "sektördeki rakiplerden farklı olarak ne yapabilirim" diye sordu; 
   `priceHistory.ts` hazır. **Bilinçli olarak önerilmeyen:** tek sayılık "portföy sağlık skoru" —
   rakiplerin oyunu bu, FAGENT'ın gücü sayının arkasındaki matematiği gösterebilmek.
 
+### 1.15 Vergi sonrası net reel getiri (`analytics.ts` + `agent.ts`)
+
+1.14'teki "analiz katmanı" konumlandırmasının ilk somut çıktısı. Getiri zincirinin üçüncü halkası:
+**brüt kazanç → stopaj → net kazanç → enflasyon → reel net getiri.** Rakiplerin hiçbirinde yok;
+bankalar yapmak istemez (kendi mevduat stopajını görünür kılar), bağımsız ürün yapabilir.
+
+- **`analytics.ts`:** `DEFAULT_TAX_RATES` (AssetType başına oran), `UNVERIFIED_TAX`, `afterTaxOf()`.
+  Hepsi saf. Vergi **kazanç üzerinden** alınır, anapara üzerinden değil; **zararda kesinti yok**
+  (zarar mahsubu YAPILMAZ — kalem bazında bağımsız hesap, gerçek beyanname mantığı değil).
+- **Oranlar (2026-08-01 doğrulaması):** 27.03.2026 tarihli **11107 sayılı Cumhurbaşkanı Kararı** —
+  yatırım fonu %15 → **%17,5** (01.05.2026'dan itibaren), TL mevduat ≤6 ay **%17,5** / ≤1 yıl %15,
+  hisse senedi yoğun fon %0 istisnası sürüyor. BIST pay senedi alım-satımında stopaj yok.
+  Araştırma sırasında kaynaklar %15 ve %17,5 diye çelişti — sebebi iki ARDIŞIK artış olması
+  (%10 → %15 → %17,5); kaynaklar farklı tarihlere bakıyordu. Yeni oran ararken bunu hatırla.
+- **DOĞRULANAMAYAN 0 BIRAKILDI:** kripto, altın, döviz. Bu "vergi yok" iddiası DEĞİL — ajan
+  "%0 varsaydım, bir oran uydurmuyorum" diye açıkça söyler. Vergi oranı uydurmak, sahte fiyat
+  göstermekle aynı sınıfta hatadır (AGENTS.md §0.2). Enflasyon varsayımıyla aynı desen.
+- **`agent.ts`:** yeni `CHAT_RULES` girdisi `id: 'vergi-sonrasi'` — zinciri sayıyla kurar, kalem
+  bazında kesinti dökümü verir, dayanağı ve "beyanname değildir" sınırını yazar. `reel-getiri`
+  kuralı artık cevabının VERGİ ÖNCESİ olduğunu söyleyip buraya yönlendiriyor. `INTENT_LABELS`'a
+  `reel-getiri`, `vergi-sonrasi`, `risk-metrik` eklendi (bellek/karşılama metinleri için).
+- **Test:** `fagent-vergi-e2e.mjs` (25 kontrol) — zincirin dört halkası, zarardaki kalemin dökümde
+  OLMAMASI, dayanak metni, doğrulanamayan sınıf uyarısı, kullanıcı enflasyon oranı, kripto
+  portföyünde stopaj ₺0. Toplam **304 kontrol / 19 dosya**.
+
+**Yakalanan gerçek hata — ajan mesajları düz metindir.** `App.tsx` mesajı `{m.text}` olarak basar,
+markdown AYRIŞTIRMAZ. Yeni yazdığım `**kalın**` işaretleri kullanıcıya yıldız olarak görünüyordu;
+ayrıca ÖNCEDEN de üç yerde aynı hata vardı (`**Panel**`, `**Yedek al:**`, `**Geri yükle:**`) —
+hepsi temizlendi. Yanıt metinlerinde markdown kullanma; `•` madde işareti ve düz metin kullan.
+
+**Test yazarken:** SIFIRLA bir `.side-link` DEĞİL, ayrı `.side-reset` düğmesidir ve onay diyaloğu
+açar — `page.once('dialog', d => d.accept())` tıklamadan ÖNCE kurulmalı (bkz. `fagent-memory-e2e.mjs`).
+
 ## 2. Aura Finance (BDT günlüğü + abonelik demosu)
 
 - **Konum:** repo kökü (`src/`) + `server/`
