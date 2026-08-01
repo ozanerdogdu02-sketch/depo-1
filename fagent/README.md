@@ -3,6 +3,9 @@
 Kişisel portföy takip uygulaması: Panel, Bugün, Hisseler, Fonlar, Kripto Varlıklar, İşlemler,
 Projeksiyon ve bir **Demo Ajan** (sohbet + grafik çizme + hafıza + eğitilebilir bilgi tabanı).
 
+> FAGENT'ın BtcTurk'ün yapay zekâ asistanı **Bloki**'den nerede ayrıştığı ve neden onun
+> tamamlayıcısı olduğu: [`../docs/bloki-vs-fagent.md`](../docs/bloki-vs-fagent.md)
+
 **Temel ilke: API anahtarı gerektirmez.** Hiçbir özellik, istemci tarafında bir Anthropic/OpenAI
 anahtarı olmadan çalışmayı bırakmaz. Tüm veriler yalnızca tarayıcıda (`localStorage`) tutulur —
 sunucu yok, veri toplama yok.

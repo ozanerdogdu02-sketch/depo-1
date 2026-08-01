@@ -150,6 +150,7 @@ kadar, davranış değiştiren her PR'da en azından şunları manuel doğrula:
 - Ürün, BtcTurk'e sunuluyor. BtcTurk'ün kendi AI asistanı **Bloki** var (komutla
   işlem yapıyor). FAGENT'ın farkı: **tüm serveti görür + proaktif reel getiri uyarısı.**
   Konumlandırma "rakip" değil "tamamlayıcı katman" olmalı.
+  Ayrıntılı karşılaştırma ve konumlandırma dokümanı: [`docs/bloki-vs-fagent.md`](docs/bloki-vs-fagent.md).
 - Netlify'a güncel `dist` deploy edilmeli (proaktif içgörü kartının canlıda görünmesi için).
 
 ---

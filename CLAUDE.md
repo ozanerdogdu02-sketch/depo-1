@@ -114,6 +114,25 @@ ama yalnızca kullanıcı açıkça onayladıktan sonra.
 
 `fagent-sidebar-e2e.mjs`, `fagent-nav-e2e.mjs`, `fagent-pnl-e2e.mjs`, `fagent-live-e2e.mjs` (ağ `page.route()` ile taklit), `fagent-import-e2e.mjs`, `fagent-chart-e2e.mjs`, `fagent-validation-e2e.mjs` (ad çakışması engelleme + bakiye-aşımı engelleme testleri), `fagent-agent-e2e.mjs` (küçük sohbet, varlık bazlı sorgu, en iyi/kötü kıyaslama, üç grafik türünün sohbet içinde DOM'a çizildiğinin doğrulanması, bağlam hafızası/takip cümlesi, fallback), `fagent-memory-e2e.mjs` (localStorage'a yazma, konu/varlık sayaçları, sayfa yenileme sonrası kişiselleştirilmiş karşılama, SIFIRLA'nın hafızayı da temizlemesi), `fagent-teach-e2e.mjs` (öğretme, fuzzy eşleşme, düzeltme/üzerine yazma, built-in kuralın önüne geçme, kullanım sayacı, silme, SIFIRLA'nın öğretilen bilgiyi de temizlemesi), `fagent-feedback-e2e.mjs` (👍 ile otomatik terfi, 👎 ile önceden dolu Eğit paneli açma, fallback'te de oylama, tek-seferlik oylama kilidi), `fagent-action-e2e.mjs` (onaylanan işlemin gerçekten uygulanması, vazgeçilenin uygulanmaması, bakiye aşımının onaya rağmen reddi, belirsiz komutların normal cevaba düşmesi) — Playwright + `/opt/pw-browsers/chromium`, toplam 154 kontrol. Yeni bir davranış eklenince ilgili dosyaya test eklenmeli; store.ts'in genel API'si (`actions.*`) değişirse tüm dosyalar taranıp stale selector/mesaj metni kontrol edilmeli (örnek: `#t-holding option value` isimden ID'ye geçince `page.selectOption(..., { label })` kullanan testler etkilenmedi ama `value` ile seçen olsaydı kırılırdı).
 
+### 1.12 Bloki karşılaştırma dokümanı (`docs/bloki-vs-fagent.md`)
+
+Kullanıcı "bloki ve fagent farklarını araştıran ve o farkları bana açıklayacak bir readme" istedi.
+Bloki = BtcTurk | Kripto'nun yapay zekâ asistanı; ürün ona sunulduğu için bu ayrım kod yorumlarına
+(`agent.ts`, `App.tsx`) ve commit başlıklarına dağılmıştı — toplu ve okunabilir hâli artık
+`docs/bloki-vs-fagent.md`'de. Hedef kitle: **BtcTurk'e sunum / konumlandırma** (kullanıcı seçti),
+o yüzden iş odaklı, tablo ağırlıklı; kod detayı minimum.
+
+- **Bloki araştırması yalnızca kamuya açık duyurulara dayanır** — resmi sayfalar (bilgiplatformu,
+  AA, DHA, n24) `WebFetch`'te **HTTP 403** verdi, bilgi arama sonucu özetleri kullanıldı (iki
+  bağımsız sorguda tutarlı). Duyurulan yetenekler: yazılı+sesli komut, saniyeler içinde alım-satım,
+  tek komutla portföy, piyasa yorumu, tarih aralığı K/Z, yatırım senaryosu, bankaya TL çekimi.
+  Dokümanda bu sınır ve doğrulama tarihi (2026-08-01) açıkça yazılı — Bloki gelişince güncellenmeli.
+- **Kullanıcı kararı:** ayrı bir "FAGENT'ın zayıf yönleri" bölümü İSTENMEDİ. Sınır yine de gizlenmedi;
+  "Bloki'nin güçlü olduğu yer" başlığı altında iş bölümü olarak olumlu çerçeveyle veriliyor
+  (emir yürütme + ses + kurum içi veri = Bloki'nin alanı, FAGENT'ın değil).
+- FAGENT tarafındaki her iddia dosya adıyla eşlendi (satır no verilmedi — kod değişince bayatlamasın).
+- `AGENTS.md` §9 ve `fagent/README.md` başına birer link eklendi. Kod değişikliği yok.
+
 ## 2. Aura Finance (BDT günlüğü + abonelik demosu)
 
 - **Konum:** repo kökü (`src/`) + `server/`
