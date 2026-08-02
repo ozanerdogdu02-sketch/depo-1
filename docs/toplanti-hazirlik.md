@@ -26,13 +26,14 @@ Toplantıda hangi muhatap olursa olsun bu altı sayı işine yarar. Hepsi kamuya
 | **Toplam mevduat** | **28,26 trilyon TL** (BDDK, 2026 Ç1) | %43'ü döviz hesabı — nakit benzeri devasa bir kütle |
 | **Pay senedi yatırımcısı** | **6,87 milyon** (MKK, Temmuz 2026) | Hisse tarafı |
 | **Yatırım fonu yatırımcısı** | **10,7 milyon** — fon büyüklüğü 13,8 trilyon TL | Fon tarafı, rekor seviyede |
-| **BtcTurk kayıtlı hesap** | **5 milyon+** | Kripto tarafı |
+| **BtcTurk kayıtlı hesap** | **milyonlarca** ⚠️ *("5 milyon+" teyit edilemedi — bkz. §C.0)* | Kripto tarafı |
 | **FAGENT ajanın maliyeti** | **0 TL / mesaj** | Kural tabanlı, sunucusuz |
 
 ### Bu sayılardan çıkan tek cümlelik argüman
 
-> Türkiye'de 6,9 milyon hisse yatırımcısı, 10,7 milyon fon yatırımcısı ve 5 milyon+ BtcTurk hesabı
-> var. Bu kümeler **büyük ölçüde aynı insanlar** — ve hiçbiri servetinin tamamını tek ekranda,
+> Türkiye'de 6,9 milyon hisse yatırımcısı ve 10,7 milyon fon yatırımcısı
+> var (BtcTurk tarafında da milyonlarca hesap). Bu kümeler **büyük ölçüde aynı insanlar** — ve
+> hiçbiri servetinin tamamını tek ekranda,
 > **%32 enflasyondan arındırılmış** olarak göremiyor. Herkes kendi kutusunu gösteriyor;
 > kimse toplamı göstermiyor.
 
@@ -53,7 +54,38 @@ artar. FAGENT'ın proaktif kartının yaptığı tam olarak budur: **görünmeye
 
 # Bölüm A — BtcTurk'e ürün sunumu
 
+## A.0 Kime anlatıyorsun ⭐ *(2026-08-02'de eklendi — her şeyi bu belirliyor)*
+
+**Emir Karagüler — Head of Customer Experience, BtcTurk | Kripto.**
+Geçmişi **Vodafone** ve **ING Türkiye**: telko + bankacılık müşteri deneyimi.
+**CTO değil, ürün müdürü değil.**
+
+Bu dokümanın geri kalanı büyük ölçüde teknik derinlik üzerine kurulu (415 test, saf
+fonksiyonlar, kovaryans, XIRR). Bir CX liderinde bunların hiçbiri karşılık bulmaz. Onun
+kariyeri boyunca ölçtüğü şeyler: **elde tutma, churn, destek yükü, güven, NPS.**
+
+| Onda karşılık bulmaz | Onda karşılık bulur |
+|---|---|
+| "415 otomatik test var" | "Kullanıcı kafası karışık dönüyor" |
+| "Saf fonksiyonlar, kovaryans matrisi" | "Uygulamada kalma süresi, geri dönüş sıklığı" |
+| "XIRR ve Fisher hesaplıyorum" | "%60 kâr sanıyor, gerçekte reel kaybediyor" |
+| Mimari üstünlük | Destek ekibine gelen "ben niye kazanamıyorum" sorusu |
+
+**Teknik derinliği cebinde tut** — sorarsa çıkar, açılışta değil. Açılış cümlesi CX dilinde
+olmalı: kullanıcının bilgi boşluğu → güven kaybı → churn ya da destek yükü.
+
+İkinci isim **Emine Ceylan**, BtcTurk'te Account Manager göründü — yaygın bir isim olduğu için
+**teyit edilmeden unvan telaffuz edilmemeli.** Muhtemelen süreci koordine eden kişi.
+
+*(Kaynak: kamuya açık LinkedIn profilleri, 2026-08-02.)*
+
 ## A.1 Tek cümlelik konumlandırma
+
+> ⚠️ **BU BÖLÜM (A.1–A.3) ESKİDİ.** Aşağıdaki anlatı BtcTurk'ün yalnızca kripto sunduğu
+> varsayımına dayanıyor; BtcTurk | Hisse bulgusundan sonra bu geçersiz (bkz. §C.0 ve
+> [`bloki-vs-fagent.md` §5](bloki-vs-fagent.md)). **"Sizin göremediğiniz %80" DEME.**
+> Güncel ve kullanılacak anlatı: [`toplanti-kisa-kart.md`](toplanti-kisa-kart.md).
+> Aşağısı arka plan olarak duruyor, sahnede kullanılmayacak.
 
 > **"Bloki'nin rakibi değiliz. Bloki işlemi hızlandırıyor, biz kararı besliyoruz.
 > Sizin göremediğiniz %80'i görüyoruz."**
@@ -86,7 +118,7 @@ Toplantının en kritik parçası. Her itiraza **önce kabul, sonra çerçeve de
 | **"LLM değilmiş, o zaman gerçek AI değil."** | "Doğru, LLM değil ve bunu ürünün içinde de açıkça yazıyoruz. Bunun karşılığında: mesaj başına maliyet sıfır, gecikme sıfır, **halüsinasyon sıfır**. Finansal rakamda halüsinasyon, bir asistanın yapabileceği en pahalı hatadır. Mimari LLM'e geçişe hazır — ajanın yanıt mantığı tek dosyada izole, saf fonksiyonlar; anahtar takılınca geçiş tek noktadan yapılır." |
 | **"Veri tarayıcıda, cihaz değişince ne olacak?"** | "Bugün CSV dışa/içe aktarma ile taşınıyor. Bu bilinçli bir tercih: hesap yok, KYC yok, sunucu yok → **veri sızıntısı riski de yok**. Kurumsal entegrasyonda bu değişebilir, ama o zaman veriyi kim tutuyor sorusunun cevabı da değişir; masaya o kararı birlikte koyalım." |
 | **"BIST/TEFAS canlı fiyatı yoksa nasıl portföy takibi?"** | "Anahtarsız, resmî, CORS-açık bir kaynak yok — araştırdık. Uydurma fiyat göstermektense hiç göstermiyoruz; bu bir ilke. Ama **risk metriklerinde bile portföyün yüzde kaçını kapsadığımızı ekrana yazıyoruz.** Sizin veri anlaşmalarınızla bu boşluk kapanır — bu, entegrasyonun somut faydalarından biri." |
-| **"Kaç kullanıcınız var?"** | Dürüst ol: bu bir çalışan ürün ve teknik olgunluk kanıtı (23 e2e test dosyası, 415 otomatik kontrol), kullanıcı tabanı değil. "Kullanıcı tabanı sizde zaten var — 5 milyon hesap. Ben size dağıtım değil, **yetenek** getiriyorum." |
+| **"Kaç kullanıcınız var?"** | Dürüst ol: bu bir çalışan ürün ve teknik olgunluk kanıtı (23 e2e test dosyası, 415 otomatik kontrol), kullanıcı tabanı değil. "Kullanıcı tabanı sizde zaten var — milyonlarca kullanıcı. Ben size dağıtım değil, **yetenek** getiriyorum." |
 | **"Yatırım tavsiyesi vermiş olmuyor musunuz?"** | "Ürün hiçbir varlık için al/sat önermiyor; kullanıcının **kendi verisi üzerinde matematik** yapıyor — reel getiri, volatilite, yoğunlaşma. Yine de metinlerin hukuk onayından geçmesi gerektiğini biliyorum ve bunu entegrasyonun ilk maddesi olarak koyuyorum." *(Bkz. C.4 — bu gerçek bir açık.)* |
 | **"Neden ürünü alalım, ekip alalım?"** | "İkisi de olabilir. Ama şunu unutmayın: bu ürünün mimarisi bilinçli olarak **sizin altyapınıza bağımlı olmayacak** şekilde kuruldu. Yarın entegrasyon olmasa da çalışmaya devam eder. Bu, satın alma kararınızı düşük riskli yapar." |
 
@@ -152,7 +184,7 @@ Türkiye'de bireysel yatırımcı **parçalanmış** durumda:
 | Pay senedi | 6,87 milyon yatırımcı | Aracı kurum uygulamaları |
 | Yatırım fonu (TEFAS) | 10,7 milyon yatırımcı / 13,8 trilyon TL | Banka uygulamaları |
 | Mevduat | 28,26 trilyon TL (%43'ü döviz) | Banka uygulamaları |
-| Kripto | BtcTurk'te 5 milyon+ hesap | Borsa uygulamaları |
+| Kripto | BtcTurk'te milyonlarca hesap ⚠️ *(rakam teyitsiz)* | Borsa uygulamaları |
 
 **Boşluk:** Bu dört kutunun her biri kendi içini gösteriyor. Aynı kişi dört uygulamada dört farklı
 "portföy" görüyor ve **kurumların hiçbiri** toplamı vermiyor. Toplam verilmediği için de en önemli
@@ -309,6 +341,7 @@ dokunabilir. Altyapı hazır: `server/` klasöründe Anthropic proxy'si (`POST /
 |---|---|---|
 | *"Enflasyonu TCMB'den canlı çekiyoruz."* | *"TCMB entegrasyonu kodda hazır ve testli; API anahtarı eklendiği an devreye giriyor. Şu an varsayım modunda."* | Entegrasyon yazıldı (`inflation.ts`, `evds.ts`, Netlify Function, 26 e2e kontrolü) ama anahtar henüz alınmadı. **Ekranda "varsayım (TÜİK, elle güncellenir)" yazıyor** — biri ekrana bakarsa farkı görür. |
 | *"BtcTurk'ün 5 milyon+ kayıtlı hesabı var."* | *"Milyonlarca kullanıcınız."* | Bu rakam ikincil bir kaynaktan alındı, **resmî açıklamayla teyit edilemedi**. Karşı tarafın kendi şirketi hakkında yanlış rakam söylemek en kötü yerde yanlış olmaktır. |
+| *"BtcTurk kripto dışını görmüyor."* / *"Sizin göremediğiniz %80"* | *"Hepsini satıyorsunuz ama kullanıcı toplamda ne kazandığını göremiyor."* | **Kesinlikle yanlış.** BtcTurk \| Hisse'de BIST, ABD hissesi, TEFAS fonu ve halka arz var; Kripto uygulamasının "Varlıklar" ekranı ABD hisselerini zaten gösteriyor. Söylersen anında düzeltilirsin. Bkz. [`bloki-vs-fagent.md` §5](bloki-vs-fagent.md) uyarı kutusu. |
 
 Aynı ilke ürünün her yerinde geçerli ve asıl satış argümanı da bu: **doğrulanmayan hiçbir sayı
 "kesin" gibi sunulmuyor.** Stopaj oranlarında kripto/altın/döviz için %0 bırakılması ve ajanın
@@ -372,7 +405,9 @@ ama **yalnızca** gizlilik mimarisini bozmayan bir tasarımla (uçtan uca şifre
 - Toplam mevduat 28,26 trilyon TL, %43 döviz — [BDDK](https://www.bddk.org.tr/BultenGunluk)
 - Pay senedi yatırımcısı 6,87 milyon — [MKK Aylık Piyasa Bülteni](https://www.mkk.com.tr/veri-hizmetleri/mkk-aylik-piyasa-bulteni)
 - Yatırım fonu yatırımcısı 10,7 milyon / 13,8 trilyon TL — [Türkiye'de İş Dünyası](https://turkiyedeisdunyasi.com/yatirim-fonlarinin-toplam-buyuklugu-138-trilyon-tlye-ulasti-102059/)
-- BtcTurk 5 milyon+ kayıtlı hesap — [BtcTurk (Vikipedi)](https://tr.wikipedia.org/wiki/BtcTurk)
+- BtcTurk kayıtlı hesap sayısı — [BtcTurk (Vikipedi)](https://tr.wikipedia.org/wiki/BtcTurk) ⚠️ **Vikipedi ikincil kaynaktır; resmî açıklamayla teyit EDİLEMEDİ.** Toplantıda rakam telaffuz etme (§C.0).
+- BtcTurk | Hisse kapsamı ve SPK lisansı (2026-08-02 doğrulaması) — [hisse.btcturk.com](https://hisse.btcturk.com/) · [Bilgi Platformu](https://bilgiplatformu.btcturk.com/genel/hisse-btcturk-hisse-nedir/) · [Webrazzi](https://webrazzi.com/2023/07/11/btcturkten-hisse-senedi-alim-satim-uygulamasi-btcturk-hisse/)
+- Muhatap profilleri (Emir Karagüler, Emine Ceylan) — kamuya açık LinkedIn, 2026-08-02
 
 **Bloki bilgileri — yalnızca kamuya açık duyurulara dayanır.** Kaynak koduna, iç mimarisine veya
 yol haritasına erişim yoktur; bu dokümandaki "Bloki (tahmini)" ifadeleri açıkça tahmindir.

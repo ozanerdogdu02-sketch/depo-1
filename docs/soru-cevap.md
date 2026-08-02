@@ -10,6 +10,10 @@
 >
 > **Altın kural:** Bilmediğin bir şey sorulursa "bilmiyorum, bakıp döneceğim" de. Bu üründe
 > dürüstlük bir özellik — uydurulmuş bir cevap tüm konumlandırmayı çürütür.
+>
+> ⭐ **Muhatabın CX lideri** (Emir Karagüler, Head of Customer Experience — geçmişi Vodafone,
+> ING). Teknik derinlik onda karşılık bulmaz; **elde tutma, destek yükü, güven** dilini kullan.
+> Ayrıntı: [`toplanti-kisa-kart.md` §0](toplanti-kisa-kart.md).
 
 ---
 
@@ -17,9 +21,21 @@
 
 **1. "Bloki'miz zaten var. Sizin farkınız ne?"**
 Bloki kripto tarafında işlemi hızlandırıyor — emir, ses, TL çekimi. Ben o tarafta yarışmıyorum.
-FAGENT kullanıcının **BtcTurk dışındaki servetini de** görüyor: mevduat, döviz, altın, BIST, fon.
-Ve gördüğü şeyin üzerinde matematik yapıyor — reel getiri, vergi sonrası net, risk.
+FAGENT kullanıcının **tüm servetini** görüyor — kriptoyu ve hisseyi de, mevduatı, dövizi, altını
+da — ve gördüğü şeyin **üzerinde matematik yapıyor**: reel getiri, vergi sonrası net, risk.
+Fark kapsam değil, katman: Bloki işlemi hızlandırıyor, ben kararı besliyorum.
 *Kısa: "Bloki işlemi hızlandırıyor, biz kararı besliyoruz."*
+
+**1b. "Biz zaten BtcTurk | Hisse'yi açtık — BIST, ABD hissesi, fon hepsi bizde."** ⭐ *(2026-08-02)*
+Evet, ve bu benim işimi kolaylaştırıyor. Ama tam da bu yüzden kullanıcı artık **tek kurumda dört
+farklı vergi rejimi** taşıyor: BIST pay senedinde stopaj yok, TEFAS fonunda %17,5, ABD hissesi ve
+kripto ayrı. Bunların **toplamının** vergi ve enflasyon sonrası ne ettiğini gösteren bir ekran yok.
+*Kısa: "Hepsini satıyorsunuz; toplamda ne kaldığını göstermiyorsunuz."*
+
+**1c. "Varlıklar ekranımız zaten konsolide — Hisse'den alınanları da gösteriyoruz."**
+Doğru ve iyi bir adım. Ama o ekran **toplamı gösteriyor**, toplamın üzerinde matematik yapmıyor.
+Gösteren çok, hesaplayan yok — ben o ikinci kısımdayım.
+*Kısa: "Gösteriyorsunuz; ben hesaplıyorum."*
 
 **2. "Parafokus, Finoloji, Horyzon zaten toplamı gösteriyor. Ne farkınız var?"** ⚠️ *En kritik soru*
 Haklısınız, konsolide takip artık emtia — ben de o yarışa girmiyorum. Onlar **gösteriyor**;
@@ -98,6 +114,9 @@ Hayır. SPK'ya göre genel yatırım tavsiyesi yalnızca aracı kurum, banka ve 
 kullanıcının kendi verisi üzerinde **betimleyici** matematik yapıyor. Metinler bu ayrıma göre
 gözden geçirildi ve üç ayrı yerde "yatırım tavsiyesi değildir" uyarısı var.
 *Kısa: "Ne olduğunu söylüyoruz, ne yapılacağını değil."*
+> ⭐ **Koz:** Bu sınır BENİM sınırım — **siz SPK lisanslı bir aracı kurumsunuz** (BtcTurk Yatırım).
+> Aynı motor sizin çatınızda "ne olduğunu"dan "ne yapılabileceğine" geçebilir. "Neden biz?"
+> sorusunun en güçlü cevabı bu.
 
 **14. "KVKK açısından durumunuz ne?"**
 Kişisel veri toplamıyoruz. Hesap yok, e-posta yok, telemetri yok, sunucu yok — veri kullanıcının

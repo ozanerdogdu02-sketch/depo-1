@@ -5,75 +5,124 @@
 
 ---
 
-## Üç cümle
+## 0. Kime anlatıyorsun — önce bunu oku
 
-**1 — Farkın ne?**
-> **"Gösteren çok, hesaplayan yok."**
+**Emir Karagüler — Head of Customer Experience, BtcTurk | Kripto.**
+Geçmişi **Vodafone** ve **ING Türkiye**: telko + bankacılık müşteri deneyimi.
+**CTO değil, ürün müdürü değil.** Kariyeri boyunca müşteri yolculuğu, churn, destek yükü ve
+güven diliyle düşünmüş biri.
 
-**2 — Ne hesaplıyorsun?**
-> **"Brüt getiri değil; vergiden ve enflasyondan sonra elinde ne kaldığı."**
+| Onda karşılık **bulmaz** | Onda karşılık **bulur** |
+|---|---|
+| "415 otomatik test var" | "Kullanıcı kafası karışık dönüyor" |
+| "Saf fonksiyonlar, kovaryans matrisi" | "Uygulamada kalma süresi, geri dönüş sıklığı" |
+| "XIRR ve Fisher hesaplıyorum" | "%60 kâr sanıyor, gerçekte reel kaybediyor" |
+| Mimari üstünlük | Destek ekibine gelen "ben niye kazanamıyorum" sorusu |
 
-**3 — Neden BtcTurk?**
-> **"Bloki kripto tarafını görüyor. Ben kullanıcının geri kalan varlığını görüyorum."**
+**Teknik derinliği cebinde tut.** Sorarsa çıkar — açılışta değil.
 
-Hangi soru gelirse gelsin, bu üçünden en yakınına bağla.
+**Açılış cümlen:**
+> "Kullanıcı ekranda kâr görüyor ama enflasyon ve stopajdan sonra ne kaldığını bilmiyor.
+> Bu boşluk size iki şekilde dönüyor: ya güveni sarsılıp uygulamayı bırakıyor, ya da destek
+> ekibinize yazıyor. Ben o boşluğu ekranda kapatıyorum."
+
+⚠️ İkinci isim **Emine Ceylan** — BtcTurk'te Account Manager göründü ama yaygın bir isim,
+**teyit etmeden unvan telaffuz etme.** Muhtemelen süreci koordine eden kişi.
 
 ---
 
-## Asıl hamlen: konuşma, göster
+## 1. Üç cümle
+
+**Farkın ne?**
+> **"Gösteren çok, hesaplayan yok."**
+
+**Ne hesaplıyorsun?**
+> **"Brüt getiri değil; vergiden ve enflasyondan sonra elinde ne kaldığı."**
+
+**Neden BtcTurk?**
+> **"Siz artık kriptoyu da hisseyi de fonu da satıyorsunuz — ama kullanıcı hepsinin
+> toplamında ne kazandığını hâlâ göremiyor."**
+
+Hangi soru gelirse gelsin, bu üçünden en yakınına bağla.
+
+> ⚠️ **"BtcTurk kripto dışını görmüyor" DEME.** Yanlış — BtcTurk | Hisse'de BIST, ABD hissesi,
+> TEFAS fonu ve halka arz var; Kripto uygulamasının "Varlıklar" ekranı ABD hisselerini zaten
+> gösteriyor. Bunu söylersen karşı taraf anında düzeltir ve hazırlıksız görünürsün.
+
+---
+
+## 2. Asıl hamlen: konuşma, göster
 
 Sunum yapmak zorunda değilsin — **çalışan bir ürünün var.** Laptopu çevir:
 
 > "Şuraya bakın. Bu kullanıcı **+₺3.700, %2,6 kâr** görüyor ve mutlu.
 > Ama şu kart brütten stopajı düşüyor, sonra enflasyonu düşüyor — ve reel getirinin
 > **eksi %22** olduğunu söylüyor.
-> Rakiplerde bu kart yok. Bankalar da yapmak istemez, çünkü kendi mevduat stopajını görünür kılar."
+> Yani kullanıcı kazandığını sanırken aslında alım gücü kaybediyor. **Bunu hiçbir yerde
+> göremiyor** — ne sizde, ne rakiplerde. Öğrendiğinde de size kızıyor, ürüne değil piyasaya."
 
-Bunu söylerken ezber gerekmez; ekranda zaten yazıyor. **Ürün senin adına konuşuyor.**
+Ezber gerekmiyor; ekranda zaten yazıyor. **Ürün senin adına konuşuyor.**
 
-Sırayla göster: **Vergi Sonrası Net Getiri → Risk Analizi → Hedef Dağılım → Ajan'a bir soru sor.**
+Sıra: **Vergi Sonrası Net Getiri → Proaktif İçgörüler → Hedef Dağılım → Ajan'a bir soru.**
 
 ---
 
-## Kaçış kapın
+## 3. Kaçış kapın
 
 > **"Bunu şu an uydurmak istemiyorum, bakıp size döneceğim."**
 
-Bu zayıflık değil. Ürünün tüm iddiası dürüstlük üzerine kurulu — bu cümle onunla tutarlı.
-Notlarına bakmak da serbest, kimse yadırgamaz.
+Zayıflık değil — ürünün tüm iddiası dürüstlük üzerine kurulu, bu cümle onunla tutarlı.
+Notlarına bakmak da serbest.
 
 ---
 
-## En olası sekiz soru — tek satır cevaplar
+## 4. En olası on soru — tek satır cevaplar
 
 | Soru | Cevap |
 |---|---|
 | "Bloki'miz var, farkınız ne?" | Bloki işlemi hızlandırıyor, ben kararı besliyorum. |
+| **"Biz zaten Hisse'yi açtık."** | Evet ve bu benim işimi kolaylaştırıyor — artık dört farklı vergi rejimi tek kurumda: BIST'te stopaj yok, fonda %17,5, ABD hissesi ve kripto ayrı. **Kullanıcı bunların toplamını göremiyor.** |
+| **"Varlıklar ekranımız zaten konsolide."** | Toplamı gösteriyor, doğru. Ama toplamın vergiden ve enflasyondan sonra ne ettiğini göstermiyor. Gösteren çok, hesaplayan yok. |
 | "Parafokus/Finoloji de aynısını yapıyor." | Onlar gösteriyor, ben hesaplıyorum. *(Sonra ekranı göster.)* |
 | "AI diyorsunuz ama LLM değil?" | Değil — karşılığında halüsinasyon riski sıfır. Finansal rakamda en pahalı hata odur. |
-| "BIST fiyatı çekemiyorsunuz." | Anahtarsız resmî kaynak yok. Uydurma fiyat göstermiyorum — **bu boşluğu sizin veriniz kapatır.** |
+| "BIST fiyatı çekemiyorsunuz." | Anahtarsız resmî kaynak yok. Uydurma fiyat göstermiyorum — **sizde o veri zaten var.** |
 | "Veri tarayıcıda, kaybolmaz mı?" | Tek dosyalık tam yedek + geri yükleme var. Karşılığında hesap yok, sunucu yok, sızıntı yüzeyi yok. |
-| "Yatırım tavsiyesi olmuyor mu?" | Hayır — ne olduğunu söylüyorum, ne yapılacağını değil. Üç yerde uyarı var. |
+| "Yatırım tavsiyesi olmuyor mu?" | Hayır — ne olduğunu söylüyorum, ne yapılacağını değil. **Ama siz SPK lisanslı aracı kurumsunuz; sizin çatınızda bir adım öteye geçebilir.** |
 | "Kaç kullanıcınız var?" | Yok. Dağıtım sizde, yetenek bende. |
 | "Bunu 2 ayda biz yaparız." | Kod 2 ay, doğru. Veri sorumluluğunu almak 2 ay değil. |
 
-⚠️ **Rakam telaffuz etme:** "5 milyon hesap" doğrulanamadı → *"milyonlarca kullanıcınız"* de.
+⚠️ **Rakam telaffuz etme:** "5 milyon hesap" doğrulanamadı → *"milyonlarca kullanıcınız"*.
 ⚠️ **"Enflasyonu TCMB'den çekiyoruz" DEME** → *"entegrasyon hazır, anahtar eklenince devreye giriyor."*
 
 ---
 
-## Sen ne soracaksın
+## 5. Cebindeki üç koz — sorulursa çıkar
+
+**SPK lisansı.** FAGENT tek başına yatırım tavsiyesi veremez; bu yüzden bilinçli olarak
+betimleyici tutuldu. **BtcTurk Yatırım SPK lisanslı bir aracı kurum.** Aynı motor onların
+çatısı altında "ne olduğunu" söylemekten "ne yapılabileceğini" söylemeye geçebilir.
+*"Neden biz?" sorusunun en güçlü cevabı budur.*
+
+**Kendi içerikleri.** BtcTurk bilgi platformunda **Sharpe oranını anlatan** bir yazı var —
+ama üründe hesaplanmıyor. Boşluğun kanıtı kendi sitelerinde.
+
+**Vergi karmaşası.** Aynı kurumda BIST hissesi (stopaj yok) + TEFAS fonu (%17,5) + ABD hissesi
++ kripto. **Dört rejim, tek kurum, sıfır görünürlük.**
+
+---
+
+## 6. Sen ne soracaksın
 
 Toplantı tek yönlü olmasın. En az ikisini sor:
 
-1. Bloki'nin yol haritasında **kripto dışı varlıklar** var mı?
+1. Bloki'nin yol haritasında **Hisse tarafı** var mı — asistan iki uygulamayı birden görecek mi?
 2. Genel API'nizde **salt-okunur bakiye erişimi** planı var mı, yoksa yaratılabilir mi?
 3. Pilot için **teknik muhatap** kim olur?
 4. **Bu görüşmeden sonraki adım ne, ne zamana kadar?**
 
 ---
 
-## Yanına al
+## 7. Yanına al
 
 - Çalışan demo + **ekran görüntüsü yedeği** (internet kesilirse)
 - Bu sayfa (yazdırılmış)

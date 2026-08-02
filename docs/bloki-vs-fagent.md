@@ -165,6 +165,45 @@ proxy'sine geçiş tek noktadan yapılabilir.
 
 ## 5. Neden rakip değil, tamamlayıcı katman
 
+> ### ⚠️ ÖNEMLİ DÜZELTME (2026-08-02) — bu dokümanın bir varsayımı yanlıştı
+>
+> Bu doküman boyunca BtcTurk'ün **yalnızca kripto** sunduğu varsayıldı. **Bu doğru değil.**
+>
+> **BtcTurk | Hisse** adında ayrı bir uygulama ve **SPK lisanslı aracı kurum** var (2023,
+> BtcTurk'ün 10. yılında kuruldu). Kapsamı: **BIST hisseleri, Nasdaq/NYSE hisseleri, TEFAS
+> yatırım fonları, halka arz.** İşleten: BtcTurk Yatırım Menkul Değerler A.Ş. Ayrıca ayrı bir
+> **BtcTurk Portföy Yönetimi A.Ş.** de bulunuyor.
+>
+> Dahası: **BtcTurk | Kripto'nun "Varlıklar" ekranı, Hisse'den alınan ABD hisselerini ve dolar
+> bakiyesini zaten gösteriyor** — yani konsolidasyona kendileri başlamış durumda.
+>
+> **Etkisi:** Aşağıdaki tabloda ve dokümanın genelinde geçen *"FAGENT mevduat/döviz/altını da
+> görür, BtcTurk göremez"* çerçevesi zayıfladı. BtcTurk grubu artık kripto + BIST + ABD hissesi
+> + fon görüyor. Kapsam dışında kalan: **mevduat, döviz, altın ve başka kurumlardaki varlıklar.**
+>
+> **Ama asıl tez güçlendi.** Ayrım artık "kim daha çok varlık görüyor" değil, **"kim gördüğünün
+> üzerinde matematik yapıyor"**:
+>
+> - Aynı kullanıcı tek kurumda **dört farklı vergi rejimi** taşıyabiliyor — BIST pay senedinde
+>   stopaj yok, TEFAS fonunda %17,5, ABD hissesi ve kripto ayrı. Bunların **toplamının** vergi
+>   ve enflasyon sonrası ne ettiğini gösteren bir ekran yok.
+> - BtcTurk'ün kendi bilgi platformunda **Sharpe oranını anlatan** bir yazı var, ama üründe
+>   hesaplanmıyor. Boşluğun kanıtı kendi içeriklerinde.
+> - **SPK lisansı bir fırsat:** FAGENT tek başına yatırım tavsiyesi veremediği için bilinçli
+>   olarak betimleyici tutuldu. BtcTurk Yatırım lisanslı bir aracı kurum olduğundan, aynı motor
+>   onların çatısı altında bir adım öteye geçebilir.
+>
+> Toplantı dili için: **"BtcTurk kripto dışını görmüyor" DEME** — yanlış ve anında düzeltilir.
+> Doğrusu: *"Hepsini satıyorsunuz ama kullanıcı toplamda ne kazandığını göremiyor."*
+>
+> Kaynaklar: [BtcTurk | Hisse](https://hisse.btcturk.com/) ·
+> [Bilgi Platformu](https://bilgiplatformu.btcturk.com/genel/hisse-btcturk-hisse-nedir/) ·
+> [Webrazzi (2023 duyurusu)](https://webrazzi.com/2023/07/11/btcturkten-hisse-senedi-alim-satim-uygulamasi-btcturk-hisse/)
+>
+> *Not: Aracı kurum ünvanında kaynaklar "BtcTurk Yatırım Menkul Değerler A.Ş." ve "Eliptik
+> Yatırım Menkul Değerler A.Ş." diye ayrışıyor (muhtemelen isim değişikliği) — telaffuz
+> edilecekse teyit edilmeli.*
+
 İki asistanın güçlü olduğu yerler örtüşmüyor:
 
 | Kullanıcının ihtiyacı | Kim daha iyi cevap veriyor |
