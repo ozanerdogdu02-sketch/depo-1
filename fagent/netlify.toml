@@ -1,0 +1,17 @@
+# Netlify yapılandırması. Netlify arayüzündeki ayarlar (base=fagent, build=npm run build,
+# publish=fagent/dist) buraya taşındı — fonksiyon eklemek için zaten bir dosya gerekiyordu ve
+# yapılandırmanın yarısı arayüzde yarısı repoda durmasındansa tamamı repoda dursun.
+#
+# Yollar base directory'ye (fagent/) GÖRELİDİR — bu yüzden "dist", "fagent/dist" değil.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+# EVDS proxy'si /api/evds adresinden de çağrılabilsin (fonksiyonun kendi config.path'i ile
+# birlikte çalışır; istemci kısa yolu kullanır, uzun yol da bozulmaz).
+[[redirects]]
+  from = "/api/evds"
+  to = "/.netlify/functions/evds"
+  status = 200

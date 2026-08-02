@@ -86,7 +86,7 @@ Toplantının en kritik parçası. Her itiraza **önce kabul, sonra çerçeve de
 | **"LLM değilmiş, o zaman gerçek AI değil."** | "Doğru, LLM değil ve bunu ürünün içinde de açıkça yazıyoruz. Bunun karşılığında: mesaj başına maliyet sıfır, gecikme sıfır, **halüsinasyon sıfır**. Finansal rakamda halüsinasyon, bir asistanın yapabileceği en pahalı hatadır. Mimari LLM'e geçişe hazır — ajanın yanıt mantığı tek dosyada izole, saf fonksiyonlar; anahtar takılınca geçiş tek noktadan yapılır." |
 | **"Veri tarayıcıda, cihaz değişince ne olacak?"** | "Bugün CSV dışa/içe aktarma ile taşınıyor. Bu bilinçli bir tercih: hesap yok, KYC yok, sunucu yok → **veri sızıntısı riski de yok**. Kurumsal entegrasyonda bu değişebilir, ama o zaman veriyi kim tutuyor sorusunun cevabı da değişir; masaya o kararı birlikte koyalım." |
 | **"BIST/TEFAS canlı fiyatı yoksa nasıl portföy takibi?"** | "Anahtarsız, resmî, CORS-açık bir kaynak yok — araştırdık. Uydurma fiyat göstermektense hiç göstermiyoruz; bu bir ilke. Ama **risk metriklerinde bile portföyün yüzde kaçını kapsadığımızı ekrana yazıyoruz.** Sizin veri anlaşmalarınızla bu boşluk kapanır — bu, entegrasyonun somut faydalarından biri." |
-| **"Kaç kullanıcınız var?"** | Dürüst ol: bu bir çalışan ürün ve teknik olgunluk kanıtı (21 e2e test dosyası, 387 otomatik kontrol), kullanıcı tabanı değil. "Kullanıcı tabanı sizde zaten var — 5 milyon hesap. Ben size dağıtım değil, **yetenek** getiriyorum." |
+| **"Kaç kullanıcınız var?"** | Dürüst ol: bu bir çalışan ürün ve teknik olgunluk kanıtı (23 e2e test dosyası, 415 otomatik kontrol), kullanıcı tabanı değil. "Kullanıcı tabanı sizde zaten var — 5 milyon hesap. Ben size dağıtım değil, **yetenek** getiriyorum." |
 | **"Yatırım tavsiyesi vermiş olmuyor musunuz?"** | "Ürün hiçbir varlık için al/sat önermiyor; kullanıcının **kendi verisi üzerinde matematik** yapıyor — reel getiri, volatilite, yoğunlaşma. Yine de metinlerin hukuk onayından geçmesi gerektiğini biliyorum ve bunu entegrasyonun ilk maddesi olarak koyuyorum." *(Bkz. C.4 — bu gerçek bir açık.)* |
 | **"Neden ürünü alalım, ekip alalım?"** | "İkisi de olabilir. Ama şunu unutmayın: bu ürünün mimarisi bilinçli olarak **sizin altyapınıza bağımlı olmayacak** şekilde kuruldu. Yarın entegrasyon olmasa da çalışmaya devam eder. Bu, satın alma kararınızı düşük riskli yapar." |
 
@@ -249,7 +249,7 @@ olarak değil, ürün geri bildirim kanalı olarak tut.
 |---|---|
 | **"Neden şimdi?"** | "%32 enflasyon reel getiriyi soyut bir kavram olmaktan çıkardı. Ayrıca kripto, hisse ve fon yatırımcı sayıları aynı anda rekor seviyede — parçalanma hiç bu kadar büyük olmamıştı." |
 | **"AI değilse neden AI diyorsunuz?"** | "Demiyoruz. Ürünün içinde LLM olmadığı açıkça yazılı. Sattığımız şey model değil, **doğru finansal matematik + doğru zamanlama**." |
-| **"Tek kişilik proje mi?"** | Dürüst ol. Karşılığında göster: 21 e2e test dosyası, 387 otomatik kontrol, dokümante edilmiş mimari kuralları (`AGENTS.md`). "Ölçek yok ama disiplin var." |
+| **"Tek kişilik proje mi?"** | Dürüst ol. Karşılığında göster: 23 e2e test dosyası, 415 otomatik kontrol, dokümante edilmiş mimari kuralları (`AGENTS.md`). "Ölçek yok ama disiplin var." |
 | **"Kullanıcı verisini elle girer mi gerçekten?"** | "Motive olan girer — ve zaten hedef kitle o. Ama tek başına yeterli değil; bu yüzden ilk hedef veri entegrasyonu olan bir kurum ortaklığı." |
 | **"Çıkış (exit) senaryosu?"** | Kurum tarafından satın alınma (borsa/banka/aracı kurum) en gerçekçi yol. Ürün bilinçli olarak entegre edilebilir mimaride: ajan mantığı saf ve izole. |
 
@@ -366,7 +366,7 @@ yol haritasına erişim yoktur; bu dokümandaki "Bloki (tahmini)" ifadeleri aç�
 Kaynaklar ve tam liste: [`bloki-vs-fagent.md`](bloki-vs-fagent.md) §6.
 
 **FAGENT verileri — bu repodan doğrulanmıştır:** 4.953 satır kaynak kod (`fagent/src/`),
-21 e2e test dosyası / 387 otomatik kontrol (`fagent/tests/e2e/`), 4 üretim bağımlılığı
+23 e2e test dosyası / 415 otomatik kontrol (`fagent/tests/e2e/`), 4 üretim bağımlılığı
 (react, react-dom, recharts, lucide-react).
 
 > **Uyarı:** Piyasa sayıları hızla değişir. Toplantıdan önce Bölüm 0'daki altı sayıyı

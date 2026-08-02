@@ -91,7 +91,7 @@ function isStablecoin(h: Holding): boolean {
   return STABLECOIN_NAME_TEST.test(h.name);
 }
 
-export function analyzePortfolio(s: PortfolioState): string[] {
+export function analyzePortfolio(s: PortfolioState, inflationPct: number = VARSAYILAN_ENFLASYON): string[] {
   const total = totalValue(s);
   if (!s.holdings.length) {
     return ['Portföyün henüz boş. Panel sekmesinden varlık ekle ya da örnek veriyle başla, sonra tekrar analiz edelim.'];
@@ -127,7 +127,10 @@ export function analyzePortfolio(s: PortfolioState): string[] {
   if (cashLike < 10) {
     notes.push(`Nakit benzeri (${cashLabel}) oranın %10'un altında — acil durum tamponu için biraz likidite ayırmak rahatlatır.`);
   } else if (cashLike > 60) {
-    notes.push(`Nakit benzeri ağırlık yüksek (%${fmtDec(cashLike, 0)}). Enflasyonist ortamda uzun vadede reel getiri erimesi riskine dikkat.`);
+    notes.push(
+      `Nakit benzeri ağırlık yüksek (%${fmtDec(cashLike, 0)}). %${fmtDec(inflationPct, 0)} enflasyon varsayımıyla ` +
+      `bu kısım nominal olarak durduğu yerde bile her yıl alım gücü kaybediyor.`,
+    );
   } else if (stablePct >= 10) {
     notes.push(`Portföyünün %${fmtDec(stablePct, 0)}'ı stablecoin — bunu nakit pozisyonu olarak sayıyorum, dalgalanmaya karşı tamponun var.`);
   }
@@ -275,10 +278,16 @@ function pnlBarChart(s: PortfolioState): ChartSpec | undefined {
    gerçek finans matematiğiyle okuyor. Bloki'den ayrışma noktası: Bloki reel getiri
    formülünü açıklayıp hesabı kullanıcıya bırakıyordu, Fagent hesabı kendisi yapıyor. */
 
-// Kullanıcı metinde oran vermezse kullanılır. App.tsx'teki DEFAULT_INFLATION_PCT ile AYNI olmalı —
-// kaynak: TÜİK yıllık TÜFE, Haziran 2026 (%32,11). Otomatik çekilemiyor (anahtarsız/CORS-açık uç yok),
-// bu yüzden elle güncellenen bir varsayım; değiştirirken iki dosyayı birlikte değiştir.
+// SON ÇARE geri düşme değeri. Enflasyonun tek doğruluk kaynağı artık `inflation.ts` —
+// App.tsx her çağrıda güncel oranı `inflationPct` parametresiyle geçirir (TCMB EVDS'den canlı,
+// kullanıcının girdiği ya da varsayım). agent.ts SAF kalsın diye buradan okunmaz, geçirilir.
+// Bu sabit yalnızca parametre hiç verilmediğinde (ör. doğrudan çağrılan bir test) devreye girer.
 const VARSAYILAN_ENFLASYON = 32;
+
+// Öncelik: kullanıcı cümlede bir oran yazdıysa o; yoksa App'ten gelen güncel oran; o da yoksa sabit.
+function enflasyonOrani(text: string, inflationPct?: number): number {
+  return parseInflationPct(text) ?? inflationPct ?? VARSAYILAN_ENFLASYON;
+}
 
 // Sınıf dağılımı (pasta) okuması — Herfindahl konsantrasyonu + etkin varlık sayısı.
 function readAllocationChart(s: PortfolioState): string {
@@ -305,7 +314,7 @@ function readAllocationChart(s: PortfolioState): string {
 }
 
 // Net yatırım geçmişi (alan) okuması — tempo + katkı/getiri ayrıştırması + XIRR.
-function readInvestmentChart(s: PortfolioState): string {
+function readInvestmentChart(s: PortfolioState, inflationPct?: number): string {
   const lines: string[] = [];
   const pace = investmentPaceOf(s);
   const attr = attributionOf(s);
@@ -329,10 +338,10 @@ function readInvestmentChart(s: PortfolioState): string {
   const x = xirrOf(s);
   if (x) {
     if (x.reliable) {
-      const real = realReturnPct(x.annualPct, VARSAYILAN_ENFLASYON);
+      const real = realReturnPct(x.annualPct, inflationPct ?? VARSAYILAN_ENFLASYON);
       lines.push(
         `Para-ağırlıklı yıllık getirin (XIRR) %${fmtDec(x.annualPct, 1)}. ` +
-        `%${VARSAYILAN_ENFLASYON} enflasyon varsayımıyla reel karşılığı %${fmtDec(real, 1)} ` +
+        `%${fmtDec(inflationPct ?? VARSAYILAN_ENFLASYON, 0)} enflasyon varsayımıyla reel karşılığı %${fmtDec(real, 1)} ` +
         `(Fisher: (1+nominal)/(1+enflasyon)−1; "nominal eksi enflasyon" kestirmesi burada yanıltır).`,
       );
     } else {
@@ -376,9 +385,9 @@ function readPnlChart(s: PortfolioState): string {
 }
 
 // Bir grafiğe ait sayısal okumayı döner.
-function readChart(s: PortfolioState, intentId: string): string {
+function readChart(s: PortfolioState, intentId: string, inflationPct?: number): string {
   if (intentId === 'grafik-dagilim') return readAllocationChart(s);
-  if (intentId === 'grafik-yatirim') return readInvestmentChart(s);
+  if (intentId === 'grafik-yatirim') return readInvestmentChart(s, inflationPct);
   if (intentId === 'grafik-pnl') return readPnlChart(s);
   return '';
 }
@@ -468,6 +477,7 @@ type Rule = {
     text: string,
     taxRates?: Record<AssetType, number>,
     targets?: Record<AssetType, number>,
+    inflationPct?: number,
   ) => string;
 };
 
@@ -489,11 +499,11 @@ const CHAT_RULES: Rule[] = [
   {
     id: 'reel-getiri',
     test: /reel getiri|reel kazanç|enflasyondan arınd|enflasyona göre.*(getiri|kazanç|durum)|alım gücü/i,
-    reply: (s, text) => {
+    reply: (s, text, _taxRates, _targets, inflationPct) => {
       const attr = attributionOf(s);
       if (!attr) return 'Reel getiriyi hesaplamak için önce portföyüne varlık eklemen gerek.';
       // Kullanıcı "%55 enflasyona göre..." gibi bir oran verdiyse onu kullan.
-      const inf = parseInflationPct(text) ?? VARSAYILAN_ENFLASYON;
+      const inf = enflasyonOrani(text, inflationPct);
       const realTotal = realReturnPct(attr.totalReturnPct, inf);
       const lines = [
         `Toplam nominal getirin %${fmtDec(attr.totalReturnPct, 2)} (${fmtSigned(attr.gain)} / maliyet ${fmtTL(attr.invested)}).`,
@@ -520,8 +530,8 @@ const CHAT_RULES: Rule[] = [
   {
     id: 'vergi-sonrasi',
     test: /vergi|stopaj|tevkifat|net getiri|net kazanc|net kazanç|cebe (kalan|kal)|eline geçen|vergiden sonra/i,
-    reply: (s, text, taxRates) => {
-      const inf = parseInflationPct(text) ?? VARSAYILAN_ENFLASYON;
+    reply: (s, text, taxRates, _targets, inflationPct) => {
+      const inf = enflasyonOrani(text, inflationPct);
       const r = afterTaxOf(s, inf, taxRates);
       if (!r) return 'Vergi sonrası getiriyi hesaplamak için önce portföyüne varlık eklemen gerek.';
 
@@ -574,7 +584,8 @@ const CHAT_RULES: Rule[] = [
   {
     id: 'yillik-getiri',
     test: /yıllık getiri|xirr|irr|yıllıklandır|bileşik getiri|cagr/i,
-    reply: (s) => {
+    reply: (s, text, _taxRates, _targets, inflationPct) => {
+      const inf = enflasyonOrani(text, inflationPct);
       const x = xirrOf(s);
       if (!x) return 'Yıllık getiriyi hesaplamak için işlem geçmişi gerekiyor — henüz yeterli veri yok.';
       if (!x.reliable) {
@@ -587,7 +598,7 @@ const CHAT_RULES: Rule[] = [
         `Bu, basit "son değer / ilk değer" hesabından farklıdır: paranı zaman içinde parça parça koyduğun için ` +
         `her katkının portföyde kaldığı süre ağırlıklandırılır. Teknik olarak nakit akışlarının iç verim oranıdır — ` +
         `Σ CF/(1+r)^(gün/365) = 0 denklemini çözerim.`,
-        `%${VARSAYILAN_ENFLASYON} enflasyon varsayımıyla reel karşılığı %${fmtDec(realReturnPct(x.annualPct, VARSAYILAN_ENFLASYON), 2)}.`,
+        `%${fmtDec(inf, 0)} enflasyon varsayımıyla reel karşılığı %${fmtDec(realReturnPct(x.annualPct, inf), 2)}.`,
       ].join('\n\n');
     },
   },
@@ -743,7 +754,7 @@ const CHAT_RULES: Rule[] = [
   {
     id: 'analiz',
     test: /analiz|değerlendir|yorumla/i,
-    reply: s => analyzePortfolio(s).join('\n\n'),
+    reply: (s, _t, _tr, _tg, inflationPct) => analyzePortfolio(s, inflationPct).join('\n\n'),
   },
   {
     test: /toplam|ne kadar param|portföy değer/i,
@@ -856,6 +867,11 @@ export function chatReply(
   // Kullanıcının girdiği hedef dağılım (targetAllocation.ts). Aynı gerekçeyle dışarıdan gelir.
   // App.tsx her turda TAZE okur — kart ile ajanın farklı sayı söylemesi en kötü sonuç olurdu.
   targets?: Record<AssetType, number>,
+  // Güncel enflasyon oranı (inflation.ts: TCMB EVDS'den canlı / kullanıcının girdiği / varsayım).
+  // TODO: bu imza sekiz parametreye ulaştı — bir sonraki eklemede tek bir bağlam nesnesine
+  // (`{ taxRates, targets, inflationPct }`) çevrilmeli. Şimdi yapılmadı çünkü her kuralın
+  // imzasına dokunmak, toplantı öncesi gereksiz bir kırılma riski taşıyor.
+  inflationPct?: number,
 ): AgentReply {
   const text = userText.trim();
   if (!text) return { text: 'Bir şey yazmadın — bir soru sorabilir ya da "yardım" yazabilirsin.' };
@@ -884,13 +900,13 @@ export function chatReply(
   // Takip cümlesi ("devam et", "biraz daha anlat"...) — son konuşulan konuyu genişlet.
   if (FOLLOWUP_TEST.test(text)) {
     const lastIntent = lastIntentFrom(history);
-    if (lastIntent === 'analiz') return { text: analyzePortfolio(s).join('\n\n'), intentId: 'analiz' };
+    if (lastIntent === 'analiz') return { text: analyzePortfolio(s, inflationPct).join('\n\n'), intentId: 'analiz' };
     if (lastIntent === 'grafik-dagilim' || lastIntent === 'grafik-yatirim' || lastIntent === 'grafik-pnl') {
       const chart = lastIntent === 'grafik-dagilim' ? allocationChart(s)
         : lastIntent === 'grafik-yatirim' ? investmentHistoryChart(s)
         : pnlBarChart(s);
       if (chart) {
-        const reading = readChart(s, lastIntent);
+        const reading = readChart(s, lastIntent, inflationPct);
         return {
           text: reading ? `${chart.title} grafiğini biraz daha açayım.\n\n${reading}` : `${chart.title} grafiğini büyütüyorum:`,
           chart,
@@ -904,7 +920,7 @@ export function chatReply(
   // Grafik isteği — sohbet içinde doğrudan görsel üretir.
   const chartReq = detectChartRequest(s, text);
   if (chartReq) {
-    const reading = readChart(s, chartReq.intentId);
+    const reading = readChart(s, chartReq.intentId, inflationPct);
     return {
       text: reading ? `İşte "${chartReq.chart.title}" grafiğin.\n\n${reading}` : `İşte "${chartReq.chart.title}" grafiğin:`,
       chart: chartReq.chart,
@@ -919,7 +935,7 @@ export function chatReply(
   // Genel niyet kuralları (analiz, dağılım, risk, enflasyon, küçük sohbet...).
   for (const rule of CHAT_RULES) {
     if (rule.test.test(text)) {
-      return { text: rule.reply(s, text, taxRates, targets), intentId: rule.id };
+      return { text: rule.reply(s, text, taxRates, targets, inflationPct), intentId: rule.id };
     }
   }
 

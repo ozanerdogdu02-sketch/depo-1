@@ -357,6 +357,52 @@ eşleşti ve `fagent-hedef-e2e.mjs` kırıldı. Doğrusu kart BAŞLIĞINA bağla
 `.filter({ has: page.locator('.card-title', { hasText: '…' }) })`. Yeni kart eklerken mevcut
 testlerin gövde-metni seçicilerini tara.
 
+### 1.20 TCMB EVDS entegrasyonu — canlı enflasyon (`inflation.ts`, `evds.ts`, Netlify Function)
+
+§1.17'de "resmî ama anahtar gerektiriyor" diye kenara konan EVDS devreye alındı. **Kullanıcı
+kararı: Netlify Function proxy** (soruldu). Gerekçe: anahtar sunucu tarafında kalır, tarayıcıya
+inmez ve CORS sorunu hiç doğmaz çünkü isteği sunucu atar. Bedeli bilinçli kabul edildi —
+ürün artık tam anlamıyla "sunucusuz" değil; toplantıda söylenecek cümle: *"portföy verisi asla
+çıkmıyor; sunucudan geçen tek şey TCMB'nin kamuya açık serisi."*
+
+- **Enflasyon DÖRT yerde ayrı ayrı duruyordu** — `ProactiveInsightsCard`, `AfterTaxCard`,
+  `Projeksiyon` kendi `useState`'leri + `agent.ts` → `VARSAYILAN_ENFLASYON`. Üçü de "Enflasyon
+  varsayımın (%)" etiketli kutu gösteriyordu ama biri değiştirilince diğerleri eski değeri
+  kullanmaya devam ediyordu (aynı ekranda iki farklı reel getiri). **`inflation.ts` bunları
+  birleştirdi** — `useSyncExternalStore`, `store.ts`'in deseni.
+- **Üç kaynak durumu, arayüzde AÇIKÇA yazılır:** `varsayim` (elle güncellenen sabit) ·
+  `evds` (canlı, dönem etiketiyle) · `kullanici` (senaryo denemesi, canlıyı da ezer).
+  Kullanıcı bir oranın resmî mi varsayım mı olduğunu bilmeden ona güvenmemeli.
+- **`evds.ts` HİÇBİR KOŞULDA throw etmez** — başarısızlıkta `undefined`. Enflasyon her yerde
+  kullanılıyor; buradan çıkan bir istisna Panel'i çökertirdi. Ayrıca akla yatkınlık kontrolü
+  var (−50 … +500 dışı reddedilir): ayrıştırma kayarsa "veri yok" der, uydurma sayı üretmez.
+- **Yıllık değişim ENDEKSTEN hesaplanır** (son gözlem / 13 gözlem öncesi). Böylece serinin baz
+  yılı (2003=100 vb.) sonucu etkilemez ve "yıllık % değişim" serisinin kodunu bilmeye gerek kalmaz.
+- **`TUFE_SERIES = 'TP.FG.J0'` DOĞRULANMADI** — kullanıcı EVDS arayüzünden teyit edecek. Yanlışsa
+  proxy boş döner, varsayıma düşülür, ekranda yanlış sayı ÇIKMAZ. Bu yüzden tahmin etmek güvenli.
+- **`agent.ts` saf kaldı:** `chatReply` 8. parametre olarak `inflationPct` alıyor,
+  `Rule.reply` imzası `(s, text, taxRates?, targets?, inflationPct?)` oldu.
+  **TODO kod içine yazıldı:** bir sonraki eklemede imza tek bir bağlam nesnesine çevrilmeli.
+- **`netlify.toml` ilk kez eklendi** (`fagent/netlify.toml`) — yollar base directory'ye GÖRELİ,
+  yani `publish = "dist"`, `"fagent/dist"` değil. Fonksiyon seri kodunu BİÇİM kısıtından geçirir
+  (`^[A-Z0-9]+(\.[A-Z0-9]+)+$`) — açık bir proxy'yi keyfî istek iletmeye çevirmemek için.
+  TCMB'nin ham hata gövdesi istemciye AKTARILMAZ.
+- **Test:** `fagent-evds-e2e.mjs` (26 kontrol) — canlı değere geçiş, kaynak etiketi, üç kart +
+  ajanın AYNI oranı söylemesi, 503/502/ağ kopması/bozuk yanıtta sessiz geri düşme, önbellek,
+  kullanıcı oranının canlıyı ezmesi. Toplam **415 kontrol / 23 dosya**.
+
+**DOĞRULAMA SINIRI — dokümana da yazıldı:** Netlify Function bu ortamda koşturulamadı (ne
+netlify-cli var ne dış ağ). İstemci `page.route()` taklidiyle test edildi; **fonksiyonun kendisi
+yalnızca gerçek deploy'da doğrulanabilir.** "Test edildi" denmeyecek.
+
+**Yakalanan gerçek hata — örtük davranış kaybı.** Kartlar kendi `useState`'lerini tutarken
+SIFIRLA enflasyonu kendiliğinden sıfırlıyordu (onboarding'e dönüş → unmount → varsayılanla
+yeniden mount). Paylaşılan modül durumuna geçince bu örtük davranış kayboldu: kullanıcının
+girdiği %0 sıfırlamadan sağ çıkıyor ve nakit erimesi uyarısı bir daha hiç görünmüyordu.
+`resetInflation()` eklendi (SIFIRLA artık YEDİ katmanı temizliyor). **Ders:** yerel state'i
+paylaşılan state'e taşırken, mount/unmount'a bağlı örtük sıfırlamaların da açıkça yeniden
+yazılması gerekir.
+
 ## 2. Aura Finance (BDT günlüğü + abonelik demosu)
 
 - **Konum:** repo kökü (`src/`) + `server/`

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { PieChart, Pie, Cell, Tooltip, AreaChart, Area, BarChart, Bar, LineChart, Line, Legend, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import {
   Bot, Send, TrendingUp, Trash2, RotateCcw, LayoutDashboard, ArrowLeftRight, BookOpen,
@@ -17,6 +17,7 @@ import { afterTaxOf, UNVERIFIED_TAX, driftOf } from './analytics';
 import { getTaxRates, setTaxRate, isCustomRate, resetTaxRates, TaxRates } from './taxRates';
 import { getTargets, setTarget, hasTargets, resetTargets, TargetAllocation } from './targetAllocation';
 import { downloadBackup, restoreBackup, getBackupMeta, shouldNudge, dismissNudge, resetBackupMeta, STALE_AFTER_DAYS } from './backup';
+import { useInflation, setUserInflation, loadLiveInflation, inflationSourceLabel, getInflation, resetInflation } from './inflation';
 import { exportHoldingsCsv, exportTxnsCsv, parseHoldingsCsv } from './csv';
 import { CURRENCIES, COINS, fetchTryRate, fetchCryptoTryPrice, MarketFetchError } from './market';
 import { CryptoMarket } from './CryptoMarket';
@@ -91,7 +92,7 @@ function formatFetchedAt(iso: string): string {
 // Haziran 2026 → %32,11 (yuvarlanarak 32). agent.ts'teki VARSAYILAN_ENFLASYON ile aynı tutulmalı —
 // ikisi ayrışırsa Panel'in kartı ile ajanın metni farklı oran söyler. Güncellerken ikisini birlikte
 // değiştir ve fagent-insight-e2e.mjs'i çalıştır.
-const DEFAULT_INFLATION_PCT = 32;
+
 
 function insightVisual(level: Insight['level']): { icon: typeof AlertTriangle; color: string } {
   if (level === 'uyari') return { icon: AlertTriangle, color: 'var(--red)' };
@@ -103,9 +104,11 @@ function insightVisual(level: Insight['level']): { icon: typeof AlertTriangle; c
 // yüzeye çıkan proaktif içgörüler + gerçek reel getiri (enflasyon karşısında alım gücü) uyarısı.
 function ProactiveInsightsCard({ targets }: { targets: TargetAllocation }) {
   const s = usePortfolio();
-  const [inflation, setInflation] = useState(DEFAULT_INFLATION_PCT);
+  // Enflasyon artık PAYLAŞILAN durumdan gelir (inflation.ts) — üç kart da aynı sayıyı görür.
   // targets Panel'den gelir (kardeş kart TargetAllocationCard onu düzenler) — böylece hedef
   // değiştiği anda sapma içgörüsü de tazelenir. İki kartın ayrı state tutması bayat sayı üretirdi.
+  const inf = useInflation();
+  const inflation = inf.pct;
   const insights = useMemo(() => proactiveInsights(s, inflation, targets), [s, inflation, targets]);
   if (insights.length === 0) return null;
 
@@ -137,9 +140,12 @@ function ProactiveInsightsCard({ targets }: { targets: TargetAllocation }) {
           id="inflation-input" className="input" type="number" min="0" max="200"
           style={{ width: 72, padding: '5px 8px', fontSize: 13 }}
           value={inflation}
-          onChange={e => setInflation(Math.min(200, Math.max(0, Number(e.target.value))))}
+          onChange={e => setUserInflation(Number(e.target.value))}
         />
-        <span className="hint" style={{ margin: 0, flex: '1 1 240px' }}>— reel getiri bu orana göre hesaplanır (canlı veri değil, senin varsayımın).</span>
+        <span className="hint" style={{ margin: 0, flex: '1 1 240px' }}>
+          — kaynak: <span style={{ color: inf.source === 'evds' ? 'var(--accent)' : 'var(--faint)' }}>{inflationSourceLabel(inf)}</span>.
+          Reel getiri hesapları bu orana dayanır; kendi oranını girerek senaryo deneyebilirsin.
+        </span>
       </div>
     </div>
   );
@@ -150,7 +156,8 @@ function ProactiveInsightsCard({ targets }: { targets: TargetAllocation }) {
 // sözün karşılığı. Oranlar taxRates.ts ile kalıcı, ajan da aynı oranları kullanıyor.
 function AfterTaxCard() {
   const s = usePortfolio();
-  const [inflation, setInflation] = useState(DEFAULT_INFLATION_PCT);
+  const inf = useInflation();
+  const inflation = inf.pct;
   const [rates, setRates] = useState<TaxRates>(() => getTaxRates());
   const [open, setOpen] = useState(false);
   const result = useMemo(() => afterTaxOf(s, inflation, rates), [s, inflation, rates]);
@@ -188,7 +195,7 @@ function AfterTaxCard() {
           >
             %{fmtDec(result.realNetReturnPct, 2)}
           </div>
-          <div className="hint" style={{ margin: 0 }}>%{inflation} enflasyona göre</div>
+          <div className="hint" style={{ margin: 0 }}>%{inflation} enflasyona göre · {inflationSourceLabel(inf)}</div>
         </div>
       </div>
 
@@ -198,7 +205,7 @@ function AfterTaxCard() {
           id="tax-inflation" className="input" type="number" min="0" max="200"
           style={{ width: 72, padding: '5px 8px', fontSize: 13 }}
           value={inflation}
-          onChange={e => setInflation(Math.min(200, Math.max(0, Number(e.target.value))))}
+          onChange={e => setUserInflation(Number(e.target.value))}
         />
         <button className="btn btn-secondary btn-inline" style={{ padding: '4px 10px', fontSize: 12.5 }} onClick={() => setOpen(o => !o)}>
           {open ? 'Oranları gizle' : 'Stopaj oranlarını düzenle'}
@@ -1108,7 +1115,8 @@ function Projeksiyon() {
   const [monthly, setMonthly] = useState(5000);
   const [years, setYears] = useState(10);
   const [rates, setRates] = useState<{ dusuk: number; orta: number; yuksek: number }>({ dusuk: 20, orta: 35, yuksek: 50 });
-  const [inflation, setInflation] = useState(DEFAULT_INFLATION_PCT);
+  const inf = useInflation();
+  const inflation = inf.pct;
 
   const start = totalValue(s);
   const inflationFactor = Math.pow(1 + inflation / 100, years); // süre sonu fiyat seviyesi (bugüne indirgeme böleni)
@@ -1152,7 +1160,7 @@ function Projeksiyon() {
           </div>
           <div>
             <label className="field" htmlFor="p-inflation">Enflasyon varsayımın (%)</label>
-            <input id="p-inflation" className="input" type="number" min="0" max="200" value={inflation} onChange={e => setInflation(Math.min(200, Math.max(0, Number(e.target.value))))} />
+            <input id="p-inflation" className="input" type="number" min="0" max="200" value={inflation} onChange={e => setUserInflation(Number(e.target.value))} />
           </div>
         </div>
         <div className="grid-3" style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
@@ -1511,7 +1519,7 @@ function Ajan() {
   const runAnalysis = () => {
     recordTurn('analiz', []);
     recordAnalysis();
-    const lines = analyzePortfolio(s);
+    const lines = analyzePortfolio(s, getInflation().pct);
     if (lines[0]) recordAdvice(lines[0]); // ilk analiz cümlesini "son öneri" olarak belleğe düş
     refreshMem();
     setMessages(m => [
@@ -1527,7 +1535,7 @@ function Ajan() {
     const userMsg: AgentMessage = { role: 'user', text };
     // Stopaj oranları ve hedef dağılım her turda TAZE okunuyor — kullanıcı Panel'deki kartta
     // değiştirdiyse ajan da aynı sayıyı kullansın (iki yerde farklı sayı söylemek en kötüsü olurdu).
-    const reply = chatReply(s, text, messages, getProfile(), facts, getTaxRates(), getTargets());
+    const reply = chatReply(s, text, messages, getProfile(), facts, getTaxRates(), getTargets(), getInflation().pct);
     recordTurn(reply.intentId, extractMentionedHoldings(s, text));
     recordQuestion(text);
     // Ajanın verdiği anlamlı (fallback/öneri-bekleyen olmayan) cevapları "son öneri/uyarı" belleğine düş.
@@ -1723,6 +1731,11 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('panel');
   const [query, setQuery] = useState('');
 
+  // Canlı enflasyonu bir kez dene (TCMB EVDS → Netlify Function proxy). Başarısızlık SESSİZDİR:
+  // fonksiyon yoksa (yerel geliştirme), anahtar tanımsızsa ya da TCMB yanıt vermezse elle
+  // girilen varsayım olduğu gibi kalır ve kullanıcıya hiçbir hata gösterilmez.
+  useEffect(() => { void loadLiveInflation(); }, []);
+
   const resetAll = () => {
     if (confirm('Tüm veriler silinsin ve başa dönülsün mü?')) {
       actions.reset();
@@ -1730,7 +1743,8 @@ export default function App() {
       resetTraining();
       resetTaxRates();
       resetTargets();
-      resetBackupMeta(); // yedek geçmişi de kullanıcı verisidir
+      resetBackupMeta();
+      resetInflation(); // kullanıcının girdiği enflasyon oranı da kullanıcı verisidir
       // Not: actions.reset() onboarded'ı false yapar, Panel unmount olur; bir sonraki
       // onboarding'de yeniden mount olup getTargets()/getTaxRates()'i TAZE okur — bu yüzden
       // kart state'lerini ayrıca sıfırlamak gerekmiyor.

@@ -21,8 +21,14 @@ Yaygın uygulamalar brütte durur; bir kısmı reeli hesaplar. Vergi halkasını
 > tamamlayıcısı olduğu: [`../docs/bloki-vs-fagent.md`](../docs/bloki-vs-fagent.md)
 
 **Temel ilke: API anahtarı gerektirmez.** Hiçbir özellik, istemci tarafında bir Anthropic/OpenAI
-anahtarı olmadan çalışmayı bırakmaz. Tüm veriler yalnızca tarayıcıda (`localStorage`) tutulur —
-sunucu yok, veri toplama yok.
+anahtarı olmadan çalışmayı bırakmaz. Portföy verisi yalnızca tarayıcıda (`localStorage`) tutulur —
+veri toplama yok.
+
+**Tek istisna — TCMB EVDS (opsiyonel):** enflasyon oranını resmî kaynaktan çekmek için bir Netlify
+Function proxy'si var (`netlify/functions/evds.mjs`). Anahtar sunucu ortam değişkeninde durur,
+istemciye HİÇ inmez ve **portföy verisi bu isteğe dahil edilmez** — sunucudan geçen tek şey TCMB'nin
+kamuya açık serisidir. Anahtar tanımsızsa ya da fonksiyon yoksa uygulama elle girilen varsayımla
+tam çalışmaya devam eder; canlı veri bir bonustur, şart değildir.
 
 ## Kurulum ve Geliştirme
 
@@ -48,6 +54,10 @@ src/
   targetAllocation.ts — kullanıcının girdiği HEDEF dağılım (localStorage; varsayılanı YOK)
   backup.ts         — tam veri yedeği: beş katmanı tek JSON'da dışa/geri al (beyaz listeli)
   ErrorBoundary.tsx — render hatasında beyaz ekran yerine veri kurtarma ekranı
+  inflation.ts      — enflasyon oranının TEK KAYNAĞI (varsayım / TCMB EVDS / kullanıcı)
+  evds.ts           — TCMB EVDS istemcisi; hata FIRLATMAZ, başarısızlıkta varsayıma düşülür
+netlify/
+  functions/evds.mjs — EVDS proxy'si: API anahtarı YALNIZCA burada (sunucu ortam değişkeni)
   analytics.ts      — FİNANSAL MATEMATİK (saf): reel getiri, XIRR, HHI, volatilite,
                       maks. düşüş, Sharpe, korelasyon, kovaryansla çeşitlendirme faydası,
                       vergi sonrası net getiri (DEFAULT_TAX_RATES + afterTaxOf),
@@ -213,9 +223,18 @@ Sidebar'daki **SIFIRLA** üçünü de temizler.
 - **Risk metrikleri portföyün tamamını kapsamaz:** tarihsel seri yalnızca canlı fiyata bağlı
   kripto/döviz için çekilebiliyor. Bu gizlenmez — risk raporu portföyün yüzde kaçını kapsadığını
   (`coveragePct`) ve kapsam dışı her varlığın nedenini arayüzde açıkça yazar.
-- **Enflasyon oranı elle güncellenen bir varsayımdır** (anahtarsız/CORS-açık bir TÜİK ucu yok).
-  Başlangıç değeri iki yerde tanımlı ve aynı tutulmalı: `App.tsx` → `DEFAULT_INFLATION_PCT`,
-  `agent.ts` → `VARSAYILAN_ENFLASYON`. Kullanıcı arayüzden kendi oranını girebilir.
+- **Enflasyon oranının tek kaynağı `inflation.ts`'tir.** Üç durumdan biri olabilir ve arayüz
+  hangisi olduğunu AÇIKÇA yazar: `varsayim` (elle güncellenen sabit, TÜİK son yıllık TÜFE),
+  `evds` (TCMB EVDS'den canlı), `kullanici` (senaryo denemesi için elle girilen). Kullanıcının
+  girdiği oran canlı veriyi de ezer; SIFIRLA bu geçersiz kılmayı temizler.
+  Daha önce aynı sayı DÖRT yerde ayrı ayrı duruyordu (iki kart + projeksiyon + `agent.ts` sabiti)
+  ve biri değiştirilince diğerleri eski değeri kullanmaya devam ediyordu — birleştirildi.
+- **EVDS seri kodu (`evds.ts` → `TUFE_SERIES`) HENÜZ DOĞRULANMADI.** Yanlışsa proxy boş yanıt
+  verir, istemci `undefined` döner ve varsayıma düşülür — ekranda yanlış bir sayı ÇIKMAZ.
+  Yıllık değişim endeksin kendisinden hesaplandığı için serinin baz yılı sonucu etkilemez.
+- **Netlify Function gerçek deploy dışında koşturulamadı** (ne netlify-cli var ne dış ağ erişimi).
+  İstemci tarafı `page.route()` taklidiyle test edildi; fonksiyonun kendisi yalnızca canlı
+  deploy'da doğrulanabilir — "test edildi" DEĞİLDİR.
 - **Stopaj oranları da elle güncellenen varsayımdır** (`analytics.ts` → `DEFAULT_TAX_RATES`).
   Kaynak: 27.03.2026 tarihli 11107 sayılı Cumhurbaşkanı Kararı — fon ve 6 aya kadar vadeli TL
   mevduat %17,5; BIST pay senedi alım-satımında stopaj yok. **Kripto/altın/döviz için doğrulanmış
@@ -238,7 +257,7 @@ Sidebar'daki **SIFIRLA** üçünü de temizler.
 
 ## Test Kapsamı
 
-Playwright e2e testleri artık **repo içinde**: `fagent/tests/e2e/` — 21 dosya, **387 kontrol**.
+Playwright e2e testleri artık **repo içinde**: `fagent/tests/e2e/` — 23 dosya, **415 kontrol**.
 
 ```bash
 npm run test:e2e     # Vite dev sunucusunu başlatır, tüm takımları sırayla çalıştırır
