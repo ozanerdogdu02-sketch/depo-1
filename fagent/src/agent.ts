@@ -10,7 +10,7 @@ import { AgentMemoryProfile, RiskLevel, AgentMode, VadeTercihi, mostAskedTopic, 
 import { TrainedFact, findBestMatch } from './agentTraining';
 import {
   realReturnPct, xirrOf, concentrationOf, attributionOf, contributionOf, investmentPaceOf,
-  parseInflationPct, afterTaxOf,
+  parseInflationPct, afterTaxOf, allocation, driftOf,
 } from './analytics';
 
 export interface ChartSpec {
@@ -64,6 +64,7 @@ const INTENT_LABELS: Record<string, string> = {
   'reel-getiri': 'reel getiri',
   'vergi-sonrasi': 'vergi sonrası net getiri',
   'risk-metrik': 'risk metrikleri',
+  'hedef-dagilim': 'hedef dağılım sapması',
   trained: 'senin öğrettiğin bir konu',
 };
 
@@ -77,15 +78,6 @@ const VADE_LABELS: Record<VadeTercihi, string> = { kisa: 'kısa', orta: 'orta', 
 export function extractMentionedHoldings(s: PortfolioState, text: string): string[] {
   const q = text.toLocaleLowerCase('tr-TR');
   return s.holdings.filter(h => q.includes(h.name.toLocaleLowerCase('tr-TR'))).map(h => h.name);
-}
-
-function allocation(s: PortfolioState): { type: AssetType; amount: number; pct: number }[] {
-  const total = totalValue(s);
-  const byType = new Map<AssetType, number>();
-  for (const h of s.holdings) byType.set(h.type, (byType.get(h.type) ?? 0) + h.amount);
-  return [...byType.entries()]
-    .map(([type, amount]) => ({ type, amount, pct: total ? (amount / total) * 100 : 0 }))
-    .sort((a, b) => b.amount - a.amount);
 }
 
 // Stablecoin tespiti — canlı fiyata bağlıysa CoinGecko id'sinden, değilse addan.
@@ -167,7 +159,13 @@ export interface Insight {
 // nakit benzeri varlıkların (mevduat/döviz/stablecoin) enflasyon karşısındaki yıllık alım gücü
 // kaybını somut TL olarak gösterir. SAF fonksiyon — I/O yok, enflasyon varsayımı dışarıdan
 // (kullanıcı düzenleyebilir) geçirilir; sabit/uydurma bir oran gömülmez.
-export function proactiveInsights(s: PortfolioState, inflationPct: number): Insight[] {
+export function proactiveInsights(
+  s: PortfolioState,
+  inflationPct: number,
+  // Kullanıcının girdiği hedef dağılım (targetAllocation.ts). Verilmezse hedef içgörüsü çıkmaz —
+  // hedef girmemiş kullanıcıya sapma uyarısı göstermek anlamsız olurdu.
+  targets?: Record<AssetType, number>,
+): Insight[] {
   const out: Insight[] = [];
   const total = totalValue(s);
   if (total <= 0) return out;
@@ -208,7 +206,21 @@ export function proactiveInsights(s: PortfolioState, inflationPct: number): Insi
     });
   }
 
-  // 4) Genel kâr/zarar bilgisi (nötr, referans)
+  // 4) Hedef dağılımdan sapma — yalnızca kullanıcı bir hedef girdiyse.
+  //    Betimleyici kip: ne olduğunu söyler, ne yapılacağını değil (bkz. CLAUDE.md §1.13).
+  const drift = targets ? driftOf(s, targets) : undefined;
+  if (drift && drift.breachedCount > 0) {
+    const worst = drift.rows.find(r => r.breached)!;
+    const yon = worst.driftPp > 0 ? 'üzerinde' : 'altında';
+    out.push({
+      level: 'uyari',
+      text: `${drift.breachedCount} sınıf kendi belirlediğin hedef bandının dışında. En büyük sapma ` +
+        `${ASSET_LABELS[worst.type]}: hedefin %${fmtDec(worst.targetPct, 0)}, güncel %${fmtDec(worst.actualPct, 1)} — ` +
+        `hedefinin ${fmtDec(Math.abs(worst.driftPp), 1)} puan ${yon} (bandın ${fmtDec(worst.bandPp, 1)} puan).`,
+    });
+  }
+
+  // 5) Genel kâr/zarar bilgisi (nötr, referans)
   const cost = totalCost(s);
   if (cost > 0) {
     const { abs, pct } = pnlOf(total, cost);
@@ -446,12 +458,17 @@ function holdingLookupReply(s: PortfolioState, text: string): string | undefined
 
 // --- Genel niyetler ---------------------------------------------------------
 
-// Kurallar oranları 3. parametreden alır — böylece agent.ts saf kalır (localStorage'a
-// dokunmaz), kullanıcının düzenlediği oranlar App.tsx'ten geçirilir.
+// Kurallar stopaj oranlarını 3., hedef dağılımı 4. parametreden alır — böylece agent.ts saf
+// kalır (localStorage'a dokunmaz), kullanıcının düzenlediği değerler App.tsx'ten geçirilir.
 type Rule = {
   id?: string;
   test: RegExp;
-  reply: (s: PortfolioState, text: string, taxRates?: Record<AssetType, number>) => string;
+  reply: (
+    s: PortfolioState,
+    text: string,
+    taxRates?: Record<AssetType, number>,
+    targets?: Record<AssetType, number>,
+  ) => string;
 };
 
 const CHAT_RULES: Rule[] = [
@@ -589,6 +606,69 @@ const CHAT_RULES: Rule[] = [
         `En büyük pozisyon ${c.topName} (%${fmtDec(c.topWeightPct, 1)}). Seviye: ` +
         (c.level === 'yuksek' ? 'yoğun (HHI > 0,25).' : c.level === 'orta' ? 'orta (HHI 0,15–0,25).' : 'dağıtık (HHI < 0,15).'),
       ].join('\n\n');
+    },
+  },
+  // ── Hedef dağılım sapması — %5/%25 bandı ──────────────────────────────────────────
+  // 'dagilim' kuralından ÖNCE gelmeli: onun testi (/dağılım/) "hedef dağılımım nasıl"ı da
+  // yakalar ve önce eşleşen kural kazanır.
+  // Sınır: hedefi kullanıcı girer, ürün ÖNERMEZ — bkz. targetAllocation.ts başlığı.
+  {
+    id: 'hedef-dagilim',
+    test: /hedef dağılım|hedef dagilim|hedefim|sapma|dengele|denge(m|si)? (nasıl|ne)|band(ın|ım|im)? dışında|rebalance|yeniden denge/i,
+    reply: (s, _text, _taxRates, targets) => {
+      if (!s.holdings.length) return 'Hedef sapmanı ölçmek için önce portföyüne varlık eklemen gerek.';
+      const d = targets ? driftOf(s, targets) : undefined;
+      if (!d) {
+        return [
+          'Henüz bir hedef dağılım girmemişsin, o yüzden ölçecek bir sapma yok.',
+          'Panel sekmesindeki "Hedef Dağılım" kartından her varlık sınıfı için hedef ağırlığını (%) girebilirsin. ' +
+          'Sonra sana kendi hedefinden ne kadar uzaklaştığını puan puan söylerim.',
+          'Not: sana bir hedef ÖNERMİYORUM — hangi dağılımın doğru olduğu senin kararın, ben yalnızca ' +
+          'senin koyduğun hedefe göre sapmayı hesaplarım.',
+        ].join('\n\n');
+      }
+
+      const lines: string[] = [];
+      if (d.breachedCount === 0) {
+        lines.push('Bütün sınıflar kendi bandının içinde — hedef dağılımınla aran açılmamış.');
+      } else {
+        lines.push(`${d.breachedCount} sınıf bandının dışında:`);
+        lines.push(
+          d.rows.filter(r => r.breached).map(r => {
+            const yon = r.driftPp > 0 ? 'üzerinde' : 'altında';
+            const tutar = r.gapTL >= 0
+              ? `hedefe eşitlemek ${fmtTL(Math.abs(r.gapTL))} eksik`
+              : `hedefin ${fmtTL(Math.abs(r.gapTL))} üzerinde`;
+            return `• ${ASSET_LABELS[r.type]}: hedef %${fmtDec(r.targetPct, 0)}, güncel %${fmtDec(r.actualPct, 1)} — ` +
+              `${fmtDec(Math.abs(r.driftPp), 1)} puan ${yon} (bant ${fmtDec(r.bandPp, 1)} puan; ${tutar}).`;
+          }).join('\n'),
+        );
+      }
+
+      const icerde = d.rows.filter(r => !r.breached);
+      if (icerde.length > 0 && d.breachedCount > 0) {
+        lines.push(`Bandın içinde kalanlar: ${icerde.map(r => ASSET_LABELS[r.type]).join(', ')}.`);
+      }
+
+      lines.push(
+        'Bandı %5/%25 kuralıyla belirliyorum: bir sınıf hedefinden 5 puandan fazla ya da hedefinin ' +
+        '%25\'inden fazla saparsa denge bozulmuş sayılır — hangisi önce tetiklerse. Yani bant = ' +
+        'min(5 puan, hedefin dörtte biri). Küçük hedeflerde 5 puan çok gevşek, büyük hedeflerde %25 çok ' +
+        'gevşek kalırdı; ikisinin küçüğü her iki ucu da korur.',
+      );
+
+      if (Math.round(d.targetSumPct) !== 100) {
+        lines.push(
+          `Uyarı: girdiğin hedeflerin toplamı %${fmtDec(d.targetSumPct, 1)}, %100 değil. Hesabı yine de ` +
+          'yaptım ama sayıları kendiliğinden düzeltmedim — hangi sınıfın payını değiştireceğine sen karar ver.',
+        );
+      }
+
+      lines.push(
+        'Bu bir ölçüm, yatırım tavsiyesi değil: hedefi sen koydun, ben yalnızca hedefinle güncel durumun ' +
+        'arasındaki farkı hesaplıyorum.',
+      );
+      return lines.join('\n\n');
     },
   },
   // ── Risk metrikleri: GERÇEK tarihsel fiyattan hesaplanır, ama kapsam sınırlıdır ───
@@ -769,6 +849,9 @@ export function chatReply(
   // Kullanıcının düzenlediği stopaj oranları (taxRates.ts). Verilmezse DEFAULT_TAX_RATES.
   // agent.ts saf kalsın diye localStorage'a burada DEĞİL, App.tsx'te dokunuluyor.
   taxRates?: Record<AssetType, number>,
+  // Kullanıcının girdiği hedef dağılım (targetAllocation.ts). Aynı gerekçeyle dışarıdan gelir.
+  // App.tsx her turda TAZE okur — kart ile ajanın farklı sayı söylemesi en kötü sonuç olurdu.
+  targets?: Record<AssetType, number>,
 ): AgentReply {
   const text = userText.trim();
   if (!text) return { text: 'Bir şey yazmadın — bir soru sorabilir ya da "yardım" yazabilirsin.' };
@@ -832,7 +915,7 @@ export function chatReply(
   // Genel niyet kuralları (analiz, dağılım, risk, enflasyon, küçük sohbet...).
   for (const rule of CHAT_RULES) {
     if (rule.test.test(text)) {
-      return { text: rule.reply(s, text, taxRates), intentId: rule.id };
+      return { text: rule.reply(s, text, taxRates, targets), intentId: rule.id };
     }
   }
 

@@ -86,7 +86,7 @@ Toplantının en kritik parçası. Her itiraza **önce kabul, sonra çerçeve de
 | **"LLM değilmiş, o zaman gerçek AI değil."** | "Doğru, LLM değil ve bunu ürünün içinde de açıkça yazıyoruz. Bunun karşılığında: mesaj başına maliyet sıfır, gecikme sıfır, **halüsinasyon sıfır**. Finansal rakamda halüsinasyon, bir asistanın yapabileceği en pahalı hatadır. Mimari LLM'e geçişe hazır — ajanın yanıt mantığı tek dosyada izole, saf fonksiyonlar; anahtar takılınca geçiş tek noktadan yapılır." |
 | **"Veri tarayıcıda, cihaz değişince ne olacak?"** | "Bugün CSV dışa/içe aktarma ile taşınıyor. Bu bilinçli bir tercih: hesap yok, KYC yok, sunucu yok → **veri sızıntısı riski de yok**. Kurumsal entegrasyonda bu değişebilir, ama o zaman veriyi kim tutuyor sorusunun cevabı da değişir; masaya o kararı birlikte koyalım." |
 | **"BIST/TEFAS canlı fiyatı yoksa nasıl portföy takibi?"** | "Anahtarsız, resmî, CORS-açık bir kaynak yok — araştırdık. Uydurma fiyat göstermektense hiç göstermiyoruz; bu bir ilke. Ama **risk metriklerinde bile portföyün yüzde kaçını kapsadığımızı ekrana yazıyoruz.** Sizin veri anlaşmalarınızla bu boşluk kapanır — bu, entegrasyonun somut faydalarından biri." |
-| **"Kaç kullanıcınız var?"** | Dürüst ol: bu bir çalışan ürün ve teknik olgunluk kanıtı (19 e2e test dosyası, 314 otomatik kontrol), kullanıcı tabanı değil. "Kullanıcı tabanı sizde zaten var — 5 milyon hesap. Ben size dağıtım değil, **yetenek** getiriyorum." |
+| **"Kaç kullanıcınız var?"** | Dürüst ol: bu bir çalışan ürün ve teknik olgunluk kanıtı (20 e2e test dosyası, 355 otomatik kontrol), kullanıcı tabanı değil. "Kullanıcı tabanı sizde zaten var — 5 milyon hesap. Ben size dağıtım değil, **yetenek** getiriyorum." |
 | **"Yatırım tavsiyesi vermiş olmuyor musunuz?"** | "Ürün hiçbir varlık için al/sat önermiyor; kullanıcının **kendi verisi üzerinde matematik** yapıyor — reel getiri, volatilite, yoğunlaşma. Yine de metinlerin hukuk onayından geçmesi gerektiğini biliyorum ve bunu entegrasyonun ilk maddesi olarak koyuyorum." *(Bkz. C.4 — bu gerçek bir açık.)* |
 | **"Neden ürünü alalım, ekip alalım?"** | "İkisi de olabilir. Ama şunu unutmayın: bu ürünün mimarisi bilinçli olarak **sizin altyapınıza bağımlı olmayacak** şekilde kuruldu. Yarın entegrasyon olmasa da çalışmaya devam eder. Bu, satın alma kararınızı düşük riskli yapar." |
 
@@ -225,7 +225,7 @@ Yatırımcı bunu mutlaka soracak: *"Bunu BtcTurk/bir banka kopyalayamaz mı?"* 
   mevduat sınıflandırması — jenerik bir yurtdışı ürününde yok.
 
 **Savunulabilir olmayan (yatırımcı sorarsa önce sen söyle):**
-- Kod. 4.592 satır; yetkin bir ekip birkaç ayda benzerini yazar.
+- Kod. 4.953 satır; yetkin bir ekip birkaç ayda benzerini yazar.
 - Dağıtım. Kullanıcı tabanı yok; büyüme kanalı henüz belirsiz.
 - Veri anlaşmaları. BIST/TEFAS canlı verisi kurumsal anlaşma ister — bu tek başına aşılamaz.
 
@@ -249,7 +249,7 @@ olarak değil, ürün geri bildirim kanalı olarak tut.
 |---|---|
 | **"Neden şimdi?"** | "%32 enflasyon reel getiriyi soyut bir kavram olmaktan çıkardı. Ayrıca kripto, hisse ve fon yatırımcı sayıları aynı anda rekor seviyede — parçalanma hiç bu kadar büyük olmamıştı." |
 | **"AI değilse neden AI diyorsunuz?"** | "Demiyoruz. Ürünün içinde LLM olmadığı açıkça yazılı. Sattığımız şey model değil, **doğru finansal matematik + doğru zamanlama**." |
-| **"Tek kişilik proje mi?"** | Dürüst ol. Karşılığında göster: 19 e2e test dosyası, 314 otomatik kontrol, dokümante edilmiş mimari kuralları (`AGENTS.md`). "Ölçek yok ama disiplin var." |
+| **"Tek kişilik proje mi?"** | Dürüst ol. Karşılığında göster: 20 e2e test dosyası, 355 otomatik kontrol, dokümante edilmiş mimari kuralları (`AGENTS.md`). "Ölçek yok ama disiplin var." |
 | **"Kullanıcı verisini elle girer mi gerçekten?"** | "Motive olan girer — ve zaten hedef kitle o. Ama tek başına yeterli değil; bu yüzden ilk hedef veri entegrasyonu olan bir kurum ortaklığı." |
 | **"Çıkış (exit) senaryosu?"** | Kurum tarafından satın alınma (borsa/banka/aracı kurum) en gerçekçi yol. Ürün bilinçli olarak entegre edilebilir mimaride: ajan mantığı saf ve izole. |
 
@@ -311,7 +311,7 @@ dokunabilir. Altyapı hazır: `server/` klasöründe Anthropic proxy'si (`POST /
 | 2 | Proaktif kart metni *"getiri üreten bir sınıfa kaydırmayı değerlendirebilirsin"* diyordu — yatırım tavsiyesi sınırına yakın | Betimleyici hale getirildi: *"…nominal bakiyen düşmediği için ekranda görünmeyen bir alım gücü kaybı."* Aynı sorun `analyzePortfolio`'daki konsantrasyon uyarısında da vardı (*"ağırlığı kademeli azaltmayı değerlendirebilirsin"*) → o da düzeltildi |
 | 3 | `fagent/README.md` bayattı — analitik/risk modülleri geçmiyordu, test sayısı 154 yazıyordu | Güncellendi: 9 sekme, `analytics.ts`/`priceHistory.ts`/`cryptoMarket.ts`/`RiskPanel`/`CryptoMarket` dosya haritasına eklendi, **314 kontrol** ve `npm run test:e2e` komutu yazıldı, kapsam + enflasyon varsayımı sınırları belgelendi |
 
-Doğrulama: `npm run typecheck` temiz · `npm run build` temiz · `npm run test:e2e` **314/314 geçti**.
+Doğrulama: `npm run typecheck` temiz · `npm run build` temiz · `npm run test:e2e` **355/355 geçti**.
 
 **Not — ürün zaten üç yerde "yatırım tavsiyesi değildir" uyarısı taşıyor** (`analyzePortfolio` çıktısının
 sonu, Ajan sekmesi altbilgisi, risk paneli). Sorun uyarının yokluğu değil, birkaç metnin emir kipiyle
@@ -321,7 +321,7 @@ eylem önermesiydi — o giderildi. Hukuk görüşü yine de alınmalı.
 
 | # | Sorun | Risk | Öncelik |
 |---|---|---|---|
-| 4 | Bundle 681 kB (gzip 201 kB), kod bölme yok | Mobilde ilk açılış; teknik soruda gündeme gelir | Düşük — cevabı hazır olsun |
+| 4 | Bundle 689 kB (gzip 203 kB), kod bölme yok | Mobilde ilk açılış; teknik soruda gündeme gelir | Düşük — cevabı hazır olsun |
 | 5 | E2e testleri repoda ama CI yok | "Nasıl doğruluyorsunuz?" sorusuna cevap zayıflar | Düşük |
 
 ## C.5 Yol haritası — üç ufuk
@@ -341,7 +341,7 @@ ama **yalnızca** gizlilik mimarisini bozmayan bir tasarımla (uçtan uca şifre
 
 | Gün | Yapılacak | Çıktı |
 |---|---|---|
-| **1** | ✅ **Tamamlandı** — C.4 madde 1–3 düzeltildi (enflasyon %32, tavsiye sınırı metinleri, README). Doğrulama: typecheck + build temiz, e2e 314/314 | Demo güvenli |
+| **1** | ✅ **Tamamlandı** — C.4 madde 1–3 düzeltildi (enflasyon %32, tavsiye sınırı metinleri, README). Doğrulama: typecheck + build temiz, e2e 355/355 | Demo güvenli |
 | **2** | Demo portföyünü kur (karma: kripto + mevduat + BIST + döviz). A.4'teki 7 adımı baştan sona **iki kez** prova et, süre tut | 7 dakikada biten akış |
 | **3** | A.3 itiraz–cevap tablosunu sesli tekrar et. Bölüm 0'daki altı sayıyı ve Fisher örneğini ezberle | Notsuz konuşabilme |
 | **4** | Sunum sayfasını gözden geçir, muhataba göre bölüm seç. `fagent/README.md`'yi güncelle (C.4 madde 3) | Sunum + doküman hazır |
@@ -365,8 +365,8 @@ ama **yalnızca** gizlilik mimarisini bozmayan bir tasarımla (uçtan uca şifre
 yol haritasına erişim yoktur; bu dokümandaki "Bloki (tahmini)" ifadeleri açıkça tahmindir.
 Kaynaklar ve tam liste: [`bloki-vs-fagent.md`](bloki-vs-fagent.md) §6.
 
-**FAGENT verileri — bu repodan doğrulanmıştır:** 4.592 satır kaynak kod (`fagent/src/`),
-19 e2e test dosyası / 314 otomatik kontrol (`fagent/tests/e2e/`), 4 üretim bağımlılığı
+**FAGENT verileri — bu repodan doğrulanmıştır:** 4.953 satır kaynak kod (`fagent/src/`),
+20 e2e test dosyası / 355 otomatik kontrol (`fagent/tests/e2e/`), 4 üretim bağımlılığı
 (react, react-dom, recharts, lucide-react).
 
 > **Uyarı:** Piyasa sayıları hızla değişir. Toplantıdan önce Bölüm 0'daki altı sayıyı

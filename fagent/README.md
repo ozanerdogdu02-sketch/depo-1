@@ -45,9 +45,11 @@ src/
   agentMemory.ts    — Ajan'ın UZUN SÜRELİ belleği (kullanım istatistiği, localStorage)
   agentTraining.ts  — Ajan'ın EĞİTİLEBİLİR bilgi tabanı (öğretilen soru-cevaplar, localStorage)
   taxRates.ts       — kullanıcının düzenlediği stopaj oranları (localStorage)
+  targetAllocation.ts — kullanıcının girdiği HEDEF dağılım (localStorage; varsayılanı YOK)
   analytics.ts      — FİNANSAL MATEMATİK (saf): reel getiri, XIRR, HHI, volatilite,
                       maks. düşüş, Sharpe, korelasyon, kovaryansla çeşitlendirme faydası,
-                      vergi sonrası net getiri (DEFAULT_TAX_RATES + afterTaxOf)
+                      vergi sonrası net getiri (DEFAULT_TAX_RATES + afterTaxOf),
+                      hedef dağılım sapması / %5-%25 bandı (driftOf)
   priceHistory.ts   — tarihsel fiyat serisi (CoinGecko market_chart + Frankfurter/ECB)
                       + risk raporu; KAPSAM ORANINI (coveragePct) açıkça döner
   cryptoMarket.ts   — Kripto Piyasa sekmesinin veri katmanı (CoinGecko, önbellekli)
@@ -225,10 +227,16 @@ Sidebar'daki **SIFIRLA** üçünü de temizler.
   `toFixed()` kalır.
 - **Ajan mesajları düz metindir** — `App.tsx` `{m.text}` olarak basar, markdown ayrıştırmaz.
   Yanıt metinlerinde `**kalın**` kullanma; kullanıcıya yıldız olarak görünür.
+- **Hedef dağılım ÖNERİLMEZ, yalnızca ölçülür** (`targetAllocation.ts` → varsayılanı yoktur,
+  boş başlar). "Şu dağılımı hedefle" demek yatırım tavsiyesidir; SPK'ya göre genel yatırım
+  tavsiyesi yalnızca aracı kurum/banka/portföy yönetim şirketlerince verilebilir. Ürünün
+  yaptığı, kullanıcının KENDİ koyduğu hedeften sapmayı hesaplamaktır — bu aritmetiktir.
+  Yeni içgörü/analiz metni yazarken fiil kipini betimleyici tut ("aran şu kadar açılmış",
+  "şunu yap" değil).
 
 ## Test Kapsamı
 
-Playwright e2e testleri artık **repo içinde**: `fagent/tests/e2e/` — 19 dosya, **314 kontrol**.
+Playwright e2e testleri artık **repo içinde**: `fagent/tests/e2e/` — 20 dosya, **355 kontrol**.
 
 ```bash
 npm run test:e2e     # Vite dev sunucusunu başlatır, tüm takımları sırayla çalıştırır

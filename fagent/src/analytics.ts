@@ -105,6 +105,22 @@ export function xirrOf(s: PortfolioState, today = new Date()): XirrResult | unde
   };
 }
 
+/* ─────────────────────────  Sınıf dağılımı  ─────────────────────────
+   Varlıkları türüne göre toplar, payını yüzdeyle verir, büyükten küçüğe sıralar.
+   Önceden agent.ts içinde private duruyordu; hedef sapma hesabı da aynı toplamı
+   istediği için buraya taşındı — iki ayrı döngü iki ayrı doğruya sapabilirdi. */
+
+export interface AllocationSlice { type: AssetType; amount: number; pct: number }
+
+export function allocation(s: PortfolioState): AllocationSlice[] {
+  const total = totalValue(s);
+  const byType = new Map<AssetType, number>();
+  for (const h of s.holdings) byType.set(h.type, (byType.get(h.type) ?? 0) + h.amount);
+  return [...byType.entries()]
+    .map(([type, amount]) => ({ type, amount, pct: total ? (amount / total) * 100 : 0 }))
+    .sort((a, b) => b.amount - a.amount);
+}
+
 /* ─────────────────────────  Konsantrasyon — Herfindahl-Hirschman  ─────────────────────────
    HHI = Σ wᵢ²  (wᵢ: her varlığın portföydeki ağırlığı, 0–1)
    Tek varlıkta 1, n eşit varlıkta 1/n olur. 1/HHI = "etkin varlık sayısı":
@@ -139,6 +155,79 @@ export function concentrationOf(s: PortfolioState): Concentration | undefined {
     topWeightPct: (top.amount / value) * 100,
     level,
   };
+}
+
+/* ─────────────────────────  Hedef dağılım sapması — %5/%25 bandı  ─────────────────────────
+   Kullanıcının KENDİ koyduğu hedef ağırlıklardan ne kadar uzaklaştığını ölçer.
+
+   %5/%25 kuralı (Larry Swedroe): bir sınıf hedefinden 5 PUANDAN fazla (mutlak) VEYA hedefinin
+   %25'inden fazla (göreli) saparsa denge bozulmuş sayılır — hangisi önce tetiklerse. Küçük
+   hedeflerde 5 puanlık mutlak eşik çok gevşek kalır (hedefi %8 olan bir sınıf %13'e çıksa
+   ağırlığı katlanmış olur ama mutlak eşiği aşmaz); büyük hedeflerde göreli %25 çok gevşek
+   kalır (hedefi %60 olan sınıfın %25'i 15 puandır). İkisinin küçüğü alınınca her iki uç da
+   korunur:  bant = min(5, hedef × 0,25)  puan.
+
+   SINIR — bilinçli: burada hedef ÖNERİLMEZ, yalnızca kullanıcının girdiği hedefe göre sapma
+   ÖLÇÜLÜR. "Şu dağılımı hedefle" demek yatırım tavsiyesidir; "kendi koyduğun hedeften şu kadar
+   saptın" aritmetiktir. Fonksiyon saf: hedefler dışarıdan (targetAllocation.ts) gelir. */
+
+export const DRIFT_ABSOLUTE_BAND_PP = 5;    // mutlak eşik (puan)
+export const DRIFT_RELATIVE_BAND = 0.25;    // göreli eşik (hedefin oranı)
+
+export function driftBandOf(targetPct: number): number {
+  return Math.min(DRIFT_ABSOLUTE_BAND_PP, targetPct * DRIFT_RELATIVE_BAND);
+}
+
+export interface DriftRow {
+  type: AssetType;
+  targetPct: number;   // kullanıcının girdiği hedef ağırlık
+  actualPct: number;   // güncel gerçekleşen ağırlık
+  driftPp: number;     // actual − target (puan; + fazla, − eksik)
+  bandPp: number;      // min(5, target × 0,25)
+  breached: boolean;   // |driftPp| > bandPp  (tam sınırda sapma SAYILMAZ)
+  gapTL: number;       // hedef ağırlığa eşitlemek için aradaki tutar (+ eksik, − fazla)
+}
+
+export interface DriftResult {
+  rows: DriftRow[];      // sapma büyüklüğüne göre büyükten küçüğe
+  breachedCount: number;
+  targetSumPct: number;  // 100 değilse arayüz UYARIR — burada sessizce normalize EDİLMEZ
+  value: number;
+}
+
+export function driftOf(s: PortfolioState, targets: Record<AssetType, number>): DriftResult | undefined {
+  const value = totalValue(s);
+  if (value <= 0 || s.holdings.length === 0) return undefined;
+
+  const targetSumPct = (Object.values(targets) as number[]).reduce((a, v) => a + (v || 0), 0);
+  if (targetSumPct <= 0) return undefined; // hiç hedef girilmemiş — özellik kapalı
+
+  // Portföyde bulunan sınıflar ∪ hedefi girilmiş sınıflar. Birleşim şart: hedefi olup hiç
+  // alınmamış bir sınıf da (actual %0) sapmadır ve gösterilmelidir.
+  const actualByType = new Map(allocation(s).map(a => [a.type, a]));
+  const types = new Set<AssetType>([
+    ...actualByType.keys(),
+    ...(Object.keys(targets) as AssetType[]).filter(t => (targets[t] || 0) > 0),
+  ]);
+
+  const rows: DriftRow[] = [...types].map(type => {
+    const targetPct = targets[type] || 0;
+    const actual = actualByType.get(type);
+    const actualPct = actual?.pct ?? 0;
+    const bandPp = driftBandOf(targetPct);
+    const driftPp = actualPct - targetPct;
+    return {
+      type,
+      targetPct,
+      actualPct,
+      driftPp,
+      bandPp,
+      breached: Math.abs(driftPp) > bandPp,
+      gapTL: (targetPct / 100) * value - (actual?.amount ?? 0),
+    };
+  }).sort((a, b) => Math.abs(b.driftPp) - Math.abs(a.driftPp));
+
+  return { rows, breachedCount: rows.filter(r => r.breached).length, targetSumPct, value };
 }
 
 /* ─────────────────────────  Katkı ayrıştırma  ─────────────────────────

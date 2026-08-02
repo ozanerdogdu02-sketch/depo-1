@@ -4,7 +4,7 @@ import {
   Bot, Send, TrendingUp, Trash2, RotateCcw, LayoutDashboard, ArrowLeftRight, BookOpen,
   Search, CalendarDays, BarChart3, PieChart as PieChartIcon, Bitcoin, Pencil, Check, X, Download,
   RefreshCw, Loader2, Wifi, Upload, GraduationCap, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown,
-  Sparkles, AlertTriangle, CheckCircle2, Receipt,
+  Sparkles, AlertTriangle, CheckCircle2, Receipt, Target,
 } from 'lucide-react';
 import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, fmtDec, fmtCompact, investmentHistoryOf, todayLocalDate, ASSET_LABELS, AssetType, Holding } from './store';
 import { analyzePortfolio, chatReply, buildGreeting, extractMentionedHoldings, proactiveInsights, AgentMessage, ChartSpec, Insight } from './agent';
@@ -13,8 +13,9 @@ import {
   AgentMemoryProfile, AgentPrefs, RiskLevel, AgentMode, VadeTercihi,
 } from './agentMemory';
 import { getTrainedFacts, teach, deleteFact, recordFactUse, resetTraining, TrainedFact } from './agentTraining';
-import { afterTaxOf, UNVERIFIED_TAX } from './analytics';
+import { afterTaxOf, UNVERIFIED_TAX, driftOf } from './analytics';
 import { getTaxRates, setTaxRate, isCustomRate, resetTaxRates, TaxRates } from './taxRates';
+import { getTargets, setTarget, hasTargets, resetTargets, TargetAllocation } from './targetAllocation';
 import { exportHoldingsCsv, exportTxnsCsv, parseHoldingsCsv } from './csv';
 import { CURRENCIES, COINS, fetchTryRate, fetchCryptoTryPrice, MarketFetchError } from './market';
 import { CryptoMarket } from './CryptoMarket';
@@ -99,10 +100,12 @@ function insightVisual(level: Insight['level']): { icon: typeof AlertTriangle; c
 
 // FAGENT'ın Bloki'den ayrıştığı çekirdek: kullanıcı SORMADAN, panel açılır açılmaz otomatik
 // yüzeye çıkan proaktif içgörüler + gerçek reel getiri (enflasyon karşısında alım gücü) uyarısı.
-function ProactiveInsightsCard() {
+function ProactiveInsightsCard({ targets }: { targets: TargetAllocation }) {
   const s = usePortfolio();
   const [inflation, setInflation] = useState(DEFAULT_INFLATION_PCT);
-  const insights = useMemo(() => proactiveInsights(s, inflation), [s, inflation]);
+  // targets Panel'den gelir (kardeş kart TargetAllocationCard onu düzenler) — böylece hedef
+  // değiştiği anda sapma içgörüsü de tazelenir. İki kartın ayrı state tutması bayat sayı üretirdi.
+  const insights = useMemo(() => proactiveInsights(s, inflation, targets), [s, inflation, targets]);
   if (insights.length === 0) return null;
 
   return (
@@ -233,6 +236,120 @@ function AfterTaxCard() {
   );
 }
 
+// Hedef dağılım + %5/%25 sapma bandı.
+//
+// SINIR — bilinçli: burada hedef ÖNERİLMEZ. Kart boş başlar, varsayılan bir dağılım koymaz.
+// "Şu dağılımı hedefle" demek yatırım tavsiyesidir (SPK: genel yatırım tavsiyesi yalnızca
+// aracı kurum/banka/portföy yönetim şirketlerince verilebilir); "kendi koyduğun hedeften şu
+// kadar saptın" ise aritmetiktir. Metinler betimleyici kipte — "dengele" değil, "aran şu kadar".
+//
+// Hedefler Panel'de tutulur ve buraya prop olarak gelir; Proaktif İçgörüler kartı da aynı
+// nesneyi görür, böylece iki kart asla farklı sayı söylemez (§1.16'daki vergi oranı dersi).
+function TargetAllocationCard({ targets, onChange }: { targets: TargetAllocation; onChange: (t: TargetAllocation) => void }) {
+  const s = usePortfolio();
+  const [open, setOpen] = useState(false);
+  const result = useMemo(() => driftOf(s, targets), [s, targets]);
+  const sumPct = (Object.values(targets) as number[]).reduce((a, v) => a + v, 0);
+
+  // Düzenleme panelinde ALTI sınıfın hepsi listelenir — portföyde bulunanlarla sınırlamak
+  // yanlış olurdu: "altında %10 olsun ama hiç altınım yok" tamamen geçerli bir hedeftir ve
+  // o satır olmadan girilemezdi. (Stopaj kartında tersi doğru: olmayan sınıfın vergisi anlamsız.)
+  const editor = (
+    <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {(Object.keys(ASSET_LABELS) as AssetType[]).map(t => (
+        <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <label htmlFor={`target-${t}`} style={{ fontSize: 13, minWidth: 84 }}>{ASSET_LABELS[t]}</label>
+          <input
+            id={`target-${t}`} className="input" type="number" min="0" max="100" step="1"
+            style={{ width: 80, padding: '5px 8px', fontSize: 13 }}
+            value={targets[t]}
+            onChange={e => onChange(setTarget(t, Number(e.target.value)))}
+          />
+          <span className="hint" style={{ margin: 0 }}>% hedef ağırlık</span>
+        </div>
+      ))}
+      <div className="hint" style={{ margin: 0, color: Math.round(sumPct) === 100 ? 'var(--faint)' : 'var(--red)' }}>
+        Toplam: %{fmtDec(sumPct, 1)}
+        {Math.round(sumPct) !== 100 && ' — %100 olması beklenir. Hesabı yine yaparım ama sayılarını kendiliğinden düzeltmem.'}
+      </div>
+    </div>
+  );
+
+  // Hiç hedef girilmemiş: boş kart göstermek yerine ne işe yaradığını anlat ve girişi aç.
+  if (!hasTargets(targets)) {
+    return (
+      <div className="card">
+        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Target size={14} color="var(--accent)" /> Hedef Dağılım
+        </div>
+        <p className="hint" style={{ marginBottom: 12 }}>
+          Her varlık sınıfı için hedef ağırlığını gir; portföyün hedefinden ne kadar saptığını
+          %5/%25 bandıyla ölçeyim. Sana bir hedef önermiyorum — hangi dağılımın doğru olduğu senin kararın.
+        </p>
+        <button className="btn btn-secondary btn-inline" style={{ padding: '4px 10px', fontSize: 12.5 }} onClick={() => setOpen(o => !o)}>
+          {open ? 'Kapat' : 'Hedef dağılımını gir'}
+        </button>
+        {open && editor}
+      </div>
+    );
+  }
+
+  return (
+    <div className="card">
+      <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Target size={14} color="var(--accent)" /> Hedef Dağılım
+      </div>
+      <p className="hint" style={{ marginBottom: 12 }}>
+        {result && result.breachedCount > 0
+          ? `${result.breachedCount} sınıf kendi belirlediğin bandın dışında.`
+          : 'Bütün sınıflar bandının içinde — hedefinle aran açılmamış.'}
+      </p>
+
+      {result && (
+        <div>
+          {result.rows.map(r => {
+            const yon = r.driftPp > 0 ? '+' : '−';
+            return (
+              <div key={r.type} className="list-row">
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  {r.breached
+                    ? <AlertTriangle size={14} color="var(--red)" style={{ flexShrink: 0 }} />
+                    : <CheckCircle2 size={14} color="var(--accent)" style={{ flexShrink: 0 }} />}
+                  {ASSET_LABELS[r.type]}
+                </span>
+                <span className="mono sub">
+                  hedef %{fmtDec(r.targetPct, 0)} · güncel %{fmtDec(r.actualPct, 1)} ·{' '}
+                  <span style={{ color: r.breached ? 'var(--red)' : 'var(--faint)' }}>
+                    {yon}{fmtDec(Math.abs(r.driftPp), 1)} puan
+                  </span>{' '}
+                  <span style={{ opacity: 0.6 }}>(bant {fmtDec(r.bandPp, 1)})</span>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
+        <button className="btn btn-secondary btn-inline" style={{ padding: '4px 10px', fontSize: 12.5 }} onClick={() => setOpen(o => !o)}>
+          {open ? 'Hedefleri gizle' : 'Hedefleri düzenle'}
+        </button>
+        {Math.round(sumPct) !== 100 && (
+          <span className="hint" style={{ margin: 0, color: 'var(--red)' }}>Hedef toplamın %{fmtDec(sumPct, 1)} — %100 değil.</span>
+        )}
+      </div>
+
+      {open && editor}
+
+      <p className="hint" style={{ marginTop: 12, color: 'var(--faint)' }}>
+        Bant = min(5 puan, hedefin dörtte biri) — "%5/%25 kuralı". Küçük hedeflerde 5 puanlık mutlak
+        eşik çok gevşek, büyük hedeflerde göreli %25 çok gevşek kalırdı; ikisinin küçüğü her iki ucu da
+        korur. Bu bir ölçüm, yatırım tavsiyesi değildir: hedefi sen koydun, ben farkı hesaplıyorum.
+      </p>
+    </div>
+  );
+}
+
 function Panel({ assetType, title, query }: PanelProps) {
   const s = usePortfolio();
   const [name, setName] = useState('');
@@ -256,6 +373,10 @@ function Panel({ assetType, title, query }: PanelProps) {
   // CSV içe aktarma
   const importInputRef = useRef<HTMLInputElement>(null);
   const [importMsg, setImportMsg] = useState<{ text: string; ok: boolean } | null>(null);
+
+  // Hedef dağılım burada tutulur ve İKİ karta birden verilir (Hedef Dağılım + Proaktif İçgörüler).
+  // Her kart kendi state'ini tutsaydı biri düzenlenince diğeri bayat sayı gösterirdi.
+  const [targets, setTargets] = useState<TargetAllocation>(() => getTargets());
 
   // Sınıfa göre filtrelenmiş (aramadan etkilenmeyen) gerçek toplam — arama sadece listeyi daraltır.
   const classHoldings = useMemo(
@@ -412,12 +533,15 @@ function Panel({ assetType, title, query }: PanelProps) {
 
       {/* Bu üçü kendi .card'ını render eden bileşenler ve className prop'u almıyorlar —
           ızgara öğesi olabilmeleri için sade birer div ile sarılıyorlar. */}
-      {!assetType && <div><ProactiveInsightsCard /></div>}
+      {!assetType && <div><ProactiveInsightsCard targets={targets} /></div>}
       {!assetType && s.holdings.length > 0 && <div><AfterTaxCard /></div>}
       {!assetType && s.holdings.length > 0 && <div className="dash-span-2"><RiskPanel /></div>}
 
+      {/* Net Yatırım grafiği tam genişlikte: ızgarada dört tek-kolon kart (İçgörüler, Vergi,
+          Sınıf Dağılımı, Hedef Dağılım) kalıyor — bu grafik de tek kolona girseydi beşinci
+          olur ve satırın yarısı boş kalırdı. Geniş alan zaman serisine zaten daha uygun. */}
       {!assetType && investmentHistory.length >= 2 && (
-        <div className="card">
+        <div className="card dash-span-2">
           <div className="card-title">Net Yatırım Tutarı Geçmişi</div>
           <ResponsiveContainer width="100%" height={160}>
             <AreaChart data={investmentHistory} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
@@ -473,6 +597,10 @@ function Panel({ assetType, title, query }: PanelProps) {
           )}
         </div>
       )}
+
+      {/* Hedef Dağılım, Sınıf Dağılımı'nın hemen yanında: biri gerçekleşeni, diğeri hedefi
+          gösteriyor — yan yana okunması gereken iki karttır. */}
+      {!assetType && s.holdings.length > 0 && <div><TargetAllocationCard targets={targets} onChange={setTargets} /></div>}
 
       <div className={`card${assetType ? '' : ' dash-span-2'}`}>
         <div className="card-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1294,9 +1422,9 @@ function Ajan() {
     const text = input.trim();
     if (!text) return;
     const userMsg: AgentMessage = { role: 'user', text };
-    // Oranlar her turda TAZE okunuyor — kullanıcı Panel'deki kartta değiştirdiyse ajan da
-    // aynı oranı kullansın (iki yerde farklı sayı söylemek en kötüsü olurdu).
-    const reply = chatReply(s, text, messages, getProfile(), facts, getTaxRates());
+    // Stopaj oranları ve hedef dağılım her turda TAZE okunuyor — kullanıcı Panel'deki kartta
+    // değiştirdiyse ajan da aynı sayıyı kullansın (iki yerde farklı sayı söylemek en kötüsü olurdu).
+    const reply = chatReply(s, text, messages, getProfile(), facts, getTaxRates(), getTargets());
     recordTurn(reply.intentId, extractMentionedHoldings(s, text));
     recordQuestion(text);
     // Ajanın verdiği anlamlı (fallback/öneri-bekleyen olmayan) cevapları "son öneri/uyarı" belleğine düş.
@@ -1497,7 +1625,11 @@ export default function App() {
       actions.reset();
       resetMemory();
       resetTraining();
-      resetTaxRates(); // dördüncü kalıcı katman — tam sıfırlama beklentisiyle tutarlı
+      resetTaxRates();
+      resetTargets(); // beşinci kalıcı katman — tam sıfırlama beklentisiyle tutarlı
+      // Not: actions.reset() onboarded'ı false yapar, Panel unmount olur; bir sonraki
+      // onboarding'de yeniden mount olup getTargets()/getTaxRates()'i TAZE okur — bu yüzden
+      // kart state'lerini ayrıca sıfırlamak gerekmiyor.
     }
   };
 

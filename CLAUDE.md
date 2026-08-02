@@ -276,6 +276,49 @@ doğrulat. Proxy dokümanı 403'te "tekrar deneme, hostu bildir" diyor.
 regülasyon/ticari/zor), her biri iki cümlelik cevap + sıkışınca kullanılacak kısa versiyon,
 kullanıcının SORACAĞI 5 soru, ve yanına alacakları. `toplanti-hazirlik.md` başına link eklendi.
 
+### 1.18 Hedef dağılım + %5/%25 sapma bandı (`targetAllocation.ts` + `analytics.ts`)
+
+§1.17'de tespit edilen "sektör standardı ama sende yok" üç metriğinden ilki. Yeni veri kaynağı
+gerektirmedi: kullanıcının girdiği hedef yüzdeler + zaten elde olan güncel değerler.
+
+- **%5/%25 kuralı (Larry Swedroe):** bir sınıf hedefinden 5 PUANDAN fazla (mutlak) VEYA
+  hedefinin %25'inden fazla (göreli) saparsa denge bozulmuş sayılır — hangisi önce tetiklerse.
+  `bant = min(5, hedef × 0,25)`. Küçük hedeflerde 5 puan çok gevşek (hedefi %8 olan sınıf
+  %13'e çıksa ağırlığı katlanır ama mutlak eşiği aşmaz), büyük hedeflerde göreli %25 çok gevşek
+  (hedefi %60 olanın %25'i 15 puandır). Karşılaştırma **kesin eşitsizlik**: `|sapma| > bant` —
+  tam sınırda sapma sayılmaz, testi var.
+- **`analytics.ts`:** `driftBandOf`, `DriftRow`, `DriftResult`, `driftOf(s, targets)` — hepsi saf.
+  Ayrıca `agent.ts:82`'de private duran **`allocation()` buraya taşındı ve export edildi**
+  (6 çağrı yeri var; sapma hesabı da aynı sınıf toplamını istiyordu, iki döngü iki ayrı doğruya
+  sapabilirdi). Bağımlılık yönü `agent.ts → analytics.ts`, ters import yok.
+- **`targetAllocation.ts`:** `taxRates.ts` deseniyle birebir, anahtar `fagent.target.v1`.
+  **Varsayılanı YOKTUR** — boş başlar. SIFIRLA artık BEŞ katmanı temizliyor.
+- **`App.tsx` → `TargetAllocationCard`:** Panel ızgarasında **Sınıf Dağılımı'nın yanında**
+  (biri gerçekleşeni, diğeri hedefi gösterir — yan yana okunur). Hedefler `Panel`'de tutulup
+  hem bu karta hem `ProactiveInsightsCard`'a veriliyor; ayrı state olsaydı biri düzenlenince
+  diğeri bayat sayı gösterirdi. Düzenleme panelinde **altı sınıfın hepsi** listelenir (stopaj
+  kartının tersine: "altında %10 olsun ama hiç altınım yok" geçerli bir hedeftir). Net Yatırım
+  grafiği `dash-span-2` yapıldı — yoksa tek-kolon kart sayısı beşe çıkıp satır yarım kalıyordu.
+- **`agent.ts`:** `id: 'hedef-dagilim'` kuralı — **`'dagilim'` kuralından ÖNCE gelmeli**, onun
+  `/dağılım/` testi "hedef dağılımım nasıl"ı da yakalar ve önce eşleşen kazanır.
+  `Rule.reply` imzası `(s, text, taxRates?, targets?)`, `chatReply` 7. parametre aldı.
+  App.tsx her turda `getTargets()` ile TAZE okur (§1.16'daki vergi oranı dersi).
+  `proactiveInsights(s, inflationPct, targets?)` dördüncü içgörüyü kazandı.
+- **SPK sınırı — bilinçli:** ürün hedef ÖNERMEZ, yalnızca kullanıcının KENDİ koyduğu hedeften
+  sapmayı ölçer. Genel yatırım tavsiyesi yalnızca aracı kurum/banka/portföy yönetim şirketlerince
+  verilebilir; "kendi koyduğun hedeften şu kadar saptın" ise aritmetiktir. Metinler betimleyici
+  kipte (§1.13'teki fiil kipi düzeltmesiyle aynı çizgi).
+- **Test:** `fagent-hedef-e2e.mjs` (41 kontrol) — bandın iki ucu ayrı ayrı, tam sınır, sınırın
+  bir tık ötesi, toplam≠%100 uyarısı, kart↔ajan sayı tutarlılığı, kalıcılık, SIFIRLA.
+  Toplam **355 kontrol / 20 dosya**.
+
+**Yakalanan gerçek hata — Türkçe metinde `\b` kullanma.** Testte emir kipi aramak için yazdığım
+`/sat\b|al\b/i` deseni başka bir içgörüdeki **"alım gücü"** ifadesine takıldı: JS'te `\b`
+sınırı `\w` = `[A-Za-z0-9_]` ile tanımlıdır, Türkçe `ı` bu sınıfta DEĞİLDİR, dolayısıyla
+"al"dan sonra sınır varmış gibi davranır. Düzeltme: tüm kartı değil yalnızca ilgili cümleyi
+ölç ve `\b` yerine tam kelime/ek kalıpları kullan (`değerlendir`, `malısın`, `melisin`).
+§1.5'teki "graf kökü" notuyla aynı aile — Türkçe regex'i e2e ile doğrulamadan varsayma.
+
 ## 2. Aura Finance (BDT günlüğü + abonelik demosu)
 
 - **Konum:** repo kökü (`src/`) + `server/`
