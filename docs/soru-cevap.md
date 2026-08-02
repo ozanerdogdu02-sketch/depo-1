@@ -115,8 +115,9 @@ kullanıcıya söylüyoruz.
 
 **16. "Kaç kullanıcınız var?"**
 Kullanıcı tabanı yok — dürüst cevabı bu. Getirdiğim şey dağıtım değil, **yetenek**. Dağıtım
-zaten sizde: 5 milyon+ hesap.
+zaten sizde: milyonlarca kullanıcı.
 *Kısa: "Yok. Dağıtım sizde, yetenek bende."*
+> Rakam telaffuz etme (bkz. `toplanti-hazirlik.md` §C.0) — "5 milyon" teyit edilemedi.
 
 **17. "İş modeliniz ne?"**
 Önceliğim B2B: katmanın kurum uygulamasına gömülmesi. B2C'yi bağımsız büyüme kanalı olarak değil,
