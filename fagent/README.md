@@ -229,6 +229,10 @@ Sidebar'daki **SIFIRLA** üçünü de temizler.
   girdiği oran canlı veriyi de ezer; SIFIRLA bu geçersiz kılmayı temizler.
   Daha önce aynı sayı DÖRT yerde ayrı ayrı duruyordu (iki kart + projeksiyon + `agent.ts` sabiti)
   ve biri değiştirilince diğerleri eski değeri kullanmaya devam ediyordu — birleştirildi.
+- **EVDS şu an KAPALI — `EVDS_API_KEY` tanımlı değil.** Yani ürün bugün enflasyonu canlı
+  ÇEKMİYOR, varsayım modunda çalışıyor. Entegrasyon yazıldı ve testlendi; açılması için tek
+  gereken Netlify ortam değişkenine anahtarı eklemek. Sunum/doküman dilinde bu ayrımı koru:
+  "hazır ve açılmayı bekliyor" doğru, "canlı çekiyoruz" yanlış.
 - **EVDS seri kodu (`evds.ts` → `TUFE_SERIES`) HENÜZ DOĞRULANMADI.** Yanlışsa proxy boş yanıt
   verir, istemci `undefined` döner ve varsayıma düşülür — ekranda yanlış bir sayı ÇIKMAZ.
   Yıllık değişim endeksin kendisinden hesaplandığı için serinin baz yılı sonucu etkilemez.

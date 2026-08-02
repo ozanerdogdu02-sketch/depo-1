@@ -301,6 +301,19 @@ deterministik** kalsın; LLM yalnızca *ifade katmanı* olarak kullanılsın (ku
 sorusunu anlama ve sonucu doğal dille aktarma). Böylece halüsinasyon rakama değil yalnızca cümleye
 dokunabilir. Altyapı hazır: `server/` klasöründe Anthropic proxy'si (`POST /api/ai/chat`) bekliyor.
 
+## C.0 ⚠️ Toplantıda SÖYLENMEYECEKLER
+
+Ürün güçlü; onu zayıflatacak tek şey doğrulanmamış bir cümle. İkisi de kolayca yakalanır:
+
+| Söyleme | Bunun yerine | Neden |
+|---|---|---|
+| *"Enflasyonu TCMB'den canlı çekiyoruz."* | *"TCMB entegrasyonu kodda hazır ve testli; API anahtarı eklendiği an devreye giriyor. Şu an varsayım modunda."* | Entegrasyon yazıldı (`inflation.ts`, `evds.ts`, Netlify Function, 26 e2e kontrolü) ama anahtar henüz alınmadı. **Ekranda "varsayım (TÜİK, elle güncellenir)" yazıyor** — biri ekrana bakarsa farkı görür. |
+| *"BtcTurk'ün 5 milyon+ kayıtlı hesabı var."* | *"Milyonlarca kullanıcınız."* | Bu rakam ikincil bir kaynaktan alındı, **resmî açıklamayla teyit edilemedi**. Karşı tarafın kendi şirketi hakkında yanlış rakam söylemek en kötü yerde yanlış olmaktır. |
+
+Aynı ilke ürünün her yerinde geçerli ve asıl satış argümanı da bu: **doğrulanmayan hiçbir sayı
+"kesin" gibi sunulmuyor.** Stopaj oranlarında kripto/altın/döviz için %0 bırakılması ve ajanın
+*"oran uydurmuyorum"* demesi aynı disiplinin ürünü — sorulursa örnek olarak göster.
+
 ## C.4 Toplantı öncesi düzeltilmesi gerekenler
 
 ### Düzeltildi ✅

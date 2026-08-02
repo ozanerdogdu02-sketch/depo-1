@@ -140,8 +140,20 @@ entegrasyon olmasa da çalışır. Bu, kararınızı düşük riskli yapar.
 
 **20. "Rakamlarınızın güncel olduğunu nereden bileceğiz?"**
 Otomatik çekilebilenler canlı; çekilemeyenler (enflasyon, stopaj oranları) **varsayım olarak
-etiketli** ve kullanıcı düzenleyebiliyor. Kaynağı ve tarihi ekranda yazıyor.
+etiketli** ve kullanıcı düzenleyebiliyor. Kaynağı ve tarihi ekranda yazıyor. Enflasyon için
+TCMB EVDS entegrasyonu **kodda hazır ve testli** — anahtar tanımlandığı an ekranda "TCMB EVDS"
+yazmaya başlıyor; şu an "varsayım" modunda çünkü anahtar henüz alınmadı.
 *Kısa: "Varsayım olanı varsayım diye yazıyoruz."*
+
+> ⚠️ **Şu an canlı DEĞİL.** "Enflasyonu TCMB'den çekiyoruz" DEME. Doğru cümle:
+> *"TCMB entegrasyonu hazır, anahtar eklendiği an devreye giriyor."* Ekranda "varsayım"
+> yazdığı için teknik bir muhatap farkı görür.
+
+**20b. "Sunucunuz yok demiştiniz — bu proxy de ne?"**
+Portföy verisi hiçbir zaman tarayıcıdan çıkmıyor; o istek kullanıcının verisini içermiyor.
+Sunucudan geçen tek şey TCMB'nin **kamuya açık** enflasyon serisi — API anahtarı istemciye
+inmesin diye orada duruyor.
+*Kısa: "Portföy çıkmıyor; çıkan tek şey TCMB'nin herkese açık serisi."*
 
 **21. "Neden BtcTurk?"**
 Çünkü kripto tarafında zaten en güçlü konumdasınız ve Bloki ile asistan fikrine yatırım yaptınız.
