@@ -46,6 +46,8 @@ src/
   agentTraining.ts  — Ajan'ın EĞİTİLEBİLİR bilgi tabanı (öğretilen soru-cevaplar, localStorage)
   taxRates.ts       — kullanıcının düzenlediği stopaj oranları (localStorage)
   targetAllocation.ts — kullanıcının girdiği HEDEF dağılım (localStorage; varsayılanı YOK)
+  backup.ts         — tam veri yedeği: beş katmanı tek JSON'da dışa/geri al (beyaz listeli)
+  ErrorBoundary.tsx — render hatasında beyaz ekran yerine veri kurtarma ekranı
   analytics.ts      — FİNANSAL MATEMATİK (saf): reel getiri, XIRR, HHI, volatilite,
                       maks. düşüş, Sharpe, korelasyon, kovaryansla çeşitlendirme faydası,
                       vergi sonrası net getiri (DEFAULT_TAX_RATES + afterTaxOf),
@@ -236,7 +238,7 @@ Sidebar'daki **SIFIRLA** üçünü de temizler.
 
 ## Test Kapsamı
 
-Playwright e2e testleri artık **repo içinde**: `fagent/tests/e2e/` — 20 dosya, **355 kontrol**.
+Playwright e2e testleri artık **repo içinde**: `fagent/tests/e2e/` — 21 dosya, **387 kontrol**.
 
 ```bash
 npm run test:e2e     # Vite dev sunucusunu başlatır, tüm takımları sırayla çalıştırır

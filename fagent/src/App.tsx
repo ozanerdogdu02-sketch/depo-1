@@ -4,7 +4,7 @@ import {
   Bot, Send, TrendingUp, Trash2, RotateCcw, LayoutDashboard, ArrowLeftRight, BookOpen,
   Search, CalendarDays, BarChart3, PieChart as PieChartIcon, Bitcoin, Pencil, Check, X, Download,
   RefreshCw, Loader2, Wifi, Upload, GraduationCap, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown,
-  Sparkles, AlertTriangle, CheckCircle2, Receipt, Target,
+  Sparkles, AlertTriangle, CheckCircle2, Receipt, Target, ShieldCheck,
 } from 'lucide-react';
 import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, fmtDec, fmtCompact, investmentHistoryOf, todayLocalDate, ASSET_LABELS, AssetType, Holding } from './store';
 import { analyzePortfolio, chatReply, buildGreeting, extractMentionedHoldings, proactiveInsights, AgentMessage, ChartSpec, Insight } from './agent';
@@ -16,6 +16,7 @@ import { getTrainedFacts, teach, deleteFact, recordFactUse, resetTraining, Train
 import { afterTaxOf, UNVERIFIED_TAX, driftOf } from './analytics';
 import { getTaxRates, setTaxRate, isCustomRate, resetTaxRates, TaxRates } from './taxRates';
 import { getTargets, setTarget, hasTargets, resetTargets, TargetAllocation } from './targetAllocation';
+import { downloadBackup, restoreBackup, getBackupMeta, shouldNudge, dismissNudge, resetBackupMeta, STALE_AFTER_DAYS } from './backup';
 import { exportHoldingsCsv, exportTxnsCsv, parseHoldingsCsv } from './csv';
 import { CURRENCIES, COINS, fetchTryRate, fetchCryptoTryPrice, MarketFetchError } from './market';
 import { CryptoMarket } from './CryptoMarket';
@@ -350,6 +351,104 @@ function TargetAllocationCard({ targets, onChange }: { targets: TargetAllocation
   );
 }
 
+// Veri yedeği kartı.
+//
+// FAGENT'ın tüm verisi yalnızca tarayıcıda durur — bu bilinçli bir gizlilik tercihi, ama tek
+// yan etkisi şu: tarayıcı verisi temizlenirse ya da cihaz değişirse her şey gider. Mevcut CSV
+// dışa aktarma yalnızca VARLIKLARI kurtarıyordu; işlem geçmişi, öğretilen bilgiler, stopaj
+// oranları ve hedef dağılım kapsam dışıydı. Bu kart beş katmanın tamamını taşır.
+//
+// Kart hem "durum göstergesi" hem "hatırlatıcı": yedek yoksa ya da bayatladıysa (14 gün)
+// uyarı rengine geçer. Ayrı bir açılır uyarı çubuğu eklenmedi — kalıcı ve sessiz bir kart,
+// kullanıcıyı kesen bir bildirimden daha az rahatsız edici.
+function BackupCard() {
+  const s = usePortfolio();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [meta, setMeta] = useState(() => getBackupMeta());
+  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [dismissed, setDismissed] = useState(false);
+
+  const hasData = s.holdings.length > 0 || s.txns.length > 0;
+  const nudge = !dismissed && shouldNudge(hasData);
+
+  const handleBackup = () => {
+    downloadBackup();
+    setMeta(getBackupMeta());
+    setMsg({ text: 'Yedek indirildi. Dosyayı bulut/e-posta gibi ikinci bir yerde sakla.', ok: true });
+  };
+
+  const handleRestoreFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // aynı dosya tekrar seçilebilsin
+    if (!file) return;
+    if (!confirm('Geri yükleme MEVCUT VERİLERİNİN ÜZERİNE YAZAR. Devam edilsin mi?')) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = restoreBackup(String(reader.result ?? ''));
+      setMsg({ text: result.message, ok: result.ok });
+      // Geri yükleme localStorage'ı doğrudan değiştirir; React durumu ancak yeniden
+      // yüklenince tazelenir. Sessizce eski veriyi göstermektense sayfayı yenilemek doğru.
+      if (result.ok) setTimeout(() => window.location.reload(), 900);
+    };
+    reader.onerror = () => setMsg({ text: 'Dosya okunamadı.', ok: false });
+    reader.readAsText(file);
+  };
+
+  const lastText = meta.lastBackupAt
+    ? new Date(meta.lastBackupAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null;
+
+  return (
+    <div className="card" style={nudge ? { borderColor: 'rgba(251,191,36,0.45)' } : undefined}>
+      <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {nudge ? <AlertTriangle size={14} color="var(--amber)" /> : <ShieldCheck size={14} color="var(--accent)" />}
+        Veri Yedeği
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ flex: '1 1 320px' }}>
+          <p className="hint" style={{ margin: 0 }}>
+            {lastText
+              ? `Son yedek: ${lastText}.`
+              : 'Henüz yedek almadın.'}{' '}
+            Verilerin yalnızca bu tarayıcıda saklanıyor — tarayıcı verisi temizlenirse ya da cihaz
+            değişirse geri getirilemez. Yedek portföyü, işlem geçmişini, öğretilen bilgileri, stopaj
+            oranlarını ve hedef dağılımı birlikte taşır.
+            {nudge && lastText && ` ${STALE_AFTER_DAYS} günden eski.`}
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <input
+            ref={fileRef} type="file" accept=".json,application/json" onChange={handleRestoreFile}
+            style={{ display: 'none' }} aria-label="Yedek dosyası seç"
+          />
+          <button className="btn btn-secondary btn-inline" style={{ padding: '6px 12px', fontSize: 13 }} onClick={handleBackup}>
+            <Download size={14} /> Yedek Al
+          </button>
+          <button className="btn btn-secondary btn-inline" style={{ padding: '6px 12px', fontSize: 13 }} onClick={() => fileRef.current?.click()}>
+            <Upload size={14} /> Geri Yükle
+          </button>
+          {nudge && (
+            <button
+              className="btn btn-secondary btn-inline"
+              style={{ padding: '6px 12px', fontSize: 13 }}
+              onClick={() => { dismissNudge(); setDismissed(true); }}
+            >
+              Sonra
+            </button>
+          )}
+        </div>
+      </div>
+
+      {msg && (
+        <p className="hint" style={{ marginTop: 10, marginBottom: 0, color: msg.ok ? 'var(--accent)' : 'var(--red)' }}>
+          {msg.text}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function Panel({ assetType, title, query }: PanelProps) {
   const s = usePortfolio();
   const [name, setName] = useState('');
@@ -601,6 +700,10 @@ function Panel({ assetType, title, query }: PanelProps) {
       {/* Hedef Dağılım, Sınıf Dağılımı'nın hemen yanında: biri gerçekleşeni, diğeri hedefi
           gösteriyor — yan yana okunması gereken iki karttır. */}
       {!assetType && s.holdings.length > 0 && <div><TargetAllocationCard targets={targets} onChange={setTargets} /></div>}
+
+      {/* Yedek kartı tam genişlikte ve Varlıklar'ın hemen üstünde: bir uyarı çubuğu kadar
+          görünür ama kesintiye uğratmıyor. */}
+      {!assetType && <div className="dash-span-2"><BackupCard /></div>}
 
       <div className={`card${assetType ? '' : ' dash-span-2'}`}>
         <div className="card-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1626,7 +1729,8 @@ export default function App() {
       resetMemory();
       resetTraining();
       resetTaxRates();
-      resetTargets(); // beşinci kalıcı katman — tam sıfırlama beklentisiyle tutarlı
+      resetTargets();
+      resetBackupMeta(); // yedek geçmişi de kullanıcı verisidir
       // Not: actions.reset() onboarded'ı false yapar, Panel unmount olur; bir sonraki
       // onboarding'de yeniden mount olup getTargets()/getTaxRates()'i TAZE okur — bu yüzden
       // kart state'lerini ayrıca sıfırlamak gerekmiyor.

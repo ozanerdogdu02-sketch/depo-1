@@ -43,8 +43,10 @@ await page.goto('http://localhost:4200/', { waitUntil: 'networkidle' });
 await page.getByRole('button', { name: 'Karma örnek portföy' }).click();
 await page.waitForTimeout(300);
 
-const hedefCard = page.locator('.card').filter({ hasText: 'Hedef Dağılım' });
-const insightCard = page.locator('.card').filter({ hasText: 'Proaktif İçgörüler' });
+// Kart BAŞLIĞINA göre seç, gövde metnine göre değil: `hasText` büyük/küçük harf duyarsız
+// alt-metin araması yapar ve Veri Yedeği kartının gövdesinde de "hedef dağılımı" geçiyor.
+const hedefCard = page.locator('.card').filter({ has: page.locator('.card-title', { hasText: 'Hedef Dağılım' }) });
+const insightCard = page.locator('.card').filter({ has: page.locator('.card-title', { hasText: 'Proaktif İçgörüler' }) });
 
 const ask = async (text) => {
   await page.fill('input[aria-label="Ajana soru sor"]', text);

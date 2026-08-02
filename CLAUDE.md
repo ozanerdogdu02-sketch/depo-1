@@ -319,6 +319,44 @@ sınırı `\w` = `[A-Za-z0-9_]` ile tanımlıdır, Türkçe `ı` bu sınıfta DE
 ölç ve `\b` yerine tam kelime/ek kalıpları kullan (`değerlendir`, `malısın`, `melisin`).
 §1.5'teki "graf kökü" notuyla aynı aile — Türkçe regex'i e2e ile doğrulamadan varsayma.
 
+### 1.19 Veri kaybı koruması — tam yedek + ErrorBoundary (`backup.ts`, `ErrorBoundary.tsx`)
+
+İki gerçek açık kapatıldı: (1) bir render hatası tüm uygulamayı **beyaz ekrana** düşürüyordu,
+(2) mevcut CSV dışa aktarma yalnızca VARLIKLARI kurtarıyordu — işlem geçmişi, öğretilen bilgiler,
+stopaj oranları ve hedef dağılım kapsam dışıydı (CSV'nin içe aktarması da yalnızca varlık alıyor).
+
+- **`backup.ts`:** `BACKED_UP_KEYS` beş katmanı sayar; `buildBackup()`/`downloadBackup()` tek JSON
+  üretir, `restoreBackup(text)` geri yükler. **Önbellekler bilerek dışarıda** (yeniden üretilebilir).
+  `shouldNudge`/`dismissNudge` hatırlatma zamanlaması (14 gün bayat, 7 gün erteleme), meta anahtarı
+  `fagent.backup.v1`. SIFIRLA artık **altı** katmanı temizliyor.
+- **GÜVENLİK — beyaz liste:** geri yüklerken dosyadaki anahtarlar `BACKED_UP_KEYS` ile süzülür.
+  Yedek dosyası dışarıdan gelebilir; içindeki rastgele anahtarları localStorage'a yazmak saldırgana
+  uygulama durumunu belirletmek olurdu. Ayrıca **ya hep ya hiç**: önce tamamı doğrulanır, sonra
+  yazılır — bozuk dosya mevcut veriyi BOZMAZ (testi var).
+- **`ErrorBoundary.tsx`:** `main.tsx`'te en dışta. Kritik tasarım kararı — kurtarma düğmeleri React
+  durumundan DEĞİL doğrudan `localStorage`'dan okur (`readHoldingsRaw`), çünkü çökme anında React
+  ağacı güvenilmez ama veri diskte sağlam. İkinci karar: **hiçbir şey silinmez, otomatik onarım
+  denenmez** — çöken durumu "düzeltmeye" çalışan kod kurtarılabilir veriyi kurtarılamaz yapabilir.
+  Ekran ayrıca "SIFIRLA'ya basma" uyarısı verir ve hatanın hiçbir yere gönderilmediğini söyler.
+- **`App.tsx` → `BackupCard`:** Panel ızgarasında `dash-span-2`, Varlıklar'ın üstünde. Hem durum
+  göstergesi hem hatırlatıcı — yedek yoksa/bayatsa amber kenarlığa geçer. Ayrı bir açılır uyarı
+  çubuğu eklenmedi: kalıcı ve sessiz bir kart, kesen bir bildirimden daha az rahatsız edici.
+- **`agent.ts`:** `yedek` kuralı yeniden yazıldı — artık tam yedeği önce anlatıyor ve CSV'nin
+  yalnızca varlıkları geri getirdiğini açıkça söylüyor (önceden yalnızca CSV'yi biliyordu).
+- **Test:** `fagent-yedek-e2e.mjs` (32 kontrol) — beş katmanın dosyada olması, bozuk/yabancı dosyanın
+  reddi + veriyi bozmaması, beyaz liste, gerçek geri yükleme, erteleme kalıcılığı, SIFIRLA, ve
+  **ErrorBoundary'nin hata enjeksiyonuyla gerçekten tetiklenmesi**. Toplam **387 kontrol / 21 dosya**.
+
+**Test tekniği — çökme nasıl tetiklenir:** `page.addInitScript` ile `Number.prototype.toLocaleString`
+patlatılır; `fmtTL` bunu kullandığı için Panel render'ında kesin hata oluşur. Onboarding ekranı bu
+yolu kullanmadığından sayfa normal açılır, hata örnek portföy seçilince tetiklenir.
+
+**Yakalanan gerçek hata — `hasText` alt-metin arar.** `BackupCard`'ın gövdesinde "…ve hedef dağılımı
+birlikte taşır" geçtiği için `page.locator('.card').filter({ hasText: 'Hedef Dağılım' })` İKİ kartla
+eşleşti ve `fagent-hedef-e2e.mjs` kırıldı. Doğrusu kart BAŞLIĞINA bağlanmak:
+`.filter({ has: page.locator('.card-title', { hasText: '…' }) })`. Yeni kart eklerken mevcut
+testlerin gövde-metni seçicilerini tara.
+
 ## 2. Aura Finance (BDT günlüğü + abonelik demosu)
 
 - **Konum:** repo kökü (`src/`) + `server/`
