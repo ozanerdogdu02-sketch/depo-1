@@ -244,6 +244,38 @@ orada `toFixed()` bilinçli olarak kaldı.
 Bu değişiklik iki eski testi kırdı (nokta bekliyorlardı) — `fagent-pnl-e2e.mjs` (+7,1% / +0,0%)
 ve `fagent-cryptomarket-e2e.mjs` (₺8,50 T / +2,5% / −1,8%) güncellendi. Toplam **314 kontrol**.
 
+### 1.17 Veri kaynağı araştırması + soru-cevap kartı (2026-08-02)
+
+Toplantı yaklaşınca "geliştirme için tüm kaynaklardan araştırma" istendi. Bulgular:
+
+- **BtcTurk'ün GENEL API'si anahtarsız** (resmî dokümandan teyitli): `api.btcturk.com/api/v2/ticker`
+  (10 istek/100ms) ve `api/v2/ohlc?pairSymbol=BTC_TRY` (**tarihsel seri**, 1 istek/100ms), ayrıca
+  orderbook/trades. Hesap uçları V1 + HMAC imza istiyor → **tarayıcıda güvenle yapılamaz**, bakiye
+  entegrasyonu BtcTurk tarafında salt-okunur yetkilendirme gerektirir. **CORS DOĞRULANMADI** —
+  resmî dokümanda CORS'tan bahsedilmiyor. Bu, CoinGecko'nun yerini alabilecek TRY-bazlı yerli kaynak.
+- **Altın için anahtarsız kaynaklar var:** goldprice.dev, freegoldapi.com (CORS açık olduğunu
+  belirtiyor), metals.dev. **UYARI:** hepsi XAU spot veriyor; Türkiye gram altını yerel prim taşır,
+  birebir eşit değil — doğrudan "gram altın" diye göstermek yanlış olur.
+- **TCMB EVDS**: resmî, ücretsiz ama API ANAHTARI gerektiriyor (döviz + altın + TÜFE). Anahtarı
+  gömmek ilkeye aykırı; kullanıcının kendi anahtarını girmesi ya da proxy seçenek.
+- **BIST hâlâ kapalı** — anahtarsız/resmî/ücretsiz kaynak yok (NoSyAPI kredili, bist-api.com ücretli,
+  Vakıfbank portalı kayıtlı). Statüko sürüyor.
+- **SPK sınırı:** genel yatırım tavsiyesi yalnızca aracı kurum/banka/portföy yönetim şirketlerince
+  paylaşılabilir → betimleyici analiz güvenli alan. §1.13'teki fiil kipi düzeltmesi doğrulandı.
+- **Eksik metrikler (sektör standardı, sende yok):** TWR (zaman-ağırlıklı getiri — XIRR'in yanına
+  konunca "zamanlaman ne kazandırdı"yı söyler), Sortino (Sharpe yukarı oynaklığı da cezalandırıyor),
+  hedef dağılım + %5/%25 sapma bandı ("5/25 kuralı"). **Üçü de yeni veri kaynağı gerektirmiyor.**
+
+**ORTAM SINIRI — ÖNEMLİ:** Bu oturumun çıkış politikası dış API'lerin TAMAMINI engelliyor
+(403 CONNECT): api.btcturk.com, goldprice.dev, freegoldapi.com, **api.coingecko.com**,
+**api.frankfurter.dev**, tefas.gov.tr, evds2.tcmb.gov.tr. Yani uygulamanın HÂLİHAZIRDA kullandığı
+uçlar bile buradan test edilemiyor — bir uç çalışmıyor diye sonuç çıkarma, kullanıcının tarayıcısında
+doğrulat. Proxy dokümanı 403'te "tekrar deneme, hostu bildir" diyor.
+
+**`docs/soru-cevap.md`** yazıldı: toplantı günü okunacak tek sayfa — 24 olası soru (ürün/teknik/
+regülasyon/ticari/zor), her biri iki cümlelik cevap + sıkışınca kullanılacak kısa versiyon,
+kullanıcının SORACAĞI 5 soru, ve yanına alacakları. `toplanti-hazirlik.md` başına link eklendi.
+
 ## 2. Aura Finance (BDT günlüğü + abonelik demosu)
 
 - **Konum:** repo kökü (`src/`) + `server/`

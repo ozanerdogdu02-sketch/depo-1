@@ -9,6 +9,9 @@
 > - **Bölüm D** — 4-5 günlük hazırlık planı (gün gün yapılacaklar)
 >
 > Temel karşılaştırma için: [`bloki-vs-fagent.md`](bloki-vs-fagent.md)
+>
+> **Toplantı günü tek sayfa okuyacaksan:** [`soru-cevap.md`](soru-cevap.md) — 24 olası soru,
+> iki cümlelik cevaplar, ve senin soracakların.
 
 ---
 
