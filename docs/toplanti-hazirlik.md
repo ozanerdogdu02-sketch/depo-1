@@ -6,7 +6,7 @@
 > - **Bölüm A** — BtcTurk'e ürün sunumu (itiraz karşılama, demo akışı, entegrasyon teklifi)
 > - **Bölüm B** — Yatırımcı / iş ortağı (pazar boşluğu, rekabet, savunulabilirlik)
 > - **Bölüm C** — İç değerlendirme / teknik ekip (mimari, kapsam boşlukları, yol haritası)
-> - **Bölüm D** — 4-5 günlük hazırlık planı (gün gün yapılacaklar)
+> - **Bölüm D** — ⏱️ **Geri sayım planı** (bu akşam / yarın sabah / toplantıdan 15 dk önce)
 >
 > Temel karşılaştırma için: [`bloki-vs-fagent.md`](bloki-vs-fagent.md)
 >
@@ -394,20 +394,68 @@ ama **yalnızca** gizlilik mimarisini bozmayan bir tasarımla (uçtan uca şifre
 
 ---
 
-# Bölüm D — 4-5 günlük hazırlık planı
+# Bölüm D — Geri sayım planı *(3 Ağustos akşamı itibarıyla)*
 
-| Gün | Yapılacak | Çıktı |
+**Durum:** 3 Ağustos Pazartesi 19:30'da Emir'e "Salı ve Perşembe öğleden sonra müsaitim"
+yazıldı. Yani toplantı **4 Ağustos Salı öğleden sonra ya da 6 Ağustos Perşembe öğleden sonra.**
+Gün teyit edilmedi → **en kötü senaryoya göre hazırlan: yarın öğleden sonra.**
+
+## 🔒 Kural: kod donduruldu
+
+Bu andan itibaren **yeni özellik yazılmayacak.** Ürün 415 testle yeşil, canlıya alındı, çalışıyor.
+Toplantı öncesi kod değiştirmenin beklenen faydası düşük, bir şeyi bozma riski gerçek.
+Ortaya çıkan fikirler "toplantı sonrası" listesine yazılır. Tek istisna: **demoyu bozan bir hata**
+bulunursa düzeltilir.
+
+## Bu akşam (yaklaşık 40 dakika) — ertelenemez
+
+| ☐ | İş | Süre | Neden bu akşam |
+|---|---|---|---|
+| ☐ | **Canlı siteyi aç ve dört kartı doğrula:** Vergi Sonrası Net Getiri · Hedef Dağılım · Veri Yedeği · sayılarda virgül (`₺48.500`, `%17,5`) | 3 dk | Yanlış sürüm yayındaysa demonun ana argümanı ekranda yok. Yarın sabah fark etmek geç olur. |
+| ☐ | **Ekran görüntüsü yedeği al:** Panel (tam sayfa), Vergi kartı yakın plan, Risk Analizi, Ajan'ın bir cevabı. Telefona **ve** masaüstüne kaydet | 10 dk | İnternet kesilir, site açılmaz, ekran paylaşımı çalışmaz — hepsi olur. |
+| ☐ | **Kartı yazdır:** `toplanti-kisa-kart.md` | 2 dk | Ekranda açık tutmak yerine kâğıtta olsun; ekranı demoya ayır. |
+| ☐ | **Beş iş sorusunu cevapla** (aşağıda) | 20 dk | Bunlar kesin gelir ve şu an cevapları yok. Toplantıda düşünerek cevaplamak zayıf görünür. |
+
+### Beş iş sorusu — kendi cümlelerinle yaz
+
+1. **"Ekip kaç kişi?"** → Tek kişilik. Savunma değil, çerçeve: *"Şu an tek kişiyim; getirdiğim şey ekip değil, çalışan bir ürün ve onun arkasındaki matematik."*
+2. **"İş modeliniz ne?"** → B2B lisans mı, gelir paylaşımı mı, satın alma mı? **Rakam telaffuz edecek misin?** Karar ver — "konuşuruz" demek de geçerli bir cevap ama bilinçli olsun.
+3. **"Bu görüşmeden ne bekliyorsunuz?"** → Tek cümle olmalı. Öneri: *"Teknik bir takip toplantısı ve küçük bir pilot."* Belirsiz bırakma; net talep ciddiyet gösterir.
+4. **"Hukuki tarafı düşündünüz mü?"** → SPK sınırı için metinler betimleyici hale getirildi ama **avukat görüşü alınmadı.** Dürüst cevap: *"Metinleri bu ayrıma göre yazdım, ama kurumsal entegrasyonda hukuk onayı sizin tarafınızda gerekir — bunu ilk maddeye koyuyorum."*
+5. **"Yarın vazgeçerseniz?"** → Kod dokümante, ajan mantığı saf fonksiyonlarda izole, 415 testle korunuyor. *"Devralınabilir yazıldı."*
+
+## Yarın sabah (toplantı Salı ise) — 30 dakika
+
+| ☐ | İş | Süre |
 |---|---|---|
-| **1** | ✅ **Tamamlandı** — C.4 madde 1–3 düzeltildi (enflasyon %32, tavsiye sınırı metinleri, README). Doğrulama: typecheck + build temiz, e2e 355/355 | Demo güvenli |
-| **2** | Demo portföyünü kur (karma: kripto + mevduat + BIST + döviz). A.4'teki 7 adımı baştan sona **iki kez** prova et, süre tut | 7 dakikada biten akış |
-| **3** | A.3 itiraz–cevap tablosunu sesli tekrar et. Bölüm 0'daki altı sayıyı ve Fisher örneğini ezberle | Notsuz konuşabilme |
-| **4** | Sunum sayfasını gözden geçir, muhataba göre bölüm seç. `fagent/README.md`'yi güncelle (C.4 madde 3) | Sunum + doküman hazır |
-| **5** | Yedek plan: internet kesilirse ne yapacaksın? (ekran görüntüsü seti hazırla — canlı fiyat çağrıları ağa çıkıyor). Toplantı sonrası "ask"ı (A.6) yaz | Riske dayanıklı sunum |
+| ☐ | **Demo akışını sesli prova et, süre tut.** Vergi Sonrası → Proaktif İçgörüler → Hedef Dağılım → Ajan'a bir soru. Hedef: 5–7 dakika | 15 dk |
+| ☐ | Kartın §0'ını (kime anlatıyorsun) ve üç cümleyi bir kez oku | 5 dk |
+| ☐ | Fisher örneğini kafadan söyleyebildiğini kontrol et: nominal %60, enflasyon %32 → kestirme %28, doğrusu **%21,2** | 5 dk |
+| ☐ | Sen soracağın 4 soruyu (§6) gözden geçir | 5 dk |
 
-**Sunumda yanına alacakların:** bu doküman (yazdırılmış ya da tablette), sunum sayfası linki,
-çalışan demo, ekran görüntüsü yedeği, A.6'daki net talep.
+**Prova ipucu:** Demoda **"Karma örnek portföy"** kullan, kendi gerçek portföyünü değil.
+Sayıları biliyorsun (₺143.700, +%2,6 nominal, **reel −%22**), tekrarlanabilir, ve kendi mali
+durumunu paylaşmamış olursun.
 
----
+## Toplantıdan 15 dakika önce
+
+| ☐ | İş |
+|---|---|
+| ☐ | Toplantı linkine gir, **kamera + mikrofon + ekran paylaşımını** test et |
+| ☐ | Tarayıcıda demo sekmesini aç, örnek portföyü **yükle ve hazır bırak** (canlıda kurma) |
+| ☐ | Gereksiz sekmeleri/bildirimleri kapat — ekran paylaşımında her şey görünür |
+| ☐ | Yazdırılmış kart önünde, ekran görüntüsü yedeği açık bir klasörde |
+| ☐ | Su. Sesin kısılmasın. |
+
+## Toplantı Perşembe'ye kalırsa — fazladan iki gün ne yapılır
+
+Öncelik sırasıyla, **kod yazmadan**:
+
+1. İtiraz–cevap tablosunu (§A.3 değil, güncel olan `soru-cevap.md`) sesli tekrar
+2. Rutin için Gmail bağlantısını claude.ai → Routines'ten etkinleştir
+3. `main`'e merge + otomatik yayını geri açma (manuel deploy geçici bir çözümdü)
+4. Hâlâ zaman varsa: BtcTurk | Hisse uygulamasını **indirip kendin kullan** — masada onu yapan
+   ekip oturuyor; ürünü kullanmış olmak fark yaratır
 
 # Bölüm E — Kaynaklar ve doğruluk notu
 
