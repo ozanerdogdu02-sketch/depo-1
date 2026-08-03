@@ -11,8 +11,10 @@
 > **Altın kural:** Bilmediğin bir şey sorulursa "bilmiyorum, bakıp döneceğim" de. Bu üründe
 > dürüstlük bir özellik — uydurulmuş bir cevap tüm konumlandırmayı çürütür.
 >
-> ⭐ **Muhatabın CX lideri** (Emir Karagüler, Head of Customer Experience — geçmişi Vodafone,
-> ING). Teknik derinlik onda karşılık bulmaz; **elde tutma, destek yükü, güven** dilini kullan.
+> ⭐ **Muhatapların:** Emir Karagüler (Head of Customer Experience — geçmişi Vodafone, ING) ve
+> **Emine Ceylan, Bloki ekibinden** (Emir'in ifadesi). Teknik derinlik Emir'de karşılık bulmaz;
+> **elde tutma, destek yükü, güven** dilini kullan. Ama masada **Bloki'yi yapan kişi** olabilir —
+> Bloki'yi eleştirme, üzerine ne eklediğini anlat.
 > Ayrıntı: [`toplanti-kisa-kart.md` §0](toplanti-kisa-kart.md).
 
 ---

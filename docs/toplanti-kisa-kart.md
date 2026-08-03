@@ -26,8 +26,15 @@ güven diliyle düşünmüş biri.
 > Bu boşluk size iki şekilde dönüyor: ya güveni sarsılıp uygulamayı bırakıyor, ya da destek
 > ekibinize yazıyor. Ben o boşluğu ekranda kapatıyorum."
 
-⚠️ İkinci isim **Emine Ceylan** — BtcTurk'te Account Manager göründü ama yaygın bir isim,
-**teyit etmeden unvan telaffuz etme.** Muhtemelen süreci koordine eden kişi.
+**Yanında Emine Ceylan olacak — ve bu önemli.** Emir'in kendi cümlesiyle:
+*"Bloki projesinde yer alan takım arkadaşım."* Yani takvim tutan biri değil, **Bloki ekibinden.**
+*(Kaynak: Emir'in 27 Tem 2026 tarihli e-postası — LinkedIn'de "Account Manager" görünüyordu,
+e-posta o tahmini düzeltti.)*
+
+> 🔑 **Bunun sonucu:** Masada muhtemelen **Bloki'yi yapan kişi** oturuyor. "Bloki'yi inceledim"
+> derken karşında onu yazan biri var. Dilin **eleştirmek değil tamamlamak** üzerine kurulu —
+> zaten öyle seçilmişti, ama şimdi kritik. Bloki'nin yapamadığını değil, **senin eklediğini**
+> anlat. Emine'ye de doğrudan hitap et; teknik soruların çoğu ondan gelebilir.
 
 ---
 

@@ -74,10 +74,21 @@ kariyeri boyunca ölçtüğü şeyler: **elde tutma, churn, destek yükü, güve
 **Teknik derinliği cebinde tut** — sorarsa çıkar, açılışta değil. Açılış cümlesi CX dilinde
 olmalı: kullanıcının bilgi boşluğu → güven kaybı → churn ya da destek yükü.
 
-İkinci isim **Emine Ceylan**, BtcTurk'te Account Manager göründü — yaygın bir isim olduğu için
-**teyit edilmeden unvan telaffuz edilmemeli.** Muhtemelen süreci koordine eden kişi.
+**Emine Ceylan da toplantıda olacak — ve rolü tahmin edilenden önemli.** Emir'in 27 Tem 2026
+tarihli e-postasındaki kendi ifadesi: *"@Emine Ceylan **Bloki projesinde yer alan takım
+arkadaşım** gelecek haftaki planlama konusunda bize destek olacak."*
 
-*(Kaynak: kamuya açık LinkedIn profilleri, 2026-08-02.)*
+Yani süreci koordine eden bir hesap yöneticisi değil, **Bloki ekibinin bir üyesi.**
+*(Düzeltme notu: LinkedIn'de "Account Manager" göründüğü için ilk sürümde öyle yazılmıştı;
+e-posta birincil kaynak olduğu için düzeltildi.)*
+
+**Bunun pratik sonucu — sunum dilini doğrudan etkiliyor:** masada **Bloki'yi yapan kişi**
+oturuyor olabilir. Bu dokümanın baştan beri seçtiği "rakip değil tamamlayıcı" çerçevesi zaten
+doğruydu; şimdi zorunlu hale geldi. Bloki'nin eksiklerini saymak yerine **senin eklediğini**
+anlat, ve teknik soruların Emine'den gelebileceğini hesaba kat.
+
+*(Kaynaklar: Emir Karagüler'in unvanı ve geçmişi — kamuya açık LinkedIn, 2026-08-02;
+Emine Ceylan'ın rolü — 27 Tem 2026 tarihli e-posta.)*
 
 ## A.1 Tek cümlelik konumlandırma
 
