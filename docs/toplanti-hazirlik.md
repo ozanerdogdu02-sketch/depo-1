@@ -402,19 +402,24 @@ ama **yalnızca** gizlilik mimarisini bozmayan bir tasarımla (uçtan uca şifre
 | | |
 |---|---|
 | **Konu** | Bloki Görüşme |
-| **Tarih** | **5 Ağustos 2026, Çarşamba** |
-| **Saat** | **13:00 – 13:30 (TRT)** — 30 dakika |
+| **Tarih** | **6 Ağustos 2026, Perşembe** |
+| **Saat** | **14:00 – 14:30 (TRT)** — 30 dakika |
 | **Platform** | Google Meet · `meet.google.com/wvz-uuyb-zie` |
-| **Organizatör** | Emine Ceylan (Bloki ekibi) |
-| **Diğer katılımcı** | Emir Karagüler — Head of Customer Experience |
+| **Organizatör** | Emine Ceylan (Bloki ekibi) — kabul etti |
+| **Diğer katılımcı** | **Emir Karagüler** — Head of Customer Experience (davete eklendi) |
+| **Senin durumun** | Kabul edildi |
 
 **Nasıl geldi:** 4 Ağustos 13:53'te Emine'ye (Emir kopyada) müsait günler yazıldı;
 14:16'da yanıt geldi — *"Yarın öğleden sonra için davet ilettim, saat uygun değilse
-saati revize edebilirim."* Yani saat **pazarlığa açık**; 13:00 sorun çıkarırsa
-Emine'ye yazmak yeterli.
+saati revize edebilirim."* İlk davet Çarşamba 13:00 içindi; **14:19'da revize edildi**
+ve Perşembe 14:00'a alınıp Emir de katılımcı olarak eklendi. Geçerli olan ikinci davettir.
 
 > ⚠️ **30 dakika kısa.** Konuşma (~3 dk) + demo (5–7 dk) + soru-cevap. Ürün turu yok.
-> 13:30'da büyük ihtimalle kesilir — en önemli şeyi sona saklama.
+> 14:30'da büyük ihtimalle kesilir — en önemli şeyi sona saklama.
+
+> **Emir'in davete eklenmesi bir bilgi.** Başta yalnızca Emine organizatördü. Yani masada
+> hem CX lideri hem Bloki ekibinden biri olacak — konuşma metni ([`tanitim-konusmasi.md`](tanitim-konusmasi.md))
+> zaten Emir'e göre yazılmıştı, bu yüzden değiştirmeye gerek yok.
 
 ## 🔒 Kural: kod donduruldu
 
@@ -423,7 +428,11 @@ Toplantı öncesi kod değiştirmenin beklenen faydası düşük, bir şeyi bozm
 Ortaya çıkan fikirler "toplantı sonrası" listesine yazılır. Tek istisna: **demoyu bozan bir hata**
 bulunursa düzeltilir.
 
-## Bu akşam (yaklaşık 40 dakika) — ertelenemez
+## Bu akşam (4 Ağustos, yaklaşık 40 dakika)
+
+Perşembe'ye iki tam gün var — ama bu liste yine de bu akşam bitsin. Yarın (5 Ağustos)
+provaya ve tekrara ayrılsın; hazırlığı toplantı sabahına yığmak en kötü senaryo.
+
 
 | ☐ | İş | Süre | Neden bu akşam |
 |---|---|---|---|
@@ -440,7 +449,7 @@ bulunursa düzeltilir.
 4. **"Hukuki tarafı düşündünüz mü?"** → SPK sınırı için metinler betimleyici hale getirildi ama **avukat görüşü alınmadı.** Dürüst cevap: *"Metinleri bu ayrıma göre yazdım, ama kurumsal entegrasyonda hukuk onayı sizin tarafınızda gerekir — bunu ilk maddeye koyuyorum."*
 5. **"Yarın vazgeçerseniz?"** → Kod dokümante, ajan mantığı saf fonksiyonlarda izole, 415 testle korunuyor. *"Devralınabilir yazıldı."*
 
-## Yarın sabah (5 Ağustos, 13:00'dan önce) — 30 dakika
+## Toplantı sabahı (6 Ağustos, 14:00'dan önce) — 30 dakika
 
 | ☐ | İş | Süre |
 |---|---|---|
@@ -453,11 +462,11 @@ bulunursa düzeltilir.
 Sayıları biliyorsun (₺143.700, +%2,6 nominal, **reel −%22**), tekrarlanabilir, ve kendi mali
 durumunu paylaşmamış olursun.
 
-## Toplantıdan 15 dakika önce — 12:45
+## Toplantıdan 15 dakika önce — 13:45
 
 | ☐ | İş |
 |---|---|
-| ☐ | **Takvim davetine "Katılıyorum" yanıtı verildi mi?** (verilmediyse Emine onay bekliyor demektir) |
+| ☐ | **Takvimde saatin hâlâ 14:00 olduğunu kontrol et** (davet bir kez zaten revize edildi) |
 | ☐ | `meet.google.com/wvz-uuyb-zie` adresine gir, **kamera + mikrofon + ekran paylaşımını** test et |
 | ☐ | Tarayıcıda demo sekmesini aç, örnek portföyü **yükle ve hazır bırak** (canlıda kurma) |
 | ☐ | Gereksiz sekmeleri/bildirimleri kapat — ekran paylaşımında her şey görünür |

@@ -1,7 +1,7 @@
 # Toplantı — Tek Sayfa
 
-> **Bloki Görüşme · 5 Ağustos 2026 Çarşamba · 13:00–13:30 (TRT) · 30 dakika**
-> Google Meet: `meet.google.com/wvz-uuyb-zie` — organizatör **Emine Ceylan**, **Emir Karagüler** davetli.
+> **Bloki Görüşme · 6 Ağustos 2026 Perşembe · 14:00–14:30 (TRT) · 30 dakika**
+> Google Meet: `meet.google.com/wvz-uuyb-zie` — **Emine Ceylan** (organizatör) ve **Emir Karagüler** katılımcı.
 
 > Bunu yazdır, önüne koy. Uzun kart ([`soru-cevap.md`](soru-cevap.md)) yedekte kalsın.
 > **Ezberlemen gereken tek şey aşağıdaki üç cümle.** Gerisi bunlardan türer.
