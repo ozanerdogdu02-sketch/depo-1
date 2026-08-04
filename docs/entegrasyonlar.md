@@ -12,7 +12,7 @@
 | | |
 |---|---|
 | Kaynak kod | **5.549 satır** TS/TSX (20 dosya) + 255 satır CSS + 79 satır Netlify Function |
-| Test | **2.401 satır**, 23 dosya, **415 uçtan uca kontrol** |
+| Test | **2.401 satır**, 23 dosya, **447 uçtan uca kontrol** |
 | Üretim bağımlılığı | **4 tane**: react, react-dom, recharts, lucide-react |
 | Sunucu | **Yok** (tek istisna: aşağıdaki EVDS proxy'si — şu an kapalı) |
 | Hesap / giriş / KYC | **Yok** |
@@ -104,7 +104,7 @@ Sunucu olmadığı için tüm veri kullanıcının tarayıcısında. **Yedi ayr�
 | Varsayılan dal | `main` — ⚠️ **çalışma dalının ~20 commit gerisinde** |
 | FAGENT yolu | `fagent/` (kendi `package.json`'ı olan bağımsız uygulama) |
 | Dokümanlar | `docs/` |
-| CI | ❌ **Yok** — `.github/workflows` dizini bulunmuyor. 415 test elle koşuyor. |
+| CI | ❌ **Yok** — `.github/workflows` dizini bulunmuyor. 447 test elle koşuyor. |
 
 **Açık iş:** dal `main`'e merge edilmedi. Netlify'a manuel (sürükle-bırak) deploy yapıldığı için
 canlı site güncel, ama repo ile yayın arasındaki otomatik bağ şu an kopuk.

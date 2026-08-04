@@ -41,6 +41,10 @@ export interface AgentReply {
   trainedFactId?: string; // dolu ise bu yanıt öğretilmiş bir bilgiden geldi (kullanım sayacı için)
   isFallback?: boolean;
   pendingAction?: PendingAction;
+  // Kullanıcı bekleyen işlem önerisini YAZIYLA iptal etti ("vazgeç", "iptal"). App.tsx bunu
+  // görünce ilgili mesajı actionResolved:'cancelled' yapar. agent.ts saf kalır — burada
+  // hiçbir veri değişmez, tıpkı Vazgeç düğmesinde olduğu gibi.
+  cancelPending?: boolean;
 }
 
 // Ajanın chat üzerinden ÖNERDİĞİ ama henüz UYGULAMADIĞI bir işlem — kullanıcı onaylamadan
@@ -418,13 +422,16 @@ function detectChartRequest(s: PortfolioState, text: string): { chart: ChartSpec
 // pozitiften çok daha güvenlidir. Bu fonksiyon SAF'tır: hiçbir actions.* çağrısı yapmaz, yalnızca
 // "kullanıcı bunu istiyor gibi görünüyor" tespitini döner — gerçek uygulama App.tsx'te, kullanıcı
 // onayladıktan SONRA gerçekleşir.
-function detectTradeCommand(s: PortfolioState, text: string): PendingAction | undefined {
-  const amountMatch = text.match(/(\d[\d.,]*)\s*(tl|₺)?/i);
-  if (!amountMatch) return undefined;
-  const amountStr = amountMatch[1].replace(/\./g, '').replace(',', '.');
-  const amount = Math.round(Number(amountStr));
-  if (!Number.isFinite(amount) || amount <= 0) return undefined;
+// Tutarı metinden çıkarır. "TL"/"₺" ile işaretlenmiş sayı VARSA o tercih edilir — kullanıcı
+// birimi yazdıysa kastettiği odur. Yoksa kalan ilk sayıya düşülür.
+function parseTradeAmount(text: string): number | undefined {
+  const m = text.match(/(\d[\d.,]*)\s*(?:tl|₺)/i) ?? text.match(/(\d[\d.,]*)/);
+  if (!m) return undefined;
+  const n = Math.round(Number(m[1].replace(/\./g, '').replace(',', '.')));
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
 
+function detectTradeCommand(s: PortfolioState, text: string): PendingAction | undefined {
   const isSell = /\b(sat|satış|satayım|satmak istiyorum)\b/i.test(text);
   const isBuy = /\b(al|alış|ekle|alayım|almak istiyorum)\b/i.test(text);
   if (isSell === isBuy) return undefined; // ikisi de yok ya da ikisi de var (belirsiz) — atla
@@ -434,8 +441,37 @@ function detectTradeCommand(s: PortfolioState, text: string): PendingAction | un
   if (candidates.length !== 1) return undefined; // hiç ya da birden fazla eşleşme — güvenli değil
 
   const holding = candidates[0];
+
+  // KRİTİK: tutar, varlık adı metinden ÇIKARILDIKTAN sonra aranır. Önceden metindeki ilk sayı
+  // alınıyordu ve "BIST 30 Fonu 1000 TL al" komutu ₺30 olarak ayrıştırılıyordu — adın içindeki
+  // 30 tutar sanılıyordu. Adında rakam geçen her varlık (BIST 30 Fonu, BIST 100, S&P 500) bu
+  // hatadan etkileniyordu. Kesme işlemi `lower` üzerinde yapılıyor: `lower` ve `lowerName` aynı
+  // locale ile küçültüldüğü için indeksler tutarlı (Türkçe 'İ' küçülünce uzunluk değişebilir,
+  // orijinal metin üzerinde indekslemek kayma yaratırdı). Rakamlar küçültmeden etkilenmez.
+  const lowerName = holding.name.toLocaleLowerCase('tr-TR');
+  const at = lower.indexOf(lowerName);
+  const rest = lower.slice(0, at) + ' ' + lower.slice(at + lowerName.length);
+
+  const amount = parseTradeAmount(rest);
+  if (amount === undefined) return undefined;
+
   return { kind: isSell ? 'satis' : 'alis', holdingId: holding.id, holdingName: holding.name, amount };
 }
+
+// Bekleyen (henüz onaylanmamış/vazgeçilmemiş) bir işlem önerisi var mı? Yazıyla iptal yalnızca
+// varsa devreye girer; yoksa cümle normal akışa düşer — kullanıcı gerçekten "vazgeçtim" diye
+// sohbet ediyor olabilir.
+function hasUnresolvedAction(history: AgentMessage[]): boolean {
+  for (let i = history.length - 1; i >= 0; i--) {
+    if (history[i].pendingAction) return !history[i].actionResolved;
+  }
+  return false;
+}
+
+// UI'da "Vazgeç" düğmesi var ama bekleyen bir öneri dururken en doğal refleks bunu YAZMAK.
+// Not: Türkçe'de 'ı/ş/ç' JS'in \w sınıfında olmadığı için \b sınırlarına güvenilmez —
+// burada bilinçli olarak kelime köküyle eşleşiliyor (bkz. CLAUDE.md §1.18).
+const CANCEL_PHRASE = /^\s*(vazgeç|iptal|boş ?ver|hayır|olmaz|onaylamıyorum|istemiyorum|yapma)|işlem(i|den)? *(iptal|vazgeç)|(satış|alış)ı iptal/i;
 
 // --- Varlık bazlı sorgular -------------------------------------------------
 
@@ -493,6 +529,30 @@ const CHAT_RULES: Rule[] = [
   {
     test: /merhaba|selam|naber|nasılsın/i,
     reply: () => 'Merhaba! Portföyün hakkında soru sorabilir, "analiz et" yazabilir ya da "dağılımımı çiz" gibi bir istekle grafik çizmemi isteyebilirsin.',
+  },
+  // ── Regülasyon sınırı: al/sat tavsiyesi ────────────────────────────────────────────
+  // SPK'ya göre genel yatırım tavsiyesi yalnızca aracı kurum/banka/portföy yönetim şirketlerince
+  // verilebilir. Bu soruya "anlayamadım" demek hem kaba hem yanıltıcı — ürünün sınırı bilinçli,
+  // bir eksiklik değil. Cevap reddi AÇIKÇA söylüyor ve hemen yapabildiklerine yönlendiriyor.
+  // Bu kural `analiz`/`dagilim` gibi genel kurallardan ÖNCE gelmeli, yoksa "portföyümü optimize
+  // et" gibi cümleler onlara takılır.
+  {
+    id: 'tavsiye',
+    test: /(hangi|ne|neyi)\s*\S*\s*(al(malı|ayım|sam|ır mıyım)|sat(malı|ayım|sam|ar mıyım))|yatırım tavsiye|tavsiye ver|tavsiyen ne|al ?sat tavsiye|ne önerirsin|bana öneri|optimize et|portföyümü optimize/i,
+    reply: (s) => {
+      const lines = [
+        'Al/sat tavsiyesi veremem — bu, yalnızca SPK lisanslı aracı kurumların yapabileceği bir şey. Bilerek böyle tasarlandı.',
+        'Ama sana şunları söyleyebilirim:',
+        '• "analiz et" — portföyünün tamamını değerlendiririm',
+        '• "riskimi analiz et" — volatilite, yoğunlaşma, çeşitlendirme faydası',
+        '• "reel getirim ne" — enflasyon sonrası gerçek durumun',
+        '• "vergiden sonra ne kalıyor" — stopaj sonrası net',
+      ];
+      if (s.holdings.length) {
+        lines.push('Ayrıca hedef dağılımını Panel\'den girersen, kendi koyduğun hedeften ne kadar saptığını hesaplarım — bu bir tavsiye değil, aritmetik.');
+      }
+      return lines.join('\n');
+    },
   },
   // ── İleri matematik: reel getiri (Fisher) ──────────────────────────────────────────
   // Bloki bu soruda formülü açıklayıp hesabı kullanıcıya bırakıyordu; biz hesaplıyoruz.
@@ -882,6 +942,13 @@ export function chatReply(
   const trained = findBestMatch(trainedFacts, text);
   if (trained) return { text: trained.answer, intentId: 'trained', trainedFactId: trained.id };
 
+  // Yazıyla iptal — yalnızca gerçekten bekleyen bir öneri varsa. Alım/satım ayrıştırmasından
+  // ÖNCE gelmeli: "satışı iptal et" cümlesi içinde "satış" geçtiği için aksi halde yanlışlıkla
+  // yeni bir satış komutu gibi değerlendirilebilirdi.
+  if (hasUnresolvedAction(history) && CANCEL_PHRASE.test(text)) {
+    return { text: 'Tamam, bekleyen işlemi iptal ettim. Hiçbir veri değişmedi.', cancelPending: true };
+  }
+
   // Alım/satım komutu — gerçek veri değişikliği burada YAPILMAZ, yalnızca önerilir.
   // Kullanıcı sohbet balonundaki Onayla/Vazgeç ile onaylamadan actions.addTxn çağrılmaz.
   const pendingAction = detectTradeCommand(s, text);
@@ -943,10 +1010,26 @@ export function chatReply(
   const lookup = holdingLookupReply(s, text);
   if (lookup) return { text: lookup };
 
-  return {
-    text:
-      'Bunu tam olarak anlayamadım. "analiz et", "dağılımım nasıl", "en çok kazandıran ne", bir varlık adı ' +
-      '(ör. "THYAO nasıl gidiyor") ya da "dağılımımı çiz" gibi bir grafik isteği deneyebilirsin. "yardım" yazarsan tüm yeteneklerimi listelerim.',
-    isFallback: true,
-  };
+  return { text: fallbackText(s), isFallback: true };
+}
+
+// Anlaşılmayan soruda "anlayamadım" deyip susmak, ajanı olduğundan yeteneksiz gösteriyordu.
+// Onun yerine somut ve TIKLANABİLİR olmayan ama YAZILABİLİR örnekler veriliyor; örneklerden
+// biri kullanıcının kendi portföyünden geliyor, böylece cevap jenerik durmuyor.
+function fallbackText(s: PortfolioState): string {
+  const example = s.holdings[0]?.name;
+  const lines = [
+    'Bunu tam olarak anlayamadım — ama şunları sorabilirsin:',
+    '• "analiz et" — portföyünün tamamını değerlendiririm',
+    '• "reel getirim ne" — enflasyon sonrası gerçek durumun',
+    '• "vergiden sonra ne kalıyor" — stopaj sonrası net getirin',
+    '• "riskimi analiz et" — volatilite ve yoğunlaşma',
+    '• "kâr zarar grafiği çiz" — sohbetin içine grafik çizerim',
+    example
+      ? `• "${example} nasıl gidiyor" — tek bir varlığın durumu`
+      : '• bir varlık adı yazarsan o varlığın durumunu veririm',
+    '',
+    '"yardım" yazarsan tüm yeteneklerimi listelerim.',
+  ];
+  return lines.join('\n');
 }

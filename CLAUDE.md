@@ -389,7 +389,7 @@ inmez ve CORS sorunu hiç doğmaz çünkü isteği sunucu atar. Bedeli bilinçli
   TCMB'nin ham hata gövdesi istemciye AKTARILMAZ.
 - **Test:** `fagent-evds-e2e.mjs` (26 kontrol) — canlı değere geçiş, kaynak etiketi, üç kart +
   ajanın AYNI oranı söylemesi, 503/502/ağ kopması/bozuk yanıtta sessiz geri düşme, önbellek,
-  kullanıcı oranının canlıyı ezmesi. Toplam **415 kontrol / 23 dosya**.
+  kullanıcı oranının canlıyı ezmesi. Toplam **447 kontrol / 23 dosya**.
 
 **DOĞRULAMA SINIRI — dokümana da yazıldı:** Netlify Function bu ortamda koşturulamadı (ne
 netlify-cli var ne dış ağ). İstemci `page.route()` taklidiyle test edildi; **fonksiyonun kendisi
@@ -402,6 +402,53 @@ girdiği %0 sıfırlamadan sağ çıkıyor ve nakit erimesi uyarısı bir daha h
 `resetInflation()` eklendi (SIFIRLA artık YEDİ katmanı temizliyor). **Ders:** yerel state'i
 paylaşılan state'e taşırken, mount/unmount'a bağlı örtük sıfırlamaların da açıkça yeniden
 yazılması gerekir.
+
+### 1.21 Canlı komut testi düzeltmeleri (2026-08-04) — parser, iptal, regülasyon, fallback
+
+Canlı uygulamada 51 komut denenerek çıkarılan rapor üzerine dört düzeltme yapıldı. Rapor 19
+madde sayıyordu; **bilinçli olarak yalnızca dördü alındı** — toplantıya iki gün vardı ve her
+yeni `CHAT_RULES` girdisi bir sıralama riski demek (§1.15 ve §1.18 aynı tuzağa düşmüştü).
+
+- **P0 — `detectTradeCommand` tutar ayrıştırma hatası.** `text.match(/(\d[\d.,]*)\s*(tl|₺)?/i)`
+  metindeki İLK sayıyı alıyordu; "BIST 30 Fonu 1000 TL al" komutu **₺30** olarak ayrıştırılıyordu.
+  Adında rakam geçen her varlık etkileniyordu (BIST 30 Fonu, BIST 100, S&P 500) ve kullanıcı
+  onaylarsa **yanlış tutarla gerçek işlem** yazılacaktı. Düzeltme: önce varlık eşleştirilir,
+  sonra **ad metinden çıkarılır**, tutar kalandan okunur (`parseTradeAmount`). Ayrıca "TL"/"₺"
+  ile işaretli sayı varsa o tercih edilir. **Kesme `lower` üzerinde yapılır** — Türkçe 'İ'
+  küçülünce uzunluğu değişebildiği için orijinal metinde indekslemek kayma yaratırdı.
+- **P1 — yazıyla iptal.** `AgentReply.cancelPending` eklendi; `CANCEL_PHRASE` yalnızca
+  `hasUnresolvedAction(history)` doğruyken çalışır (bekleyen öneri yoksa cümle normal akışa
+  düşer — kullanıcı gerçekten "vazgeçtim" diye sohbet ediyor olabilir). Kontrol
+  `detectTradeCommand`'dan **ÖNCE** olmalı: "satışı iptal et" içinde "satış" geçiyor.
+  `App.tsx` → `cancelLastPending()` ilgili mesajı `actionResolved:'cancelled'` yapar —
+  Vazgeç düğmesiyle birebir aynı sonuç, `actions.*` çağrılmaz. `agent.ts` saf kaldı.
+- **P1 — regülasyon kuralı (`id: 'tavsiye'`).** "hangi hisseyi almalıyım" / "yatırım tavsiyesi
+  ver" / "portföyümü optimize et" fallback'e düşüyordu. **Lisanslı bir aracı kuruma sunulan
+  üründe en kötü cevap buydu.** Yeni kural reddi açıkça söylüyor (SPK gerekçesiyle) ve hemen
+  yapabildiklerine yönlendiriyor. `analiz`/`dagilim`'den ÖNCE, ama testi dar tutuldu —
+  "hedef dağılım öner" hâlâ `hedef-dagilim` kuralına gidiyor (testi var).
+- **P1 — fallback yeniden yazıldı.** "Anlayamadım" deyip susmak ajanı olduğundan yeteneksiz
+  gösteriyordu. Artık beş somut örnek veriyor ve **biri kullanıcının kendi portföyünden**
+  geliyor (`s.holdings[0].name`), böylece cevap jenerik durmuyor. Bu tek değişiklik, raporun
+  saydığı 15 eksik intent'in çoğunun yerini tutuyor — yeni kural eklemeden.
+
+**Alınmayanlar (toplantı sonrasına):** USDD/USD ayrımı, `maksimum düşüş`, `özet`/`bugün`,
+`nakit benzeri eriyor mu`, eğitim paneli sorusu, canlı veri yönlendirmeleri. Hiçbiri demoyu
+bozmuyor; hepsi yeni kural = yeni sıralama riski.
+
+**Rapora bir itiraz:** "hedef dağılım öner" cevabının sert olduğu söylenmişti — yumuşatılmadı.
+O net reddediş bir kusur değil, ürünün SPK sınırını gösteren satış argümanı.
+
+**Test:** `fagent-parser-e2e.mjs` (32 kontrol) — P0'ın iki yönü (doğru tutar + ad içindeki
+rakamın alınmaması), iptalin dört yolu, bekleyen işlem yokken iptalin ÇALIŞMAMASI, iptal
+edilen işlemin geçmişe yazılmaması, üç regülasyon sorusu, sıralama çakışması, fallback
+içeriği, ve rakamsız varlıkta gerileme kontrolü. Toplam **447 kontrol / 23 dosya**.
+
+**Test yazarken yakalanan kendi hatam:** `page.locator('.msg-agent').last()` **dinamik** bir
+seçici — "vazgeç" yazdıktan sonra artık iptal mesajını gösteriyor, öneriyi değil. Öneri
+mesajına sabit indeksle tutunulmalı (`fagent-action-e2e.mjs` bunu zaten doğru yapıyordu).
+İkinci hata: `/tavsiye veremem/` deseni "tavsiye**si** veremem" metnini yakalamıyordu —
+Türkçe iyelik eki tuzağı, §1.5'teki "graf kökü" notuyla aynı aile.
 
 ## 2. Aura Finance (BDT günlüğü + abonelik demosu)
 

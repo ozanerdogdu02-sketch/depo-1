@@ -25,7 +25,7 @@ Değerli olduğu yer, dağıtımı ve verisi olan bir kurumun içindeki **analiz
 | Boyut | Seviye | Gerekçe |
 |---|---|---|
 | **Analitik derinlik** | **4 / 5** | Fisher reel getiri, XIRR, HHI + etkin varlık sayısı, kovaryans tabanlı portföy volatilitesi, maks. düşüş, Sharpe, korelasyon, çeşitlendirme faydası, vergi sonrası net getiri zinciri, %5/%25 sapma bandı. Rakiplerin hiçbirinde bu küme görünmüyor. |
-| **Teknik olgunluk** | **3,5 / 5** | 5.549 satır TS, **415 uçtan uca test**, saf-fonksiyon mimarisi, yazılı mimari kurallar, tam tip güvenliği. Eksik: CI yok, kod bölme yok (685 kB bundle), hata telemetrisi yok (bilinçli). |
+| **Teknik olgunluk** | **3,5 / 5** | 5.549 satır TS, **447 uçtan uca test**, saf-fonksiyon mimarisi, yazılı mimari kurallar, tam tip güvenliği. Eksik: CI yok, kod bölme yok (685 kB bundle), hata telemetrisi yok (bilinçli). |
 | **Veri kapsamı** | **2 / 5** | ⚠️ **En büyük açık.** Altı varlık sınıfının **üçü manuel**: BIST hissesi, TEFAS fonu, altın. Yalnızca kripto ve döviz canlı. |
 | **Ürün yüzeyi** | **2,5 / 5** | Web-only. Mobil uygulama yok, hesap/senkronizasyon yok, fiyat alarmı yok, çoklu portföy yok, paylaşım yok. |
 | **Ticari olgunluk** | **1 / 5** | Kullanıcı yok, gelir yok, iş modeli kararı yok, hukuk görüşü yok, şirket yok. Tek kişi. |
@@ -83,7 +83,7 @@ Değerli olduğu yer, dağıtımı ve verisi olan bir kurumun içindeki **analiz
 | **İş modeli belirsiz** | 🟠 Yüksek. B2B lisans mı, gelir paylaşımı mı, satın alma mı — karar verilmedi. |
 | **Tek kişi** | 🟠 Yüksek. Devralınabilirlik için mimari hazır ama "otobüs faktörü" 1. |
 | **Hukuk görüşü yok** | 🟡 Orta. SPK sınırı için metinler betimleyici yazıldı, avukat onayı alınmadı. |
-| **CI yok** | 🟡 Düşük. 415 test var ama elle koşuyor. |
+| **CI yok** | 🟡 Düşük. 447 test var ama elle koşuyor. |
 | **LLM değil** | 🟡 Düşük — hatta bazı alıcılar için artı (halüsinasyon riski sıfır). |
 
 ---
@@ -120,7 +120,7 @@ FAGENT'ta olan (analitik derinlik) kurumda yok.
 ### Ölçüm kaynakları
 
 - **FAGENT sayıları:** bu depodan doğrudan ölçüldü (4 Ağustos 2026) — 5.549 satır TS/TSX,
-  415 uçtan uca kontrol / 22 dosya, 4 üretim bağımlılığı, 685 kB bundle.
+  447 uçtan uca kontrol / 23 dosya, 4 üretim bağımlılığı, 685 kB bundle.
 - **Rakip bilgileri:** kamuya açık kaynaklar, 2 Ağustos 2026 · ürünler birebir kullanılmadı.
 - **BtcTurk | Hisse ve Bloki:** resmî sayfalar ve basın duyuruları — bkz.
   [`bloki-vs-fagent.md`](bloki-vs-fagent.md) §5 ve §6.

@@ -20,7 +20,7 @@ güven diliyle düşünmüş biri.
 
 | Onda karşılık **bulmaz** | Onda karşılık **bulur** |
 |---|---|
-| "415 otomatik test var" | "Kullanıcı kafası karışık dönüyor" |
+| "447 otomatik test var" | "Kullanıcı kafası karışık dönüyor" |
 | "Saf fonksiyonlar, kovaryans matrisi" | "Uygulamada kalma süresi, geri dönüş sıklığı" |
 | "XIRR ve Fisher hesaplıyorum" | "%60 kâr sanıyor, gerçekte reel kaybediyor" |
 | Mimari üstünlük | Destek ekibine gelen "ben niye kazanamıyorum" sorusu |

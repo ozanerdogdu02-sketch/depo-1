@@ -61,13 +61,13 @@ artar. FAGENT'ın proaktif kartının yaptığı tam olarak budur: **görünmeye
 Geçmişi **Vodafone** ve **ING Türkiye**: telko + bankacılık müşteri deneyimi.
 **CTO değil, ürün müdürü değil.**
 
-Bu dokümanın geri kalanı büyük ölçüde teknik derinlik üzerine kurulu (415 test, saf
+Bu dokümanın geri kalanı büyük ölçüde teknik derinlik üzerine kurulu (447 test, saf
 fonksiyonlar, kovaryans, XIRR). Bir CX liderinde bunların hiçbiri karşılık bulmaz. Onun
 kariyeri boyunca ölçtüğü şeyler: **elde tutma, churn, destek yükü, güven, NPS.**
 
 | Onda karşılık bulmaz | Onda karşılık bulur |
 |---|---|
-| "415 otomatik test var" | "Kullanıcı kafası karışık dönüyor" |
+| "447 otomatik test var" | "Kullanıcı kafası karışık dönüyor" |
 | "Saf fonksiyonlar, kovaryans matrisi" | "Uygulamada kalma süresi, geri dönüş sıklığı" |
 | "XIRR ve Fisher hesaplıyorum" | "%60 kâr sanıyor, gerçekte reel kaybediyor" |
 | Mimari üstünlük | Destek ekibine gelen "ben niye kazanamıyorum" sorusu |
@@ -130,7 +130,7 @@ Toplantının en kritik parçası. Her itiraza **önce kabul, sonra çerçeve de
 | **"LLM değilmiş, o zaman gerçek AI değil."** | "Doğru, LLM değil ve bunu ürünün içinde de açıkça yazıyoruz. Bunun karşılığında: mesaj başına maliyet sıfır, gecikme sıfır, **halüsinasyon sıfır**. Finansal rakamda halüsinasyon, bir asistanın yapabileceği en pahalı hatadır. Mimari LLM'e geçişe hazır — ajanın yanıt mantığı tek dosyada izole, saf fonksiyonlar; anahtar takılınca geçiş tek noktadan yapılır." |
 | **"Veri tarayıcıda, cihaz değişince ne olacak?"** | "Bugün CSV dışa/içe aktarma ile taşınıyor. Bu bilinçli bir tercih: hesap yok, KYC yok, sunucu yok → **veri sızıntısı riski de yok**. Kurumsal entegrasyonda bu değişebilir, ama o zaman veriyi kim tutuyor sorusunun cevabı da değişir; masaya o kararı birlikte koyalım." |
 | **"BIST/TEFAS canlı fiyatı yoksa nasıl portföy takibi?"** | "Anahtarsız, resmî, CORS-açık bir kaynak yok — araştırdık. Uydurma fiyat göstermektense hiç göstermiyoruz; bu bir ilke. Ama **risk metriklerinde bile portföyün yüzde kaçını kapsadığımızı ekrana yazıyoruz.** Sizin veri anlaşmalarınızla bu boşluk kapanır — bu, entegrasyonun somut faydalarından biri." |
-| **"Kaç kullanıcınız var?"** | Dürüst ol: bu bir çalışan ürün ve teknik olgunluk kanıtı (23 e2e test dosyası, 415 otomatik kontrol), kullanıcı tabanı değil. "Kullanıcı tabanı sizde zaten var — milyonlarca kullanıcı. Ben size dağıtım değil, **yetenek** getiriyorum." |
+| **"Kaç kullanıcınız var?"** | Dürüst ol: bu bir çalışan ürün ve teknik olgunluk kanıtı (23 e2e test dosyası, 447 otomatik kontrol), kullanıcı tabanı değil. "Kullanıcı tabanı sizde zaten var — milyonlarca kullanıcı. Ben size dağıtım değil, **yetenek** getiriyorum." |
 | **"Yatırım tavsiyesi vermiş olmuyor musunuz?"** | "Ürün hiçbir varlık için al/sat önermiyor; kullanıcının **kendi verisi üzerinde matematik** yapıyor — reel getiri, volatilite, yoğunlaşma. Yine de metinlerin hukuk onayından geçmesi gerektiğini biliyorum ve bunu entegrasyonun ilk maddesi olarak koyuyorum." *(Bkz. C.4 — bu gerçek bir açık.)* |
 | **"Neden ürünü alalım, ekip alalım?"** | "İkisi de olabilir. Ama şunu unutmayın: bu ürünün mimarisi bilinçli olarak **sizin altyapınıza bağımlı olmayacak** şekilde kuruldu. Yarın entegrasyon olmasa da çalışmaya devam eder. Bu, satın alma kararınızı düşük riskli yapar." |
 
@@ -293,7 +293,7 @@ olarak değil, ürün geri bildirim kanalı olarak tut.
 |---|---|
 | **"Neden şimdi?"** | "%32 enflasyon reel getiriyi soyut bir kavram olmaktan çıkardı. Ayrıca kripto, hisse ve fon yatırımcı sayıları aynı anda rekor seviyede — parçalanma hiç bu kadar büyük olmamıştı." |
 | **"AI değilse neden AI diyorsunuz?"** | "Demiyoruz. Ürünün içinde LLM olmadığı açıkça yazılı. Sattığımız şey model değil, **doğru finansal matematik + doğru zamanlama**." |
-| **"Tek kişilik proje mi?"** | Dürüst ol. Karşılığında göster: 23 e2e test dosyası, 415 otomatik kontrol, dokümante edilmiş mimari kuralları (`AGENTS.md`). "Ölçek yok ama disiplin var." |
+| **"Tek kişilik proje mi?"** | Dürüst ol. Karşılığında göster: 23 e2e test dosyası, 447 otomatik kontrol, dokümante edilmiş mimari kuralları (`AGENTS.md`). "Ölçek yok ama disiplin var." |
 | **"Kullanıcı verisini elle girer mi gerçekten?"** | "Motive olan girer — ve zaten hedef kitle o. Ama tek başına yeterli değil; bu yüzden ilk hedef veri entegrasyonu olan bir kurum ortaklığı." |
 | **"Çıkış (exit) senaryosu?"** | Kurum tarafından satın alınma (borsa/banka/aracı kurum) en gerçekçi yol. Ürün bilinçli olarak entegre edilebilir mimaride: ajan mantığı saf ve izole. |
 
@@ -423,7 +423,7 @@ ve Perşembe 14:00'a alınıp Emir de katılımcı olarak eklendi. Geçerli olan
 
 ## 🔒 Kural: kod donduruldu
 
-Bu andan itibaren **yeni özellik yazılmayacak.** Ürün 415 testle yeşil, canlıya alındı, çalışıyor.
+Bu andan itibaren **yeni özellik yazılmayacak.** Ürün 447 testle yeşil, canlıya alındı, çalışıyor.
 Toplantı öncesi kod değiştirmenin beklenen faydası düşük, bir şeyi bozma riski gerçek.
 Ortaya çıkan fikirler "toplantı sonrası" listesine yazılır. Tek istisna: **demoyu bozan bir hata**
 bulunursa düzeltilir.
@@ -447,7 +447,7 @@ provaya ve tekrara ayrılsın; hazırlığı toplantı sabahına yığmak en kö
 2. **"İş modeliniz ne?"** → B2B lisans mı, gelir paylaşımı mı, satın alma mı? **Rakam telaffuz edecek misin?** Karar ver — "konuşuruz" demek de geçerli bir cevap ama bilinçli olsun.
 3. **"Bu görüşmeden ne bekliyorsunuz?"** → Tek cümle olmalı. Öneri: *"Teknik bir takip toplantısı ve küçük bir pilot."* Belirsiz bırakma; net talep ciddiyet gösterir.
 4. **"Hukuki tarafı düşündünüz mü?"** → SPK sınırı için metinler betimleyici hale getirildi ama **avukat görüşü alınmadı.** Dürüst cevap: *"Metinleri bu ayrıma göre yazdım, ama kurumsal entegrasyonda hukuk onayı sizin tarafınızda gerekir — bunu ilk maddeye koyuyorum."*
-5. **"Yarın vazgeçerseniz?"** → Kod dokümante, ajan mantığı saf fonksiyonlarda izole, 415 testle korunuyor. *"Devralınabilir yazıldı."*
+5. **"Yarın vazgeçerseniz?"** → Kod dokümante, ajan mantığı saf fonksiyonlarda izole, 447 testle korunuyor. *"Devralınabilir yazıldı."*
 
 ## Toplantı sabahı (6 Ağustos, 14:00'dan önce) — 30 dakika
 
@@ -478,7 +478,7 @@ durumunu paylaşmamış olursun.
 Toplantı öncesine sığmayanlar; hiçbiri acil değil ama unutulmasın:
 
 1. `main`'e merge + Netlify otomatik yayınını geri açma (manuel zip deploy geçici çözümdü)
-2. CI kurulumu (`.github/workflows` hâlâ yok — 415 test elle koşuyor)
+2. CI kurulumu (`.github/workflows` hâlâ yok — 447 test elle koşuyor)
 3. EVDS API anahtarı + `TUFE_SERIES` seri kodunun EVDS arayüzünden doğrulanması
 4. `chatReply`'nin 8 parametreli imzasını tek bir bağlam nesnesine çevirmek
 5. Hedef Dağılım'da sapma gösterimini 2 ondalığa çıkarmak (−2,5 vs bant 2,5 eşitmiş gibi
@@ -501,7 +501,7 @@ yol haritasına erişim yoktur; bu dokümandaki "Bloki (tahmini)" ifadeleri aç�
 Kaynaklar ve tam liste: [`bloki-vs-fagent.md`](bloki-vs-fagent.md) §6.
 
 **FAGENT verileri — bu repodan doğrulanmıştır:** 4.953 satır kaynak kod (`fagent/src/`),
-23 e2e test dosyası / 415 otomatik kontrol (`fagent/tests/e2e/`), 4 üretim bağımlılığı
+23 e2e test dosyası / 447 otomatik kontrol (`fagent/tests/e2e/`), 4 üretim bağımlılığı
 (react, react-dom, recharts, lucide-react).
 
 > **Uyarı:** Piyasa sayıları hızla değişir. Toplantıdan önce Bölüm 0'daki altı sayıyı

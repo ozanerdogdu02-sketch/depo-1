@@ -1529,6 +1529,17 @@ function Ajan() {
     ]);
   };
 
+  // Son çözülmemiş işlem önerisini "vazgeçildi" olarak işaretler. Sondan başa taranır —
+  // sohbette birden çok öneri geçmiş olabilir, iptal edilmesi gereken en sonuncusudur.
+  const cancelLastPending = (m: AgentMessage[]): AgentMessage[] => {
+    for (let i = m.length - 1; i >= 0; i--) {
+      if (m[i].pendingAction && !m[i].actionResolved) {
+        return m.map((mm, j) => j === i ? { ...mm, actionResolved: 'cancelled' as const } : mm);
+      }
+    }
+    return m;
+  };
+
   const send = () => {
     const text = input.trim();
     if (!text) return;
@@ -1545,11 +1556,17 @@ function Ajan() {
       recordFactUse(reply.trainedFactId);
       setFacts(getTrainedFacts());
     }
-    setMessages(m => [...m, userMsg, {
-      role: 'agent', text: reply.text, chart: reply.chart, intentId: reply.intentId,
-      trainedFactId: reply.trainedFactId, isFallback: reply.isFallback, ratable: !reply.pendingAction,
-      pendingAction: reply.pendingAction,
-    }]);
+    setMessages(m => {
+      // Yazıyla iptal ("vazgeç") — Vazgeç düğmesiyle BİREBİR aynı sonuç: bekleyen öneri
+      // kapatılır, hiçbir actions.* çağrılmaz. Butonlar da disabled'a geçsin diye aynı
+      // actionResolved alanı set ediliyor.
+      const base = reply.cancelPending ? cancelLastPending(m) : m;
+      return [...base, userMsg, {
+        role: 'agent', text: reply.text, chart: reply.chart, intentId: reply.intentId,
+        trainedFactId: reply.trainedFactId, isFallback: reply.isFallback, ratable: !reply.pendingAction,
+        pendingAction: reply.pendingAction,
+      }];
+    });
     setInput('');
   };
 

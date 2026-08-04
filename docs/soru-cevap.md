@@ -89,9 +89,9 @@ başına marjinal maliyet sıfır. LLM tabanlı bir rakip her mesajda para yakar
 *Kısa: "Marjinal maliyet sıfır. Ölçek sorunumuz yok."*
 
 **10. "Nasıl test ediyorsunuz?"**
-415 uçtan uca otomatik kontrol, 23 test dosyası, gerçek tarayıcıda çalışıyor. Her davranış
+447 uçtan uca otomatik kontrol, 23 test dosyası, gerçek tarayıcıda çalışıyor. Her davranış
 değişikliğinde tamamı koşuyor. *(Dürüst ek: CI kurulu değil, elle çalıştırılıyor — kuruluyor.)*
-*Kısa: "415 otomatik kontrol, gerçek tarayıcıda."*
+*Kısa: "447 otomatik kontrol, gerçek tarayıcıda."*
 
 **11. "Bizim sistemimizle nasıl entegre olur?"** ⭐ *Bugünkü araştırmanın ürünü*
 Genel API'nizi inceledim: `api/v2/ticker` ve `api/v2/ohlc` kimlik doğrulama istemiyor ve OHLC
