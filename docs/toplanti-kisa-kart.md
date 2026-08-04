@@ -60,6 +60,9 @@ Hangi soru gelirse gelsin, bu üçünden en yakınına bağla.
 
 ## 2. Asıl hamlen: konuşma, göster
 
+> 🗣️ **"Anlat bakalım" derlerse:** 2–3 dakikalık hazır konuşma metni →
+> [`tanitim-konusmasi.md`](tanitim-konusmasi.md). Aşağısı ondan sonraki demo akışı.
+
 Sunum yapmak zorunda değilsin — **çalışan bir ürünün var.** Laptopu çevir:
 
 > "Şuraya bakın. Bu kullanıcı **+₺3.700, %2,6 kâr** görüyor ve mutlu.

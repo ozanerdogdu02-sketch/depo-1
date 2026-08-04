@@ -4,6 +4,7 @@
 > yazıldı; altındaki kursif satır, sıkışırsan kullanacağın kısa versiyon.
 >
 > **Toplantı anında bunu değil, [`toplanti-kisa-kart.md`](toplanti-kisa-kart.md)'ı önüne koy — bu kart yedek.**
+> "Anlat bakalım" anı için konuşma metni: [`tanitim-konusmasi.md`](tanitim-konusmasi.md)
 >
 > Strateji dokümanı: [`toplanti-hazirlik.md`](toplanti-hazirlik.md) ·
 > Bloki karşılaştırması: [`bloki-vs-fagent.md`](bloki-vs-fagent.md)
