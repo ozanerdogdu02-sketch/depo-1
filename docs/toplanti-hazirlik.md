@@ -395,11 +395,26 @@ ama **yalnızca** gizlilik mimarisini bozmayan bir tasarımla (uçtan uca şifre
 
 ---
 
-# Bölüm D — Geri sayım planı *(3 Ağustos akşamı itibarıyla)*
+# Bölüm D — Geri sayım planı *(4 Ağustos itibarıyla — toplantı TEYİTLİ)*
 
-**Durum:** 3 Ağustos Pazartesi 19:30'da Emir'e "Salı ve Perşembe öğleden sonra müsaitim"
-yazıldı. Yani toplantı **4 Ağustos Salı öğleden sonra ya da 6 Ağustos Perşembe öğleden sonra.**
-Gün teyit edilmedi → **en kötü senaryoya göre hazırlan: yarın öğleden sonra.**
+## Toplantı künyesi
+
+| | |
+|---|---|
+| **Konu** | Bloki Görüşme |
+| **Tarih** | **5 Ağustos 2026, Çarşamba** |
+| **Saat** | **13:00 – 13:30 (TRT)** — 30 dakika |
+| **Platform** | Google Meet · `meet.google.com/wvz-uuyb-zie` |
+| **Organizatör** | Emine Ceylan (Bloki ekibi) |
+| **Diğer katılımcı** | Emir Karagüler — Head of Customer Experience |
+
+**Nasıl geldi:** 4 Ağustos 13:53'te Emine'ye (Emir kopyada) müsait günler yazıldı;
+14:16'da yanıt geldi — *"Yarın öğleden sonra için davet ilettim, saat uygun değilse
+saati revize edebilirim."* Yani saat **pazarlığa açık**; 13:00 sorun çıkarırsa
+Emine'ye yazmak yeterli.
+
+> ⚠️ **30 dakika kısa.** Konuşma (~3 dk) + demo (5–7 dk) + soru-cevap. Ürün turu yok.
+> 13:30'da büyük ihtimalle kesilir — en önemli şeyi sona saklama.
 
 ## 🔒 Kural: kod donduruldu
 
@@ -425,7 +440,7 @@ bulunursa düzeltilir.
 4. **"Hukuki tarafı düşündünüz mü?"** → SPK sınırı için metinler betimleyici hale getirildi ama **avukat görüşü alınmadı.** Dürüst cevap: *"Metinleri bu ayrıma göre yazdım, ama kurumsal entegrasyonda hukuk onayı sizin tarafınızda gerekir — bunu ilk maddeye koyuyorum."*
 5. **"Yarın vazgeçerseniz?"** → Kod dokümante, ajan mantığı saf fonksiyonlarda izole, 415 testle korunuyor. *"Devralınabilir yazıldı."*
 
-## Yarın sabah (toplantı Salı ise) — 30 dakika
+## Yarın sabah (5 Ağustos, 13:00'dan önce) — 30 dakika
 
 | ☐ | İş | Süre |
 |---|---|---|
@@ -438,25 +453,28 @@ bulunursa düzeltilir.
 Sayıları biliyorsun (₺143.700, +%2,6 nominal, **reel −%22**), tekrarlanabilir, ve kendi mali
 durumunu paylaşmamış olursun.
 
-## Toplantıdan 15 dakika önce
+## Toplantıdan 15 dakika önce — 12:45
 
 | ☐ | İş |
 |---|---|
-| ☐ | Toplantı linkine gir, **kamera + mikrofon + ekran paylaşımını** test et |
+| ☐ | **Takvim davetine "Katılıyorum" yanıtı verildi mi?** (verilmediyse Emine onay bekliyor demektir) |
+| ☐ | `meet.google.com/wvz-uuyb-zie` adresine gir, **kamera + mikrofon + ekran paylaşımını** test et |
 | ☐ | Tarayıcıda demo sekmesini aç, örnek portföyü **yükle ve hazır bırak** (canlıda kurma) |
 | ☐ | Gereksiz sekmeleri/bildirimleri kapat — ekran paylaşımında her şey görünür |
 | ☐ | Yazdırılmış kart önünde, ekran görüntüsü yedeği açık bir klasörde |
 | ☐ | Su. Sesin kısılmasın. |
 
-## Toplantı Perşembe'ye kalırsa — fazladan iki gün ne yapılır
+## Toplantıdan sonra — bekleyen işler
 
-Öncelik sırasıyla, **kod yazmadan**:
+Toplantı öncesine sığmayanlar; hiçbiri acil değil ama unutulmasın:
 
-1. İtiraz–cevap tablosunu (§A.3 değil, güncel olan `soru-cevap.md`) sesli tekrar
-2. Rutin için Gmail bağlantısını claude.ai → Routines'ten etkinleştir
-3. `main`'e merge + otomatik yayını geri açma (manuel deploy geçici bir çözümdü)
-4. Hâlâ zaman varsa: BtcTurk | Hisse uygulamasını **indirip kendin kullan** — masada onu yapan
-   ekip oturuyor; ürünü kullanmış olmak fark yaratır
+1. `main`'e merge + Netlify otomatik yayınını geri açma (manuel zip deploy geçici çözümdü)
+2. CI kurulumu (`.github/workflows` hâlâ yok — 415 test elle koşuyor)
+3. EVDS API anahtarı + `TUFE_SERIES` seri kodunun EVDS arayüzünden doğrulanması
+4. `chatReply`'nin 8 parametreli imzasını tek bir bağlam nesnesine çevirmek
+5. Hedef Dağılım'da sapma gösterimini 2 ondalığa çıkarmak (−2,5 vs bant 2,5 eşitmiş gibi
+   görünüyor; matematik doğru, gösterim yanıltıyor)
+6. BtcTurk | Hisse uygulamasını indirip kendin kullan — masada onu yapan ekip oturuyor
 
 # Bölüm E — Kaynaklar ve doğruluk notu
 

@@ -1,7 +1,13 @@
 # Toplantı — Tek Sayfa
 
+> **Bloki Görüşme · 5 Ağustos 2026 Çarşamba · 13:00–13:30 (TRT) · 30 dakika**
+> Google Meet: `meet.google.com/wvz-uuyb-zie` — organizatör **Emine Ceylan**, **Emir Karagüler** davetli.
+
 > Bunu yazdır, önüne koy. Uzun kart ([`soru-cevap.md`](soru-cevap.md)) yedekte kalsın.
 > **Ezberlemen gereken tek şey aşağıdaki üç cümle.** Gerisi bunlardan türer.
+
+**30 dakika var — bütçe:** açılış + konuşma ~3 dk · demo 5–7 dk · gerisi soru-cevap.
+Ürün turu yapma; her sekmeyi gezmek bu süreyi yer ve akılda hiçbir şey bırakmaz.
 
 ---
 
