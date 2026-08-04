@@ -1,5 +1,7 @@
 # Bloki ↔ FAGENT — Fark Neresi?
 
+> Ürünün rakiplere göre bugünkü seviyesi ve açıkları: [`rakip-analizi.md`](rakip-analizi.md)
+
 > **Tek cümlelik tez:** Bloki bir **borsa asistanı**, FAGENT bir **servet asistanı**.
 > İkisi aynı işi iki farklı yerde yapmıyor — biri *işlemi* hızlandırıyor, diğeri *kararı* besliyor.
 

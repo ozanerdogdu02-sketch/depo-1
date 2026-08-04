@@ -8,7 +8,8 @@
 > - **Bölüm C** — İç değerlendirme / teknik ekip (mimari, kapsam boşlukları, yol haritası)
 > - **Bölüm D** — ⏱️ **Geri sayım planı** (bu akşam / yarın sabah / toplantıdan 15 dk önce)
 >
-> Temel karşılaştırma için: [`bloki-vs-fagent.md`](bloki-vs-fagent.md)
+> Temel karşılaştırma için: [`bloki-vs-fagent.md`](bloki-vs-fagent.md) ·
+> **Olgunluk ve rakip değerlendirmesi:** [`rakip-analizi.md`](rakip-analizi.md)
 >
 > **Toplantı günü tek sayfa okuyacaksan:** [`soru-cevap.md`](soru-cevap.md) — 24 olası soru,
 > iki cümlelik cevaplar, ve senin soracakların.
