@@ -12,7 +12,7 @@ import {
   getProfile, recordTurn, resetMemory, updatePrefs, recordQuestion, recordAdvice, recordAnalysis,
   AgentMemoryProfile, AgentPrefs, RiskLevel, AgentMode, VadeTercihi,
 } from './agentMemory';
-import { getTrainedFacts, teach, deleteFact, recordFactUse, resetTraining, TrainedFact } from './agentTraining';
+import { getTrainedFacts, teach, deleteFact, recordFactUse, resetTraining, TrainedFact, hasComputedFigures } from './agentTraining';
 import { afterTaxOf, UNVERIFIED_TAX, driftOf } from './analytics';
 import { getTaxRates, setTaxRate, isCustomRate, resetTaxRates, TaxRates } from './taxRates';
 import { getTargets, setTarget, hasTargets, resetTargets, TargetAllocation } from './targetAllocation';
@@ -1331,11 +1331,17 @@ function TeachPanel({ facts, onTeach, onDelete, open, onToggleOpen, q, a, onQCha
             <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--line)' }}>
               <div className="sub" style={{ marginBottom: 8 }}>Öğretilmiş bilgiler</div>
               {facts.map(f => (
-                <div key={f.id} className="list-row" style={{ alignItems: 'flex-start' }}>
+                <div key={f.id} className="list-row" style={{ alignItems: 'flex-start', opacity: f.inactive ? 0.5 : 1 }}>
                   <div>
                     <div style={{ fontWeight: 600 }}>{f.question}</div>
                     <div className="sub" style={{ marginTop: 2, fontSize: 12.5 }}>{f.answer}</div>
-                    <div className="hint" style={{ marginTop: 2 }}>{f.timesUsed} kez kullanıldı</div>
+                    {/* Pasif kayıtlar silinmez, yalnızca kullanılmaz — sebebi burada yazılı,
+                        yoksa kullanıcı öğrettiği şeyin neden çalışmadığını anlayamaz. */}
+                    <div className="hint" style={{ marginTop: 2 }}>
+                      {f.inactive
+                        ? 'Sayı içerdiği için kullanılmıyor — bu soruda güncel hesap gösteriliyor. Silebilirsin.'
+                        : `${f.timesUsed} kez kullanıldı`}
+                    </div>
                   </div>
                   <button aria-label={`"${f.question}" öğretisini sil`} onClick={() => onDelete(f.id)}
                     style={{ background: 'none', border: 'none', color: 'var(--faint)', cursor: 'pointer', padding: 4, flexShrink: 0 }}>
@@ -1628,6 +1634,19 @@ function Ajan() {
     setMessages(m => m.map((mm, i) => i === index ? { ...mm, rated: rating } : mm));
 
     if (rating === 'up') {
+      // Sayı içeren cevaplar SABİTLENMEZ. Aksi halde beğenilen bir "reel getirin %−22"
+      // cevabı kalıcı bilgiye dönüşür ve portföy değiştiğinde ajan eski rakamı güncelmiş
+      // gibi gösterir (gerçek bir hataydı, bkz. agentTraining.hasComputedFigures).
+      // Sessizce atlamak yerine sebebi söyleniyor — kullanıcı 👍'ın neden bir şey
+      // yapmadığını yoksa anlayamaz.
+      if (hasComputedFigures(msg.text)) {
+        setMessages(m => [...m, {
+          role: 'agent',
+          text: 'Beğendiğini not ettim ama bu cevabı kalıcı bilgiye çevirmedim — içindeki sayılar portföyünden hesaplanıyor. Sabitleseydim portföyün değiştiğinde sana eski rakamı gösterirdim.\n\nSabit bir bilgi öğretmek istersen "Ajanı Eğit" panelini kullanabilirsin.',
+          ratable: false,
+        }]);
+        return;
+      }
       if (!msg.trainedFactId && !msg.isFallback) {
         const question = findPrecedingUserText(messages, index);
         if (question) setFacts(teach(question, msg.text));

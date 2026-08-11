@@ -222,7 +222,11 @@ export function driftOf(s: PortfolioState, targets: Record<AssetType, number>): 
       actualPct,
       driftPp,
       bandPp,
-      breached: Math.abs(driftPp) > bandPp,
+      // Karşılaştırma KESİN eşitsizlik olmalı (tam sınırda sapma sayılmaz) ama kayan nokta
+      // bunu bozuyordu: yüzde hesabı 0,55 × 100 = 55.00000000000001 ürettiği için hedefi %50
+      // olan bir sınıfın %55'e çıkması sapma 5.000000000000007 çıkıyor ve tam sınırdaki kalem
+      // yanlışlıkla "bandın dışında" işaretleniyordu. Birim testi yakaladı (analytics.test.ts).
+      breached: Math.abs(driftPp) - bandPp > 1e-9,
       gapTL: (targetPct / 100) * value - (actual?.amount ?? 0),
     };
   }).sort((a, b) => Math.abs(b.driftPp) - Math.abs(a.driftPp));
