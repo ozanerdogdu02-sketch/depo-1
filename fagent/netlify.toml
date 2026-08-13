@@ -15,3 +15,13 @@
   from = "/api/evds"
   to = "/.netlify/functions/evds"
   status = 200
+
+# SPA yönlendirmesi: /panel, /ajan gibi adresler sunucuda dosya olarak yok; hepsi
+# index.html'e düşüp istemci tarafındaki router tarafından çözülüyor.
+#
+# SIRA ÖNEMLİ — bu kural /api/evds'ten SONRA gelmeli. Netlify ilk eşleşen kuralı uygular;
+# başa konsaydı fonksiyon çağrıları da index.html'e düşer ve EVDS proxy'si sessizce ölürdü.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

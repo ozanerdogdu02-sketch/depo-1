@@ -41,7 +41,7 @@ async function newPage(handler) {
   page.on('pageerror', err => { console.log('PAGE_ERROR:', err.message); failed = true; });
   let calls = 0;
   await page.route('**/.netlify/functions/evds*', route => { calls++; return handler(route); });
-  await page.goto('http://localhost:4200/', { waitUntil: 'networkidle' });
+  await page.goto('http://localhost:4200/panel', { waitUntil: 'networkidle' });
   await page.getByRole('button', { name: 'Karma örnek portföy' }).click();
   await page.waitForTimeout(600);
   return { page, calls: () => calls };
@@ -84,6 +84,11 @@ const ask = async (page, text) => {
   // Önbellek: sayfa yenilenince tekrar istek atılmamalı (12 saatlik TTL).
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForTimeout(600);
+  // Sekme artık ADRESTE tutuluyor: yukarıda ajana geçildiği için yenileme /ajan'da bırakır.
+  // Enflasyon kutusu Panel'de olduğundan panele dönmek gerekiyor (önceden sekme React
+  // state'indeydi ve yenileme kendiliğinden panele düşüyordu).
+  await page.locator('.side-link', { hasText: 'PANEL' }).click();
+  await page.waitForTimeout(300);
   check('Önbellek sayesinde ikinci istek atılmadı', calls() === 1);
   check('Yenilemeden sonra da canlı oran duruyor', (await page.inputValue('#inflation-input')) === '45');
   await page.close();

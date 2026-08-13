@@ -20,7 +20,7 @@ await page.route('https://api.coingecko.com/**', route => {
   route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ bitcoin: { try: 4250000 } }) });
 });
 
-await page.goto('http://localhost:4200/', { waitUntil: 'networkidle' });
+await page.goto('http://localhost:4200/panel', { waitUntil: 'networkidle' });
 await page.getByRole('button', { name: 'Kendi paramı gireceğim' }).click();
 await page.waitForTimeout(300);
 

@@ -253,3 +253,68 @@ label.field { display: block; font-size: 12.5px; color: var(--muted); margin-bot
   .big-number { animation: none; }
   .btn-primary:active:not(:disabled), .mini-btn:active:not(:disabled) { transform: none; }
 }
+
+/* ─────────────────────────  Tanıtım sayfası (/)  ─────────────────────────
+   Uygulamaya girmemiş ziyaretçinin gördüğü sayfa. Mevcut değişkenleri ve .card/.btn
+   sınıflarını kullanır — ayrı bir tasarım dili YOK, geçiş pürüzsüz olsun diye. */
+
+.landing { max-width: 940px; margin: 0 auto; padding: 56px 20px 72px; }
+
+.landing-hero { text-align: center; margin-bottom: 44px; }
+.landing-brand {
+  font-family: var(--mono); font-size: 13px; letter-spacing: 4px;
+  color: var(--accent); margin-bottom: 22px;
+}
+.landing-title { font-size: 46px; line-height: 1.12; font-weight: 700; margin-bottom: 18px; }
+.landing-sub {
+  font-size: 17px; line-height: 1.6; color: var(--muted);
+  max-width: 620px; margin: 0 auto 28px;
+}
+.landing-sub strong { color: var(--text); font-weight: 600; }
+.landing-cta {
+  font-size: 15px; padding: 13px 28px; gap: 8px;
+  width: auto; display: inline-flex; /* .btn tam genişlik yayılıyordu — burada içerik kadar */
+}
+/* Metin iki satıra sarınca ikon flex satırının başına kaçıyordu — satır içi kalsın. */
+.landing-hint { display: block; margin: 16px auto 0; max-width: 380px; }
+.landing-hint svg { vertical-align: -2px; margin-right: 5px; }
+
+/* Somut örnek — sunumun 3. slaydındaki sayı seti */
+.landing-example { padding: 26px 24px; margin-bottom: 34px; text-align: center; }
+.landing-figures {
+  display: flex; align-items: center; justify-content: center;
+  gap: 28px; flex-wrap: wrap; margin-bottom: 16px;
+}
+.landing-fig { font-size: 40px; font-weight: 700; line-height: 1.1; font-family: var(--mono); }
+.landing-fig-up { color: var(--accent); }
+.landing-fig-down { color: var(--red); }
+.landing-arrow { font-size: 26px; color: var(--faint); }
+.landing-example-note { max-width: 560px; margin: 0 auto; font-size: 14px; }
+
+.landing-features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 34px; }
+.landing-feature { padding: 22px 20px; }
+.landing-feature-icon {
+  width: 36px; height: 36px; border-radius: 9px; margin-bottom: 14px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent-dim); color: var(--accent);
+}
+
+.landing-limits { padding: 24px; margin-bottom: 40px; }
+.landing-limit-list { list-style: none; display: grid; gap: 10px; }
+.landing-limit-list li {
+  position: relative; padding-left: 22px; color: var(--muted); font-size: 14px; line-height: 1.55;
+}
+.landing-limit-list li::before {
+  content: '✓'; position: absolute; left: 0; color: var(--accent); font-weight: 700;
+}
+
+.landing-footer { text-align: center; padding-top: 8px; }
+
+@media (max-width: 780px) {
+  .landing { padding: 40px 16px 56px; }
+  .landing-title { font-size: 33px; }
+  .landing-sub { font-size: 15.5px; }
+  .landing-features { grid-template-columns: 1fr; }
+  .landing-fig { font-size: 32px; }
+  .landing-arrow { transform: rotate(90deg); }
+}

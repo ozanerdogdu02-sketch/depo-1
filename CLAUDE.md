@@ -450,6 +450,44 @@ mesajına sabit indeksle tutunulmalı (`fagent-action-e2e.mjs` bunu zaten doğru
 İkinci hata: `/tavsiye veremem/` deseni "tavsiye**si** veremem" metnini yakalamıyordu —
 Türkçe iyelik eki tuzağı, §1.5'teki "graf kökü" notuyla aynı aile.
 
+### 1.22 Web sitesi — tanıtım sayfası, adres yapısı, link önizleme
+
+Kullanıcı "FAGENT'ı kullanılabilir bir web sitesi haline getir" dedi. Dört eksik vardı:
+ürün kendini anlatmıyordu (karşılama ekranının ilk cümlesi "Panelin boş görünüyor" —
+ziyaretçinin bunun ne olduğunu ZATEN bildiğini varsayıyordu), link önizlemesi yoktu,
+tek URL vardı, alan adı geçiciydi. **Sunucusuz mimari korundu** (kullanıcı kararı).
+
+- **`router.ts` — kütüphanesiz.** `react-router-dom` EKLENMEDİ: "4 üretim bağımlılığı"
+  iddiası hem sunumda hem `soru-cevap.md`'de geçiyor, bir router paketi onu yanlış yapardı.
+  9 düz rota var (parametre/iç içe rota yok), `useSyncExternalStore` + History API yeterli.
+  `ROUTES` tablosu tek doğruluk kaynağı — sidebar ondan üretiliyor, `App.tsx`'te dokuz satır
+  elle yazılmış hali kaldırıldı.
+- **`Landing.tsx` + `/` rotası.** Uygulama `/panel`'e taşındı. Verisi OLAN ziyaretçi kökten
+  `/panel`'e `replace: true` ile yönlendirilir (geri tuşu döngüsü olmasın).
+- **`React.lazy` DENENDİ ve GERİ ALINDI.** Landing için ~200 kB (gzip) tasarruf ediyordu ama
+  panele HER girişte fazladan bir ağ turu doğuruyordu; e2e testleri yakaladı. Nadir yolu
+  (ilk ziyaret) hızlandırmak için sık yolu (her açılış) yavaşlatmak yanlış takas. Kod bölme
+  ayrıca ve doğru şekilde yapılmalı — Recharts'ı `manualChunks` ile ayırarak.
+- **OG/Twitter etiketleri + `public/og.png`** (1200×630, HTML'den Playwright ile üretildi).
+  `og:image` TAM adres olmalı, göreli yol sosyal medya botlarında çalışmaz.
+- **`netlify.toml`'e SPA yönlendirmesi** — `/*` → `/index.html`. **`/api/evds`'ten SONRA
+  gelmeli**: Netlify ilk eşleşeni uygular, başa konsaydı EVDS proxy'si sessizce ölürdü.
+- **`public/cors-test.html` silindi** — yayına çıkan geliştirme artığı.
+- `docs/alan-adi-kurulumu.md` yazıldı (satın alma bende değil).
+
+**Yakalanan gerçek davranış değişikliği:** sekme artık ADRESTE tutulduğu için `page.reload()`
+kullanıcıyı son sekmede bırakıyor; önceden React state'i sıfırlanıp panele düşüyordu.
+`fagent-evds-e2e.mjs` ve `fagent-hedef-e2e.mjs` bu örtük varsayıma dayanıyormuş — yenileme
+sonrası panele dönüş açıkça eklendi. Ayrıca 23 test dosyasının giriş adresi `/` → `/panel`
+oldu (kök artık tanıtım sayfası).
+
+**Türkçe ek tuzağı yine çıktı:** test deseni `/tavsiye vermez/` metindeki "tavsiye**si**
+vermez" ile eşleşmedi (§1.5, §1.21 ile aynı aile).
+
+**Test:** `fagent-routing-e2e.mjs` (20 kontrol) — tanıtım sayfası içeriği, CTA, derin
+bağlantı, geri/ileri tuşu, bilinmeyen yolun `/panel`'e düşmesi, verisi olan ziyaretçinin
+yönlendirilmesi, mobilde yatay taşma. Toplam **40 birim + 472 e2e = 512 kontrol**.
+
 ## 2. Aura Finance (BDT günlüğü + abonelik demosu)
 
 - **Konum:** repo kökü (`src/`) + `server/`

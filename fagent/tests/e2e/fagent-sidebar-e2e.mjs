@@ -10,7 +10,7 @@ const check = (label, ok) => { console.log(`${ok ? '✓' : '✗'} ${label}`); if
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   page.on('pageerror', err => { console.log('PAGE_ERROR:', err.message); failed = true; });
 
-  await page.goto('http://localhost:4200/', { waitUntil: 'networkidle' });
+  await page.goto('http://localhost:4200/panel', { waitUntil: 'networkidle' });
   check('Anahtar kutusu YOK', await page.locator('text=ANAHTAR GEREKLİ').count() === 0);
   check('Anahtarsız rozeti VAR', await page.locator('text=ANAHTARSIZ MOD').count() > 0);
   await page.screenshot({ path: `${out}/s1-karsilama.png` });
@@ -60,7 +60,7 @@ const check = (label, ok) => { console.log(`${ok ? '✓' : '✗'} ${label}`); if
   page.once('dialog', d => d.accept());
   await page.click('text=SIFIRLA');
   await page.waitForTimeout(400);
-  check('Sıfırlama sonrası karşılama ekranına döndü', await page.locator('text=Hoş geldin, Yatırımcı').count() > 0);
+  check('Sıfırlama sonrası karşılama ekranına döndü', await page.locator('text=Nasıl başlamak istersin').count() > 0);
 
   await page.close();
 }
@@ -69,7 +69,7 @@ const check = (label, ok) => { console.log(`${ok ? '✓' : '✗'} ${label}`); if
 {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   page.on('pageerror', err => { console.log('PAGE_ERROR (mobil):', err.message); failed = true; });
-  await page.goto('http://localhost:4200/', { waitUntil: 'networkidle' });
+  await page.goto('http://localhost:4200/panel', { waitUntil: 'networkidle' });
   await page.click('text=Karma örnek portföy');
   await page.waitForTimeout(400);
   const sidebarBox = await page.locator('.sidebar').boundingBox();

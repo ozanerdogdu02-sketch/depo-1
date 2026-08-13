@@ -23,7 +23,7 @@ const check = (label, ok) => { console.log(`${ok ? '✓' : '✗'} ${label}`); if
 const page = await browser.newPage({ viewport: { width: 1440, height: 1200 }, acceptDownloads: true });
 page.on('pageerror', err => { console.log('PAGE_ERROR:', err.message); failed = true; });
 
-await page.goto('http://localhost:4200/', { waitUntil: 'networkidle' });
+await page.goto('http://localhost:4200/panel', { waitUntil: 'networkidle' });
 await page.getByRole('button', { name: 'Karma örnek portföy' }).click();
 await page.waitForTimeout(300);
 
@@ -181,7 +181,9 @@ const crashPage = await browser.newPage({ viewport: { width: 1000, height: 900 }
 await crashPage.addInitScript(() => {
   Number.prototype.toLocaleString = function () { throw new Error('enjekte edilmiş test hatası'); };
 });
-await crashPage.goto('http://localhost:4200/', { waitUntil: 'networkidle' });
+// /panel'e gidiliyor: kök adres artık tanıtım sayfası ve o sayfa fmtTL kullanmadığı için
+// enjekte edilen hata orada tetiklenmezdi.
+await crashPage.goto('http://localhost:4200/panel', { waitUntil: 'networkidle' });
 await crashPage.getByRole('button', { name: 'Karma örnek portföy' }).click();
 await crashPage.waitForTimeout(700);
 

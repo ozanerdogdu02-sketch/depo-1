@@ -9,7 +9,7 @@ const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
 page.on('pageerror', err => { console.log('PAGE_ERROR:', err.message); failed = true; });
 
 // --- Örnek veri: birden fazla farklı tarihte işlem var, grafik görünmeli ---
-await page.goto('http://localhost:4200/', { waitUntil: 'networkidle' });
+await page.goto('http://localhost:4200/panel', { waitUntil: 'networkidle' });
 await page.getByRole('button', { name: 'Karma örnek portföy' }).click();
 await page.waitForTimeout(400);
 check('Örnek veride grafik görünür', await page.locator('text=Net Yatırım Tutarı Geçmişi').count() === 1);

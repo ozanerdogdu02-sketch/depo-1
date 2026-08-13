@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { PieChart, Pie, Cell, Tooltip, AreaChart, Area, BarChart, Bar, LineChart, Line, Legend, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import {
   Bot, Send, TrendingUp, Trash2, RotateCcw, LayoutDashboard, ArrowLeftRight, BookOpen,
@@ -7,6 +7,7 @@ import {
   Sparkles, AlertTriangle, CheckCircle2, Receipt, Target, ShieldCheck,
 } from 'lucide-react';
 import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, fmtDec, fmtCompact, investmentHistoryOf, todayLocalDate, ASSET_LABELS, AssetType, Holding } from './store';
+import { useRoute, navigate, tabForPath, ROUTES, DEFAULT_APP_PATH, type Tab } from './router';
 import { analyzePortfolio, chatReply, buildGreeting, extractMentionedHoldings, proactiveInsights, AgentMessage, ChartSpec, Insight } from './agent';
 import {
   getProfile, recordTurn, resetMemory, updatePrefs, recordQuestion, recordAdvice, recordAnalysis,
@@ -25,7 +26,19 @@ import { RiskPanel } from './RiskPanel';
 
 const PIE_COLORS = ['#2dd4a7', '#38bdf8', '#fbbf24', '#a78bfa', '#f87171', '#f472b6'];
 
-type Tab = 'panel' | 'bugun' | 'hisseler' | 'fonlar' | 'kripto' | 'kriptopiyasa' | 'islemler' | 'projeksiyon' | 'ajan';
+// Tab tipi ve yollar router.ts'te (tek doğruluk kaynağı). Burada yalnızca ikon eşlemesi
+// duruyor — ikonlar bir arayüz detayı, rota tablosunun React'e bağımlı olmaması için ayrı.
+const TAB_ICONS: Record<Tab, typeof Bot> = {
+  panel: LayoutDashboard,
+  bugun: CalendarDays,
+  hisseler: BarChart3,
+  fonlar: PieChartIcon,
+  kripto: Bitcoin,
+  kriptopiyasa: TrendingUp,
+  islemler: ArrowLeftRight,
+  projeksiyon: TrendingUp,
+  ajan: Bot,
+};
 
 // Varlık ekleme formunda, seçili türe göre örnek ad ipucu — kripto sekmesinde "BIST 30 Fonu"
 // gibi yanıltıcı bir örnek yerine "Bitcoin" göstermek için (kullanıcı geri bildirimi).
@@ -49,9 +62,13 @@ function Onboarding() {
   return (
     <div className="card center fade" style={{ padding: '34px 28px' }}>
       <div className="welcome-icon">📊</div>
-      <h1 style={{ fontSize: 22, marginBottom: 8 }}>Hoş geldin, Yatırımcı</h1>
-      <p className="sub" style={{ maxWidth: 420, margin: '0 auto 22px' }}>
-        Panelin boş görünüyor. Hızlı başlamak için örnek veriyle dene, sonra kendi rakamlarını gir.
+      <h1 style={{ fontSize: 22, marginBottom: 8 }}>Nasıl başlamak istersin?</h1>
+      {/* Eski metin "Panelin boş görünüyor" diyordu — ziyaretçinin bunun NE olduğunu zaten
+          bildiğini varsayıyordu. Artık tanıtım sayfası bu işi yapıyor ama doğrudan /panel
+          adresine gelen (yer imi, paylaşılan link) biri için burada da tek cümle duruyor. */}
+      <p className="sub" style={{ maxWidth: 460, margin: '0 auto 22px' }}>
+        FAGENT, portföyünün vergi ve enflasyondan sonra gerçekte ne kazandırdığını hesaplar.
+        Örnek veriyle hemen dene ya da kendi rakamlarınla başla.
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 440, margin: '0 auto' }}>
         <button className="btn btn-primary" onClick={actions.startWithSample}>Karma örnek portföy</button>
@@ -60,9 +77,12 @@ function Onboarding() {
         </button>
         <button className="btn btn-secondary" onClick={actions.startEmpty}>Kendi paramı gireceğim</button>
       </div>
-      <p className="hint" style={{ marginTop: 20 }}>
-        🔓 Bu sürümde anahtar gerekmez — panel, işlemler, projeksiyon ve ajan analizi tamamen anahtarsız çalışır.
-        Verilerin yalnızca kendi tarayıcında saklanır.
+      {/* Veri kaybı uyarısı buraya taşındı. Önceden yalnızca Panel'deki BackupCard'da vardı
+          ve kullanıcı oraya inene kadar verinin tek cihazda olduğunu bilmiyordu. */}
+      <p className="hint" style={{ marginTop: 20, maxWidth: 460, margin: '20px auto 0' }}>
+        🔓 Kayıt ya da API anahtarı gerekmez. Verilerin <strong>yalnızca bu tarayıcıda</strong> saklanır —
+        sunucuya gitmez, ama tarayıcı verisini silersen ya da cihaz değiştirirsen kaybolur.
+        Panel'deki "Veri Yedeği" kartından tek dosyalık yedek alabilirsin.
       </p>
     </div>
   );
@@ -1764,8 +1784,18 @@ function SideLink({ active, onClick, icon: Icon, label, badge }: {
 
 export default function App() {
   const s = usePortfolio();
-  const [tab, setTab] = useState<Tab>('panel');
+  const route = useRoute();
   const [query, setQuery] = useState('');
+
+  // Adres → sekme. Tanınmayan bir yol (ör. eski yer imi, yazım hatası) Panel'e düşer;
+  // 404 göstermek yerine çalışan bir ekrana indirmek bu ölçekte daha doğru.
+  const tab: Tab = tabForPath(route) ?? 'panel';
+
+  // Uygulama içindeyken adres bir rotaya karşılık gelmiyorsa (ör. kullanıcı /panel yerine
+  // /panelx yazdı) adresi de düzelt — ekran ile adres ayrışmasın.
+  useEffect(() => {
+    if (s.onboarded && !tabForPath(route)) navigate(DEFAULT_APP_PATH, true);
+  }, [route, s.onboarded]);
 
   // Canlı enflasyonu bir kez dene (TCMB EVDS → Netlify Function proxy). Başarısızlık SESSİZDİR:
   // fonksiyon yoksa (yerel geliştirme), anahtar tanımsızsa ya da TCMB yanıt vermezse elle
@@ -1813,17 +1843,21 @@ export default function App() {
               />
             </div>
 
+            {/* Sidebar router.ts'teki ROUTES tablosundan üretiliyor — yol, etiket ve rozet
+                tek yerde. Ayraç, ajandan hemen önce (o bir "araç", diğerleri "görünüm"). */}
             <nav className="side-nav" aria-label="Bölümler">
-              <SideLink active={tab === 'panel'} onClick={() => setTab('panel')} icon={LayoutDashboard} label="PANEL" />
-              <SideLink active={tab === 'bugun'} onClick={() => setTab('bugun')} icon={CalendarDays} label="BUGÜN" />
-              <SideLink active={tab === 'hisseler'} onClick={() => setTab('hisseler')} icon={BarChart3} label="HİSSELER" />
-              <SideLink active={tab === 'fonlar'} onClick={() => setTab('fonlar')} icon={PieChartIcon} label="FONLAR" />
-              <SideLink active={tab === 'kripto'} onClick={() => setTab('kripto')} icon={Bitcoin} label="KRİPTO VARLIKLAR" />
-              <SideLink active={tab === 'kriptopiyasa'} onClick={() => setTab('kriptopiyasa')} icon={TrendingUp} label="KRİPTO PİYASASI" />
-              <SideLink active={tab === 'islemler'} onClick={() => setTab('islemler')} icon={ArrowLeftRight} label="İŞLEMLER" />
-              <SideLink active={tab === 'projeksiyon'} onClick={() => setTab('projeksiyon')} icon={TrendingUp} label="PROJEKSİYON" />
-              <div className="side-divider" />
-              <SideLink active={tab === 'ajan'} onClick={() => setTab('ajan')} icon={Bot} label="AJAN" badge="YENİ" />
+              {ROUTES.map(r => (
+                <Fragment key={r.tab}>
+                  {r.tab === 'ajan' && <div className="side-divider" />}
+                  <SideLink
+                    active={tab === r.tab}
+                    onClick={() => navigate(r.path)}
+                    icon={TAB_ICONS[r.tab]}
+                    label={r.label}
+                    badge={r.badge}
+                  />
+                </Fragment>
+              ))}
             </nav>
             <button className="side-reset" onClick={resetAll} title="Verileri sıfırla">
               <RotateCcw size={13} /> SIFIRLA

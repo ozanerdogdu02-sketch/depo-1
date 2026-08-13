@@ -39,7 +39,7 @@ const check = (label, ok) => { console.log(`${ok ? '✓' : '✗'} ${label}`); if
 const page = await browser.newPage({ viewport: { width: 1440, height: 1400 } });
 page.on('pageerror', err => { console.log('PAGE_ERROR:', err.message); failed = true; });
 
-await page.goto('http://localhost:4200/', { waitUntil: 'networkidle' });
+await page.goto('http://localhost:4200/panel', { waitUntil: 'networkidle' });
 await page.getByRole('button', { name: 'Karma örnek portföy' }).click();
 await page.waitForTimeout(300);
 
@@ -163,6 +163,9 @@ check('Hedefler localStorage\'a yazıldı', persisted !== null && JSON.parse(per
 
 await page.reload({ waitUntil: 'networkidle' });
 await page.waitForTimeout(400);
+// Sekme adreste tutulduğu için yenileme son sekmede bırakır; hedef kartı Panel'de.
+await page.locator('.side-link', { hasText: 'PANEL' }).click();
+await page.waitForTimeout(300);
 const sonraki = (await hedefCard.textContent()) ?? '';
 check('Yenilemeden sonra hedefler duruyor', sonraki.includes('hedef %40 · güncel %33,8'));
 
