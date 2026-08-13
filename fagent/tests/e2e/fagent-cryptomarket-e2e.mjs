@@ -26,7 +26,7 @@ await page.route('https://api.coingecko.com/**', route => {
   route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MARKET) });
 });
 
-await page.goto('http://localhost:4200/', { waitUntil: 'networkidle' });
+await page.goto('http://localhost:4200/panel', { waitUntil: 'networkidle' });
 await page.getByRole('button', { name: 'Kendi paramı gireceğim' }).click();
 await page.waitForTimeout(300);
 
@@ -37,7 +37,7 @@ check('Kripto Piyasası başlığı görünür', await page.locator('.card-title
 check('En az 3 coin listelendi', await page.locator('.list-row').count() >= 3);
 check('Bitcoin satırı var', await page.locator('.list-row', { hasText: 'Bitcoin' }).count() > 0);
 check('Fiyat TL formatında görünür (₺4.250.000)', await page.locator('text=₺4.250.000').count() > 0);
-check('Piyasa değeri kısa formatta (T)', await page.locator('text=/₺8\\.50 T/').count() > 0);
+check('Piyasa değeri kısa formatta (T)', await page.locator('text=/₺8,50 T/').count() > 0);
 await page.screenshot({ path: `${out}/cm1-tablo.png` });
 
 // --- 24s değişim renkleri farklı (pozitif yeşil / negatif kırmızı) ---
@@ -46,8 +46,8 @@ const ethChange = page.locator('.list-row', { hasText: 'Ethereum' }).locator('.m
 const btcColor = await btcChange.evaluate(el => getComputedStyle(el).color);
 const ethColor = await ethChange.evaluate(el => getComputedStyle(el).color);
 console.log('  (BTC renk:', btcColor, '| ETH renk:', ethColor, ')');
-check('Pozitif (+2.5%) görünür', await btcChange.locator('text=+2.5%').count() > 0);
-check('Negatif (−1.8%) görünür', await ethChange.locator('text=-1.8%').count() > 0);
+check('Pozitif (+2,5%) görünür', await btcChange.locator('text=+2,5%').count() > 0);
+check('Negatif (−1,8%) görünür', await ethChange.locator('text=-1,8%').count() > 0);
 check('Pozitif ve negatif değişim renkleri farklı', btcColor !== ethColor);
 
 // --- Arama filtreliyor ---

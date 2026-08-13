@@ -22,7 +22,7 @@ await page.route('**/api.coingecko.com/**', route => {
   });
 });
 
-await page.goto('http://localhost:4200/', { waitUntil: 'networkidle' });
+await page.goto('http://localhost:4200/panel', { waitUntil: 'networkidle' });
 
 // --- 1. Açılışta kripto seçeneği var mı ---
 check('Açılışta "Kripto örnek portföyü" seçeneği var',

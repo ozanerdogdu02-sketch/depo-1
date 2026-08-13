@@ -1,11 +1,34 @@
 # FAGENT — Anahtarsız Yatırımcı Paneli
 
-Kişisel portföy takip uygulaması: Panel, Bugün, Hisseler, Fonlar, Kripto Varlıklar, İşlemler,
-Projeksiyon ve bir **Demo Ajan** (sohbet + grafik çizme + hafıza + eğitilebilir bilgi tabanı).
+Kişisel portföy takip uygulaması — dokuz sekme: Panel, Bugün, Hisseler, Fonlar, Kripto Varlıklar,
+**Kripto Piyasa**, İşlemler, Projeksiyon ve bir **Demo Ajan** (sohbet + grafik çizme + hafıza +
+eğitilebilir bilgi tabanı + proaktif içgörüler).
+
+Portföy takibinin ötesinde **gerçek finansal matematik** yapar: reel getiri (Fisher), XIRR,
+**vergi sonrası net reel getiri**, Herfindahl yoğunlaşma, volatilite, maksimum düşüş, Sharpe oranı,
+korelasyon ve çeşitlendirme faydası — hepsi gerçek tarihsel fiyat serisinden, anahtarsız kaynaklarla.
+
+Ayrıştığı nokta getiri zincirinin **tamamını** kurması:
+
+```
+BRÜT kazanç → (stopaj) → NET kazanç → (enflasyon) → REEL net getiri
+```
+
+Yaygın uygulamalar brütte durur; bir kısmı reeli hesaplar. Vergi halkasını katan neredeyse yok —
+çünkü mevduat toplayan bir kurum kendi stopajını görünür kılmak istemez. Bağımsız bir ürün yapabilir.
+
+> FAGENT'ın BtcTurk'ün yapay zekâ asistanı **Bloki**'den nerede ayrıştığı ve neden onun
+> tamamlayıcısı olduğu: [`../docs/bloki-vs-fagent.md`](../docs/bloki-vs-fagent.md)
 
 **Temel ilke: API anahtarı gerektirmez.** Hiçbir özellik, istemci tarafında bir Anthropic/OpenAI
-anahtarı olmadan çalışmayı bırakmaz. Tüm veriler yalnızca tarayıcıda (`localStorage`) tutulur —
-sunucu yok, veri toplama yok.
+anahtarı olmadan çalışmayı bırakmaz. Portföy verisi yalnızca tarayıcıda (`localStorage`) tutulur —
+veri toplama yok.
+
+**Tek istisna — TCMB EVDS (opsiyonel):** enflasyon oranını resmî kaynaktan çekmek için bir Netlify
+Function proxy'si var (`netlify/functions/evds.mjs`). Anahtar sunucu ortam değişkeninde durur,
+istemciye HİÇ inmez ve **portföy verisi bu isteğe dahil edilmez** — sunucudan geçen tek şey TCMB'nin
+kamuya açık serisidir. Anahtar tanımsızsa ya da fonksiyon yoksa uygulama elle girilen varsayımla
+tam çalışmaya devam eder; canlı veri bir bonustur, şart değildir.
 
 ## Kurulum ve Geliştirme
 
@@ -27,7 +50,27 @@ src/
   agent.ts          — Ajan'ın YANIT MANTIĞI (saf fonksiyonlar, localStorage'a dokunmaz)
   agentMemory.ts    — Ajan'ın UZUN SÜRELİ belleği (kullanım istatistiği, localStorage)
   agentTraining.ts  — Ajan'ın EĞİTİLEBİLİR bilgi tabanı (öğretilen soru-cevaplar, localStorage)
+  taxRates.ts       — kullanıcının düzenlediği stopaj oranları (localStorage)
+  targetAllocation.ts — kullanıcının girdiği HEDEF dağılım (localStorage; varsayılanı YOK)
+  backup.ts         — tam veri yedeği: beş katmanı tek JSON'da dışa/geri al (beyaz listeli)
+  ErrorBoundary.tsx — render hatasında beyaz ekran yerine veri kurtarma ekranı
+  inflation.ts      — enflasyon oranının TEK KAYNAĞI (varsayım / TCMB EVDS / kullanıcı)
+  evds.ts           — TCMB EVDS istemcisi; hata FIRLATMAZ, başarısızlıkta varsayıma düşülür
+netlify/
+  functions/evds.mjs — EVDS proxy'si: API anahtarı YALNIZCA burada (sunucu ortam değişkeni)
+  analytics.ts      — FİNANSAL MATEMATİK (saf): reel getiri, XIRR, HHI, volatilite,
+                      maks. düşüş, Sharpe, korelasyon, kovaryansla çeşitlendirme faydası,
+                      vergi sonrası net getiri (DEFAULT_TAX_RATES + afterTaxOf),
+                      hedef dağılım sapması / %5-%25 bandı (driftOf)
+  priceHistory.ts   — tarihsel fiyat serisi (CoinGecko market_chart + Frankfurter/ECB)
+                      + risk raporu; KAPSAM ORANINI (coveragePct) açıkça döner
+  cryptoMarket.ts   — Kripto Piyasa sekmesinin veri katmanı (CoinGecko, önbellekli)
+  RiskPanel.tsx     — risk metrikleri arayüzü (kapsam dışı varlıkları da listeler)
+  CryptoMarket.tsx  — Kripto Piyasa sekmesi (canlı liste + 7 günlük mini grafikler)
 ```
+
+`analytics.ts` de `agent.ts` gibi **saftır** — I/O içermez, doğrudan test edilebilir.
+`priceHistory.ts` ağ erişimi içerir ve bu ayrımı bilinçli olarak tek başına taşır.
 
 `agent.ts` bilinçli olarak **saf** tutuldu: hiçbir I/O (localStorage, ağ) içermez, tüm veri
 (portföy, geçmiş, hafıza, öğretilmiş bilgiler) parametre olarak geçirilir. Bu hem test etmeyi
@@ -177,10 +220,60 @@ Sidebar'daki **SIFIRLA** üçünü de temizler.
   (araştırıldı) — bu ikisi manuel-girişli kalıyor, sahte fiyat gösterilmiyor.
 - **Altın canlı fiyatı yok:** Adayları (gold-api.com vb.) JSON şeması doğrulanamadığı için eklenmedi.
 - Döviz/kripto canlı fiyatı Frankfurter.dev + CoinGecko ile çalışır (anahtarsız, CORS-açık).
+- **Risk metrikleri portföyün tamamını kapsamaz:** tarihsel seri yalnızca canlı fiyata bağlı
+  kripto/döviz için çekilebiliyor. Bu gizlenmez — risk raporu portföyün yüzde kaçını kapsadığını
+  (`coveragePct`) ve kapsam dışı her varlığın nedenini arayüzde açıkça yazar.
+- **Enflasyon oranının tek kaynağı `inflation.ts`'tir.** Üç durumdan biri olabilir ve arayüz
+  hangisi olduğunu AÇIKÇA yazar: `varsayim` (elle güncellenen sabit, TÜİK son yıllık TÜFE),
+  `evds` (TCMB EVDS'den canlı), `kullanici` (senaryo denemesi için elle girilen). Kullanıcının
+  girdiği oran canlı veriyi de ezer; SIFIRLA bu geçersiz kılmayı temizler.
+  Daha önce aynı sayı DÖRT yerde ayrı ayrı duruyordu (iki kart + projeksiyon + `agent.ts` sabiti)
+  ve biri değiştirilince diğerleri eski değeri kullanmaya devam ediyordu — birleştirildi.
+- **EVDS şu an KAPALI — `EVDS_API_KEY` tanımlı değil.** Yani ürün bugün enflasyonu canlı
+  ÇEKMİYOR, varsayım modunda çalışıyor. Entegrasyon yazıldı ve testlendi; açılması için tek
+  gereken Netlify ortam değişkenine anahtarı eklemek. Sunum/doküman dilinde bu ayrımı koru:
+  "hazır ve açılmayı bekliyor" doğru, "canlı çekiyoruz" yanlış.
+- **EVDS seri kodu (`evds.ts` → `TUFE_SERIES`) HENÜZ DOĞRULANMADI.** Yanlışsa proxy boş yanıt
+  verir, istemci `undefined` döner ve varsayıma düşülür — ekranda yanlış bir sayı ÇIKMAZ.
+  Yıllık değişim endeksin kendisinden hesaplandığı için serinin baz yılı sonucu etkilemez.
+- **Netlify Function gerçek deploy dışında koşturulamadı** (ne netlify-cli var ne dış ağ erişimi).
+  İstemci tarafı `page.route()` taklidiyle test edildi; fonksiyonun kendisi yalnızca canlı
+  deploy'da doğrulanabilir — "test edildi" DEĞİLDİR.
+- **Stopaj oranları da elle güncellenen varsayımdır** (`analytics.ts` → `DEFAULT_TAX_RATES`).
+  Kaynak: 27.03.2026 tarihli 11107 sayılı Cumhurbaşkanı Kararı — fon ve 6 aya kadar vadeli TL
+  mevduat %17,5; BIST pay senedi alım-satımında stopaj yok. **Kripto/altın/döviz için doğrulanmış
+  bir rejim bulunamadığından %0 bırakıldı** — bu "vergi yok" iddiası değil, "oran uydurmuyoruz"
+  demektir ve ajan bunu açıkça söyler (`UNVERIFIED_TAX`). Vade, fon türü ve istisnalar sonucu
+  değiştirir; hesap bir tahmindir, beyanname değildir.
+- **Ondalık ayraç Türkçe (virgül):** kullanıcıya görünen her ondalık `store.ts` → `fmtDec()`
+  üzerinden geçmeli. `toFixed()` her zaman NOKTA üretir ve tutarlar (`₺140.000`) zaten Türkçe
+  biçimde olduğu için aynı cümlede "%17.5" ile "₺140.000" tutarsız görünüyordu. **İstisna:**
+  `csv.ts` — CSV alan ayracı zaten virgül, ondalığı da virgül yapmak dosyayı bozar, orada
+  `toFixed()` kalır.
+- **Ajan mesajları düz metindir** — `App.tsx` `{m.text}` olarak basar, markdown ayrıştırmaz.
+  Yanıt metinlerinde `**kalın**` kullanma; kullanıcıya yıldız olarak görünür.
+- **Hedef dağılım ÖNERİLMEZ, yalnızca ölçülür** (`targetAllocation.ts` → varsayılanı yoktur,
+  boş başlar). "Şu dağılımı hedefle" demek yatırım tavsiyesidir; SPK'ya göre genel yatırım
+  tavsiyesi yalnızca aracı kurum/banka/portföy yönetim şirketlerince verilebilir. Ürünün
+  yaptığı, kullanıcının KENDİ koyduğu hedeften sapmayı hesaplamaktır — bu aritmetiktir.
+  Yeni içgörü/analiz metni yazarken fiil kipini betimleyici tut ("aran şu kadar açılmış",
+  "şunu yap" değil).
 
 ## Test Kapsamı
 
-Playwright e2e testleri kalıcı repo dosyaları değil (scratchpad'de), ama kapsam şu: sidebar/nav,
-kâr-zarar muhasebesi, canlı fiyat bağlama, CSV içe/dışa aktarma, validasyon kuralları (ad çakışması,
-bakiye aşımı), ajan sohbet/grafik, uzun süreli bellek, eğitilebilir bilgi tabanı, geri bildirim döngüsü (👍/👎), aksiyon alma (Onayla/Vazgeç) — toplam 154 kontrol.
+Playwright e2e testleri artık **repo içinde**: `fagent/tests/e2e/` — 23 dosya, **415 kontrol**.
+
+```bash
+npm run test:e2e     # Vite dev sunucusunu başlatır, tüm takımları sırayla çalıştırır
+```
+
+Kapsam: sidebar/nav, kâr-zarar muhasebesi, canlı fiyat bağlama, CSV içe/dışa aktarma, validasyon
+kuralları (ad çakışması, bakiye aşımı), ajan sohbet/grafik, uzun süreli bellek, eğitilebilir bilgi
+tabanı, geri bildirim döngüsü (👍/👎), aksiyon alma (Onayla/Vazgeç), proaktif içgörüler, finansal
+analitik (reel getiri/XIRR/HHI), **vergi sonrası net getiri**, risk metrikleri, Kripto Piyasa
+sekmesi, projeksiyon.
+
+**Yeni davranış eklerken ilgili takıma kontrol ekle.** Commit öncesi üç doğrulama da geçmeli:
+`npm run typecheck` · `npm run build` · `npm run test:e2e`.
+
 Detaylar için repo kökündeki `CLAUDE.md`'ye bakabilirsin (proje hafızası, her oturumda güncellenir).

@@ -8,7 +8,7 @@ const check = (label, ok) => { console.log(`${ok ? '✓' : '✗'} ${label}`); if
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
 page.on('pageerror', err => { console.log('PAGE_ERROR:', err.message); failed = true; });
 
-await page.goto('http://localhost:4200/', { waitUntil: 'networkidle' });
+await page.goto('http://localhost:4200/panel', { waitUntil: 'networkidle' });
 await page.getByRole('button', { name: 'Karma örnek portföy' }).click();
 await page.waitForTimeout(400);
 
@@ -59,7 +59,7 @@ const thyaoRow2 = page.locator('.list-row', { hasText: 'THYAO' });
 console.log('  (THYAO satış sonrası satır metni:', (await thyaoRow2.textContent())?.replace(/\s+/g, ' '), ')');
 check('Satış sonrası THYAO değeri ₺15.000', await thyaoRow2.locator('text=₺15.000').count() > 0);
 check('Satış sonrası maliyet orantılı düştü (₺14.000, 28000×0.5)', await thyaoRow2.locator('text=Maliyet: ₺14.000').count() > 0);
-check('Kâr oranı satıştan bağımsız korundu (+7.1%)', await thyaoRow2.locator('text=+7.1%').count() > 0);
+check('Kâr oranı satıştan bağımsız korundu (+7,1%)', await thyaoRow2.locator('text=+7,1%').count() > 0);
 
 // --- Gerçekleşmiş kâr/zarar (satıştan cebe giren) ayrı gösteriliyor mu ---
 // 15000 satıldı, satılan payın maliyeti 30000×(1-0.5)=... aslında costBasis 28000'in yarısı = 14000.
@@ -115,7 +115,7 @@ await page.selectOption('#h-type', 'fon');
 await page.fill('#h-amount', '10000');
 await page.getByRole('button', { name: 'Ekle', exact: true }).click();
 await page.waitForTimeout(300);
-check('Yeni eklenen varlıkta maliyet=değer (₺10.000, %0.0)', await page.locator('text=Maliyet: ₺10.000').count() > 0 && await page.locator('text=+₺0 (+0.0%)').count() > 0);
+check('Yeni eklenen varlıkta maliyet=değer (₺10.000, %0,0)', await page.locator('text=Maliyet: ₺10.000').count() > 0 && await page.locator('text=+₺0 (+0,0%)').count() > 0);
 
 await browser.close();
 console.log(failed ? 'FAGENT_PNL_E2E_FAILED' : 'FAGENT_PNL_E2E_OK');

@@ -39,7 +39,7 @@ await page.route('**/api/v3/coins/markets**', r =>
     { id: 'ethereum', symbol: 'eth', name: 'Ethereum', current_price: 130000, price_change_percentage_24h: -1.2, market_cap: 1.5e12 },
   ]) }));
 
-await page.goto('http://localhost:4200/', { waitUntil: 'networkidle' });
+await page.goto('http://localhost:4200/panel', { waitUntil: 'networkidle' });
 await page.getByRole('button', { name: 'Karma örnek portföy' }).click();
 await page.waitForTimeout(400);
 

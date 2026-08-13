@@ -1,6 +1,7 @@
 // Kripto Piyasası veri katmanı — CoinGecko genel (public) API'sinden en büyük coinlerin
 // canlı piyasa verisini çeker. Anahtarsız, CORS açık. market.ts'in hata yönetimi desenini
 // birebir izler: ağ hatası / res.ok değil / şema bozuk → Türkçe CryptoMarketError, ASLA sahte veri.
+import { fmtDec } from './store';
 
 export interface CryptoMarketCoin {
   id: string; // CoinGecko id (ör. "bitcoin")
@@ -162,9 +163,10 @@ export async function fetchTopCoins(count = DEFAULT_COIN_COUNT): Promise<CryptoM
 }
 
 // Piyasa değerini kısa okunur biçime çevirir: Trilyon (T), Milyar (B), Milyon (M).
+// Ondalık ayraç Türkçe (virgül) — son satırdaki toLocaleString ile tutarlı olsun diye.
 export function formatMarketCap(v: number): string {
-  if (v >= 1e12) return `₺${(v / 1e12).toFixed(2)} T`;
-  if (v >= 1e9) return `₺${(v / 1e9).toFixed(2)} B`;
-  if (v >= 1e6) return `₺${(v / 1e6).toFixed(1)} M`;
+  if (v >= 1e12) return `₺${fmtDec(v / 1e12, 2)} T`;
+  if (v >= 1e9) return `₺${fmtDec(v / 1e9, 2)} B`;
+  if (v >= 1e6) return `₺${fmtDec(v / 1e6, 1)} M`;
   return `₺${Math.round(v).toLocaleString('tr-TR')}`;
 }

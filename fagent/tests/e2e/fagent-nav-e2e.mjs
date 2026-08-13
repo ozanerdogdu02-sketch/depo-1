@@ -8,7 +8,7 @@ const check = (label, ok) => { console.log(`${ok ? '✓' : '✗'} ${label}`); if
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 page.on('pageerror', err => { console.log('PAGE_ERROR:', err.message); failed = true; });
 
-await page.goto('http://localhost:4200/', { waitUntil: 'networkidle' });
+await page.goto('http://localhost:4200/panel', { waitUntil: 'networkidle' });
 await page.getByRole('button', { name: 'Karma örnek portföy' }).click();
 await page.waitForTimeout(400);
 

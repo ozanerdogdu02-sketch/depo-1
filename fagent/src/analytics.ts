@@ -2,19 +2,22 @@
 // agent.ts bu modülü kullanarak grafikleri YORUMLAR: sadece "işte grafiğin" demez,
 // grafiğin ne söylediğini gerçek sayılarla okur.
 //
-// DÜRÜSTLÜK SINIRI (önemli): Fagent'ta FİYAT ZAMAN SERİSİ YOKTUR — yalnızca kullanıcının
-// kendi işlem akışı ve güncel değerleri vardır. Bu yüzden volatilite, standart sapma,
-// Sharpe oranı, beta ve maksimum düşüş (drawdown) HESAPLANAMAZ. Bunları uydurmak yerine
-// hesaplanamadıklarını söylüyoruz (bkz. agent.ts'teki "ölçemiyorum" kuralı).
+// DÜRÜSTLÜK SINIRI (güncellendi): Bu dosyanın ilk sürümünde "fiyat zaman serisi yok, bu yüzden
+// volatilite/Sharpe/drawdown hesaplanamaz" yazıyordu. Bu ARTIK GEÇERLİ DEĞİL — priceHistory.ts
+// gerçek tarihsel seriyi anahtarsız kaynaklardan (CoinGecko, Frankfurter/ECB) çekiyor ve bu
+// dosyadaki risk fonksiyonları onun üzerinde çalışıyor. Kalan sınır KAPSAMDIR: seri yalnızca
+// canlı fiyata bağlı kripto/döviz için var; BIST/TEFAS/altın kapsam dışı ve bu oran arayüzde
+// açıkça yazılıyor (RiskReport.coveragePct).
 //
-// Hesaplanabilenler gerçek ve standart finans matematiğidir:
+// Hesaplananlar gerçek ve standart finans matematiğidir:
 //   • XIRR — düzensiz nakit akışlarında para-ağırlıklı yıllık getiri (IRR)
 //   • Fisher denklemi — enflasyondan arındırılmış REEL getiri
+//   • Vergi sonrası net getiri — brüt → stopaj → net → reel zinciri
 //   • Herfindahl-Hirschman Endeksi (HHI) + etkin varlık sayısı — konsantrasyon riski
 //   • Katkı ayrıştırma — güncel değerin ne kadarı yatırılan para, ne kadarı getiri
-//   • Varlık bazlı kâr/zarar katkı payları
+//   • Volatilite, maksimum düşüş, Sharpe, korelasyon, kovaryansla çeşitlendirme faydası
 
-import { PortfolioState, totalValue, totalCost } from './store';
+import { PortfolioState, AssetType, totalValue, totalCost } from './store';
 
 const MS_PER_DAY = 86_400_000;
 const DAYS_PER_YEAR = 365;
@@ -102,6 +105,22 @@ export function xirrOf(s: PortfolioState, today = new Date()): XirrResult | unde
   };
 }
 
+/* ─────────────────────────  Sınıf dağılımı  ─────────────────────────
+   Varlıkları türüne göre toplar, payını yüzdeyle verir, büyükten küçüğe sıralar.
+   Önceden agent.ts içinde private duruyordu; hedef sapma hesabı da aynı toplamı
+   istediği için buraya taşındı — iki ayrı döngü iki ayrı doğruya sapabilirdi. */
+
+export interface AllocationSlice { type: AssetType; amount: number; pct: number }
+
+export function allocation(s: PortfolioState): AllocationSlice[] {
+  const total = totalValue(s);
+  const byType = new Map<AssetType, number>();
+  for (const h of s.holdings) byType.set(h.type, (byType.get(h.type) ?? 0) + h.amount);
+  return [...byType.entries()]
+    .map(([type, amount]) => ({ type, amount, pct: total ? (amount / total) * 100 : 0 }))
+    .sort((a, b) => b.amount - a.amount);
+}
+
 /* ─────────────────────────  Konsantrasyon — Herfindahl-Hirschman  ─────────────────────────
    HHI = Σ wᵢ²  (wᵢ: her varlığın portföydeki ağırlığı, 0–1)
    Tek varlıkta 1, n eşit varlıkta 1/n olur. 1/HHI = "etkin varlık sayısı":
@@ -136,6 +155,83 @@ export function concentrationOf(s: PortfolioState): Concentration | undefined {
     topWeightPct: (top.amount / value) * 100,
     level,
   };
+}
+
+/* ─────────────────────────  Hedef dağılım sapması — %5/%25 bandı  ─────────────────────────
+   Kullanıcının KENDİ koyduğu hedef ağırlıklardan ne kadar uzaklaştığını ölçer.
+
+   %5/%25 kuralı (Larry Swedroe): bir sınıf hedefinden 5 PUANDAN fazla (mutlak) VEYA hedefinin
+   %25'inden fazla (göreli) saparsa denge bozulmuş sayılır — hangisi önce tetiklerse. Küçük
+   hedeflerde 5 puanlık mutlak eşik çok gevşek kalır (hedefi %8 olan bir sınıf %13'e çıksa
+   ağırlığı katlanmış olur ama mutlak eşiği aşmaz); büyük hedeflerde göreli %25 çok gevşek
+   kalır (hedefi %60 olan sınıfın %25'i 15 puandır). İkisinin küçüğü alınınca her iki uç da
+   korunur:  bant = min(5, hedef × 0,25)  puan.
+
+   SINIR — bilinçli: burada hedef ÖNERİLMEZ, yalnızca kullanıcının girdiği hedefe göre sapma
+   ÖLÇÜLÜR. "Şu dağılımı hedefle" demek yatırım tavsiyesidir; "kendi koyduğun hedeften şu kadar
+   saptın" aritmetiktir. Fonksiyon saf: hedefler dışarıdan (targetAllocation.ts) gelir. */
+
+export const DRIFT_ABSOLUTE_BAND_PP = 5;    // mutlak eşik (puan)
+export const DRIFT_RELATIVE_BAND = 0.25;    // göreli eşik (hedefin oranı)
+
+export function driftBandOf(targetPct: number): number {
+  return Math.min(DRIFT_ABSOLUTE_BAND_PP, targetPct * DRIFT_RELATIVE_BAND);
+}
+
+export interface DriftRow {
+  type: AssetType;
+  targetPct: number;   // kullanıcının girdiği hedef ağırlık
+  actualPct: number;   // güncel gerçekleşen ağırlık
+  driftPp: number;     // actual − target (puan; + fazla, − eksik)
+  bandPp: number;      // min(5, target × 0,25)
+  breached: boolean;   // |driftPp| > bandPp  (tam sınırda sapma SAYILMAZ)
+  gapTL: number;       // hedef ağırlığa eşitlemek için aradaki tutar (+ eksik, − fazla)
+}
+
+export interface DriftResult {
+  rows: DriftRow[];      // sapma büyüklüğüne göre büyükten küçüğe
+  breachedCount: number;
+  targetSumPct: number;  // 100 değilse arayüz UYARIR — burada sessizce normalize EDİLMEZ
+  value: number;
+}
+
+export function driftOf(s: PortfolioState, targets: Record<AssetType, number>): DriftResult | undefined {
+  const value = totalValue(s);
+  if (value <= 0 || s.holdings.length === 0) return undefined;
+
+  const targetSumPct = (Object.values(targets) as number[]).reduce((a, v) => a + (v || 0), 0);
+  if (targetSumPct <= 0) return undefined; // hiç hedef girilmemiş — özellik kapalı
+
+  // Portföyde bulunan sınıflar ∪ hedefi girilmiş sınıflar. Birleşim şart: hedefi olup hiç
+  // alınmamış bir sınıf da (actual %0) sapmadır ve gösterilmelidir.
+  const actualByType = new Map(allocation(s).map(a => [a.type, a]));
+  const types = new Set<AssetType>([
+    ...actualByType.keys(),
+    ...(Object.keys(targets) as AssetType[]).filter(t => (targets[t] || 0) > 0),
+  ]);
+
+  const rows: DriftRow[] = [...types].map(type => {
+    const targetPct = targets[type] || 0;
+    const actual = actualByType.get(type);
+    const actualPct = actual?.pct ?? 0;
+    const bandPp = driftBandOf(targetPct);
+    const driftPp = actualPct - targetPct;
+    return {
+      type,
+      targetPct,
+      actualPct,
+      driftPp,
+      bandPp,
+      // Karşılaştırma KESİN eşitsizlik olmalı (tam sınırda sapma sayılmaz) ama kayan nokta
+      // bunu bozuyordu: yüzde hesabı 0,55 × 100 = 55.00000000000001 ürettiği için hedefi %50
+      // olan bir sınıfın %55'e çıkması sapma 5.000000000000007 çıkıyor ve tam sınırdaki kalem
+      // yanlışlıkla "bandın dışında" işaretleniyordu. Birim testi yakaladı (analytics.test.ts).
+      breached: Math.abs(driftPp) - bandPp > 1e-9,
+      gapTL: (targetPct / 100) * value - (actual?.amount ?? 0),
+    };
+  }).sort((a, b) => Math.abs(b.driftPp) - Math.abs(a.driftPp));
+
+  return { rows, breachedCount: rows.filter(r => r.breached).length, targetSumPct, value };
 }
 
 /* ─────────────────────────  Katkı ayrıştırma  ─────────────────────────
@@ -359,6 +455,101 @@ export function volatilityLevel(annualVolPct: number): 'dusuk' | 'orta' | 'yukse
   if (annualVolPct < 35) return 'orta';
   if (annualVolPct < 70) return 'yuksek';
   return 'cok-yuksek';
+}
+
+/* ─────────────────────────  Vergi sonrası (net) getiri  ─────────────────────────
+   FAGENT'ın rakiplerinden ayrıştığı ikinci matematik katmanı. Yaygın uygulamalar "nominal
+   getiri"yi gösterir; bir kısmı reel getiriyi de hesaplar. Zincirin üçüncü halkası — VERGİ —
+   neredeyse hiçbir yerde yok:
+
+       BRÜT kazanç → (stopaj) → NET kazanç → (enflasyon) → REEL net getiri
+
+   Bu katmanı bankalar göstermek istemez (mevduat stopajını görünür kılar); bağımsız bir ürün
+   gösterebilir. Hesap saf ve basittir, zor olan ORANIN DOĞRU OLMASIDIR — bkz. aşağıdaki not. */
+
+// Stopaj oranları ELLE GÜNCELLENEN VARSAYIMLARDIR — tıpkı enflasyon gibi. Otomatik çekilebilecek
+// resmî/anahtarsız bir uç yok ve oranlar Cumhurbaşkanı Kararı ile sık değişiyor.
+//
+// Kaynak (2026-08-01 itibarıyla doğrulandı): 27.03.2026 tarihli 11107 sayılı Cumhurbaşkanı Kararı
+// (Resmî Gazete) — yatırım fonu katılma payı kazançlarında stopaj %15 → %17,5 (01.05.2026'dan
+// itibaren elde edilen kazançlar için). TL mevduatta 6 aya kadar vade %17,5; 1 yıla kadar vade
+// %15. Hisse senedi yoğun fonlarda %0 istisnası sürüyor (TEFAS'ta işlem görmeyen serbest hisse
+// yoğun fonlar bu istisnadan çıkarıldı).
+//
+// DOĞRULANAMAYANLAR 0 BIRAKILDI, UYDURULMADI: kripto, altın ve döviz için netleşmiş bir stopaj
+// rejimi bu tarihte doğrulanamadı. Sıfır yazmak "vergi yok" iddiası DEĞİLDİR — "bu ürün bir oran
+// varsaymıyor, sen gir" demektir; arayüz ve ajan metni bunu açıkça söyler (bkz. UNVERIFIED_TAX).
+// Vergi oranı uydurmak, sahte fiyat göstermekle aynı sınıfta bir hatadır (AGENTS.md §0.2).
+export const DEFAULT_TAX_RATES: Record<AssetType, number> = {
+  fon: 17.5,
+  mevduat: 17.5, // 6 aya kadar vade varsayıldı — store vade bilgisi tutmuyor, kullanıcı düzeltebilir
+  hisse: 0,      // GVK geç. 67 kapsamında BIST pay senedi alım-satım kazancında stopaj uygulanmıyor
+  kripto: 0,     // doğrulanamadı
+  altin: 0,      // doğrulanamadı
+  doviz: 0,      // doğrulanamadı (kur farkı)
+};
+
+// Oranı "0 çünkü öyle" ile "0 çünkü doğrulayamadık" ayrımı — arayüz bunu farklı anlatmalı.
+export const UNVERIFIED_TAX: AssetType[] = ['kripto', 'altin', 'doviz'];
+
+export interface TaxedHolding {
+  name: string;
+  type: AssetType;
+  gain: number;      // brüt kazanç (zarar ise negatif)
+  tax: number;       // kesilen varsayımsal stopaj (zararda 0)
+  netGain: number;
+  ratePct: number;
+}
+
+export interface AfterTaxResult {
+  invested: number;        // toplam maliyet
+  grossGain: number;
+  tax: number;
+  netGain: number;
+  grossReturnPct: number;
+  netReturnPct: number;
+  realNetReturnPct: number;  // Fisher, net getiri üzerinden
+  realGrossReturnPct: number; // karşılaştırma için: vergi yokmuş gibi reel
+  byHolding: TaxedHolding[];
+  hasUnverified: boolean;    // portföyde oranı doğrulanmamış bir sınıf var mı
+}
+
+// Vergi KAZANÇ üzerinden alınır, anapara üzerinden değil. Zararda vergi yoktur (ve bu modelde
+// zarar mahsubu yapılmaz — kalem bazında bağımsız hesaplanır, gerçek beyanname mantığı değildir).
+export function afterTaxOf(
+  s: PortfolioState,
+  inflationPct: number,
+  rates: Record<AssetType, number> = DEFAULT_TAX_RATES,
+): AfterTaxResult | undefined {
+  const invested = totalCost(s);
+  if (invested <= 0) return undefined;
+
+  const byHolding: TaxedHolding[] = s.holdings.map(h => {
+    const gain = h.amount - h.costBasis;
+    const ratePct = rates[h.type] ?? 0;
+    const tax = gain > 0 ? gain * (ratePct / 100) : 0;
+    return { name: h.name, type: h.type, gain, tax, netGain: gain - tax, ratePct };
+  });
+
+  const grossGain = byHolding.reduce((a, x) => a + x.gain, 0);
+  const tax = byHolding.reduce((a, x) => a + x.tax, 0);
+  const netGain = grossGain - tax;
+
+  const grossReturnPct = (grossGain / invested) * 100;
+  const netReturnPct = (netGain / invested) * 100;
+
+  return {
+    invested,
+    grossGain,
+    tax,
+    netGain,
+    grossReturnPct,
+    netReturnPct,
+    realNetReturnPct: realReturnPct(netReturnPct, inflationPct),
+    realGrossReturnPct: realReturnPct(grossReturnPct, inflationPct),
+    byHolding,
+    hasUnverified: s.holdings.some(h => UNVERIFIED_TAX.includes(h.type)),
+  };
 }
 
 // Kullanıcı metninde geçen enflasyon oranını yakalar ("%55 enflasyona göre...", "enflasyon 55").

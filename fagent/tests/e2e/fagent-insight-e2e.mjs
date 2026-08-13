@@ -9,7 +9,7 @@ const check = (label, ok) => { console.log(`${ok ? '✓' : '✗'} ${label}`); if
 const page = await browser.newPage({ viewport: { width: 1200, height: 1400 } });
 page.on('pageerror', err => { console.log('PAGE_ERROR:', err.message); failed = true; });
 
-await page.goto('http://localhost:4200/', { waitUntil: 'networkidle' });
+await page.goto('http://localhost:4200/panel', { waitUntil: 'networkidle' });
 await page.getByRole('button', { name: 'Karma örnek portföy' }).click();
 await page.waitForTimeout(500);
 
@@ -24,7 +24,9 @@ check('"sen sormadan" vurgusu var', (await card.innerText()).includes('sen sorma
 const text = await card.innerText();
 check('Nakit benzeri reel değer kaybı uyarısı var', text.includes('reel değer kaybediyor'));
 check('Somut TL erozyon tutarı gösteriliyor (₺)', /~₺[\d.]+/.test(text));
-check('Enflasyon varsayımı etiketi var (canlı veri değil)', text.includes('senin varsayımın'));
+// Kaynak etiketi: canlı veri yokken "varsayım" demeli ve TCMB'den geldiğini İDDİA ETMEMELİ.
+check('Enflasyon kaynağı "varsayım" olarak etiketli', text.includes('varsayım'));
+check('Canlı veri yokken TCMB EVDS iddiası YOK', !text.includes('TCMB EVDS'));
 
 // --- 3. Enflasyon varsayımı değişince hesap yeniden yapılıyor ---
 const before = await card.innerText();
@@ -51,6 +53,9 @@ await page.waitForTimeout(500);
 const cryptoText = await card.innerText();
 check('Kripto portföyünde konsantrasyon uyarısı var (%100 kripto)', cryptoText.includes('tek sınıfta'));
 check('Kripto portföyünde stablecoin nakit erimesi hesaplanıyor (USDT)', cryptoText.includes('reel değer kaybediyor'));
+// SIFIRLA kullanıcının girdiği enflasyon oranını da temizlemeli — yukarıda 0 girilmişti,
+// sıfırlamadan sonra ayakta kalsaydı nakit erimesi uyarısı hiç çıkmazdı.
+check('SIFIRLA enflasyon geçersiz kılmasını da temizledi', (await page.inputValue('#inflation-input')) === '32');
 
 // --- 6. Boş portföyde kart hiç görünmez ---
 page.once('dialog', d => d.accept());
