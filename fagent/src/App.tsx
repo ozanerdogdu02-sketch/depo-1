@@ -483,6 +483,9 @@ function OtoAktarimCard() {
       // "üzerine yazılsın mı" diye sorulmamalı.
       const o = r.ozet;
       const ok = confirm(
+        // Örnek veri uyarısı onay kutusunun EN ÜSTÜNDE: kullanıcı "üzerine yazılsın mı"
+        // sorusuna cevap verirken sahte veriyle karşı karşıya olduğunu bilmeli.
+        (r.ornek ? '!! BU ÖRNEK (SAHTE) VERİDİR !!\n\n' : '') +
         `Otomasyon portföyü içe aktarılacak:\n\n` +
           `  ${o.kalemSayisi} kalem, ${o.islemSayisi} işlem\n` +
           `  Toplam değer  : ${fmtTL(o.toplamDeger)}\n` +

@@ -124,9 +124,10 @@ check('onboarded true kaldı', durum.onboarded === true);
 /* ── 5) Uyarılar — sayının neden öyle göründüğü söylenmeli ──────────────────── */
 
 check('Maliyeti bilinmeyen kalemler uyarısı var', sonra.includes('Maliyeti bilinmeyen'));
+// Metin BÜYÜK harfle yazılı: vurgu için markdown yıldızı kullanılamıyor (düz metin basılıyor).
 check(
   'Uyarı "kazanç sıfır" ile "kazanç bilinmiyor" ayrımını yapıyor',
-  sonra.includes('kazanç bilinmiyor'),
+  sonra.includes('KAZANÇ BİLİNMİYOR') && sonra.includes('kazanç sıfır demek değildir'),
 );
 check('Hangi kalemler olduğu yazıyor', sonra.includes('TZL') && sonra.includes('NAKIT'));
 
@@ -143,7 +144,23 @@ check('BAYAT VERİ uyarısı gösteriliyor', bayatMetin.includes('BAYAT VERİ'))
 check('Kaç saat önce çekildiği yazıyor', bayatMetin.includes('72.5'));
 check('Ne yapılacağı söyleniyor', bayatMetin.includes('veri.py'));
 
-/* ── 7) Panel gerçekten aktarılan veriyi gösteriyor ─────────────────────────── */
+/* ── 7) ÖRNEK veri açıkça uyarmalı ──────────────────────────────────────────── */
+
+const ornekDosya = structuredClone(gecerli);
+ornekDosya.ornek = true;
+page.once('dialog', d => { globalThis.__diyalog = d.message(); d.accept(); });
+await kart.locator('input[type=file]').setInputFiles(dosya(ornekDosya));
+await page.waitForTimeout(600);
+const ornekMetin = (await kart.textContent()) ?? '';
+check('ÖRNEK VERİ uyarısı gösteriliyor', ornekMetin.includes('ÖRNEK VERİ'));
+check('Sayıların gerçek olmadığı söyleniyor', ornekMetin.includes('gerçek pozisyonunu göstermez'));
+check('Mesajda da ÖRNEK ibaresi var', ornekMetin.includes('ÖRNEK veri —'));
+check('Onay kutusunda sahte veri uyarısı vardı', String(globalThis.__diyalog ?? '').includes('SAHTE'));
+
+// Markdown sızmamalı — mesajlar düz metin basılıyor, yıldızlar ekranda görünürdü.
+check('Uyarı metinlerinde markdown yıldızı yok', !ornekMetin.includes('**'));
+
+/* ── 8) Panel gerçekten aktarılan veriyi gösteriyor ─────────────────────────── */
 
 const panelMetin = (await page.locator('.dash, main').first().textContent()) ?? '';
 check('Aktarılan varlık Panel\'de görünüyor', panelMetin.includes('Serbest nakit'));

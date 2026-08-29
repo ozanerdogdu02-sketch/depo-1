@@ -41,6 +41,8 @@ export interface AktarimSonuc {
   /** Kullanıcıya gösterilmesi gereken, veriyi yanlış okumasını engelleyen notlar. */
   uyarilar?: string[];
   ozet?: AktarimOzeti;
+  /** Dosya `--ornek` ile üretilmiş sahte veri mi. */
+  ornek?: boolean;
 }
 
 function sayiMi(v: unknown): v is number {
@@ -117,6 +119,18 @@ export function parseOtoAktarim(text: string): AktarimSonuc {
 
   // ── Uyarılar: kullanıcının sayıyı YANLIŞ OKUMASINI engelleyenler
   const uyarilar: string[] = [];
+
+  // Örnek veri uyarısı EN BAŞTA: sahte portföyü gerçek sanmak, sahte fiyat
+  // göstermekle aynı sınıfta bir hatadır. Diğer uyarıların arasında kaybolmamalı.
+  const ornek = d.ornek === true;
+  if (ornek) {
+    uyarilar.push(
+      'ÖRNEK VERİ: bu dosya `python fagent_aktar.py --ornek` ile üretilmiş SAHTE bir ' +
+        'portföydür. Buradaki hiçbir sayı gerçek pozisyonunu göstermez. Gerçek portföy için ' +
+        'bayraksız çalıştır.',
+    );
+  }
+
   const kaynak = (d.kaynak ?? {}) as Record<string, unknown>;
   const yas = sayiMi(kaynak.veri_yasi_saat) ? kaynak.veri_yasi_saat : null;
 
@@ -130,9 +144,10 @@ export function parseOtoAktarim(text: string): AktarimSonuc {
   const bilinmeyen = Array.isArray(d.bilinmeyen_maliyet) ? (d.bilinmeyen_maliyet as string[]) : [];
   if (bilinmeyen.length > 0) {
     uyarilar.push(
+      // Markdown YOK — bu metin düz metin olarak basılıyor, yıldızlar ekranda görünürdü.
       `Maliyeti bilinmeyen kalem(ler): ${bilinmeyen.join(', ')}. Alış kaydı olmadığı için ` +
         'maliyet = güncel değer yazıldı. Bu kalemlerde görünen "kazanç yok" ifadesi ' +
-        '**kazanç bilinmiyor** demektir, kazanç sıfır demek değildir.',
+        'KAZANÇ BİLİNMİYOR demektir, kazanç sıfır demek değildir.',
     );
   }
 
@@ -151,7 +166,10 @@ export function parseOtoAktarim(text: string): AktarimSonuc {
 
   return {
     ok: true,
-    message: `${holdings.length} kalem ve ${txns.length} işlem okundu.`,
+    message:
+      (ornek ? 'ÖRNEK veri — ' : '') +
+      `${holdings.length} kalem ve ${txns.length} işlem okundu.`,
+    ornek,
     state: { onboarded: true, holdings, txns, realizedPnl: 0 },
     uyarilar,
     ozet: {
