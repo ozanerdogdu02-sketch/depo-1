@@ -6,6 +6,7 @@ import {
   RefreshCw, Loader2, Wifi, Upload, GraduationCap, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown,
   Sparkles, AlertTriangle, CheckCircle2, Receipt, Target, ShieldCheck,
 } from 'lucide-react';
+import { parseOtoAktarim } from './otoAktarim';
 import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, fmtDec, fmtCompact, investmentHistoryOf, todayLocalDate, ASSET_LABELS, AssetType, Holding } from './store';
 import { analyzePortfolio, chatReply, buildGreeting, extractMentionedHoldings, proactiveInsights, AgentMessage, ChartSpec, Insight } from './agent';
 import {
@@ -456,6 +457,99 @@ function BackupCard() {
   );
 }
 
+// Otomasyon hattından (Borsa Paneli) portföyü içe alır. Dosya yoluyla — Fagent hiçbir ağ
+// isteği yapmaz, anahtar istemez; "veri tarayıcıdan çıkmaz" tezi bozulmaz.
+//
+// Kart bilerek yedek kartının hemen ardında: ikisi de "veri nereden gelir/nereye gider"
+// sorusunun parçası ve ikisi de üzerine yazan işlemler.
+function OtoAktarimCard() {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [uyarilar, setUyarilar] = useState<string[]>([]);
+
+  const handleFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // aynı dosya tekrar seçilebilsin
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const r = parseOtoAktarim(String(reader.result ?? ''));
+      if (!r.ok || !r.state || !r.ozet) {
+        setUyarilar([]);
+        setMsg({ text: r.message, ok: false });
+        return;
+      }
+      // Onay, doğrulamadan SONRA sorulur: kullanıcı neyi kabul ettiğini görmeden
+      // "üzerine yazılsın mı" diye sorulmamalı.
+      const o = r.ozet;
+      const ok = confirm(
+        `Otomasyon portföyü içe aktarılacak:\n\n` +
+          `  ${o.kalemSayisi} kalem, ${o.islemSayisi} işlem\n` +
+          `  Toplam değer  : ${fmtTL(o.toplamDeger)}\n` +
+          `  Toplam maliyet: ${fmtTL(o.toplamMaliyet)}\n` +
+          (o.veriYasiSaat !== null ? `  Fiyat yaşı    : ${o.veriYasiSaat} saat\n` : '') +
+          `\nBu işlem MEVCUT PORTFÖYÜNÜN ÜZERİNE YAZAR. Devam edilsin mi?`,
+      );
+      if (!ok) {
+        setMsg({ text: 'İçe aktarma iptal edildi — hiçbir şey değişmedi.', ok: true });
+        return;
+      }
+      actions.replaceFromImport(r.state);
+      setUyarilar(r.uyarilar ?? []);
+      setMsg({ text: `${r.message} Portföy güncellendi.`, ok: true });
+    };
+    reader.onerror = () => setMsg({ text: 'Dosya okunamadı.', ok: false });
+    reader.readAsText(file);
+  };
+
+  return (
+    <div className="card">
+      <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <ArrowLeftRight size={14} color="var(--accent)" />
+        Otomasyon Aktarımı
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ flex: '1 1 320px' }}>
+          <p className="hint" style={{ margin: 0 }}>
+            Borsa Paneli hattının ürettiği <code>fagent-aktarim.json</code> dosyasını seç.
+            Pozisyonlar, güncel fiyatlar ve işlem geçmişi buraya aktarılır. Dosyayı üretmek
+            için otomasyon tarafında <code>python fagent_aktar.py</code> koştur.
+            Fagent internete çıkmaz — dosyayı sen taşırsın.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <input
+            ref={fileRef} type="file" accept=".json,application/json" onChange={handleFile}
+            style={{ display: 'none' }} aria-label="Otomasyon aktarım dosyası seç"
+          />
+          <button
+            className="btn btn-secondary btn-inline"
+            style={{ padding: '6px 12px', fontSize: 13 }}
+            onClick={() => fileRef.current?.click()}
+          >
+            <Upload size={14} /> Portföyü İçe Aktar
+          </button>
+        </div>
+      </div>
+
+      {msg && (
+        <p className="hint" style={{ marginTop: 10, marginBottom: 0, color: msg.ok ? 'var(--accent)' : 'var(--red)' }}>
+          {msg.text}
+        </p>
+      )}
+
+      {/* Uyarılar sessizce yutulmaz: bir sayının neden öyle göründüğünü söylemeyen ekran,
+          yanlış okunan sayıdan daha kötüdür. */}
+      {uyarilar.length > 0 && (
+        <ul className="hint" style={{ marginTop: 8, marginBottom: 0, paddingLeft: 18, color: 'var(--amber)' }}>
+          {uyarilar.map((u, i) => <li key={i} style={{ marginTop: i ? 4 : 0 }}>{u}</li>)}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function Panel({ assetType, title, query }: PanelProps) {
   const s = usePortfolio();
   const [name, setName] = useState('');
@@ -711,6 +805,7 @@ function Panel({ assetType, title, query }: PanelProps) {
       {/* Yedek kartı tam genişlikte ve Varlıklar'ın hemen üstünde: bir uyarı çubuğu kadar
           görünür ama kesintiye uğratmıyor. */}
       {!assetType && <div className="dash-span-2"><BackupCard /></div>}
+      {!assetType && <div className="dash-span-2"><OtoAktarimCard /></div>}
 
       <div className={`card${assetType ? '' : ' dash-span-2'}`}>
         <div className="card-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

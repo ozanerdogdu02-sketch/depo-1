@@ -242,6 +242,14 @@ export const actions = {
     });
     commit({ ...state, holdings, txns: [txn, ...state.txns], realizedPnl: state.realizedPnl + realizedDelta });
   },
+
+  /* Otomasyon hattından gelen portföyü yazar (bkz. otoAktarim.ts).
+     ÜZERİNE YAZAR — çağıran taraf önce kullanıcıya onaylatmalı. Doğrulama burada değil,
+     parseOtoAktarim() içinde yapılır: bu fonksiyon yalnızca doğrulanmış bir durumu işler.
+     Kısmî yazma yok — ya hep ya hiç. */
+  replaceFromImport(next: PortfolioState): void {
+    commit({ ...next, onboarded: true });
+  },
 };
 
 export function usePortfolio(): PortfolioState {
