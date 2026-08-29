@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- FAGENT sekme ikonu. Koyu zemin + teal aksan; uygulamanın index.css'indeki
+       --bg (#0a0f14) ve --accent (#2dd4a7) değerleriyle aynı.
+       Sembol: yükselen bir çizgi ve altında onu kesen yatay bant — "gösterilen getiri"
+       ile "gerçekte kalan" arasındaki farkı temsil eder. -->
+  <rect width="64" height="64" rx="14" fill="#0a0f14"/>
+  <path d="M13 43 L26 30 L36 38 L52 19"
+        fill="none" stroke="#2dd4a7" stroke-width="6"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M13 52 L52 52" stroke="#f87171" stroke-width="5" stroke-linecap="round" opacity="0.85"/>
+</svg>
