@@ -5,23 +5,38 @@ import { describe, expect, it } from 'vitest';
 import {
   fmtTL, fmtSignedTL, fmtPrice, fmtPct, fmtSignedPct, fmtQty,
   localDateString, daysAgoLocalDate, partOfDay, normalizeName,
+  sayiIyelikEki, sayiBelirtmeEki, fmtPctIyelik, fmtPctBelirtme,
 } from '../src/core/format.ts';
 
 const IST = 'Europe/Istanbul';
 
 describe('para ve yüzde biçimleme', () => {
   it('Türkçe ayraçları kullanır (binlik nokta, ondalık virgül)', () => {
-    expect(fmtTL(1234.56)).toBe('1.234,56 ₺');
+    expect(fmtTL(234.56)).toBe('234,56 ₺');
     expect(fmtTL(0)).toBe('0,00 ₺');
   });
 
-  it('büyük tutarlarda kuruşu atar (gürültü)', () => {
+  it('1.000 ₺ ve üstünde kuruşu atar', () => {
     expect(fmtTL(1_250_000.49)).toBe('1.250.000 ₺');
+    expect(fmtTL(60_000)).toBe('60.000 ₺');
+  });
+
+  // Eşik yüksek olsaydı aynı listede "120.000 ₺" ile "60.000,00 ₺" yan yana gelirdi.
+  it('bir portföy listesindeki tutarlar tutarlı biçimlenir', () => {
+    const satirlar = [120_000, 60_000, 40_000].map(fmtTL);
+    expect(satirlar).toEqual(['120.000 ₺', '60.000 ₺', '40.000 ₺']);
+  });
+
+  it('küçük tutarlarda kuruşu korur', () => {
+    expect(fmtTL(45.5)).toBe('45,50 ₺');
+    expect(fmtTL(999.99)).toBe('999,99 ₺');
   });
 
   it('işaretli tutarda + ve − gösterir', () => {
-    expect(fmtSignedTL(1234.5)).toBe('+1.234,50 ₺');
-    expect(fmtSignedTL(-1234.5)).toBe('−1.234,50 ₺');
+    expect(fmtSignedTL(234.5)).toBe('+234,50 ₺');
+    expect(fmtSignedTL(-234.5)).toBe('−234,50 ₺');
+    // 1.000 ₺ üstünde kuruş atılır, işaret korunur
+    expect(fmtSignedTL(-12_500)).toBe('−12.500 ₺');
   });
 
   it('yüzde işareti Türkçedeki gibi sayının ÖNÜNDE', () => {
@@ -111,5 +126,56 @@ describe('ad normalleştirme', () => {
   it('Türkçe I/İ ayrımını bozmaz', () => {
     expect(normalizeName('IŞIK')).toBe('ışık');
     expect(normalizeName('İSTANBUL')).toBe('istanbul');
+  });
+});
+
+describe('Türkçe sayı ekleri', () => {
+  // "%55'ı" yanlış, "%55'i" doğru — ek sayının OKUNUŞUNA göre değişir.
+  // Sabit tek bir ek kullanmak her mesajda göze batan bir dilbilgisi hatası bırakırdı.
+  it('birler basamağına göre doğru iyelik eki', () => {
+    expect(sayiIyelikEki(1)).toBe('i');   // bir-i
+    expect(sayiIyelikEki(2)).toBe('si');  // iki-si
+    expect(sayiIyelikEki(3)).toBe('ü');   // üç-ü
+    expect(sayiIyelikEki(4)).toBe('ü');   // dörd-ü
+    expect(sayiIyelikEki(55)).toBe('i');  // elli beş-i
+    expect(sayiIyelikEki(6)).toBe('sı');  // altı-sı
+    expect(sayiIyelikEki(27)).toBe('si'); // yirmi yedi-si
+    expect(sayiIyelikEki(8)).toBe('i');   // sekiz-i
+    expect(sayiIyelikEki(9)).toBe('u');   // dokuz-u
+  });
+
+  it('onluklarda doğru ek', () => {
+    expect(sayiIyelikEki(10)).toBe('u');  // on-u
+    expect(sayiIyelikEki(20)).toBe('si'); // yirmi-si
+    expect(sayiIyelikEki(30)).toBe('u');  // otuz-u
+    expect(sayiIyelikEki(40)).toBe('ı');  // kırk-ı
+    expect(sayiIyelikEki(50)).toBe('si'); // elli-si
+    expect(sayiIyelikEki(70)).toBe('i');  // yetmiş-i
+    expect(sayiIyelikEki(90)).toBe('ı');  // doksan-ı
+  });
+
+  it('yüz ve üstünde doğru ek', () => {
+    expect(sayiIyelikEki(100)).toBe('ü');       // yüz-ü
+    expect(sayiIyelikEki(1000)).toBe('i');      // bin-i
+    expect(sayiIyelikEki(1_000_000)).toBe('u'); // milyon-u
+  });
+
+  it('belirtme hâli ekini kurar', () => {
+    expect(sayiBelirtmeEki(55)).toBe('ini');  // %55'ini
+    expect(sayiBelirtmeEki(30)).toBe('unu');  // %30'unu
+    expect(sayiBelirtmeEki(27)).toBe('sini'); // %27'sini
+    expect(sayiBelirtmeEki(40)).toBe('ını');  // %40'ını
+  });
+
+  it('yüzde biçimiyle birleştirir', () => {
+    expect(fmtPctIyelik(55)).toBe("%55'i");
+    expect(fmtPctIyelik(30)).toBe("%30'u");
+    expect(fmtPctBelirtme(55)).toBe("%55'ini");
+    expect(fmtPctBelirtme(27)).toBe("%27'sini");
+  });
+
+  it('ondalık yuvarlandıktan SONRAKİ sayıya göre ek seçer', () => {
+    // %54,7 → "%55" olarak yazılır, ek de 55'e göre olmalı ("i"), 54'e göre değil.
+    expect(fmtPctIyelik(54.7)).toBe("%55'i");
   });
 });

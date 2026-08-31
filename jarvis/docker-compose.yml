@@ -1,0 +1,84 @@
+# Finansal Jarvis — tek komutla ayağa kalkan yığın.
+#
+#   docker compose up -d                     → Jarvis + Ollama
+#   docker compose --profile voice up -d     → yukarıdakiler + ses servisi
+#
+# Ses servisi bir "profile" arkasında: kapalıyken imajı derlenmez, ~2 GB model inmez.
+
+services:
+  jarvis:
+    build: .
+    container_name: jarvis
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Bunlar .env'deki değerleri EZER — konteyner ağı içinde adresler farklı.
+      # (Kendi bilgisayarında `npm start` ile çalıştırırken .env'deki 127.0.0.1 geçerli.)
+      OLLAMA_URL: http://ollama:11434
+      VOICE_URL: http://voice:5002
+      DB_PATH: /app/data/jarvis.db
+      TZ: ${TZ:-Europe/Istanbul}
+    volumes:
+      # Portföyün BURADA yaşıyor. Bu volume silinirse veri gider.
+      - jarvis-data:/app/data
+    depends_on:
+      - ollama
+    # Uzun yoklama kullanılıyor → dışarıya port açılmıyor.
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: jarvis-ollama
+    restart: unless-stopped
+    volumes:
+      # Model burada kalıcı. Olmazsa her yeniden başlatmada ~5 GB yeniden iner.
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    # ── GPU kullanmak istersen (NVIDIA sürücüsü + nvidia-container-toolkit gerekir):
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  # Modeli BİR KEZ indirir ve çıkar. Bu servis olmasa ilk mesajda "model not found"
+  # alınır ve kullanıcı elle `ollama pull` çalıştırmak zorunda kalırdı.
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: jarvis-ollama-init
+    restart: "no"
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b-instruct}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "[init] '$$OLLAMA_MODEL' indiriliyor (ilk seferde birkaç GB, sabır)..."
+        ollama pull "$$OLLAMA_MODEL" && echo "[init] model hazır."
+
+  voice:
+    profiles: ["voice"]
+    build: ./voice
+    container_name: jarvis-voice
+    restart: unless-stopped
+    environment:
+      WHISPER_MODEL: ${WHISPER_MODEL:-small}
+      WHISPER_LANG: tr
+      TZ: ${TZ:-Europe/Istanbul}
+    volumes:
+      # Whisper modeli ilk kullanımda iner; volume olmasa her açılışta tekrar inerdi.
+      - voice-models:/models/whisper
+
+volumes:
+  jarvis-data:
+  ollama-models:
+  voice-models:

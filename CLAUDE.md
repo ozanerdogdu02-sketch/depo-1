@@ -1,6 +1,10 @@
 # depo-1 — Proje Hafızası
 
-Bu repo iki bağımsız uygulama içerir. Gelecek oturumlarda çalışmaya buradan başla.
+Bu repo **üç bağımsız uygulama** içerir. Gelecek oturumlarda çalışmaya buradan başla.
+
+- **`fagent/`** — tarayıcıda çalışan, anahtarsız yatırımcı paneli (bölüm 1)
+- **`src/` + `server/`** — Aura Finance, BDT günlüğü demosu (bölüm 2)
+- **`jarvis/`** — 7/24 sunucuda yaşayan Telegram finansal asistanı (bölüm 3, EN YENİ)
 
 ## 1. FAGENT — GÜNCEL SÜRÜM (öncelikli proje)
 
@@ -119,6 +123,109 @@ ama yalnızca kullanıcı açıkça onayladıktan sonra.
 - **Konum:** repo kökü (`src/`) + `server/`
 - İstemci: Dashboard, Eğitim, BDT Günlüğü (AI yeniden çerçeveleme), `/pricing` (demo abonelik, günde 3 AI hakkı), `/admin` (x-admin-key ile metrikler)
 - Backend yokken de tamamen çalışır (yerel demo yanıtlar) — statik yayına uygun.
+
+## 3. FİNANSAL JARVİS (`jarvis/`) — sunucu tarafı asistan
+
+- **Konum:** `jarvis/` (kendi package.json'ı, kendi Docker yığını olan bağımsız Node+TS projesi)
+- **Ne:** Kullanıcının isteği (2026-08-31): ["Kendime Jarvis Yaptım!"](https://www.youtube.com/watch?v=Tx9Tdf3m-ME)
+  videosundaki gibi 7/24 sunucuda yaşayan kişisel asistan — ama **yalnızca finansal versiyonu**.
+  Kullanıcı açıkça belirtti: "fagent bambaşka bir proje bu da bambaşka bir proje olacak."
+  **`fagent/`'tan HİÇBİR dosya import edilmez, hiçbir kod paylaşılmaz.**
+- **Kullanıcının seçtiği mimari (soruldu, cevaplandı):** Telegram botu · VPS'te **yerel Ollama
+  modeli** (API anahtarı yok) · Docker ile her yere kurulabilir · **kayıt + plan + alarm,
+  gerçek borsa emri YOK**.
+- **FAGENT'tan ayrıldığı nokta:** FAGENT tarayıcıda çalıştığı için (a) kullanıcı sekmeyi
+  açmazsa çalışmaz, (b) CORS yüzünden BIST/TEFAS verisine erişemez. Jarvis sunucuda
+  yaşadığı için ikisi de çözülüyor. FAGENT'ın en büyük kısıtı burada mimari olarak yok.
+
+### 3.1 Temel tasarım kararı — deterministik çekirdek, dil katmanı sadece "deri"
+
+Kullanıcı beyin olarak yerel Ollama modelini seçti. Küçük yerel modeller **sayı uydurur**.
+Bu yüzden sorumluluk keskin ayrıldı ve bu kural PAZARLIKSIZ:
+
+- `src/core/` ve `src/data/` — tüm finans matematiği ve veri. **LLM'e hiç bağlı değil.**
+- `src/brain/` — model YALNIZCA iki iş yapar: (a) serbest Türkçe → JSON niyet, (b) hazır
+  taslağı doğallaştırma. **Asla aritmetik yapmaz, asla rakam üretmez.**
+
+Modelin uydurmasına karşı üç somut kilit (`nlu.ts` + `nlg.ts`, hepsi testli):
+1. Model portföyde olmayan bir varlık adı üretirse niyet düşürülür.
+2. İşlem/alarm/dengeleme tutarı kullanıcının KENDİ cümlesinde geçmiyorsa niyet düşürülür
+   (`amountIsGrounded`). "5000 TL sattım" cümlesinden 50.000 üreten model defteri bozamaz.
+3. Doğallaştırılmış metin, taslakta olmayan bir sayı içeriyorsa reddedilir (`isSafeRewrite`).
+
+`llm.ts`'te devre kesici var: 3 ardışık hatadan sonra dil katmanı 5 dakika devre dışı kalır,
+yanıtlar anında kural tabanlı yoldan gelir. Ollama tamamen kapalıyken Jarvis eksiksiz çalışır.
+
+### 3.2 Veri kaynakları (hepsi anahtarsız, sunucu tarafı)
+
+| Varlık | Kaynak | Kritik ayrıntı |
+| --- | --- | --- |
+| Döviz | TCMB `today.xml` (resmî) | `<Unit>` her zaman 1 DEĞİL — JPY'de 100. Bölünmezse yen 100 kat pahalı görünür (testli) |
+| BIST | Yahoo Finance chart ucu (`THYAO.IS`) | Resmî değil; TRY dışı para birimi gelirse reddedilir |
+| Fon | `tefas.gov.tr/api/DB/BindHistoryInfo` | Resmî değil; Referer + X-Requested-With başlığı şart; 10 günlük pencere (bayram tatili için) |
+| Kripto | CoinGecko genel uç | Hız sınırı gerçek sorun → TEK toplu istek + kalıcı önbellek |
+| Altın | ons ÷ 31,1034768 × USD/TRY | Türetilmiş, spot. Çeyrek/tam altın primi UYDURULMAZ |
+
+**SAHTE VERİ YOK** (FAGENT'tan devralınan kural): kaynak düşerse `DataError`, tahmini fiyat yok.
+Önbellekten dönen değer her zaman `stale: true` ile işaretlenir ve kullanıcıya "eski veri" denir.
+
+> **Bu uçların hiçbiri geliştirme ortamından doğrulanamadı** — sandbox'ın ağ politikası
+> hepsini 403'lüyor. `npm run doctor` tam olarak bunun için yazıldı: gerçek doğrulama
+> kullanıcının makinesinde oluyor. Şema sapması çıkarsa düzeltme tek dosyayla sınırlı.
+
+### 3.3 Muhasebe sözleşmesi (`core/portfolio.ts`)
+
+- İşlemler **holdingId ile eşleşir, isimle DEĞİL**; işlem kaydına o anki ad da yazılır
+  (`holding_name`) — varlık silinse de defter okunabilir kalır.
+- **Ağırlıklı ortalama maliyet:** satışta maliyet kalan pozisyon oranında azalır → kısmi
+  satış kâr/zarar YÜZDESİNİ değiştirmez (testli).
+- Bakiyeyi aşan satış **sessizce kırpılmaz**, hata fırlatır. Sessiz kırpma kullanıcının
+  defterini gerçeklikten koparırdı.
+- Tarih üretimi `localDateString(date, timezone)` ile — `toISOString()` UTC verir ve
+  konteyner UTC'de çalıştığı için TSİ gece yarısından sonra yazılan işlem düne düşerdi.
+
+### 3.4 Türkçe regex tuzağı (GERÇEK BİR HATA — tekrar etme)
+
+JavaScript'in `\b` sınırı **ASCII'dir**: `ç ğ ı ö ş ü` harflerini kelime karakteri saymaz.
+Sonuç: `/\bçıkarsa\b/` Türkçe metinde **eşleşmez**, `/\bgeçmiş\b/` "geçmiş" kelimesini
+bulamaz — ve hiçbir hata vermez, sadece sessizce çalışmaz. Aşama 2'de 5 komut bu yüzden
+bozuktu, testler yakaladı.
+
+Çözüm: `src/brain/parse.ts` içindeki `stemRe()` (baş sınırlı, son serbest — Türkçe sondan
+eklemeli) ve `wordRe()` (iki taraf sınırlı). **Yeni kalıp yazarken `\b` KULLANMA.**
+Hatanın kendisi `tests/brain.test.ts`'te regresyon testiyle belgelendi.
+
+### 3.5 Güvenlik
+
+- `OWNER_CHAT_ID` allowlist **en dıştaki ara katman** — yetkisiz istek handler'lara hiç
+  ulaşmaz ve **sessizce** yok sayılır (cevap vermek botun canlı olduğunu doğrulardı).
+- Onay kayıtları veritabanında (bellekte değil): yeniden başlatmada butonlar çalışır.
+  Çift tıklama koşullu `UPDATE ... WHERE resolved IS NULL` ile kilitlenir; 30 dk zaman aşımı.
+- Long polling → **açık port/alan adı/TLS yok**.
+- Gerçek emir yok: hiçbir borsa/aracı kurum API'si projeye girmez (kullanıcı kararı).
+
+### 3.6 Komutlar ve test
+
+```bash
+cd jarvis && npm install
+npm run demo        # Telegram/Ollama/ağ olmadan hattı uçtan uca çalıştır (örnek portföy)
+npm run doctor      # EN ÖNEMLİ: sistem+ayar+DB+5 kaynak+Ollama+Telegram+ses sınar
+npm run typecheck
+npm test            # 146 test, tamamen çevrimdışı (fixture'lara karşı)
+docker compose up -d                     # Jarvis + Ollama
+docker compose --profile voice up -d     # + ses (Whisper/Piper, ~2 GB)
+```
+
+`doctor`, `OWNER_CHAT_ID` boşsa Telegram `getUpdates`'ten kullanıcının chat id'sini bulup söyler.
+
+### 3.7 Ses (opsiyonel, `voice/`)
+
+Ayrı Python konteyneri: faster-whisper (STT) + Piper (TTS) + ffmpeg (Piper WAV üretir,
+Telegram OGG/Opus ister). Python seçildi çünkü Node'dan whisper.cpp derlemek çok daha
+kırılgandı. Whisper'da **dil `tr` olarak zorlanıyor** — otomatik tespit kısa sesli
+mesajlarda İngilizce sanıp alakasız çıktı üretiyor. `--profile voice` arkasında: kapalıyken
+imaj derlenmez, model inmez, çekirdek etkilenmez.
+
 
 ## Background/Sunucu Scripti (`server/` — İLERİDE LAZIM)
 

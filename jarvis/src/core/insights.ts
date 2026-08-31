@@ -8,7 +8,7 @@ import type { HoldingRow, AssetKind } from '../db.ts';
 import { ASSET_LABELS } from '../db.ts';
 import { allocation, pnlOf, rankByPnl, totalCost, totalValue } from './portfolio.ts';
 import { isStablecoinSymbol } from '../data/crypto.ts';
-import { fmtPct, fmtSignedPct, fmtSignedTL, fmtTL } from './format.ts';
+import { fmtPct, fmtPctBelirtme, fmtPctIyelik, fmtSignedPct, fmtSignedTL, fmtTL } from './format.ts';
 
 export type InsightLevel = 'uyari' | 'iyi' | 'bilgi';
 
@@ -72,7 +72,7 @@ export function buildInsights(input: InsightInput): Insight[] {
       level: 'uyari',
       priority: 1,
       text:
-        `Portföyünün ${fmtPct(top.pct, 0)}'ı tek sınıfta: ${ASSET_LABELS[top.kind]}. ` +
+        `Portföyünün ${fmtPctIyelik(top.pct)} tek sınıfta: ${ASSET_LABELS[top.kind]}. ` +
         'Bu sınıf sert düşerse tüm portföyün doğrudan etkilenir.',
     });
   }
@@ -87,7 +87,7 @@ export function buildInsights(input: InsightInput): Insight[] {
         level: 'uyari',
         priority: 2,
         text:
-          `Tek bir varlık portföyünün ${fmtPct(pct, 0)}'ını oluşturuyor: ${biggest.name} (${fmtTL(biggest.amount)}). ` +
+          `Tek bir varlık portföyünün ${fmtPctBelirtme(pct)} oluşturuyor: ${biggest.name} (${fmtTL(biggest.amount)}). ` +
           'Şirkete/varlığa özel bir kötü haber seni orantısız etkiler.',
       });
     }
@@ -105,7 +105,7 @@ export function buildInsights(input: InsightInput): Insight[] {
       level: 'uyari',
       priority: 3,
       text:
-        `Nakit benzeri varlıkların ${fmtTL(cashValue)} (portföyün ${fmtPct(cashPct, 0)}'ı). ` +
+        `Nakit benzeri varlıkların ${fmtTL(cashValue)} (portföyün ${fmtPctIyelik(cashPct)}). ` +
         `${fmtPct(inflationPct, 0)} enflasyon varsayımıyla bu kısım yılda yaklaşık ${fmtTL(erosion)} ` +
         'reel değer kaybediyor — getiri üreten bir sınıfa kaydırmayı değerlendirebilirsin.',
     });

@@ -5,11 +5,16 @@
 const TL = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const TL0 = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
-/** Para tutarı: 1.234,56 ₺ */
+/**
+ * Para tutarı: 1.234,56 ₺
+ *
+ * 1.000 ₺ ve üstünde kuruş GÖSTERİLMEZ. Eşik daha yüksek olsaydı aynı portföy
+ * listesinde "120.000 ₺" ile "60.000,00 ₺" yan yana gelir ve tutarsız görünürdü.
+ * Küçük tutarlarda (bir hisse fiyatı, küçük bir bakiye) kuruş anlamlıdır, korunur.
+ */
 export function fmtTL(n: number): string {
   if (!Number.isFinite(n)) return '—';
-  // Büyük tutarlarda kuruş gürültüdür; 100.000 ₺ üstünde kuruşu at.
-  return `${Math.abs(n) >= 100_000 ? TL0.format(n) : TL.format(n)} ₺`;
+  return `${Math.abs(n) >= 1000 ? TL0.format(n) : TL.format(n)} ₺`;
 }
 
 /** İşaretli para tutarı: +1.234,56 ₺ / -1.234,56 ₺ */
@@ -47,6 +52,48 @@ export function fmtPct(n: number, decimals = 1): string {
     maximumFractionDigits: decimals,
   });
   return `%${fmt.format(n)}`;
+}
+
+// ── Türkçe sayı ekleri ───────────────────────────────────────────────────────
+// "%55'ı" YANLIŞ, doğrusu "%55'i" (elli beş → "beş" ile biter). Ek, sayının OKUNUŞUNA
+// göre değişir ve tek bir sabit ek kullanmak her mesajda göze batan bir hata bırakır.
+
+/** Sayının okunuşuna göre 3. tekil iyelik eki: 55 → "i", 30 → "u", 27 → "si". */
+export function sayiIyelikEki(n: number): string {
+  const i = Math.abs(Math.round(n));
+  // bir→i, iki→si, üç→ü, dört→ü, beş→i, altı→sı, yedi→si, sekiz→i, dokuz→u
+  const birler = ['ı', 'i', 'si', 'ü', 'ü', 'i', 'sı', 'si', 'i', 'u'] as const;
+  const birlik = i % 10;
+  if (birlik !== 0) return birler[birlik] as string;
+  if (i === 0) return 'ı'; // sıfır
+
+  // on→u, yirmi→si, otuz→u, kırk→ı, elli→si, altmış→ı, yetmiş→i, seksen→i, doksan→ı
+  const onluk = i % 100;
+  if (onluk !== 0) {
+    const onlar: Record<number, string> = { 10: 'u', 20: 'si', 30: 'u', 40: 'ı', 50: 'si', 60: 'ı', 70: 'i', 80: 'i', 90: 'ı' };
+    return onlar[onluk] ?? 'ı';
+  }
+  if (i % 1000 !== 0) return 'ü';          // yüz
+  if (i % 1_000_000 !== 0) return 'i';     // bin
+  if (i % 1_000_000_000 !== 0) return 'u'; // milyon
+  return 'ı';                              // milyar
+}
+
+/** Belirtme (-i) hâli: 55 → "ini", 30 → "unu", 27 → "sini". */
+export function sayiBelirtmeEki(n: number): string {
+  const iyelik = sayiIyelikEki(n);
+  const sonSesli = iyelik[iyelik.length - 1] as string;
+  return `${iyelik}n${sonSesli}`;
+}
+
+/** "Portföyünün %55'i" — yüzde + doğru iyelik eki. */
+export function fmtPctIyelik(n: number, decimals = 0): string {
+  return `${fmtPct(n, decimals)}'${sayiIyelikEki(Number(n.toFixed(decimals)))}`;
+}
+
+/** "Portföyünün %55'ini oluşturuyor" — yüzde + doğru belirtme eki. */
+export function fmtPctBelirtme(n: number, decimals = 0): string {
+  return `${fmtPct(n, decimals)}'${sayiBelirtmeEki(Number(n.toFixed(decimals)))}`;
 }
 
 /** İşaretli yüzde: +%12,3 / −%4,5 */

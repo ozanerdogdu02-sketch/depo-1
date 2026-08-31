@@ -7,7 +7,22 @@
 
 ---
 
-## 0. En önemli 5 kural (bunları ihlal etme)
+## 0. Önce hangi projede olduğunu bil
+
+Repoda **üç bağımsız uygulama** var ve kuralları farklı:
+
+| Proje | Ne | Kural seti |
+| --- | --- | --- |
+| `fagent/` | Tarayıcı uygulaması, anahtarsız yatırımcı paneli | Aşağıdaki 1-5 |
+| `jarvis/` | 7/24 sunucuda çalışan Telegram finansal asistanı | **Bölüm 11** |
+| `src/` + `server/` | Aura Finance (aktif geliştirilmiyor) | — |
+
+`fagent/` ile `jarvis/` arasında **kod paylaşımı yoktur ve olmamalıdır** — kullanıcının
+açık kararı. Birinden diğerine `import` yazma; mantığı taşıman gerekiyorsa yeniden yaz.
+
+---
+
+## 1. FAGENT'ın en önemli 5 kuralı (bunları ihlal etme)
 
 1. **API ANAHTARI YOK.** FAGENT hiçbir özellikte istemci tarafında API anahtarı
    kullanmaz. Kod, anahtar olmadan çalışmayı ASLA bırakmamalı. Yeni bir özellik
@@ -26,7 +41,7 @@
 
 ---
 
-## 1. Proje nedir
+## 1.1 Proje nedir
 
 `depo-1` iki bağımsız uygulama içerir. **Öncelikli olan `fagent/`.**
 
@@ -160,3 +175,59 @@ kadar, davranış değiştiren her PR'da en azından şunları manuel doğrula:
       işbirliğinin doğrulanabilir olması için en kritik adım.
 - [ ] Netlify'a güncel build deploy.
 - [ ] Proaktif katmanı Ajan sekmesinin karşılama mesajına da taşı (opsiyonel).
+
+---
+
+## 11. `jarvis/` — Finansal Jarvis kuralları
+
+Ayrıntılı proje hafızası: `CLAUDE.md` bölüm 3 · Kurulum: `jarvis/README.md`
+
+### 11.1 İhlal edilmeyecek kurallar
+
+1. **MODEL RAKAM ÜRETMEZ.** Tüm finans matematiği `src/core/` içinde, saf ve deterministik.
+   `src/brain/` yalnızca (a) niyet çıkarır, (b) hazır taslağı doğallaştırır. Yeni bir
+   hesabı LLM'e yaptırma — küçük yerel modeller sayı uydurur.
+2. **SAHTE VERİ YOK.** Kaynak düşerse `DataError`. Tahmini/varsayılan fiyat yok.
+   Önbellekten dönen değer `stale: true` ile işaretlenir ve kullanıcıya "eski veri" denir.
+3. **VERİYİ DEĞİŞTİREN HER ŞEY ONAY İSTER.** İşlem, silme, dengeleme → `pendingAction` →
+   Telegram Onayla/Vazgeç. Onaydan önce tek bir yazma çağrısı bile yapılmaz.
+4. **GERÇEK EMİR YOK.** Hiçbir borsa/aracı kurum API'si projeye girmez (kullanıcı kararı).
+   Jarvis yalnızca defter tutar ve plan önerir.
+5. **`OWNER_CHAT_ID` ALLOWLIST'İ EN DIŞTA.** Yeni bir handler eklerken allowlist'i
+   atlayan bir yol açma.
+6. **`\b` KULLANMA.** JavaScript'in kelime sınırı ASCII'dir; `ç ğ ı ö ş ü` ile sessizce
+   bozulur. `parse.ts`'teki `stemRe()` / `wordRe()` kullan. (Bkz. 11.3)
+7. **2 KEZ DOĞRULAMADAN COMMIT ATMA:** `npm run typecheck` temiz + `npm test` tamamen yeşil.
+
+### 11.2 Dosya haritası (`jarvis/src/`)
+
+| Dizin/Dosya | Sorumluluk | Not |
+| --- | --- | --- |
+| `core/portfolio.ts` | Defter + ağırlıklı ortalama maliyet | Tek yazma noktası |
+| `core/insights.ts` | Proaktif içgörüler | SAF |
+| `core/briefing.ts` | Sabah/kapanış brifingi | Sıra kritik: önce fiyat, sonra anlık görüntü |
+| `core/alerts.ts` | Alarmlar | TEK ATIŞ (tetiklenen pasife çekilir) |
+| `core/rebalance.ts` | Dengeleme planı | SAF; toplam korunumu testli |
+| `core/format.ts` | tr-TR biçimleme + yerel takvim günü | `toISOString()` KULLANMA |
+| `data/*.ts` | Beş kaynak adaptörü | Her biri: saf ayrıştırıcı + ağ sarmalayıcı |
+| `brain/intents.ts` | Niyet modeli + deterministik yürütücü | İşin yapıldığı yer |
+| `brain/rules.ts` | Kural tabanlı Türkçe anlama | Ollama'sız yol |
+| `brain/nlu.ts` / `nlg.ts` | Model katmanı + uydurma korumaları | |
+| `brain/llm.ts` | Devre kesici | 3 hata → 5 dk devre dışı |
+| `telegram/bot.ts` | Bot, allowlist, onay akışı | |
+| `doctor.ts` | Sağlık kontrolü | **Projenin gerçek doğrulama aracı** |
+
+### 11.3 Bilinen tuzaklar (hepsi bir kez yaşandı)
+
+- **Türkçe `\b`:** `/\bçıkarsa\b/` eşleşmez, `/\bgeçmiş\b/` bulamaz. Hata vermez,
+  sadece sessizce çalışmaz. `stemRe()` kullan; regresyon testi `tests/brain.test.ts`'te.
+- **TCMB `<Unit>`:** JPY'de 100. Bölmezsen yen 100 kat pahalı görünür.
+- **UTC vs yerel gün:** konteyner UTC'de; TSİ gece yarısından sonraki işlem düne düşer.
+  `localDateString(date, tz)` kullan.
+- **node-cron saat dilimi:** `{ timezone }` açıkça verilmeli, yoksa 09:00 brifingi TSİ 12:00.
+- **`.gitignore`'da `data/`:** başına `/` koymazsan `src/data/` klasörünü de yutar (yaşandı).
+- **Ölçek körü fiyat biçimi:** sabit 2 hane SHIB'i "0,00 ₺" gösterir. `fmtPrice()` kullan.
+- **Telegram parse_mode:** HTML kullanılıyor, MarkdownV2 değil (18 karakter kaçışı ister ve
+  tek kaçırılan nokta mesajı tamamen göndersizleştirir). Kullanıcı metnini `escapeHtml()`'den geçir.
+- **vitest kök config'i:** `jarvis/vitest.config.ts` olmazsa vitest yukarı çıkıp repo
+  kökündeki Aura Finance yapılandırmasını bulur ve patlar.
