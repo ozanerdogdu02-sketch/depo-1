@@ -1,0 +1,6 @@
+[
+  { "id": "bitcoin", "symbol": "btc", "name": "Bitcoin" },
+  { "id": "fake-bitcoin", "symbol": "btc", "name": "Fake Bitcoin" },
+  { "id": "pepe", "symbol": "pepe", "name": "Pepe" },
+  { "id": "some-token", "name": "Eksik sembol" }
+]

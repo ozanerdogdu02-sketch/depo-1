@@ -1,0 +1,29 @@
+{
+  "chart": {
+    "result": [
+      {
+        "meta": {
+          "currency": "TRY",
+          "symbol": "THYAO.IS",
+          "exchangeName": "IST",
+          "instrumentType": "EQUITY",
+          "regularMarketTime": 1756486800,
+          "regularMarketPrice": 312.75,
+          "chartPreviousClose": 305.5,
+          "previousClose": 305.5,
+          "priceHint": 2
+        },
+        "timestamp": [1756141200, 1756227600, 1756486800],
+        "indicators": {
+          "quote": [
+            {
+              "close": [301.25, 305.5, 312.75],
+              "open": [300.0, 302.0, 306.0]
+            }
+          ]
+        }
+      }
+    ],
+    "error": null
+  }
+}

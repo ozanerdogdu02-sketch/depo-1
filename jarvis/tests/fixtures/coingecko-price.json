@@ -1,0 +1,5 @@
+{
+  "bitcoin": { "try": 3542180.55, "try_24h_change": 2.4137 },
+  "ethereum": { "try": 142305.12, "try_24h_change": -1.2049 },
+  "tether": { "try": 41.29, "try_24h_change": 0.0112 }
+}

@@ -1,0 +1,9 @@
+node_modules/
+.env
+# SADECE proje kökündeki veritabanı klasörü — başındaki "/" olmazsa src/data/ da yutulur.
+/data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.log

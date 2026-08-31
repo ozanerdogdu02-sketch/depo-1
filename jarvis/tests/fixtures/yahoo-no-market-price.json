@@ -1,0 +1,22 @@
+{
+  "chart": {
+    "result": [
+      {
+        "meta": {
+          "currency": "TRY",
+          "symbol": "ASELS.IS",
+          "chartPreviousClose": 190.0
+        },
+        "timestamp": [1756141200, 1756227600, 1756486800],
+        "indicators": {
+          "quote": [
+            {
+              "close": [188.4, 195.2, null]
+            }
+          ]
+        }
+      }
+    ],
+    "error": null
+  }
+}
