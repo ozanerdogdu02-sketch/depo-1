@@ -4,6 +4,7 @@ import { loadConfig } from './config.ts';
 import { openDb } from './db.ts';
 import { respond } from './brain/index.ts';
 import { applyPendingAction, type ExecuteContext } from './brain/intents.ts';
+import { LanguageLayer } from './brain/llm.ts';
 import { createBot } from './telegram/bot.ts';
 import { startScheduler } from './scheduler.ts';
 import { fmtDateTime } from './core/format.ts';
@@ -30,11 +31,27 @@ async function main(): Promise<void> {
     timeoutMs: config.httpTimeoutMs,
   };
 
+  // Dil katmanı OPSİYONEL: kapalıysa ya da Ollama'ya ulaşılamıyorsa Jarvis kural
+  // tabanlı yanıt verir ve tüm hesaplar/brifingler normal çalışır.
+  let language: LanguageLayer | undefined;
+  if (config.ollamaMode === 'auto') {
+    language = new LanguageLayer(config);
+    // Açılışı bloklamıyoruz — model belleğe yüklenirken bot çoktan cevap veriyor olsun.
+    void language.start();
+  } else {
+    console.log('[dil] OLLAMA_MODE=off — dil katmanı kapalı, kural tabanlı mod.');
+  }
+
   const bot = createBot({
     db,
     config,
     handleText: async text => {
-      const result = await respond(text, { db, config });
+      const result = await respond(text, {
+        db,
+        config,
+        nlu: language ? (t, names) => language!.nlu(t, names) : undefined,
+        nlg: language ? (draft, userText) => language!.nlg(draft, userText) : undefined,
+      });
       return { text: result.text, pending: result.pending };
     },
     applyAction: action => applyPendingAction(action, ctx),
