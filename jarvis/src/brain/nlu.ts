@@ -14,7 +14,7 @@ import { parseTurkishAmount, resolveSymbolAlias } from './parse.ts';
 const NIYETLER = [
   'portfoy', 'brifing', 'dagilim', 'analiz', 'en_iyi_kotu', 'gecmis', 'yardim',
   'selam', 'tesekkur', 'fiyat_guncelle', 'fiyat_sorgu', 'varlik_sorgu',
-  'varlik_sil', 'islem', 'alarm_kur', 'alarm_listele', 'bilinmiyor',
+  'varlik_sil', 'islem', 'alarm_kur', 'alarm_listele', 'dengeleme', 'bilinmiyor',
 ] as const;
 
 /** Ollama'ya verilen JSON şeması — model bunun dışında bir yapı üretemez. */
@@ -27,6 +27,8 @@ const RESPONSE_SCHEMA = {
     tutar: { type: 'number' },
     yon: { type: 'string', enum: ['ustunde', 'altinda'] },
     islem_turu: { type: 'string', enum: ['alis', 'satis'] },
+    sinif: { type: 'string', enum: [...ASSET_KINDS] },
+    hedef_yuzde: { type: 'number' },
   },
   required: ['niyet'],
 } as const;
@@ -38,6 +40,8 @@ const ResponseSchema = z.object({
   tutar: z.number().optional(),
   yon: z.enum(['ustunde', 'altinda']).optional(),
   islem_turu: z.enum(['alis', 'satis']).optional(),
+  sinif: z.enum(ASSET_KINDS).optional(),
+  hedef_yuzde: z.number().optional(),
 });
 
 function systemPrompt(holdingNames: string[]): string {
@@ -60,6 +64,7 @@ Niyetler:
 - varlik_sil: portföyden varlık çıkarma (varlik doldur)
 - alarm_kur: fiyat alarmı (sembol + tutar + yon doldur)
 - alarm_listele: alarmları görme
+- dengeleme: bir varlık SINIFININ portföydeki ağırlığını değiştirme (sinif + hedef_yuzde doldur)
 - fiyat_guncelle: fiyatları tazeleme
 - yardim / selam / tesekkur: sırasıyla yardım isteği, selamlama, teşekkür
 - bilinmiyor: yukarıdakilerden hiçbiri değilse
@@ -74,6 +79,7 @@ KURALLAR:
 "portföyüm ne durumda" -> {"niyet":"portfoy"}
 "altına ne kadar yatırmıştım" -> {"niyet":"varlik_sorgu","varlik":"Gram Altın"}
 "dolar kaç oldu" -> {"niyet":"fiyat_sorgu","sembol":"USD"}
+"kriptoyu %30'a düşür" -> {"niyet":"dengeleme","sinif":"kripto","hedef_yuzde":30}
 "bugün hava nasıl" -> {"niyet":"bilinmiyor"}`;
 }
 
@@ -157,6 +163,16 @@ export function toIntent(
         direction: raw.yon,
         threshold: raw.tutar,
       };
+    }
+
+    case 'dengeleme': {
+      if (!raw.sinif) return undefined;
+      const pct = raw.hedef_yuzde;
+      if (pct === undefined || !Number.isFinite(pct) || pct < 0 || pct > 100) return undefined;
+      // Hedef yüzde de kullanıcının cümlesinde geçmeli — model kendi kafasından
+      // "%30'a düşür" yerine "%10'a düşür" üretmesin.
+      if (!new RegExp(`(^|[^0-9])${pct}([^0-9]|$)`).test(userText)) return undefined;
+      return { id: 'dengeleme', kind: raw.sinif, targetPct: pct };
     }
 
     case 'bilinmiyor':

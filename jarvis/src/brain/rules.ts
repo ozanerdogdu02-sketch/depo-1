@@ -118,6 +118,29 @@ function parseAlertCommand(text: string, holdings: HoldingRow[]): Intent | undef
   return undefined;
 }
 
+/**
+ * "kriptoyu %30'a düşür" / "hisse ağırlığını yüzde 40 yap"
+ * Hem sınıf hem yüzde hem de bir dengeleme fiili gerekir; biri eksikse dokunulmaz.
+ */
+function parseRebalanceCommand(text: string): Intent | undefined {
+  const wantsRebalance = stemRe('dengele|ağırlığı|agirligi|düşür|dusur|çıkar|cikar|yap|getir|ayarla|indir').test(text);
+  if (!wantsRebalance) return undefined;
+
+  // Yüzde: "%30", "30%", "yüzde 30"
+  const pctMatch = text.match(/%\s*(\d{1,3}(?:[.,]\d+)?)/)
+    ?? text.match(/(\d{1,3}(?:[.,]\d+)?)\s*%/)
+    ?? text.match(/y[üu]zde\s+(\d{1,3}(?:[.,]\d+)?)/i);
+  if (!pctMatch?.[1]) return undefined;
+
+  const targetPct = Number(pctMatch[1].replace(',', '.'));
+  if (!Number.isFinite(targetPct) || targetPct < 0 || targetPct > 100) return undefined;
+
+  const kind = detectAssetKind(text);
+  if (!kind) return undefined;
+
+  return { id: 'dengeleme', kind, targetPct };
+}
+
 /** "Bitcoin 5000 TL aldım" / "THYAO'dan 2000 sattım" */
 function parseTradeCommand(text: string, holdings: HoldingRow[]): Intent | undefined {
   const satis = SATIS_FIIL.test(text) || SATIS_KISA.test(text);
@@ -198,20 +221,25 @@ export function parseIntent(rawText: string, holdings: HoldingRow[]): Intent {
     return { id: 'varlik_sil', name: del[1].trim() };
   }
 
-  // 5) Değer güncelleme
+  // 5) Dengeleme planı — alım/satımdan ÖNCE denenmeli, çünkü "düşür"/"çıkar"
+  //    fiilleri işlem kalıbına da benziyor.
+  const rebalance = parseRebalanceCommand(text);
+  if (rebalance) return rebalance;
+
+  // 6) Değer güncelleme
   const update = parseUpdateCommand(text, holdings);
   if (update) return update;
 
-  // 6) Alım/satım
+  // 7) Alım/satım
   const trade = parseTradeCommand(text, holdings);
   if (trade) return trade;
 
-  // 7) Fiyat tazeleme
+  // 8) Fiyat tazeleme
   if (stemRe('fiyat').test(text) && stemRe('güncelle|guncelle|tazele|yenile|çek|cek').test(text)) {
     return { id: 'fiyat_guncelle' };
   }
 
-  // 8) Genel niyetler
+  // 9) Genel niyetler
   if (stemRe('yardım|yardim|ne yapabilir|komut|nasıl kullan|nasil kullan').test(text)) return { id: 'yardim' };
   if (/^\s*(merhaba|selam|günaydın|gunaydin|iyi akşamlar|iyi aksamlar|hey|alo|naber|nasılsın|nasilsin)/i.test(text)) {
     return { id: 'selam' };
@@ -232,18 +260,18 @@ export function parseIntent(rawText: string, holdings: HoldingRow[]): Intent {
   }
   if (stemRe('geçmiş|gecmis|işlemler|islemler|hareketler|defter').test(text)) return { id: 'gecmis' };
 
-  // 9) Fiyat sorgusu ("dolar kaç", "BTC ne durumda", "THYAO")
+  // 10) Fiyat sorgusu ("dolar kaç", "BTC ne durumda", "THYAO")
   const asksPrice = stemRe('kaç|kac|ne kadar|fiyat|kur|ne durumda|nasıl gidiyor|nasil gidiyor').test(text);
   const symbol = detectQuotedSymbol(text);
   if (symbol && (asksPrice || text.trim().split(/\s+/).length <= 2)) {
     return { id: 'fiyat_sorgu', symbol: symbol.symbol, kind: symbol.kind };
   }
 
-  // 10) Portföydeki bir varlık hakkında serbest soru
+  // 11) Portföydeki bir varlık hakkında serbest soru
   const matched = matchHoldings(text, holdings);
   if (matched.length === 1) return { id: 'varlik_sorgu', name: matched[0]!.name };
 
-  // 11) Tek kelimelik takma ad ("altın", "dolar")
+  // 12) Tek kelimelik takma ad ("altın", "dolar")
   const single = text.trim().split(/\s+/);
   if (single.length === 1 && single[0]) {
     const alias = resolveSymbolAlias(stripSuffix(single[0]));

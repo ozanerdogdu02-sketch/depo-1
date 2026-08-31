@@ -6,6 +6,7 @@ import { respond } from './brain/index.ts';
 import { applyPendingAction, type ExecuteContext } from './brain/intents.ts';
 import { LanguageLayer } from './brain/llm.ts';
 import { createBot } from './telegram/bot.ts';
+import { createVoiceClient } from './telegram/voice.ts';
 import { startScheduler } from './scheduler.ts';
 import { fmtDateTime } from './core/format.ts';
 
@@ -42,9 +43,20 @@ async function main(): Promise<void> {
     console.log('[dil] OLLAMA_MODE=off — dil katmanı kapalı, kural tabanlı mod.');
   }
 
+  // Ses TAMAMEN opsiyonel: kapalıyken sesli mesaja "servis kapalı" denir,
+  // metin akışı hiç etkilenmez.
+  const voice = createVoiceClient(config);
+  if (voice) {
+    void voice.health()
+      .then(h => console.log(`[ses] servis bağlandı · konuşma→metin: ${h.stt ? 'hazır' : 'değil'} · metin→konuşma: ${h.tts ? 'hazır' : 'değil'}`))
+      .catch(err => console.warn(`[ses] servise ulaşılamadı (${config.voiceUrl}): ${err.message}`));
+  }
+
   const bot = createBot({
     db,
     config,
+    transcribeVoice: voice ? url => voice.transcribe(url) : undefined,
+    synthesizeVoice: voice ? text => voice.synthesize(text) : undefined,
     handleText: async text => {
       const result = await respond(text, {
         db,

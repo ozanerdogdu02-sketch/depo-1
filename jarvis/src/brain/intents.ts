@@ -40,6 +40,7 @@ export type Intent =
   | { id: 'alarm_kur'; target: string; kind: AssetKind | 'portfoy'; direction: 'ustunde' | 'altinda'; threshold: number }
   | { id: 'alarm_listele' }
   | { id: 'alarm_sil'; shortId: string }
+  | { id: 'dengeleme'; kind: AssetKind; targetPct: number }
   | { id: 'bilinmiyor'; text: string };
 
 /**
@@ -100,6 +101,10 @@ const YARDIM = `🤖 <b>Ne yapabilirim?</b>
 • <code>BTC 4 milyon üstüne çıkarsa haber ver</code>
 • <code>dolar 45 altına düşerse haber ver</code>
 • <code>alarmlarım</code> · <code>alarm sil a1b2c3d4</code>
+
+<b>Dengeleme (onay isterim)</b>
+• <code>kriptoyu %30'a düşür</code>
+• <code>hisse ağırlığını yüzde 40 yap</code>
 
 <b>Diğer</b>
 • <code>geçmiş</code> — son işlemler
@@ -401,6 +406,43 @@ export async function executeIntent(intent: Intent, ctx: ExecuteContext): Promis
         text: ok
           ? '✅ Alarm silindi.'
           : `Bu kodla bir alarm bulamadım: <code>${escapeHtml(intent.shortId)}</code>. <code>alarmlarım</code> yazarak listeyi görebilirsin.`,
+      };
+    }
+
+    case 'dengeleme': {
+      // Plan SAF bir fonksiyondan gelir; burada yalnızca sunulur ve onaya konur.
+      const { planRebalance } = await import('../core/rebalance.ts');
+      const plan = planRebalance(listHoldings(db), intent.kind, intent.targetPct);
+      if (plan.problem) return { text: `⚠️ ${escapeHtml(plan.problem)}` };
+      if (plan.steps.length === 0) return { text: escapeHtml(plan.summary) };
+
+      const satislar = plan.steps.filter(s => s.txnKind === 'satis');
+      const alislar = plan.steps.filter(s => s.txnKind === 'alis');
+      const lines = ['⚖️ <b>Dengeleme planı</b>', '', escapeHtml(plan.summary), ''];
+      if (satislar.length) {
+        lines.push('🔴 <b>Satılacak</b>');
+        for (const s of satislar) lines.push(`${escapeHtml(s.holdingName)} — ${fmtTL(s.amount)}`);
+        lines.push('');
+      }
+      if (alislar.length) {
+        lines.push('🟢 <b>Alınacak</b>');
+        for (const s of alislar) lines.push(`${escapeHtml(s.holdingName)} — ${fmtTL(s.amount)}`);
+        lines.push('');
+      }
+      lines.push(
+        '<i>Bunlar yalnızca DEFTER kaydıdır — Jarvis hiçbir borsaya emir göndermez. ' +
+        'İşlemleri kendin yaptıktan sonra onayla.</i>',
+        '',
+        'Uygulayayım mı?',
+      );
+
+      return {
+        text: lines.join('\n'),
+        pending: {
+          kind: 'dengeleme',
+          steps: plan.steps,
+          hedefText: `${ASSET_LABELS[intent.kind]} → ${intent.targetPct}%`,
+        },
       };
     }
 
