@@ -122,3 +122,14 @@ export function partOfDay(timeZone: string, now = new Date()): 'sabah' | 'gunduz
 export function normalizeName(s: string): string {
   return s.trim().toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ');
 }
+
+/**
+ * Telegram HTML parse_mode için kaçış.
+ * MarkdownV2 yerine HTML seçildi: MarkdownV2 `.`, `-`, `(`, `!` dahil 18 karakter kaçışı
+ * ister ve Türkçe metin + para tutarları bunlarla dolu — tek kaçırılan nokta mesajın
+ * tamamının gönderilememesine yol açar. HTML'de yalnızca üç karakter kaçmak yeterli.
+ * Kullanıcının girdiği HER metin (varlık adları, notlar) buradan geçmeli.
+ */
+export function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
