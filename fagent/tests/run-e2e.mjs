@@ -1,5 +1,5 @@
 // FAGENT uçtan uca test koşucusu (Playwright, anahtarsız, tarayıcı tabanlı).
-// Vite dev sunucusunu başlatır, hazır olmasını bekler, tüm e2e testlerini sırayla
+// Üretim build'ini statik sunucuda açar, hazır olmasını bekler, tüm e2e testlerini sırayla
 // koşar, sonuçları özetler ve sunucuyu kapatır.
 //
 // Çalıştırma:
@@ -57,16 +57,11 @@ function runTest(file) {
 }
 
 (async () => {
-  console.log('▶ Vite dev sunucusu başlatılıyor (port %d)…', PORT);
-  // Vite'ı `npm` üzerinden değil DOĞRUDAN node ile başlatıyoruz. Windows'ta `npm` bir
-  // `.cmd` sarmalayıcısıdır ve Node 20 ile birlikte (CVE-2024-27980) `spawn` artık
-  // `.cmd`'yi kendiliğinden çözmez — `spawn('npm', …)` ENOENT atıyordu ve koşucu hiç
-  // başlamıyordu. Doğrudan node çağırmak platformdan bağımsız; ayrıca `shell: true`
-  // kullanmaktan iyi, çünkü kabuk sarmalayıcısı olsaydı aşağıdaki `vite.kill()` gerçek
-  // süreci öldüremez, 4200 portu açık kalırdı.
-  const VITE_BIN = join(__dirname, '..', 'node_modules', 'vite', 'bin', 'vite.js');
-  const vite = spawn(process.execPath, [VITE_BIN, '--port', String(PORT), '--strictPort'], {
+  console.log('▶ Üretim build\'i statik sunucuda başlatılıyor (port %d)…', PORT);
+  const SERVER_RUNNER = join(__dirname, '..', 'scripts', 'e2e-server.mjs');
+  const vite = spawn(process.execPath, [SERVER_RUNNER], {
     cwd: join(__dirname, '..'),
+    env: { ...process.env, E2E_PORT: String(PORT) },
     stdio: 'ignore',
   });
 

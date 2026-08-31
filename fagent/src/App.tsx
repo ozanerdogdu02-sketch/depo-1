@@ -576,6 +576,20 @@ function Panel({ assetType, title, query }: PanelProps) {
   // CSV içe aktarma
   const importInputRef = useRef<HTMLInputElement>(null);
   const [importMsg, setImportMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const importMsgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (importMsgTimerRef.current !== null) clearTimeout(importMsgTimerRef.current);
+  }, []);
+
+  const showImportMsg = (message: { text: string; ok: boolean }) => {
+    if (importMsgTimerRef.current !== null) clearTimeout(importMsgTimerRef.current);
+    setImportMsg(message);
+    importMsgTimerRef.current = setTimeout(() => {
+      setImportMsg(null);
+      importMsgTimerRef.current = null;
+    }, 6000);
+  };
 
   // Hedef dağılım burada tutulur ve İKİ karta birden verilir (Hedef Dağılım + Proaktif İçgörüler).
   // Her kart kendi state'ini tutsaydı biri düzenlenince diğeri bayat sayı gösterirdi.
@@ -661,18 +675,17 @@ function Panel({ assetType, title, query }: PanelProps) {
       const text = await file.text();
       const { rows, skipped } = parseHoldingsCsv(text);
       if (rows.length === 0) {
-        setImportMsg({ text: 'Dosyada içe aktarılabilir geçerli satır bulunamadı.', ok: false });
+        showImportMsg({ text: 'Dosyada içe aktarılabilir geçerli satır bulunamadı.', ok: false });
         return;
       }
       const { imported, duplicates } = actions.importHoldings(rows);
       const parts: string[] = [`${imported} varlık eklendi`];
       if (duplicates > 0) parts.push(`${duplicates} satır isim çakışması nedeniyle atlandı`);
       if (skipped > 0) parts.push(`${skipped} satır eksik/geçersiz veri nedeniyle atlandı`);
-      setImportMsg({ text: `${parts.join(', ')}.`, ok: imported > 0 });
+      showImportMsg({ text: `${parts.join(', ')}.`, ok: imported > 0 });
     } catch {
-      setImportMsg({ text: 'Dosya okunamadı — geçerli bir CSV olduğundan emin ol.', ok: false });
+      showImportMsg({ text: 'Dosya okunamadı — geçerli bir CSV olduğundan emin ol.', ok: false });
     }
-    setTimeout(() => setImportMsg(null), 6000);
   };
 
   const startEdit = (h: Holding) => {

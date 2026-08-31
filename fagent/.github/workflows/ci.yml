@@ -1,0 +1,54 @@
+name: Fagent CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node kurulumu
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Bağımlılıkları kur
+        run: npm ci
+
+      - name: TypeScript kontrolü
+        run: npm run typecheck
+
+      - name: Üretim derlemesi
+        run: npm run build
+
+      - name: Chrome yolunu belirle
+        shell: bash
+        run: |
+          CHROME_PATH="$(command -v google-chrome-stable || command -v google-chrome || true)"
+          if [ -z "$CHROME_PATH" ]; then
+            echo "GitHub runner üzerinde Chrome bulunamadı" >&2
+            exit 1
+          fi
+          echo "CHROMIUM_PATH=$CHROME_PATH" >> "$GITHUB_ENV"
+
+      - name: E2E regresyon paketi
+        run: npm run test:e2e
+
+      - name: Başarısızlık artifaktları
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fagent-e2e-artifacts
+          path: tests/.artifacts/
+          if-no-files-found: ignore
