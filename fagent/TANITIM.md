@@ -66,3 +66,35 @@ grafik çizen ve öğretebildiğin bir ajanı var.
 > 3) Ajanla konuşurken anlamadığı bir şey oldu mu (varsa aynen yaz, ekleyeceğim)
 >
 > Dürüst ol, "güzel olmuş" deme 😄
+
+---
+
+## Yarışma sürümü — arkadaştan yardım isteme mesajı
+
+Doldurulacak yerler: `[YARIŞMA ADI]`, `[SON TARİH]`, `[TESLİM EDİLECEK ŞEY]` (sunum / demo videosu /
+rapor / prototip), `[link]`.
+
+> Kanka sana bir şey danışacağım, müsait olduğunda oku.
+>
+> **[YARIŞMA ADI]**'na kendi yazdığım bir projeyle katılıyorum: **FAGENT** — bir yatırım takip paneli.
+> Hisse, fon, döviz, altın, kripto hepsi tek yerde; üyelik yok, API anahtarı yok, veri hiçbir yere
+> gitmiyor (tamamen kullanıcının tarayıcısında duruyor). Ayrıştığı yerler: enflasyon sonrası
+> **reel getiri**, gerçek risk metrikleri (volatilite, maksimum düşüş, Sharpe), 250 coinlik canlı
+> kripto piyasası ve içinde konuşup grafik çizdirebildiğin, hatta onayınla işlem yapabilen bir ajan.
+>
+> `[SON TARİH]`'e kadar `[TESLİM EDİLECEK ŞEY]` hazırlamam lazım ve tek başıma dönüyorum işi.
+> Yardımcı olur musun? Somut olarak şunlara ihtiyacım var, hangisi sana uyarsa:
+>
+> 1. **15 dakika kurcala**, "jüri olsam burayı sorardım / burada takılırdım" dediğin yerleri yaz.
+> 2. **Anlatım sırası:** sence hangi özellikle açmalıyım, jüriyi en çok ne etkiler?
+> 3. **Sunum/demo tarafı** — istersen o kısmı komple sen al, ben teknik tarafa odaklanayım.
+>
+> Baskı yok, sadece 1. maddeyi yapsan bile bana çok şey katar. Link: `[link]`
+
+### Kısa hali
+
+> Kanka `[YARIŞMA ADI]`'na kendi yazdığım **FAGENT** ile katılıyorum — anahtarsız, verisi tamamen
+> tarayıcıda kalan bir yatırım takip paneli (reel getiri, risk metrikleri, canlı kripto piyasası,
+> konuşulabilen bir ajan). `[SON TARİH]`'e kadar `[TESLİM EDİLECEK ŞEY]` yetiştirmem lazım ve tek
+> kişiyim. 15 dk deneyip "jüri olsam burayı sorardım" dediğin yerleri yazar mısın? Sunum kısmına da
+> girmek istersen kapım açık 🙏 `[link]`
