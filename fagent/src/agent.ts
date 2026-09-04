@@ -1129,9 +1129,12 @@ export function chatReply(
     }
     // Diğer TÜM built-in kural konularında da devam edilebilsin (önceden yalnızca 'analiz' ve
     // üç grafik türü destekleniyordu; vergi/XIRR/hedef/risk gibi konulardan sonra "devam et"
-    // fallback'e düşüyordu). 'tavsiye' bilerek hariç — bir reddin "devamı" olmaz, aynı reddi
-    // tekrarlamak yerine kullanıcı normal fallback'e düşsün.
-    if (lastIntent && lastIntent !== 'tavsiye') {
+    // fallback'e düşüyordu). 'tavsiye' BİLEREK DIŞLANMAZ — daha önce dışlanıyordu ("bir reddin
+    // devamı olmaz") ama bu, tavsiye reddinden hemen sonra "devam et" yazan kullanıcıyı fallback'e
+    // düşürüyordu; App.tsx fallback'i AI'a yönlendiriyor, yani SPK reddi bir "devam et" ile AI'a
+    // atlanabiliyordu (Codex denetiminde bulundu, 2026-09-04). Güvenlik: bir denetim engeli hiçbir
+    // yoldan (agent çıktısı dahil) geçersiz kılınamaz — reddi TEKRARLAMAK, sessizce atlamaktan iyidir.
+    if (lastIntent) {
       const rule = CHAT_RULES.find(r => r.id === lastIntent);
       if (rule) return { text: rule.reply(s, text, taxRates, targets, inflationPct), intentId: lastIntent };
     }

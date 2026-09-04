@@ -23,7 +23,7 @@ import { exportHoldingsCsv, exportTxnsCsv, parseHoldingsCsv } from './csv';
 import { CURRENCIES, COINS, fetchTryRate, fetchCryptoTryPrice, MarketFetchError } from './market';
 import { CryptoMarket } from './CryptoMarket';
 import { RiskPanel } from './RiskPanel';
-import { askAi, isAiConfigured, getAiProxyUrl, setAiProxyUrl, resetAiProxyUrl, AiProxyError, AiChatMessage } from './aiAgent';
+import { askAi, isAiConfigured, getAiProxyUrl, setAiProxyUrl, validateAiProxyUrl, resetAiProxyUrl, AiProxyError, AiChatMessage } from './aiAgent';
 
 const PIE_COLORS = ['#2dd4a7', '#38bdf8', '#fbbf24', '#a78bfa', '#f87171', '#f472b6'];
 
@@ -1654,6 +1654,36 @@ function Ajan() {
   const [aiUrl, setAiUrl] = useState(() => getAiProxyUrl());
   const [aiUrlDraft, setAiUrlDraft] = useState(() => getAiProxyUrl());
   const [aiOpen, setAiOpen] = useState(false);
+  const [aiUrlError, setAiUrlError] = useState<string | null>(null);
+  const [aiTestState, setAiTestState] = useState<'idle' | 'testing' | 'ok' | 'fail'>('idle');
+  const [aiBusy, setAiBusy] = useState(false); // aynı anda yalnızca bir AI çağrısı — istemsiz maliyet önlemi
+
+  const saveAiUrl = () => {
+    const err = validateAiProxyUrl(aiUrlDraft);
+    if (err) { setAiUrlError(err); return; }
+    setAiProxyUrl(aiUrlDraft);
+    setAiUrl(getAiProxyUrl());
+    setAiUrlError(null);
+    setAiTestState('idle');
+  };
+  const clearAiUrl = () => {
+    setAiUrlDraft('');
+    setAiProxyUrl('');
+    setAiUrl('');
+    setAiUrlError(null);
+    setAiTestState('idle');
+  };
+  // Gerçekten kaydedilen adrese, minik bir mesajla bağlantıyı dener — "BAĞLI" rozeti şimdiye kadar
+  // yalnızca "adres kaydedilmiş" demekti, gerçekten ÇALIŞTIĞINI göstermiyordu (Codex denetimi).
+  const testAiConnection = async () => {
+    setAiTestState('testing');
+    try {
+      await askAi(s, 'Sadece "bağlantı çalışıyor" yaz.', []);
+      setAiTestState('ok');
+    } catch {
+      setAiTestState('fail');
+    }
+  };
 
   const runAnalysis = () => {
     recordTurn('analiz', []);
@@ -1700,8 +1730,9 @@ function Ajan() {
     // gerçek bir dil modeline sorulur — SADECE bu durumda. Güvenlik-kritik yollar (SPK tavsiye
     // reddi, işlem iptali/onayı, öğretilmiş bilgi) chatReply İÇİNDE bundan ÖNCE kesin olarak
     // çözülür ve asla isFallback döndürmez — bu yüzden AI'a hiçbir zaman ulaşmazlar (bkz. agent.ts
-    // chatReply güvenlik sırası yorumu).
-    const wantsAi = reply.isFallback && isAiConfigured();
+    // chatReply güvenlik sırası yorumu). aiBusy: aynı anda yalnızca BİR AI çağrısı — art arda
+    // hızlı gönderim (yanlışlıkla ya da kötüye kullanım) worker'ın/anahtarın kotasını tüketmesin.
+    const wantsAi = reply.isFallback && isAiConfigured() && !aiBusy;
     const aiMsgId = wantsAi ? `ai${Date.now()}` : undefined;
 
     setMessages(m => {
@@ -1722,6 +1753,7 @@ function Ajan() {
     setInput('');
 
     if (wantsAi && aiMsgId) {
+      setAiBusy(true);
       const history: AiChatMessage[] = messages
         .filter(mm => mm.text)
         .slice(-10)
@@ -1735,7 +1767,8 @@ function Ajan() {
           setMessages(m => m.map(mm => mm.id === aiMsgId
             ? { ...mm, text: `${msg} Yukarıdaki genel öneriyi kullanabilirsin.`, aiPending: false, ratable: false }
             : mm));
-        });
+        })
+        .finally(() => setAiBusy(false));
     }
   };
 
@@ -1907,7 +1940,7 @@ function Ajan() {
         >
           <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 0 }}>
             <Bot size={14} /> Gerçek AI Bağlantısı (opsiyonel)
-            {aiUrl && <span className="badge badge-blue">BAĞLI</span>}
+            {aiUrl && <span className="badge badge-blue">{aiTestState === 'ok' ? 'BAĞLI ✓' : 'AYARLI'}</span>}
           </span>
           {aiOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
@@ -1915,29 +1948,36 @@ function Ajan() {
           <div style={{ marginTop: 12 }}>
             <p className="hint" style={{ marginBottom: 10 }}>
               Yerel kurallar bir soruyu tanıyamadığında ("anlayamadım" yerine), buraya gireceğin adrese
-              portföyünün özetiyle birlikte soru gönderilir ve gerçek bir dil modelinden yanıt alınır.
-              Bu adres SENİN kendi Cloudflare Worker'ın olmalı — anahtarın (Gemini/Claude) yalnızca orada
-              durur, bu uygulamaya ya da bize hiç girmez. Boş bırakırsan ajan tamamen yerel kalır.
+              portföy özetin (varlık adları/değerleri/kâr-zarar) VE son birkaç sohbet mesajın birlikte
+              gönderilir, gerçek bir dil modelinden yanıt alınır. Bu adres SENİN kendi Cloudflare
+              Worker'ın olmalı — anahtarın (Gemini/Claude) yalnızca orada durur, bu uygulamaya ya da bize
+              hiç girmez. Yalnızca https:// kabul edilir. Boş bırakırsan ajan tamamen yerel kalır ve
+              hiçbir veri tarayıcından çıkmaz.
             </p>
             <label className="field" htmlFor="ai-url">Worker adresi</label>
             <input
               id="ai-url" className="input" type="url" placeholder="https://senin-worker-adresin.workers.dev"
-              value={aiUrlDraft} onChange={e => setAiUrlDraft(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') { setAiProxyUrl(aiUrlDraft); setAiUrl(getAiProxyUrl()); } }}
+              value={aiUrlDraft} onChange={e => { setAiUrlDraft(e.target.value); setAiUrlError(null); }}
+              onKeyDown={e => { if (e.key === 'Enter') saveAiUrl(); }}
             />
+            {aiUrlError && <p className="hint" style={{ marginTop: 6, color: 'var(--red)' }}>{aiUrlError}</p>}
             <div className="row" style={{ marginTop: 10, justifyContent: 'flex-end', gap: 8 }}>
               {aiUrl && (
-                <button
-                  className="btn btn-secondary btn-inline"
-                  onClick={() => { setAiUrlDraft(''); setAiProxyUrl(''); setAiUrl(''); }}
-                >
-                  Bağlantıyı Kaldır
-                </button>
+                <>
+                  <span className="hint" style={{ marginRight: 'auto' }}>
+                    {aiTestState === 'testing' && <><Loader2 size={12} className="spin-icon" style={{ verticalAlign: 'middle' }} /> test ediliyor…</>}
+                    {aiTestState === 'ok' && <span style={{ color: 'var(--accent)' }}>✓ bağlantı çalışıyor</span>}
+                    {aiTestState === 'fail' && <span style={{ color: 'var(--red)' }}>✗ yanıt alınamadı</span>}
+                  </span>
+                  <button className="btn btn-secondary btn-inline" onClick={testAiConnection} disabled={aiTestState === 'testing'}>
+                    Bağlantıyı Test Et
+                  </button>
+                  <button className="btn btn-secondary btn-inline" onClick={clearAiUrl}>
+                    Bağlantıyı Kaldır
+                  </button>
+                </>
               )}
-              <button
-                className="btn btn-primary btn-inline"
-                onClick={() => { setAiProxyUrl(aiUrlDraft); setAiUrl(getAiProxyUrl()); }}
-              >
+              <button className="btn btn-primary btn-inline" onClick={saveAiUrl}>
                 Kaydet
               </button>
             </div>
@@ -2004,9 +2044,13 @@ export default function App() {
           <span className="side-role">yatırımcı</span>
         </div>
 
+        {/* İstemci hâlâ anahtarsız (API anahtarı hiç girilmiyor) — ama kullanıcı kendi AI worker'ını
+            bağladıysa portföy özeti artık dışarı çıkabiliyor. "Anahtarsız mod" rozeti bunu
+            gizlerse yanıltıcı olur; bağlıyken ayrı bir rozet gösterilir (Codex denetiminde
+            bulunan gerçeklik/algı farkı, 2026-09-04). */}
         <div className="status-pill">
           <span className="status-dot" />
-          ANAHTARSIZ MOD
+          {isAiConfigured() ? 'AI BAĞLI' : 'ANAHTARSIZ MOD'}
         </div>
 
         {s.onboarded && (

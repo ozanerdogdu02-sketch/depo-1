@@ -17,15 +17,39 @@ import { allocation } from './analytics';
 
 const KEY = 'fagent.ai.proxyurl.v1';
 
+// Yalnızca https:// (localhost'ta http:// da olur — yerel worker testi için) ve URL'de kullanıcı
+// adı/parola gömülü OLMAYAN adresler kabul edilir. Güvenlik nedeni: burası kullanıcının PORTFÖY
+// ÖZETİNİ göndereceği adres — doğrulanmamış bir adres, yanlışlıkla (kimlik avı vb.) yapıştırılırsa
+// veriyi başka birinin sunucusuna taşır (Codex denetiminde bulundu, 2026-09-04).
+export function validateAiProxyUrl(url: string): string | undefined {
+  const trimmed = url.trim();
+  if (!trimmed) return undefined; // boş = bağlantıyı kaldır, geçerli
+  let parsed: URL;
+  try { parsed = new URL(trimmed); } catch { return 'Geçerli bir adres değil.'; }
+  const isLocalhost = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+  if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && isLocalhost)) {
+    return 'Yalnızca https:// kabul edilir (localhost hariç).';
+  }
+  if (parsed.username || parsed.password) return 'Adres kullanıcı adı/parola içeremez.';
+  return undefined; // geçerli
+}
+
 export function getAiProxyUrl(): string {
   try { return (localStorage.getItem(KEY) ?? '').trim(); } catch { return ''; }
 }
 
-export function setAiProxyUrl(url: string): void {
+// Geçersiz bir adres SESSİZCE kaydedilmez — çağıran taraf (UI) validateAiProxyUrl ile önce
+// kontrol etmeli ve hatayı kullanıcıya göstermeli. Burada da ikinci bir savunma katmanı olarak
+// aynı kontrol tekrarlanır (yalnızca UI'ya güvenmemek için).
+export function setAiProxyUrl(url: string): boolean {
+  const trimmed = url.trim();
+  if (trimmed && validateAiProxyUrl(trimmed) !== undefined) return false;
   try {
-    const trimmed = url.trim();
     if (trimmed) localStorage.setItem(KEY, trimmed); else localStorage.removeItem(KEY);
-  } catch { /* kota — bellekte kalır, sayfa yenilenince kaybolur */ }
+    return true;
+  } catch {
+    return false; // kota — bellekte kalır, sayfa yenilenince kaybolur
+  }
 }
 
 export function isAiConfigured(): boolean {
