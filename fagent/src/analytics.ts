@@ -17,7 +17,7 @@
 //   • Katkı ayrıştırma — güncel değerin ne kadarı yatırılan para, ne kadarı getiri
 //   • Volatilite, maksimum düşüş, Sharpe, korelasyon, kovaryansla çeşitlendirme faydası
 
-import { PortfolioState, AssetType, totalValue, totalCost } from './store';
+import { PortfolioState, AssetType, totalValue, totalCost, localDateString } from './store';
 
 const MS_PER_DAY = 86_400_000;
 const DAYS_PER_YEAR = 365;
@@ -83,11 +83,15 @@ export function xirrOf(s: PortfolioState, today = new Date()): XirrResult | unde
   const value = totalValue(s);
   if (value <= 0) return undefined;
 
+  // 'gelir' (temettü/faiz) bilerek 'satis' ile AYNI daldan geçer — XIRR açısından ikisi de
+  // yatırımcının CEBİNE giren pozitif nakit akışıdır (satış parayı geri verir, temettü de öyle).
   const flows: CashFlow[] = s.txns.map(t => ({
     date: t.date,
     amount: t.kind === 'alis' ? -(t.amount + (t.commission ?? 0)) : (t.amount - (t.commission ?? 0)),
   }));
-  flows.push({ date: today.toISOString().slice(0, 10), amount: value });
+  // toISOString() UTC verir — TR gece yarısına yakın saatlerde bir gün kayabilir (store.ts'in
+  // todayLocalDate() için bilerek kaçındığı hatanın ta kendisi). localDateString() kullan.
+  flows.push({ date: localDateString(today), amount: value });
 
   const first = Math.min(...flows.map(f => new Date(f.date).getTime()));
   const years = (today.getTime() - first) / MS_PER_DAY / DAYS_PER_YEAR;
@@ -388,6 +392,30 @@ export function sharpeRatio(annualReturnPct: number, annualVolPct: number, riskF
   return (annualReturnPct - riskFreePct) / annualVolPct;
 }
 
+/* ─────────────────────────  Sortino oranı — yalnızca AŞAĞI YÖNLÜ oynaklığı cezalandırır  ─────────────────────────
+   Sharpe'ın kör noktası: yukarı sıçramaları da "risk" sayar (standart sapma simetriktir).
+   Sortino yalnızca MAR'ın (minimum kabul edilebilir getiri) ALTINDA kalan dönemleri cezalandırır —
+   bir varlık sadece yukarı yönlü oynaksa Sharpe'ı düşük, Sortino'yu yüksek çıkar; bu ayrım
+   volatilitenin "istenmeyen" kısmını izole eder. MAR risksiz faizle aynı varsayım mantığını
+   taşır (anahtarsız kaynağı yok, kullanıcı girer, "varsayım" diye etiketlenir). */
+
+// Aşağı yönlü sapma: yalnızca MAR'ın altındaki dönemler katkı verir (üstündekiler 0 sayılır).
+// Payda TÜM dönem sayısıdır (yalnız düşük dönem sayısı değil) — Sortino'nun standart tanımı.
+export function downsideDeviation(returns: number[], periodMar: number): number {
+  if (returns.length === 0) return 0;
+  const sumSq = returns.reduce((a, r) => a + Math.min(0, r - periodMar) ** 2, 0);
+  return Math.sqrt(sumSq / returns.length);
+}
+
+export function sortinoRatio(
+  annualReturnPct: number, returns: number[], periodsPerYear: number, marPct: number,
+): number | undefined {
+  const periodMar = marPct / 100 / periodsPerYear; // yıllık MAR'ı dönem başına indirger
+  const annualizedDownsideDevPct = downsideDeviation(returns, periodMar) * Math.sqrt(periodsPerYear) * 100;
+  if (annualizedDownsideDevPct <= 0) return undefined; // hiç aşağı yönlü dönem yoksa oran tanımsız (sonsuz değil)
+  return (annualReturnPct - marPct) / annualizedDownsideDevPct;
+}
+
 // Pearson korelasyonu — iki getiri serisi arasında.
 export function correlation(a: number[], b: number[]): number {
   const n = Math.min(a.length, b.length);
@@ -483,10 +511,16 @@ export const DEFAULT_TAX_RATES: Record<AssetType, number> = {
   kripto: 0,     // doğrulanamadı
   altin: 0,      // doğrulanamadı
   doviz: 0,      // doğrulanamadı (kur farkı)
+  // 2026-09-04 eklendi — üçü de basit bir "kazanç üzerinden stopaj" modeline UYMAZ (tahvil/Eurobond
+  // vade+araca göre değişir; BES'in kendi katkı/erken çıkış rejimi var; gayrimenkulde 5 yıl elde
+  // tutma istisnası var) — bir oran uydurmaktansa 0 + doğrulanamadı etiketi aynı dürüstlük ilkesi.
+  tahvil: 0,       // doğrulanamadı
+  bes: 0,          // doğrulanamadı — ayrıca stopaj modeli BES'in gerçek rejimini temsil etmiyor
+  gayrimenkul: 0,  // doğrulanamadı
 };
 
 // Oranı "0 çünkü öyle" ile "0 çünkü doğrulayamadık" ayrımı — arayüz bunu farklı anlatmalı.
-export const UNVERIFIED_TAX: AssetType[] = ['kripto', 'altin', 'doviz'];
+export const UNVERIFIED_TAX: AssetType[] = ['kripto', 'altin', 'doviz', 'tahvil', 'bes', 'gayrimenkul'];
 
 export interface TaxedHolding {
   name: string;
@@ -508,6 +542,10 @@ export interface AfterTaxResult {
   realGrossReturnPct: number; // karşılaştırma için: vergi yokmuş gibi reel
   byHolding: TaxedHolding[];
   hasUnverified: boolean;    // portföyde oranı doğrulanmamış bir sınıf var mı
+  // Kapatılan (satılan) pozisyonlardan bugüne dek GERÇEKLEŞMİŞ toplam kâr/zarar (s.realizedPnl).
+  // Yukarıdaki grossGain/tax/netGain'e KATILMAZ: hangi varlık sınıfından geldiği ayrı tutulmadığı
+  // için doğru stopaj oranı bilinemiyor — bir oran uydurmaktansa ayrı, açık bir kalem olarak verilir.
+  realizedGain: number;
 }
 
 // Vergi KAZANÇ üzerinden alınır, anapara üzerinden değil. Zararda vergi yoktur (ve bu modelde
@@ -545,6 +583,7 @@ export function afterTaxOf(
     realGrossReturnPct: realReturnPct(grossReturnPct, inflationPct),
     byHolding,
     hasUnverified: s.holdings.some(h => UNVERIFIED_TAX.includes(h.type)),
+    realizedGain: s.realizedPnl,
   };
 }
 
@@ -557,4 +596,46 @@ export function parseInflationPct(text: string): number | undefined {
     if (Number.isFinite(v) && v >= 0 && v <= 200) return v;
   }
   return undefined;
+}
+
+/* ─────────────────────────  Şok senaryosu (stres testi)  ─────────────────────────
+   "Kripto %50 düşerse ne olur" türü sorular İÇİN yeni bir veri kaynağı GEREKMEZ — basit
+   aritmetik: bir sınıfın güncel değerine varsayımsal bir şok uygulayıp portföy toplamına etkisini
+   gösterir. Diğer sınıfların o anda nasıl tepki vereceğini (korelasyon) VARSAYMAZ — bu bilerek
+   basit tutulmuş bir "ne olurdu" hesabıdır, gerçek bir çoklu-varlık simülasyonu değil. */
+
+export interface StressTestResult {
+  type: AssetType;
+  shockPct: number;
+  affectedValue: number; // o sınıftaki mevcut toplam değer
+  lossAmount: number;    // şok sonucu o sınıftan gidecek TL
+  newTotal: number;      // şok sonrası portföy toplamı
+}
+
+export function stressTest(s: PortfolioState, type: AssetType, shockPct: number): StressTestResult | undefined {
+  const total = totalValue(s);
+  if (total <= 0) return undefined;
+  const affectedValue = s.holdings.filter(h => h.type === type).reduce((a, h) => a + h.amount, 0);
+  if (affectedValue <= 0) return undefined; // o sınıfta hiç varlık yok
+  const lossAmount = affectedValue * (shockPct / 100);
+  return { type, shockPct, affectedValue, lossAmount, newTotal: total - lossAmount };
+}
+
+/* ─────────────────────────  Karşı-olgusal: "mevduatta tutsaydım"  ─────────────────────────
+   Aynı alış/satış nakit akışları, yatırım yerine sabit oranlı bir mevduatta büyüseydi bugün ne
+   olurdu? XIRR'in NPV'sinin AYNASI: geçmişe iskonto etmek yerine bugüne bileşik faizle büyütür.
+   Oran risksiz faiz/enflasyon varsayımlarıyla AYNI mantığı taşır — Türkiye için anahtarsız/resmi
+   bir tarihsel mevduat faizi kaynağı yok, kullanıcı girer, "varsayım" diye etiketlenir. */
+export function counterfactualDeposit(s: PortfolioState, annualRatePct: number, today = new Date()): number | undefined {
+  if (s.txns.length === 0) return undefined;
+  const rate = annualRatePct / 100;
+  const t0 = today.getTime();
+  const value = s.txns.reduce((sum, t) => {
+    if (t.kind === 'gelir') return sum; // temettü/faiz GERÇEK senaryoya özgü — hipotetik mevduatta karşılığı yok
+    const years = Math.max(0, (t0 - new Date(t.date).getTime()) / MS_PER_DAY / DAYS_PER_YEAR);
+    // Alış: o tutar mevduata YATIRILMIŞ olurdu (+); satış: mevduattan ÇEKİLMİŞ olurdu (-).
+    const cf = t.kind === 'alis' ? t.amount : -t.amount;
+    return sum + cf * Math.pow(1 + rate, years);
+  }, 0);
+  return Math.max(0, value);
 }

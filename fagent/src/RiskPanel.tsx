@@ -131,6 +131,13 @@ export function RiskPanel() {
                     <div className="hint" style={{ margin: 0 }}>%{riskFree} risksiz faize göre</div>
                   </div>
                 )}
+                {report.sortino !== undefined && (
+                  <div>
+                    <div className="sub" style={{ marginBottom: 2 }}>Sortino oranı</div>
+                    <div className="mono" style={{ fontSize: 17, fontWeight: 700 }}>{fmtDec(report.sortino, 2)}</div>
+                    <div className="hint" style={{ margin: 0 }}>yalnız aşağı yönlü oynaklık</div>
+                  </div>
+                )}
               </div>
 
               {/* Karşılaştırmada YUKARIDAKİ başlık rakamı (gerçek portföy endeksinden) kullanılır;

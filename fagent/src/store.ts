@@ -1,6 +1,10 @@
 import { useSyncExternalStore } from 'react';
 
-export type AssetType = 'hisse' | 'fon' | 'doviz' | 'altin' | 'kripto' | 'mevduat';
+// tahvil/bes/gayrimenkul 2026-09-04'te eklendi. Üçü de altın/mevduat ile AYNI mantıkta:
+// manuel girişli, canlı/tarihsel fiyat kaynağı yok, stopaj oranı doğrulanamadı (bkz. analytics.ts
+// → UNVERIFIED_TAX). Kasıtlı olarak DIŞARIDA bırakılan: borç/yükümlülük (negatif net değer,
+// totalValue/allocation'ın "her varlık pozitif" varsayımını kırar — ayrı bir tasarım gerektirir).
+export type AssetType = 'hisse' | 'fon' | 'doviz' | 'altin' | 'kripto' | 'mevduat' | 'tahvil' | 'bes' | 'gayrimenkul';
 
 export interface Holding {
   id: string;
@@ -20,7 +24,9 @@ export interface Txn {
   holdingId: string; // hangi varlığa ait olduğunu KESİN belirler (isim çakışmasına karşı)
   holdingName: string; // işlem anındaki varlık adı — görüntüleme/CSV için; varlık sonradan silinse/adı
                         // değişse de bu kayıt sabit kalır (muhasebe defteri mantığı)
-  kind: 'alis' | 'satis';
+  // 'gelir': temettü/faiz/kupon — varlığın kendisi (miktar/maliyet) DEĞİŞMEZ, tamamı gerçekleşmiş
+  // kâra eklenir (bkz. actions.addIncome). Alış/satışla karıştırılmasın diye ayrı bir tür.
+  kind: 'alis' | 'satis' | 'gelir';
   amount: number; // TL — işlem tutarı (komisyon HARİÇ)
   commission?: number; // TL — bu işlemde ödenen komisyon/işlem ücreti (opsiyonel; yoksa 0 kabul edilir)
 }
@@ -42,6 +48,9 @@ export const ASSET_LABELS: Record<AssetType, string> = {
   altin: 'Altın',
   kripto: 'Kripto',
   mevduat: 'Mevduat',
+  tahvil: 'Tahvil/Eurobond',
+  bes: 'BES',
+  gayrimenkul: 'Gayrimenkul',
 };
 
 const KEY = 'fagent.portfolio.v1';
@@ -49,8 +58,10 @@ const KEY = 'fagent.portfolio.v1';
 const EMPTY: PortfolioState = { onboarded: false, holdings: [], txns: [], realizedPnl: 0 };
 
 // UTC değil, kullanıcının kendi yerel takvim günü — new Date().toISOString().slice(0,10)
-// gece yarısına yakın saatlerde (TR UTC+3) yanlış günü verebilirdi.
-function localDateString(d: Date): string {
+// gece yarısına yakın saatlerde (TR UTC+3) yanlış günü verebilirdi. Dışa açık: XIRR gibi
+// keyfi bir Date'i (yalnızca "bugün" değil) yerel takvim gününe çevirmesi gereken yerler
+// için (bkz. analytics.ts → xirrOf) — aynı hatayı ikinci bir yerde yeniden icat etmesin.
+export function localDateString(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
@@ -201,8 +212,15 @@ export const actions = {
     commit({ ...state, holdings: state.holdings.filter(h => h.id !== id) });
   },
   // Kullanıcının kendi elle girdiği güncel değer — maliyeti değiştirmez, "canlı güncelleme" damgasına dokunmaz.
+  // Canlı fiyata bağlı (quantity dolu) bir varlıkta miktarı da orantılı günceller — yoksa bu elle
+  // düzeltme bir sonraki "Yenile"de eski miktar × güncel fiyatla sessizce ezilirdi.
   updateHoldingValue(id: string, newAmount: number): void {
-    const holdings = state.holdings.map(h => h.id === id ? { ...h, amount: Math.max(0, newAmount) } : h);
+    const clamped = Math.max(0, newAmount);
+    const holdings = state.holdings.map(h => {
+      if (h.id !== id) return h;
+      const quantity = h.quantity !== undefined && h.amount > 0 ? h.quantity * (clamped / h.amount) : h.quantity;
+      return { ...h, amount: clamped, quantity };
+    });
     commit({ ...state, holdings });
   },
   // Canlı fiyat kaynağından (market.ts) çekilen değer — yalnızca quantity/symbol'ü olan varlıklarda kullanılır.
@@ -215,7 +233,9 @@ export const actions = {
   // holdingId ile eşleşir (isimle değil) — iki varlık aynı adı taşısa bile karışmaz.
   // commission: bu işlemde ödenen komisyon/ücret (opsiyonel). Alışta maliyete eklenir
   // (gerçek maliyet fiyat + ücrettir); satışta gerçekleşen kârdan düşülür.
-  addTxn(holdingId: string, kind: Txn['kind'], amount: number, commission = 0): void {
+  // kind burada bilerek 'alis'|'satis' ile SINIRLI — 'gelir' işlemi addIncome() ile ayrı
+  // yoldan gider (aşağıda), çünkü mantığı köktenfarklı: varlığın amount/costBasis'ine DOKUNMAZ.
+  addTxn(holdingId: string, kind: 'alis' | 'satis', amount: number, commission = 0): void {
     const holding = state.holdings.find(h => h.id === holdingId);
     if (!holding) return; // savunma: varlık bu sırada silinmiş olabilir
     const fee = Math.max(0, commission);
@@ -226,10 +246,20 @@ export const actions = {
     let realizedDelta = 0;
     const holdings = state.holdings.map(h => {
       if (h.id !== holdingId) return h;
+      // Canlı fiyata bağlı (quantity dolu) bir varlıkta miktarı da orantılı güncellemek ŞART —
+      // yoksa bir sonraki "Yenile" eski (işlem öncesi) miktar × güncel fiyatla yeniden değerleme
+      // yapar ve az önce satılan/alınan kısım sessizce geri gelir/kaybolur (veri bütünlüğü hatası).
+      // Satışta oran costBasis ile BİREBİR aynı mantığı izler (kesin doğru). Alışta gerçek alım
+      // fiyatı bu fonksiyona hiç gelmiyor; mevcut ortalama fiyat en iyi tahmin olarak kullanılır
+      // (uydurma değer değil — bilinen tek fiyatın kendisi).
+      const scaleQuantity = (nextAmount: number): number | undefined =>
+        h.quantity !== undefined && h.amount > 0 ? h.quantity * (nextAmount / h.amount) : h.quantity;
+
       if (kind === 'alis') {
         // Alış: güncel değer alış tutarı kadar artar; maliyet, alış tutarı + komisyon kadar artar
         // (ödediğin ücret de bir maliyettir — reel kârı düşürür).
-        return { ...h, amount: h.amount + amount, costBasis: h.costBasis + amount + fee };
+        const nextAmount = h.amount + amount;
+        return { ...h, amount: nextAmount, costBasis: h.costBasis + amount + fee, quantity: scaleQuantity(nextAmount) };
       }
       // Satış: güncel değer düşer; maliyet, kalan pozisyonun oranına göre orantılı azaltılır
       // (ağırlıklı ortalama maliyet yöntemi — gerçekleşmemiş kâr/zarar yüzdesi satıştan etkilenmez).
@@ -238,9 +268,20 @@ export const actions = {
       const soldCost = h.costBasis * (1 - ratio); // satılan payın maliyeti
       // Gerçekleşen kâr = eline geçen (tutar − komisyon) − satılan payın maliyeti.
       realizedDelta = (amount - fee) - soldCost;
-      return { ...h, amount: nextAmount, costBasis: h.costBasis * ratio };
+      return { ...h, amount: nextAmount, costBasis: h.costBasis * ratio, quantity: scaleQuantity(nextAmount) };
     });
     commit({ ...state, holdings, txns: [txn, ...state.txns], realizedPnl: state.realizedPnl + realizedDelta });
+  },
+
+  // Temettü/faiz/kupon — varlığın kendisi (amount/costBasis/quantity) DEĞİŞMEZ, tamamı doğrudan
+  // gerçekleşmiş kâra eklenir. Alış/satıştan bilerek ayrı: bir alış gibi işlenirse maliyeti
+  // (ve dolayısıyla kâr/zarar yüzdesini) yanlışlıkla artırır; bir satış gibi işlenirse varlığın
+  // değerini yanlışlıkla azaltır — ikisi de gerçekte olmayan bir şeyi kayda geçirir.
+  addIncome(holdingId: string, amount: number): void {
+    const holding = state.holdings.find(h => h.id === holdingId);
+    if (!holding || amount <= 0) return;
+    const txn: Txn = { id: `t${Date.now()}`, date: todayLocalDate(), holdingId, holdingName: holding.name, kind: 'gelir', amount };
+    commit({ ...state, txns: [txn, ...state.txns], realizedPnl: state.realizedPnl + amount });
   },
 
   /* Otomasyon hattından gelen portföyü yazar (bkz. otoAktarim.ts).
@@ -285,6 +326,7 @@ export function investmentHistoryOf(s: PortfolioState): InvestmentPoint[] {
   const byDate = new Map<string, number>();
   let running = 0;
   for (const t of sorted) {
+    if (t.kind === 'gelir') continue; // temettü/faiz YATIRILAN sermaye değil — bu grafiği bozmasın
     running += t.kind === 'alis' ? t.amount : -t.amount;
     byDate.set(t.date, Math.max(0, running));
   }

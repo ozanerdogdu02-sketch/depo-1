@@ -146,7 +146,7 @@ export const PERIODS_PER_YEAR: Record<HistoryKind, number> = { kripto: 365, dovi
 import { PortfolioState, Holding, totalValue, ASSET_LABELS } from './store';
 import {
   AssetRisk, PortfolioRisk, dailyReturns, annualizedVolatilityPct, maxDrawdownPct,
-  annualizedReturnFromPrices, portfolioRisk, sharpeRatio,
+  annualizedReturnFromPrices, portfolioRisk, sharpeRatio, sortinoRatio,
 } from './analytics';
 
 export interface UncoveredAsset { name: string; reason: string }
@@ -159,6 +159,7 @@ export interface RiskReport {
   portfolioDrawdownPct: number;
   portfolioAnnualReturnPct: number;
   sharpe?: number;
+  sortino?: number;                // Sharpe'ın aksine yalnızca aşağı yönlü oynaklığı cezalandırır
   coveredValue: number;
   totalValue: number;
   coveragePct: number;
@@ -188,15 +189,34 @@ export async function buildRiskReport(
   const days = opts.days ?? 90;
   const total = totalValue(s);
 
+  // SINIRLI paralel istek: tek tek (sırayla) beklemek çok varlıklı portföyde yavaş olurdu;
+  // hepsini AYNI ANDA ateşlemek CoinGecko'nun ücretsiz limitine daha kolay takılırdı (thundering
+  // herd). Aradaki denge: aynı anda en fazla CONCURRENCY istek. Sonuçlar orijinal sırayla
+  // toplanır — hangi işçinin önce bittiği kullanıcıya görünen sırayı değiştirmesin.
+  const CONCURRENCY = 4;
+  type Outcome = { index: number; kind: HistoryKind; h: Holding; points: PricePoint[] } | { index: number; h: Holding; reason: string };
+  const outcomes: Outcome[] = [];
+  let next = 0;
+  async function worker(): Promise<void> {
+    for (;;) {
+      const index = next++;
+      const h = s.holdings[index];
+      if (!h) return;
+      const kind = historyKindOf(h);
+      if (!kind) { outcomes.push({ index, h, reason: uncoveredReason(h) }); continue; }
+      const points = await loadHistory(kind, h.symbol!, days);
+      if (!points) { outcomes.push({ index, h, reason: 'geçmiş fiyat şu an alınamadı' }); continue; }
+      outcomes.push({ index, h, kind, points });
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, s.holdings.length) }, worker));
+  outcomes.sort((a, b) => a.index - b.index);
+
   const covered: { h: Holding; points: PricePoint[]; kind: HistoryKind }[] = [];
   const uncovered: UncoveredAsset[] = [];
-
-  for (const h of s.holdings) {
-    const kind = historyKindOf(h);
-    if (!kind) { uncovered.push({ name: h.name, reason: uncoveredReason(h) }); continue; }
-    const points = await loadHistory(kind, h.symbol!, days);
-    if (!points) { uncovered.push({ name: h.name, reason: 'geçmiş fiyat şu an alınamadı' }); continue; }
-    covered.push({ h, points, kind });
+  for (const o of outcomes) {
+    if ('points' in o) covered.push({ h: o.h, points: o.points, kind: o.kind });
+    else uncovered.push({ name: o.h.name, reason: o.reason });
   }
 
   const coveredValue = covered.reduce((a, c) => a + c.h.amount, 0);
@@ -232,6 +252,8 @@ export async function buildRiskReport(
     .sort();
 
   let portfolioVolPct = 0, portfolioDrawdownPct = 0, portfolioAnnualReturnPct = 0;
+  let portfolioReturns: number[] = [];
+  let periodsPerYear = 365;
   if (commonDates.length >= 3) {
     const priceAt = covered.map(c => {
       const m = new Map(c.points.map(p => [p.date, p.price]));
@@ -245,7 +267,9 @@ export async function buildRiskReport(
     const spanDays = (new Date(commonDates[commonDates.length - 1]).getTime() - new Date(commonDates[0]).getTime()) / 86_400_000;
     const perYear = spanDays > 0 ? ((commonDates.length - 1) / spanDays) * 365 : 365;
 
-    portfolioVolPct = annualizedVolatilityPct(dailyReturns(index), perYear);
+    portfolioReturns = dailyReturns(index);
+    periodsPerYear = perYear;
+    portfolioVolPct = annualizedVolatilityPct(portfolioReturns, perYear);
     portfolioDrawdownPct = maxDrawdownPct(index);
     portfolioAnnualReturnPct = annualizedReturnFromPrices(index, perYear);
   }
@@ -254,10 +278,15 @@ export async function buildRiskReport(
   const sharpe = opts.riskFreePct !== undefined
     ? sharpeRatio(portfolioAnnualReturnPct, portfolioVolPct, opts.riskFreePct)
     : undefined;
+  // MAR (minimum kabul edilebilir getiri) için ayrı bir kullanıcı girdisi eklemiyoruz — risksiz
+  // faiz varsayımı pratikte yaygın bir MAR seçimidir, arayüzde zaten "senin varsayımın" etiketli.
+  const sortino = opts.riskFreePct !== undefined && portfolioReturns.length > 0
+    ? sortinoRatio(portfolioAnnualReturnPct, portfolioReturns, periodsPerYear, opts.riskFreePct)
+    : undefined;
 
   return {
     days, assets, decomposition, portfolioVolPct, portfolioDrawdownPct, portfolioAnnualReturnPct,
-    sharpe, coveredValue, totalValue: total, coveragePct, uncovered,
+    sharpe, sortino, coveredValue, totalValue: total, coveragePct, uncovered,
   };
 }
 

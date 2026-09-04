@@ -10,7 +10,7 @@ import { AgentMemoryProfile, RiskLevel, AgentMode, VadeTercihi, mostAskedTopic, 
 import { TrainedFact, findBestMatch } from './agentTraining';
 import {
   realReturnPct, xirrOf, concentrationOf, attributionOf, contributionOf, investmentPaceOf,
-  parseInflationPct, afterTaxOf, allocation, driftOf,
+  parseInflationPct, afterTaxOf, allocation, driftOf, stressTest, counterfactualDeposit,
 } from './analytics';
 
 export interface ChartSpec {
@@ -69,6 +69,8 @@ const INTENT_LABELS: Record<string, string> = {
   'vergi-sonrasi': 'vergi sonrası net getiri',
   'risk-metrik': 'risk metrikleri',
   'hedef-dagilim': 'hedef dağılım sapması',
+  'stres-testi': 'şok senaryosu',
+  'karsi-olgusal': 'mevduat karşılaştırması',
   trained: 'senin öğrettiğin bir konu',
 };
 
@@ -172,6 +174,9 @@ export function proactiveInsights(
   // Kullanıcının girdiği hedef dağılım (targetAllocation.ts). Verilmezse hedef içgörüsü çıkmaz —
   // hedef girmemiş kullanıcıya sapma uyarısı göstermek anlamsız olurdu.
   targets?: Record<AssetType, number>,
+  // "Ajan Ne Biliyor?" panelinden kullanıcının belirttiği risk toleransı. Verilmezse ya da
+  // hiç dokunulmamış varsayılan 'orta' ise ilgili içgörü çıkmaz (bkz. aşağıdaki 6. madde).
+  memory?: AgentMemoryProfile,
 ): Insight[] {
   const out: Insight[] = [];
   const total = totalValue(s);
@@ -237,6 +242,31 @@ export function proactiveInsights(
     });
   }
 
+  // 6) Beyan edilen risk toleransı ile portföyün gerçek şekli arasında uyumsuzluk. Yalnızca
+  // kullanıcı "Ajan Ne Biliyor?" panelinden bunu bilerek DÜŞÜK ya da YÜKSEK seçtiyse tetiklenir —
+  // varsayılan 'orta' hiç dokunulmamış da olabilir, ona dayanarak yorum yapmak yanıltıcı olur.
+  // Betimleyici kip: UYUMSUZLUĞU söyler, ne yapılması gerektiğini önermez — risk toleransına göre
+  // dağılım önermek (örn. "%X kriptoya çek") SPK'nın yalnızca lisanslı kurumlara bıraktığı bir
+  // tavsiye olurdu (bkz. id:'tavsiye' kuralı, targetAllocation.ts "hedef önermez" ilkesiyle aynı sınır).
+  if (memory && memory.prefs.riskLevel !== 'orta') {
+    const riskliPct = alloc.filter(a => a.type === 'kripto' || a.type === 'hisse').reduce((sum, a) => sum + a.pct, 0);
+    if (memory.prefs.riskLevel === 'dusuk' && riskliPct > 50) {
+      out.push({
+        level: 'uyari',
+        text: `Risk toleransını "düşük" olarak belirtmiştin ("Ajan Ne Biliyor?" paneli) ama portföyünün ` +
+          `%${fmtDec(riskliPct, 0)}'ı kripto ve hisse gibi tarihsel olarak oynak sınıflarda — beyan ettiğin ` +
+          `tolerans ile portföyünün şekli arasında bir uyumsuzluk var.`,
+      });
+    } else if (memory.prefs.riskLevel === 'yuksek' && riskliPct < 20 && cashLikePct > 50) {
+      out.push({
+        level: 'bilgi',
+        text: `Risk toleransını "yüksek" olarak belirtmiştin ama portföyünün %${fmtDec(cashLikePct, 0)}'ı ` +
+          `mevduat/döviz gibi düşük oynaklıklı sınıflarda — beyan ettiğin tolerans ile portföyünün şekli ` +
+          `arasında bir uyumsuzluk var.`,
+      });
+    }
+  }
+
   return out;
 }
 
@@ -287,6 +317,11 @@ function pnlBarChart(s: PortfolioState): ChartSpec | undefined {
 // kullanıcının girdiği ya da varsayım). agent.ts SAF kalsın diye buradan okunmaz, geçirilir.
 // Bu sabit yalnızca parametre hiç verilmediğinde (ör. doğrudan çağrılan bir test) devreye girer.
 const VARSAYILAN_ENFLASYON = 32;
+
+// "Mevduatta tutsaydım" karşı-olgusalı için varsayılan yıllık faiz — RiskPanel.tsx'teki
+// DEFAULT_RISK_FREE_PCT ile aynı gerekçe: Türkiye için anahtarsız/resmi bir kaynak yok,
+// kullanıcı metinde bir oran belirtirse o kullanılır (parseInflationPct ile ayrıştırılır).
+const DEFAULT_DEPOSIT_RATE_PCT = 45;
 
 // Öncelik: kullanıcı cümlede bir oran yazdıysa o; yoksa App'ten gelen güncel oran; o da yoksa sabit.
 function enflasyonOrani(text: string, inflationPct?: number): number {
@@ -473,6 +508,28 @@ function hasUnresolvedAction(history: AgentMessage[]): boolean {
 // burada bilinçli olarak kelime köküyle eşleşiliyor (bkz. CLAUDE.md §1.18).
 const CANCEL_PHRASE = /^\s*(vazgeç|iptal|boş ?ver|hayır|olmaz|onaylamıyorum|istemiyorum|yapma)|işlem(i|den)? *(iptal|vazgeç)|(satış|alış)ı iptal/i;
 
+// --- Şok senaryosu (stres testi) — belirli bir sınıf + yüzde ayrıştırma ----
+
+const STRESS_ASSET_WORDS: Record<string, AssetType> = {
+  kripto: 'kripto', hisse: 'hisse', borsa: 'hisse', fon: 'fon',
+  altın: 'altin', altin: 'altin', döviz: 'doviz', dolar: 'doviz', euro: 'doviz',
+  mevduat: 'mevduat',
+};
+
+// "kripto %50 düşerse", "borsa yüzde 30 çökerse ne olur" gibi cümlelerden sınıf + yüzde çıkarır.
+// Eşleşmezse undefined — çağıran taraf o zaman GENEL (varsayılan) senaryoya düşer.
+function detectStressTest(text: string): { type: AssetType; shockPct: number } | undefined {
+  const q = text.toLocaleLowerCase('tr-TR');
+  const m = q.match(
+    /(kripto|hisse|borsa|fon|altın|altin|döviz|dolar|euro|mevduat)[^%\d]{0,15}%?\s*(\d{1,3})\s*%?[^a-zğüşöçı]{0,3}(düşerse|çökerse|kaybederse|erirse|gerilerse|inerse)/,
+  );
+  if (!m) return undefined;
+  const type = STRESS_ASSET_WORDS[m[1]];
+  const pct = Number(m[2]);
+  if (!type || !Number.isFinite(pct) || pct <= 0 || pct > 100) return undefined;
+  return { type, shockPct: pct };
+}
+
 // --- Varlık bazlı sorgular -------------------------------------------------
 
 function bestWorstReply(s: PortfolioState, text: string): string | undefined {
@@ -637,6 +694,18 @@ const CHAT_RULES: Rule[] = [
         );
       }
 
+      // Yukarıdaki zincir yalnızca ELİNDE DURAN pozisyonların gerçekleşmemiş kazancını kapsar.
+      // Geçmişte kapattığın (sattığın) pozisyonlardan gelen gerçekleşmiş K/Z ayrı tutulur —
+      // hangi varlık sınıfından geldiği kayıtlı olmadığı için ona bir stopaj oranı uydurmuyoruz.
+      if (r.realizedGain !== 0) {
+        lines.push(
+          `Ayrıca: geçmişte kapattığın pozisyonlardan bugüne dek toplam ${fmtSigned(r.realizedGain)} ` +
+          `gerçekleşmiş kâr/zararın var (Panel'deki "Gerçekleşen K/Z" kartı). Bu, yukarıdaki zincire ` +
+          `DAHİL DEĞİL — hangi varlık sınıfından geldiği ayrı tutulmadığından doğru stopaj oranını ` +
+          `bilemiyorum, bir oran uydurmak yerine ayrı bir kalem olarak söylüyorum.`,
+        );
+      }
+
       return lines.join('\n\n');
     },
   },
@@ -747,12 +816,12 @@ const CHAT_RULES: Rule[] = [
   // Panel'deki Risk Analizi kartına yönlendirilir ve kapsamın ne olduğu baştan söylenir.
   {
     id: 'risk-metrik',
-    test: /volatilite|standart sapma|sharpe|beta\b|oynaklık|drawdown|düşüş oranı|korelasyon|risk analizi/i,
+    test: /volatilite|standart sapma|sharpe|sortino|beta\b|oynaklık|drawdown|düşüş oranı|korelasyon|risk analizi/i,
     reply: (s) => {
       const canCover = s.holdings.filter(h => h.symbol && (h.type === 'kripto' || h.type === 'doviz'));
       const lines = [
         'Bunları hesaplıyorum — Panel sekmesindeki "Risk Analizi" kartını aç ve "Hesapla"ya bas.',
-        'Volatilite, maksimum düşüş ve Sharpe oranı GEÇMİŞ FİYAT SERİSİ ister. Bu seriyi son 90 gün için ' +
+        'Volatilite, maksimum düşüş, Sharpe ve Sortino oranı GEÇMİŞ FİYAT SERİSİ ister. Bu seriyi son 90 gün için ' +
         'gerçek kaynaklardan çekiyorum: kripto için CoinGecko, döviz için ECB (Frankfurter). ' +
         'Portföy volatilitesini varlıkların ağırlıklı endeksinden hesaplıyorum, yani korelasyon etkisi de içinde.',
       ];
@@ -770,6 +839,61 @@ const CHAT_RULES: Rule[] = [
         );
       }
       return lines.join('\n\n');
+    },
+  },
+  // Şok senaryosu / stres testi. Yeni veri kaynağı GEREKMEZ — bir sınıfın güncel değerine
+  // varsayımsal bir düşüş uygulayıp portföy toplamına etkisini gösteren basit aritmetik
+  // (analytics.ts → stressTest). Korelasyon/diğer sınıfların tepkisi VARSAYILMAZ, bu açıkça
+  // söylenir — gerçek bir çoklu-varlık simülasyonu değil.
+  {
+    id: 'stres-testi',
+    test: /stres testi|şok senaryosu|(kripto|hisse|borsa|fon|altın|altin|döviz|dolar|euro|mevduat)[^\n]{0,25}(düşerse|çökerse|kaybederse|erirse|gerilerse|inerse)/i,
+    reply: (s, text) => {
+      const specific = detectStressTest(text);
+      if (specific) {
+        const r = stressTest(s, specific.type, specific.shockPct);
+        if (!r) return `Portföyünde ${ASSET_LABELS[specific.type]} sınıfında varlık yok — bu senaryoyu hesaplayamam.`;
+        return [
+          `${ASSET_LABELS[r.type]} %${fmtDec(r.shockPct, 0)} değer kaybederse:`,
+          `• O sınıftaki ${fmtTL(r.affectedValue)}'nin ${fmtTL(r.lossAmount)}'si gider.`,
+          `• Portföy toplamın ${fmtTL(totalValue(s))} → ${fmtTL(r.newTotal)}'e iner.`,
+          'Bu basit bir "ne olurdu" hesabı — diğer sınıfların o anda nasıl tepki vereceğini (korelasyon) varsaymaz, yatırım tavsiyesi değildir.',
+        ].join('\n');
+      }
+      const alloc = allocation(s);
+      const riskiest = alloc.find(a => a.type === 'kripto') ?? alloc.find(a => a.type === 'hisse') ?? alloc[0];
+      if (!riskiest) return 'Stres testi için önce portföyüne varlık eklemen gerek.';
+      const r20 = stressTest(s, riskiest.type, 20);
+      const r40 = stressTest(s, riskiest.type, 40);
+      if (!r20 || !r40) return 'Stres testi için önce portföyüne varlık eklemen gerek.';
+      return [
+        `En büyük ağırlığın ${ASSET_LABELS[riskiest.type]} (%${fmtDec(riskiest.pct, 0)}). İki basit şok senaryosu:`,
+        `• %20 düşerse: ${fmtTL(totalValue(s))} → ${fmtTL(r20.newTotal)} (-${fmtTL(r20.lossAmount)}).`,
+        `• %40 düşerse: ${fmtTL(totalValue(s))} → ${fmtTL(r40.newTotal)} (-${fmtTL(r40.lossAmount)}).`,
+        'Belirli bir sınıf ve yüzde söylersen (ör. "kripto %60 düşerse ne olur") onu hesaplarım. Korelasyon/diğer sınıfların tepkisi dahil değildir — yatırım tavsiyesi değildir.',
+      ].join('\n');
+    },
+  },
+  // Karşı-olgusal: "mevduatta tutsaydım" — aynı alış/satış nakit akışları, yatırım yerine
+  // sabit oranlı mevduatta büyüseydi bugün ne olurdu? Oran risksiz faiz/enflasyon varsayımlarıyla
+  // AYNI mantık: anahtarsız kaynağı yok, kullanıcı girer, "varsayım" diye etiketlenir.
+  {
+    id: 'karsi-olgusal',
+    test: /mevduatta (tutsayd|kalsayd|bıraksayd)|mevduata yatırsayd|hep mevduatta olsa|bankada tutsayd|mevduatla karşılaştır/i,
+    reply: (s, text) => {
+      const rate = parseInflationPct(text) ?? DEFAULT_DEPOSIT_RATE_PCT;
+      const hypothetical = counterfactualDeposit(s, rate);
+      if (hypothetical === undefined) return 'Bu karşılaştırmayı yapmak için önce bir işlem geçmişin olması gerek.';
+      const actual = totalValue(s);
+      const diff = actual - hypothetical;
+      return [
+        `Aynı parayı yatırdığın tarihlerde, yatırım yerine %${fmtDec(rate, 0)} yıllık sabit mevduat faiziyle ` +
+        `bıraksaydın bugün ${fmtTL(hypothetical)}'ye sahip olurdun.`,
+        `Gerçekte bugün elindeki ${fmtTL(actual)} — aradaki fark ${fmtSigned(diff)} ` +
+        `(${diff >= 0 ? 'yatırımların bu mevduat senaryosunu geçti' : 'bu mevduat senaryosu daha iyi çıkardı'}).`,
+        `%${fmtDec(rate, 0)} oranı bir VARSAYIM — Türkiye için anahtarsız/resmi bir tarihsel mevduat faizi ` +
+        `kaynağı yok, bu yüzden sabit tutuluyor. Farklı bir oranla denemek için "%50 mevduat faiziyle karşılaştır" gibi yaz.`,
+      ].join('\n');
     },
   },
   // Yedekleme / geri yükleme. Bu yetenekler üründe ZATEN VAR (Panel ve İşlemler kartlarındaki
@@ -805,6 +929,8 @@ const CHAT_RULES: Rule[] = [
       '• "vergiden sonra ne kalıyor" — brüt → stopaj → net → reel zincirinin tamamı',
       '• "dağılımımı çiz" ya da "yatırım grafiğimi göster" — sohbet içinde grafik çizerim',
       '• enflasyon, faiz, altın, risk, projeksiyon gibi genel konular',
+      '• "kripto %50 düşerse ne olur" / "stres testi" — basit şok senaryosu',
+      '• "mevduatta tutsaydım ne olurdu" — aynı parayı sabit faizli mevduatta bıraksaydın bugün ne olurdu',
       '• "nasıl yedek alırım" — portföyünü CSV\'ye aktarma ve geri yükleme adımları',
       '• "beni ne hatırlıyorsun" — zamanla hangi konularla ilgilendiğini öğrenirim (yalnızca tarayıcında saklanır)',
       '• "Ajanı Eğit" panelinden bana yeni soru-cevaplar öğretebilirsin — öğrettiğin bilgi her zaman diğer cevaplarımdan önce gelir',
@@ -839,7 +965,9 @@ const CHAT_RULES: Rule[] = [
   },
   {
     test: /\baltın\b/i,
-    reply: () => 'Altın tarihsel olarak kriz ve enflasyon dönemlerinde koruma sağlar; getirisi dalgalıdır ama portföyde %10-20 bandında tampon görevi görmesi yaygın bir tercih.',
+    // Betimleyici kipte — belirli bir oran ÖNERMEZ (bkz. §1.13 fiil kipi düzeltmesi, targetAllocation.ts
+    // "ürün hedef önermez" ilkesiyle aynı sınır). Ne kadar altın tutulacağı SPK lisanslı kurumların işi.
+    reply: () => 'Altın tarihsel olarak kriz ve enflasyon dönemlerinde değer koruma eğilimi gösterir; kısa vadede fiyatı dalgalı olabilir. Portföyde ne kadar yer tutması gerektiği kişisel risk toleransına bağlıdır — bu bir oran önermez, yalnızca altının bu davranışını anlatır.',
   },
   {
     test: /projeksiyon|gelecek|birikim|hedef/i,
@@ -852,7 +980,9 @@ const CHAT_RULES: Rule[] = [
       const top = alloc[0];
       if (!top) return 'Risk değerlendirmesi için önce portföyüne varlık ekle.';
       return top.pct > 50
-        ? `Ana riskin konsantrasyon: %${fmtDec(top.pct, 0)} ağırlıkla ${ASSET_LABELS[top.type]}. Tek sınıfa bağımlılığı azaltmak ilk adım olabilir.`
+        // Betimleyici kipte — analyzePortfolio'daki konsantrasyon uyarısıyla (§1.13) aynı örüntü:
+        // SONUCU anlatır, EYLEMİ önermez.
+        ? `Ana riskin konsantrasyon: %${fmtDec(top.pct, 0)} ağırlıkla ${ASSET_LABELS[top.type]}. Bu sınıf değer kaybederse toplam portföyün orantısız etkilenir — tek bir şoka bağımlılığın yüksek.`
         : 'Portföyün sınıflara dağılmış durumda; ana riskler piyasa geneli (sistematik) risk ve enflasyon. Vade ufkunu netleştirmek risk toleransını belirlemenin en sağlam yolu.';
     },
   },
@@ -936,18 +1066,28 @@ export function chatReply(
   const text = userText.trim();
   if (!text) return { text: 'Bir şey yazmadın — bir soru sorabilir ya da "yardım" yazabilirsin.' };
 
-  // Kullanıcının doğrudan öğrettiği bilgiler — built-in kurallardan ÖNCE kontrol edilir,
-  // çünkü kullanıcı bunu bilerek/isteyerek öğretti; ajanın davranışını gerçekten
-  // değiştirebilmesi bunun anlamlı olmasının şartı.
-  const trained = findBestMatch(trainedFacts, text);
-  if (trained) return { text: trained.answer, intentId: 'trained', trainedFactId: trained.id };
-
+  // GÜVENLİK SIRASI — bu ikisi öğretilmiş bilgiden bile ÖNCE gelir ve hiçbir koşulda
+  // ezilemez: (1) SPK al/sat tavsiyesi reddi, (2) bekleyen işlem iptali. "Eğitim" özelliği
+  // kullanıcının BİLEREK öğrettiği davranışı değiştirsin diye built-in kuralların önüne
+  // geçebiliyor (agentTraining.ts'teki bilinçli tasarım) — ama bulanık (Jaccard) bir eşleşme
+  // regülasyon reddini ya da bir işlem iptalini gölgelememeli. Anayasa: bir denetim/güvenlik
+  // engeli ajan çıktısıyla geçersiz kılınamaz.
+  const tavsiyeRule = CHAT_RULES.find(r => r.id === 'tavsiye');
+  if (tavsiyeRule?.test.test(text)) {
+    return { text: tavsiyeRule.reply(s, text, taxRates, targets, inflationPct), intentId: 'tavsiye' };
+  }
   // Yazıyla iptal — yalnızca gerçekten bekleyen bir öneri varsa. Alım/satım ayrıştırmasından
   // ÖNCE gelmeli: "satışı iptal et" cümlesi içinde "satış" geçtiği için aksi halde yanlışlıkla
   // yeni bir satış komutu gibi değerlendirilebilirdi.
   if (hasUnresolvedAction(history) && CANCEL_PHRASE.test(text)) {
     return { text: 'Tamam, bekleyen işlemi iptal ettim. Hiçbir veri değişmedi.', cancelPending: true };
   }
+
+  // Kullanıcının doğrudan öğrettiği bilgiler — yukarıdaki iki güvenlik kontrolünden SONRA,
+  // ama diğer built-in kurallardan ÖNCE kontrol edilir; kullanıcı bunu bilerek/isteyerek
+  // öğretti, ajanın davranışını gerçekten değiştirebilmesi bunun anlamlı olmasının şartı.
+  const trained = findBestMatch(trainedFacts, text);
+  if (trained) return { text: trained.answer, intentId: 'trained', trainedFactId: trained.id };
 
   // Alım/satım komutu — gerçek veri değişikliği burada YAPILMAZ, yalnızca önerilir.
   // Kullanıcı sohbet balonundaki Onayla/Vazgeç ile onaylamadan actions.addTxn çağrılmaz.
@@ -967,7 +1107,6 @@ export function chatReply(
   // Takip cümlesi ("devam et", "biraz daha anlat"...) — son konuşulan konuyu genişlet.
   if (FOLLOWUP_TEST.test(text)) {
     const lastIntent = lastIntentFrom(history);
-    if (lastIntent === 'analiz') return { text: analyzePortfolio(s, inflationPct).join('\n\n'), intentId: 'analiz' };
     if (lastIntent === 'grafik-dagilim' || lastIntent === 'grafik-yatirim' || lastIntent === 'grafik-pnl') {
       const chart = lastIntent === 'grafik-dagilim' ? allocationChart(s)
         : lastIntent === 'grafik-yatirim' ? investmentHistoryChart(s)
@@ -980,6 +1119,14 @@ export function chatReply(
           intentId: lastIntent,
         };
       }
+    }
+    // Diğer TÜM built-in kural konularında da devam edilebilsin (önceden yalnızca 'analiz' ve
+    // üç grafik türü destekleniyordu; vergi/XIRR/hedef/risk gibi konulardan sonra "devam et"
+    // fallback'e düşüyordu). 'tavsiye' bilerek hariç — bir reddin "devamı" olmaz, aynı reddi
+    // tekrarlamak yerine kullanıcı normal fallback'e düşsün.
+    if (lastIntent && lastIntent !== 'tavsiye') {
+      const rule = CHAT_RULES.find(r => r.id === lastIntent);
+      if (rule) return { text: rule.reply(s, text, taxRates, targets, inflationPct), intentId: lastIntent };
     }
     return { text: 'Hangi konuda devam edeyim? "analiz", "dağılım", "risk" ya da bir varlık adı yazabilirsin.', isFallback: true };
   }

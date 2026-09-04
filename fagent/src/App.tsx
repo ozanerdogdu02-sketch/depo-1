@@ -7,7 +7,7 @@ import {
   Sparkles, AlertTriangle, CheckCircle2, Receipt, Target, ShieldCheck,
 } from 'lucide-react';
 import { parseOtoAktarim } from './otoAktarim';
-import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, fmtDec, fmtCompact, investmentHistoryOf, todayLocalDate, ASSET_LABELS, AssetType, Holding } from './store';
+import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, fmtDec, fmtCompact, investmentHistoryOf, todayLocalDate, ASSET_LABELS, AssetType, Holding, Txn } from './store';
 import { analyzePortfolio, chatReply, buildGreeting, extractMentionedHoldings, proactiveInsights, AgentMessage, ChartSpec, Insight } from './agent';
 import {
   getProfile, recordTurn, resetMemory, updatePrefs, recordQuestion, recordAdvice, recordAnalysis,
@@ -26,6 +26,12 @@ import { RiskPanel } from './RiskPanel';
 
 const PIE_COLORS = ['#2dd4a7', '#38bdf8', '#fbbf24', '#a78bfa', '#f87171', '#f472b6'];
 
+// İşlem türü → rozet metni/rengi/işaret. 'gelir' (temettü/faiz) 'alış' gibi POZİTİF gösterilir
+// (portföye giren para) ama karıştırılmasın diye ayrı bir renk/etiket taşır.
+const TXN_KIND_LABEL: Record<Txn['kind'], string> = { alis: 'ALIŞ', satis: 'SATIŞ', gelir: 'GELİR' };
+const TXN_KIND_BADGE: Record<Txn['kind'], string> = { alis: 'badge-green', satis: 'badge-red', gelir: 'badge-blue' };
+const TXN_KIND_SIGN: Record<Txn['kind'], '+' | '−'> = { alis: '+', satis: '−', gelir: '+' };
+
 type Tab = 'panel' | 'bugun' | 'hisseler' | 'fonlar' | 'kripto' | 'kriptopiyasa' | 'islemler' | 'projeksiyon' | 'ajan';
 
 // Varlık ekleme formunda, seçili türe göre örnek ad ipucu — kripto sekmesinde "BIST 30 Fonu"
@@ -37,6 +43,9 @@ const NAME_PLACEHOLDERS: Record<AssetType, string> = {
   altin: 'ör. Gram Altın',
   kripto: 'ör. Bitcoin',
   mevduat: 'ör. Vadeli Mevduat',
+  tahvil: 'ör. Hazine Eurobond 2030',
+  bes: 'ör. BES Emeklilik Fonu',
+  gayrimenkul: 'ör. Kadıköy Daire',
 };
 
 // Küçük/büyük harf ve Türkçe karakter (İ/ı) duyarlı olmayan basit alt-metin araması.
@@ -110,7 +119,10 @@ function ProactiveInsightsCard({ targets }: { targets: TargetAllocation }) {
   // değiştiği anda sapma içgörüsü de tazelenir. İki kartın ayrı state tutması bayat sayı üretirdi.
   const inf = useInflation();
   const inflation = inf.pct;
-  const insights = useMemo(() => proactiveInsights(s, inflation, targets), [s, inflation, targets]);
+  // Risk toleransı tercihini de taze okuyoruz (Ajan sekmesinde değiştirilebilir) — kart ile
+  // ajanın farklı bir uyumsuzluk sonucu göstermesi en kötü senaryo olurdu (bkz. §1.16/§1.18 dersi).
+  const memory = getProfile();
+  const insights = useMemo(() => proactiveInsights(s, inflation, targets, memory), [s, inflation, targets, memory]);
   if (insights.length === 0) return null;
 
   return (
@@ -1067,10 +1079,10 @@ function Bugun() {
         {todaysTxns.map(t => (
           <div key={t.id} className="list-row">
             <span>
-              <span className={`badge ${t.kind === 'alis' ? 'badge-green' : 'badge-red'}`}>{t.kind === 'alis' ? 'ALIŞ' : 'SATIŞ'}</span>
+              <span className={`badge ${TXN_KIND_BADGE[t.kind]}`}>{TXN_KIND_LABEL[t.kind]}</span>
               <span style={{ marginLeft: 10 }}>{t.holdingName}</span>
             </span>
-            <span className="mono sub">{t.kind === 'alis' ? '+' : '−'}{fmtTL(t.amount)}</span>
+            <span className="mono sub">{TXN_KIND_SIGN[t.kind]}{fmtTL(t.amount)}</span>
           </div>
         ))}
       </div>
@@ -1081,7 +1093,7 @@ function Bugun() {
 function Islemler({ query }: { query: string }) {
   const s = usePortfolio();
   const [holdingId, setHoldingId] = useState('');
-  const [kind, setKind] = useState<'alis' | 'satis'>('alis');
+  const [kind, setKind] = useState<Txn['kind']>('alis');
   const [amount, setAmount] = useState('');
   const [commission, setCommission] = useState('');
   const [amountError, setAmountError] = useState<string | null>(null);
@@ -1097,9 +1109,15 @@ function Islemler({ query }: { query: string }) {
       setAmountError(`Bakiyeyi aşamaz — ${selectedHolding.name} için güncel değer ${fmtTL(selectedHolding.amount)}.`);
       return;
     }
-    const feeRaw = Number(commission);
-    const fee = Number.isFinite(feeRaw) && feeRaw > 0 ? Math.round(feeRaw) : 0;
-    actions.addTxn(selectedHolding.id, kind, Math.round(n), fee);
+    if (kind === 'gelir') {
+      // Temettü/faiz: varlığın kendisi değişmez, tamamı gerçekleşmiş kâra eklenir — komisyon alanı
+      // bu türde anlamsız (kesinti varsa kullanıcı zaten net tutarı girer).
+      actions.addIncome(selectedHolding.id, Math.round(n));
+    } else {
+      const feeRaw = Number(commission);
+      const fee = Number.isFinite(feeRaw) && feeRaw > 0 ? Math.round(feeRaw) : 0;
+      actions.addTxn(selectedHolding.id, kind, Math.round(n), fee);
+    }
     setAmount('');
     setCommission('');
     setAmountError(null);
@@ -1113,7 +1131,7 @@ function Islemler({ query }: { query: string }) {
         </div>
         <ol style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingLeft: 18, fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.6 }}>
           <li>Aşağıdan bir varlık seç — yoksa önce <strong style={{ color: 'var(--text)' }}>Panel</strong> sekmesinden varlık ekle.</li>
-          <li>Alış ya da Satış seç.</li>
+          <li>Alış, Satış ya da Gelir (temettü/faiz) seç.</li>
           <li>Tutarı gir ve Kaydet'e bas — varlığın bakiyesi otomatik güncellenir.</li>
         </ol>
       </div>
@@ -1138,10 +1156,11 @@ function Islemler({ query }: { query: string }) {
                 <label className="field" htmlFor="t-kind">İşlem türü</label>
                 <select
                   id="t-kind" className="select" value={kind}
-                  onChange={e => { setKind(e.target.value as 'alis' | 'satis'); setAmountError(null); }}
+                  onChange={e => { setKind(e.target.value as Txn['kind']); setAmountError(null); }}
                 >
                   <option value="alis">Alış</option>
                   <option value="satis">Satış</option>
+                  <option value="gelir">Gelir (temettü/faiz)</option>
                 </select>
               </div>
             </div>
@@ -1156,22 +1175,26 @@ function Islemler({ query }: { query: string }) {
                   onKeyDown={e => { if (e.key === 'Enter') add(); }}
                 />
               </div>
-              <div>
-                <label className="field" htmlFor="t-commission">Komisyon (TL, opsiyonel)</label>
-                <input
-                  id="t-commission" className="input" type="number" min="0" step="any"
-                  placeholder="0" value={commission}
-                  onChange={e => setCommission(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') add(); }}
-                />
-              </div>
+              {kind !== 'gelir' && (
+                <div>
+                  <label className="field" htmlFor="t-commission">Komisyon (TL, opsiyonel)</label>
+                  <input
+                    id="t-commission" className="input" type="number" min="0" step="any"
+                    placeholder="0" value={commission}
+                    onChange={e => setCommission(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') add(); }}
+                  />
+                </div>
+              )}
             </div>
             <div className="row" style={{ marginTop: 12, alignItems: 'flex-end', justifyContent: 'flex-end' }}>
               <button className="btn btn-primary btn-inline" onClick={add} disabled={!(Number(amount) > 0)}>Kaydet</button>
             </div>
             {amountError && <p className="hint" style={{ marginTop: 8, color: 'var(--red)' }}>{amountError}</p>}
             <p className="hint" style={{ marginTop: 8 }}>
-              Komisyon girersen gerçek maliyete katılır: alışta maliyeti artırır, satışta gerçekleşen kârdan düşülür — böylece kâr/zarar daha gerçekçi olur.
+              {kind === 'gelir'
+                ? 'Gelir (temettü/faiz/kupon): varlığın miktarı ve maliyeti DEĞİŞMEZ, girdiğin tutar doğrudan gerçekleşmiş kâra eklenir.'
+                : 'Komisyon girersen gerçek maliyete katılır: alışta maliyeti artırır, satışta gerçekleşen kârdan düşülür — böylece kâr/zarar daha gerçekçi olur.'}
             </p>
           </>
         )}
@@ -1191,11 +1214,11 @@ function Islemler({ query }: { query: string }) {
         {visibleTxns.map(t => (
           <div key={t.id} className="list-row">
             <span>
-              <span className={`badge ${t.kind === 'alis' ? 'badge-green' : 'badge-red'}`}>{t.kind === 'alis' ? 'ALIŞ' : 'SATIŞ'}</span>
+              <span className={`badge ${TXN_KIND_BADGE[t.kind]}`}>{TXN_KIND_LABEL[t.kind]}</span>
               <span style={{ marginLeft: 10 }}>{t.holdingName}</span>
             </span>
             <span className="mono sub">
-              {t.kind === 'alis' ? '+' : '−'}{fmtTL(t.amount)}
+              {TXN_KIND_SIGN[t.kind]}{fmtTL(t.amount)}
               {t.commission ? ` · komisyon ${fmtTL(t.commission)}` : ''} · {new Date(t.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
             </span>
           </div>
@@ -1418,9 +1441,10 @@ function TeachPanel({ facts, onTeach, onDelete, open, onToggleOpen, q, a, onQCha
       {open && (
         <div style={{ marginTop: 14 }}>
           <p className="hint" style={{ marginBottom: 10 }}>
-            Bir soru-cevap öğret — bundan sonra benzer bir soru sorduğunda ajan önce bunu kullanır (built-in
-            cevaplardan önce gelir). Bu bir yapay zeka eğitimi değil: kelime örtüşmesine göre eşleşen, senin
-            yazdığın sabit bir cevap kartıdır. Yalnızca tarayıcında saklanır.
+            Bir soru-cevap öğret — bundan sonra benzer bir soru sorduğunda ajan önce bunu kullanır (çoğu
+            built-in cevaptan önce gelir; al/sat tavsiyesi reddi ve bekleyen işlem iptali istisna — bu ikisi
+            hiçbir öğretilmiş bilgiyle ezilemez). Bu bir yapay zeka eğitimi değil: kelime örtüşmesine göre
+            eşleşen, senin yazdığın sabit bir cevap kartıdır. Yalnızca tarayıcında saklanır.
           </p>
           <div>
             <label className="field" htmlFor="teach-q">Soru</label>

@@ -85,7 +85,9 @@ export function CryptoMarket() {
     return [...base].sort((a, b) => {
       switch (sortKey) {
         case 'price': return (a.priceTry - b.priceTry) * dir;
-        case 'change': return (a.change24hPct - b.change24hPct) * dir;
+        // Veri yoksa 0 varsaymadan sırala — sıralama amaçlı geçici bir karşılaştırma değeri,
+        // görüntülenen değeri ETKİLEMEZ (aşağıda ayrı ele alınır).
+        case 'change': return ((a.change24hPct ?? 0) - (b.change24hPct ?? 0)) * dir;
         case 'cap': return (a.marketCapTry - b.marketCapTry) * dir;
         default: return ((a.rank ?? 9999) - (b.rank ?? 9999)) * dir;
       }
@@ -188,7 +190,8 @@ export function CryptoMarket() {
         <div className="card">
           {filtered.length === 0 && <p className="sub">Aramanla eşleşen coin yok.</p>}
           {visible.map(coin => {
-            const up = coin.change24hPct >= 0;
+            const hasChange = coin.change24hPct !== undefined;
+            const up = hasChange && coin.change24hPct! >= 0;
             return (
               <div key={coin.id} className="list-row cm-row" style={{ flexWrap: 'wrap', gap: 8 }}>
                 <div style={{ minWidth: 150, flex: '1 1 150px' }}>
@@ -211,8 +214,8 @@ export function CryptoMarket() {
 
                 <div style={{ textAlign: 'right', minWidth: 110 }}>
                   <div className="mono" style={{ fontWeight: 600 }}>{fmtTL(coin.priceTry)}</div>
-                  <div className="mono sub" style={{ color: up ? 'var(--accent)' : 'var(--red)' }}>
-                    {fmtPct(coin.change24hPct)} <span style={{ opacity: 0.7 }}>24s</span>
+                  <div className="mono sub" style={{ color: hasChange ? (up ? 'var(--accent)' : 'var(--red)') : 'var(--faint)' }}>
+                    {hasChange ? fmtPct(coin.change24hPct!) : 'veri yok'} <span style={{ opacity: 0.7 }}>24s</span>
                   </div>
                 </div>
 

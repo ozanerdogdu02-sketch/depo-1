@@ -41,10 +41,12 @@ export function exportHoldingsCsv(holdings: Holding[]): void {
   downloadCsv(`fagent-varliklar-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(rows));
 }
 
+const TXN_KIND_LABEL: Record<Txn['kind'], string> = { alis: 'Alış', satis: 'Satış', gelir: 'Gelir' };
+
 export function exportTxnsCsv(txns: Txn[]): void {
   const rows: string[][] = [
     ['Tarih', 'Varlık', 'İşlem', 'Tutar (TL)', 'Komisyon (TL)'],
-    ...txns.map(t => [t.date, t.holdingName, t.kind === 'alis' ? 'Alış' : 'Satış', t.amount.toFixed(2), (t.commission ?? 0).toFixed(2)]),
+    ...txns.map(t => [t.date, t.holdingName, TXN_KIND_LABEL[t.kind], t.amount.toFixed(2), (t.commission ?? 0).toFixed(2)]),
   ];
   downloadCsv(`fagent-islemler-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(rows));
 }

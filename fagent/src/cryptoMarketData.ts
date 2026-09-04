@@ -14,7 +14,9 @@ export interface CryptoMarketCoin {
   symbol: string; // "btc"
   name: string; // "Bitcoin"
   priceTry: number; // güncel fiyat (TRY)
-  change24hPct: number; // 24s değişim yüzdesi (+/-)
+  // 24s değişim yüzdesi (+/-). CoinGecko bazen bu alanı hiç göndermez — undefined "veri yok"
+  // demektir, 0 "değişim yok" demektir; ikisi aynı şey DEĞİL, bu yüzden ayrı tutulur.
+  change24hPct: number | undefined;
   marketCapTry: number; // piyasa değeri (TRY)
   rank?: number; // piyasa değeri sıralaması
   sparkline?: number[]; // son 7 günün fiyat serisi — satır içi mini grafik için
@@ -155,7 +157,7 @@ export async function fetchTopCoins(count = DEFAULT_COIN_COUNT): Promise<CryptoM
       symbol: item.symbol,
       name: item.name,
       priceTry: item.current_price,
-      change24hPct: typeof change === 'number' && Number.isFinite(change) ? change : 0,
+      change24hPct: typeof change === 'number' && Number.isFinite(change) ? change : undefined,
       marketCapTry: item.market_cap,
       rank: typeof item.market_cap_rank === 'number' ? item.market_cap_rank : undefined,
       sparkline: Array.isArray(spark) && spark.length > 2 && spark.every((p: unknown) => typeof p === 'number' && Number.isFinite(p))
