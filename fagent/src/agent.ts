@@ -22,6 +22,7 @@ export interface ChartSpec {
 }
 
 export interface AgentMessage {
+  id?: string; // yalnızca AI mesajlarında dolu — yanıt gelince bu id'den bulunup güncellenir
   role: 'agent' | 'user';
   text: string;
   chart?: ChartSpec;
@@ -32,6 +33,12 @@ export interface AgentMessage {
   rated?: 'up' | 'down';
   pendingAction?: PendingAction; // dolu ise Onayla/Vazgeç butonları gösterilir
   actionResolved?: 'confirmed' | 'cancelled';
+  // Gerçek AI katmanı (aiAgent.ts) — yalnızca kullanıcı kendi Worker'ını bağladıysa VE yerel
+  // kurallar soruyu tanımadıysa (fallback) devreye girer. aiPending: yanıt bekleniyor (yükleniyor
+  // göstergesi). aiGenerated: bu metin YEREL KURALLARDAN değil bir dil modelinden geldi — kullanıcı
+  // hangi cevabın "hesaplanmış" hangisinin "sohbet edilmiş" olduğunu ayırt edebilsin diye rozetlenir.
+  aiPending?: boolean;
+  aiGenerated?: boolean;
 }
 
 export interface AgentReply {
@@ -513,7 +520,7 @@ const CANCEL_PHRASE = /^\s*(vazgeç|iptal|boş ?ver|hayır|olmaz|onaylamıyorum|
 const STRESS_ASSET_WORDS: Record<string, AssetType> = {
   kripto: 'kripto', hisse: 'hisse', borsa: 'hisse', fon: 'fon',
   altın: 'altin', altin: 'altin', döviz: 'doviz', dolar: 'doviz', euro: 'doviz',
-  mevduat: 'mevduat',
+  mevduat: 'mevduat', tahvil: 'tahvil', eurobond: 'tahvil', bes: 'bes', gayrimenkul: 'gayrimenkul',
 };
 
 // "kripto %50 düşerse", "borsa yüzde 30 çökerse ne olur" gibi cümlelerden sınıf + yüzde çıkarır.
@@ -521,7 +528,7 @@ const STRESS_ASSET_WORDS: Record<string, AssetType> = {
 function detectStressTest(text: string): { type: AssetType; shockPct: number } | undefined {
   const q = text.toLocaleLowerCase('tr-TR');
   const m = q.match(
-    /(kripto|hisse|borsa|fon|altın|altin|döviz|dolar|euro|mevduat)[^%\d]{0,15}%?\s*(\d{1,3})\s*%?[^a-zğüşöçı]{0,3}(düşerse|çökerse|kaybederse|erirse|gerilerse|inerse)/,
+    /(kripto|hisse|borsa|fon|altın|altin|döviz|dolar|euro|mevduat|tahvil|eurobond|bes|gayrimenkul)[^%\d]{0,15}%?\s*(\d{1,3})\s*%?[^a-zğüşöçı]{0,3}(düşerse|çökerse|kaybederse|erirse|gerilerse|inerse)/,
   );
   if (!m) return undefined;
   const type = STRESS_ASSET_WORDS[m[1]];
@@ -847,7 +854,7 @@ const CHAT_RULES: Rule[] = [
   // söylenir — gerçek bir çoklu-varlık simülasyonu değil.
   {
     id: 'stres-testi',
-    test: /stres testi|şok senaryosu|(kripto|hisse|borsa|fon|altın|altin|döviz|dolar|euro|mevduat)[^\n]{0,25}(düşerse|çökerse|kaybederse|erirse|gerilerse|inerse)/i,
+    test: /stres testi|şok senaryosu|(kripto|hisse|borsa|fon|altın|altin|döviz|dolar|euro|mevduat|tahvil|eurobond|bes|gayrimenkul)[^\n]{0,25}(düşerse|çökerse|kaybederse|erirse|gerilerse|inerse)/i,
     reply: (s, text) => {
       const specific = detectStressTest(text);
       if (specific) {

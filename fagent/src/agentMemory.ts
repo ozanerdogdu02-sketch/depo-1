@@ -22,7 +22,7 @@ export interface AgentPrefs {
   riskLevel: RiskLevel; // risk seviyesi
   agentMode: AgentMode; // ajan modu: temkinli / dengeli / agresif
   vade: VadeTercihi; // vade tercihi: kısa / orta / uzun
-  interests: AssetType[]; // ilgi alanı: hisse, kripto, fon, döviz, altın, mevduat
+  interests: AssetType[]; // ilgi alanı — store.ts ASSET_LABELS'taki tüm sınıflar (dinamik)
 }
 
 const RECENT_CAP = 5; // son sorular / son öneriler için tutulacak azami sayı

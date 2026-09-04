@@ -179,6 +179,9 @@ function uncoveredReason(h: Holding): string {
   if (h.type === 'fon') return 'TEFAS fonu için anahtarsız tarihsel fiyat kaynağı yok';
   if (h.type === 'altin') return 'altın için doğrulanmış anahtarsız fiyat kaynağı yok';
   if (h.type === 'mevduat') return 'mevduat piyasa fiyatıyla dalgalanmaz';
+  if (h.type === 'tahvil') return 'tahvil/Eurobond için anahtarsız tarihsel fiyat kaynağı yok';
+  if (h.type === 'bes') return 'BES fonu için anahtarsız tarihsel fiyat kaynağı yok';
+  if (h.type === 'gayrimenkul') return 'gayrimenkul için likit bir piyasa fiyatı yok';
   return 'canlı fiyata bağlı değil (elle girilmiş değer)';
 }
 

@@ -23,6 +23,7 @@ import { exportHoldingsCsv, exportTxnsCsv, parseHoldingsCsv } from './csv';
 import { CURRENCIES, COINS, fetchTryRate, fetchCryptoTryPrice, MarketFetchError } from './market';
 import { CryptoMarket } from './CryptoMarket';
 import { RiskPanel } from './RiskPanel';
+import { askAi, isAiConfigured, getAiProxyUrl, setAiProxyUrl, resetAiProxyUrl, AiProxyError, AiChatMessage } from './aiAgent';
 
 const PIE_COLORS = ['#2dd4a7', '#38bdf8', '#fbbf24', '#a78bfa', '#f87171', '#f472b6'];
 
@@ -1650,6 +1651,9 @@ function Ajan() {
   const [teachOpen, setTeachOpen] = useState(false);
   const [teachQ, setTeachQ] = useState('');
   const [teachA, setTeachA] = useState('');
+  const [aiUrl, setAiUrl] = useState(() => getAiProxyUrl());
+  const [aiUrlDraft, setAiUrlDraft] = useState(() => getAiProxyUrl());
+  const [aiOpen, setAiOpen] = useState(false);
 
   const runAnalysis = () => {
     recordTurn('analiz', []);
@@ -1691,18 +1695,48 @@ function Ajan() {
       recordFactUse(reply.trainedFactId);
       setFacts(getTrainedFacts());
     }
+
+    // Yerel kurallar bu soruyu tanımadıysa (fallback) VE kullanıcı kendi AI worker'ını bağladıysa,
+    // gerçek bir dil modeline sorulur — SADECE bu durumda. Güvenlik-kritik yollar (SPK tavsiye
+    // reddi, işlem iptali/onayı, öğretilmiş bilgi) chatReply İÇİNDE bundan ÖNCE kesin olarak
+    // çözülür ve asla isFallback döndürmez — bu yüzden AI'a hiçbir zaman ulaşmazlar (bkz. agent.ts
+    // chatReply güvenlik sırası yorumu).
+    const wantsAi = reply.isFallback && isAiConfigured();
+    const aiMsgId = wantsAi ? `ai${Date.now()}` : undefined;
+
     setMessages(m => {
       // Yazıyla iptal ("vazgeç") — Vazgeç düğmesiyle BİREBİR aynı sonuç: bekleyen öneri
       // kapatılır, hiçbir actions.* çağrılmaz. Butonlar da disabled'a geçsin diye aynı
       // actionResolved alanı set ediliyor.
       const base = reply.cancelPending ? cancelLastPending(m) : m;
-      return [...base, userMsg, {
+      const next: AgentMessage[] = [...base, userMsg, {
         role: 'agent', text: reply.text, chart: reply.chart, intentId: reply.intentId,
         trainedFactId: reply.trainedFactId, isFallback: reply.isFallback, ratable: !reply.pendingAction,
         pendingAction: reply.pendingAction,
       }];
+      if (wantsAi && aiMsgId) {
+        next.push({ role: 'agent', id: aiMsgId, text: '', aiPending: true, ratable: false });
+      }
+      return next;
     });
     setInput('');
+
+    if (wantsAi && aiMsgId) {
+      const history: AiChatMessage[] = messages
+        .filter(mm => mm.text)
+        .slice(-10)
+        .map(mm => ({ role: mm.role === 'user' ? 'user' : 'assistant', content: mm.text }));
+      askAi(s, text, history)
+        .then(aiText => {
+          setMessages(m => m.map(mm => mm.id === aiMsgId ? { ...mm, text: aiText, aiPending: false, aiGenerated: true, ratable: true } : mm));
+        })
+        .catch(err => {
+          const msg = err instanceof AiProxyError ? err.message : 'AI şu an yanıt veremedi.';
+          setMessages(m => m.map(mm => mm.id === aiMsgId
+            ? { ...mm, text: `${msg} Yukarıdaki genel öneriyi kullanabilirsin.`, aiPending: false, ratable: false }
+            : mm));
+        });
+    }
   };
 
   // Ajan bir alım/satım komutu ÖNERDİĞİNDE (pendingAction) burada onaylanana kadar hiçbir
@@ -1787,7 +1821,16 @@ function Ajan() {
         <div className="chat-box">
           {messages.map((m, i) => (
             <div key={i} className={`msg ${m.role === 'agent' ? 'msg-agent' : 'msg-user'}`}>
-              {m.text}
+              {m.aiGenerated && (
+                <div className="hint" style={{ margin: '0 0 4px', color: 'var(--blue)', fontSize: 11 }}>
+                  🤖 AI yanıtı — senin bağladığın modelden, yerel kuraldan değil
+                </div>
+              )}
+              {m.aiPending ? (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--faint)' }}>
+                  <Loader2 size={13} className="spin-icon" /> AI düşünüyor…
+                </span>
+              ) : m.text}
               {m.chart && <AgentChartView chart={m.chart} />}
               {m.role === 'agent' && m.pendingAction && (
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
@@ -1849,8 +1892,57 @@ function Ajan() {
           </button>
         </div>
         <p className="hint" style={{ marginTop: 12 }}>
-          Bu ajan yerel kurallarla çalışır; API anahtarı istemez ve verin tarayıcından çıkmaz. Yanıtları yatırım tavsiyesi değildir.
+          {aiUrl
+            ? 'Bu ajan önce yerel kurallarla yanıtlar; yalnızca hiçbir kural bir soruyu tanımadığında senin bağladığın AI\'a sorar. Yanıtları yatırım tavsiyesi değildir.'
+            : 'Bu ajan yerel kurallarla çalışır; API anahtarı istemez ve verin tarayıcından çıkmaz. Yanıtları yatırım tavsiyesi değildir.'}
         </p>
+      </div>
+
+      <div className="card">
+        <button
+          onClick={() => setAiOpen(o => !o)}
+          style={{ width: '100%', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+          aria-expanded={aiOpen}
+        >
+          <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 0 }}>
+            <Bot size={14} /> Gerçek AI Bağlantısı (opsiyonel)
+            {aiUrl && <span className="badge badge-blue">BAĞLI</span>}
+          </span>
+          {aiOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
+        {aiOpen && (
+          <div style={{ marginTop: 12 }}>
+            <p className="hint" style={{ marginBottom: 10 }}>
+              Yerel kurallar bir soruyu tanıyamadığında ("anlayamadım" yerine), buraya gireceğin adrese
+              portföyünün özetiyle birlikte soru gönderilir ve gerçek bir dil modelinden yanıt alınır.
+              Bu adres SENİN kendi Cloudflare Worker'ın olmalı — anahtarın (Gemini/Claude) yalnızca orada
+              durur, bu uygulamaya ya da bize hiç girmez. Boş bırakırsan ajan tamamen yerel kalır.
+            </p>
+            <label className="field" htmlFor="ai-url">Worker adresi</label>
+            <input
+              id="ai-url" className="input" type="url" placeholder="https://senin-worker-adresin.workers.dev"
+              value={aiUrlDraft} onChange={e => setAiUrlDraft(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { setAiProxyUrl(aiUrlDraft); setAiUrl(getAiProxyUrl()); } }}
+            />
+            <div className="row" style={{ marginTop: 10, justifyContent: 'flex-end', gap: 8 }}>
+              {aiUrl && (
+                <button
+                  className="btn btn-secondary btn-inline"
+                  onClick={() => { setAiUrlDraft(''); setAiProxyUrl(''); setAiUrl(''); }}
+                >
+                  Bağlantıyı Kaldır
+                </button>
+              )}
+              <button
+                className="btn btn-primary btn-inline"
+                onClick={() => { setAiProxyUrl(aiUrlDraft); setAiUrl(getAiProxyUrl()); }}
+              >
+                Kaydet
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <TeachPanel
@@ -1897,6 +1989,7 @@ export default function App() {
       resetTargets();
       resetBackupMeta();
       resetInflation(); // kullanıcının girdiği enflasyon oranı da kullanıcı verisidir
+      resetAiProxyUrl(); // bağlı AI worker adresi de kullanıcıya özel bir bağlantı ayarıdır
       // Not: actions.reset() onboarded'ı false yapar, Panel unmount olur; bir sonraki
       // onboarding'de yeniden mount olup getTargets()/getTaxRates()'i TAZE okur — bu yüzden
       // kart state'lerini ayrıca sıfırlamak gerekmiyor.
