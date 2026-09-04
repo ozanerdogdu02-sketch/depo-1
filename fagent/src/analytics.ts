@@ -633,8 +633,13 @@ export function counterfactualDeposit(s: PortfolioState, annualRatePct: number, 
   const value = s.txns.reduce((sum, t) => {
     if (t.kind === 'gelir') return sum; // temettü/faiz GERÇEK senaryoya özgü — hipotetik mevduatta karşılığı yok
     const years = Math.max(0, (t0 - new Date(t.date).getTime()) / MS_PER_DAY / DAYS_PER_YEAR);
-    // Alış: o tutar mevduata YATIRILMIŞ olurdu (+); satış: mevduattan ÇEKİLMİŞ olurdu (-).
-    const cf = t.kind === 'alis' ? t.amount : -t.amount;
+    // Alış: CEPTEN GERÇEKTEN ÇIKAN tutar (komisyon dahil) mevduata YATIRILMIŞ olurdu (+);
+    // satış: CEBE GERÇEKTEN GİREN tutar (komisyon düşülmüş) mevduattan ÇEKİLMİŞ olurdu (-).
+    // Komisyonu atlamak XIRR'in kullandığı gerçek nakit akışıyla tutarsız kalıyordu (Codex
+    // denetiminde bulundu, 2026-09-04) — gerçek senaryo komisyonu costBasis'e/realizedPnl'e
+    // zaten yansıtıyor, karşı-olgusal de aynı gerçek parayı kullanmalı.
+    const fee = t.commission ?? 0;
+    const cf = t.kind === 'alis' ? (t.amount + fee) : -(t.amount - fee);
     return sum + cf * Math.pow(1 + rate, years);
   }, 0);
   return Math.max(0, value);

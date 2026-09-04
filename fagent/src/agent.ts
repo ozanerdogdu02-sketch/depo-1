@@ -867,8 +867,13 @@ const CHAT_RULES: Rule[] = [
           'Bu basit bir "ne olurdu" hesabı — diğer sınıfların o anda nasıl tepki vereceğini (korelasyon) varsaymaz, yatırım tavsiyesi değildir.',
         ].join('\n');
       }
+      // allocation() büyükten küçüğe SIRALI döner — alloc[0] GERÇEKTEN en büyük ağırlık.
+      // Önceden "önce kripto, sonra hisse" arıyordu; bu, metnin kendi iddiasıyla ("en büyük
+      // ağırlığın X") çelişen YANLIŞ bir sınıf söyleyebiliyordu (Codex denetiminde bulundu,
+      // 2026-09-04: %90 mevduat + %10 kripto olan bir portföyde "en büyük ağırlığın kripto"
+      // diyordu). Metin "en büyük" dediği için gerçekten en büyüğü kullanmalı.
       const alloc = allocation(s);
-      const riskiest = alloc.find(a => a.type === 'kripto') ?? alloc.find(a => a.type === 'hisse') ?? alloc[0];
+      const riskiest = alloc[0];
       if (!riskiest) return 'Stres testi için önce portföyüne varlık eklemen gerek.';
       const r20 = stressTest(s, riskiest.type, 20);
       const r40 = stressTest(s, riskiest.type, 40);
@@ -891,7 +896,11 @@ const CHAT_RULES: Rule[] = [
       const rate = parseInflationPct(text) ?? DEFAULT_DEPOSIT_RATE_PCT;
       const hypothetical = counterfactualDeposit(s, rate);
       if (hypothetical === undefined) return 'Bu karşılaştırmayı yapmak için önce bir işlem geçmişin olması gerek.';
-      const actual = totalValue(s);
+      // "Gerçekte elindeki" yalnızca güncel varlıkların değeri DEĞİL — kapattığın pozisyonlardan
+      // gelen gerçekleşmiş kâr/zarar VE temettü/faiz de gerçekten cebine giren para (realizedPnl).
+      // Bunu dışarıda bırakmak "gerçekte elindeki"ni olduğundan düşük gösterirdi (Codex denetiminde
+      // bulundu, 2026-09-04) — özellikle temettü almış bir kullanıcı için.
+      const actual = totalValue(s) + s.realizedPnl;
       const diff = actual - hypothetical;
       return [
         `Aynı parayı yatırdığın tarihlerde, yatırım yerine %${fmtDec(rate, 0)} yıllık sabit mevduat faiziyle ` +

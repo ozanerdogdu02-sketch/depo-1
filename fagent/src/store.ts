@@ -160,6 +160,22 @@ function commit(next: PortfolioState): void {
 // Ad çakışması kontrolü için: büyük/küçük harf ve baş/son boşluk duyarsız karşılaştırma.
 const normalizeName = (name: string) => name.trim().toLocaleLowerCase('tr-TR');
 
+// Canlı fiyata bağlı (quantity dolu) bir varlığın değeri değiştiğinde miktarı da orantılı
+// günceller. ESKİ ORAN SIFIRDAN BÖLÜNEMEZ: varlık tamamen satılıp (amount=0, quantity=0)
+// sonra yeniden alındığında/elle bir değer girildiğinde, hangi miktarı temsil ettiği ARTIK
+// BİLİNEMEZ — bu durumda miktarı 0'da bırakmak (Codex denetiminde bulundu, 2026-09-04: bir
+// sonraki "Yenile" 0 × fiyat uygulayıp değeri sessizce sıfırlıyordu) YA DA uydurmak yerine
+// canlı bağlantı TAMAMEN KALDIRILIR — quantity, symbol VE lastFetchedAt birlikte temizlenir
+// (yalnızca quantity'yi temizlemek "CANLI" rozetini ekranda YANLIŞLIKLA bırakırdı — badge
+// yalnızca symbol'e bakıyor, bu da ikinci bir gözden kaçan tutarsızlıktı). Varlık tamamen
+// manuel-girişli hale döner, kullanıcı isterse "Canlıya Bağla" akışıyla yeniden bağlayabilir.
+function liveLinkAfterChange(h: Holding, nextAmount: number): Pick<Holding, 'quantity' | 'symbol' | 'lastFetchedAt'> {
+  if (h.quantity === undefined) return { quantity: undefined, symbol: h.symbol, lastFetchedAt: h.lastFetchedAt };
+  if (h.amount <= 0 && nextAmount > 0) return { quantity: undefined, symbol: undefined, lastFetchedAt: undefined };
+  const quantity = h.amount <= 0 ? h.quantity : h.quantity * (nextAmount / h.amount);
+  return { quantity, symbol: h.symbol, lastFetchedAt: h.lastFetchedAt };
+}
+
 export const actions = {
   startWithSample(): void {
     commit(structuredClone(SAMPLE));
@@ -216,11 +232,9 @@ export const actions = {
   // düzeltme bir sonraki "Yenile"de eski miktar × güncel fiyatla sessizce ezilirdi.
   updateHoldingValue(id: string, newAmount: number): void {
     const clamped = Math.max(0, newAmount);
-    const holdings = state.holdings.map(h => {
-      if (h.id !== id) return h;
-      const quantity = h.quantity !== undefined && h.amount > 0 ? h.quantity * (clamped / h.amount) : h.quantity;
-      return { ...h, amount: clamped, quantity };
-    });
+    const holdings = state.holdings.map(h =>
+      h.id === id ? { ...h, amount: clamped, ...liveLinkAfterChange(h, clamped) } : h,
+    );
     commit({ ...state, holdings });
   },
   // Canlı fiyat kaynağından (market.ts) çekilen değer — yalnızca quantity/symbol'ü olan varlıklarda kullanılır.
@@ -251,15 +265,13 @@ export const actions = {
       // yapar ve az önce satılan/alınan kısım sessizce geri gelir/kaybolur (veri bütünlüğü hatası).
       // Satışta oran costBasis ile BİREBİR aynı mantığı izler (kesin doğru). Alışta gerçek alım
       // fiyatı bu fonksiyona hiç gelmiyor; mevcut ortalama fiyat en iyi tahmin olarak kullanılır
-      // (uydurma değer değil — bilinen tek fiyatın kendisi).
-      const scaleQuantity = (nextAmount: number): number | undefined =>
-        h.quantity !== undefined && h.amount > 0 ? h.quantity * (nextAmount / h.amount) : h.quantity;
-
+      // (uydurma değer değil — bilinen tek fiyatın kendisi). Sıfırdan yeniden alışta (amount=0)
+      // oran hesaplanamaz — liveLinkAfterChange() bu durumda bağlantıyı düşürür (bkz. yukarıdaki tanım).
       if (kind === 'alis') {
         // Alış: güncel değer alış tutarı kadar artar; maliyet, alış tutarı + komisyon kadar artar
         // (ödediğin ücret de bir maliyettir — reel kârı düşürür).
         const nextAmount = h.amount + amount;
-        return { ...h, amount: nextAmount, costBasis: h.costBasis + amount + fee, quantity: scaleQuantity(nextAmount) };
+        return { ...h, amount: nextAmount, costBasis: h.costBasis + amount + fee, ...liveLinkAfterChange(h, nextAmount) };
       }
       // Satış: güncel değer düşer; maliyet, kalan pozisyonun oranına göre orantılı azaltılır
       // (ağırlıklı ortalama maliyet yöntemi — gerçekleşmemiş kâr/zarar yüzdesi satıştan etkilenmez).
@@ -268,7 +280,7 @@ export const actions = {
       const soldCost = h.costBasis * (1 - ratio); // satılan payın maliyeti
       // Gerçekleşen kâr = eline geçen (tutar − komisyon) − satılan payın maliyeti.
       realizedDelta = (amount - fee) - soldCost;
-      return { ...h, amount: nextAmount, costBasis: h.costBasis * ratio, quantity: scaleQuantity(nextAmount) };
+      return { ...h, amount: nextAmount, costBasis: h.costBasis * ratio, ...liveLinkAfterChange(h, nextAmount) };
     });
     commit({ ...state, holdings, txns: [txn, ...state.txns], realizedPnl: state.realizedPnl + realizedDelta });
   },
