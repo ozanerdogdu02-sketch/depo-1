@@ -1,7 +1,8 @@
 // Tam veri yedeği — dışa/geri al.
 //
-// NEDEN VAR: FAGENT'ın tüm verisi yalnızca tarayıcının localStorage'ında durur. Sunucu yok,
-// hesap yok, bulut yok — bu bilinçli bir tasarım (gizlilik) ama tek bir yan etkisi var:
+// NEDEN VAR: FAGENT'ın verisi varsayılan olarak yalnızca tarayıcının localStorage'ında durur
+// (hesap açılırsa ayrıca kullanıcının kendi RLS korumalı bulut satırına eşitlenir — bkz.
+// cloud.ts; hesap opsiyoneldir). Bu bilinçli bir tasarım (gizlilik) ama tek bir yan etkisi var:
 // tarayıcı verisi temizlenirse, gizli sekmede çalışılırsa ya da cihaz değişirse HER ŞEY gider.
 // Mevcut CSV dışa aktarma yalnızca VARLIKLARI kurtarıyordu; işlem geçmişi, öğretilen bilgiler,
 // stopaj oranları ve hedef dağılım kapsam dışıydı (CSV'nin içe aktarması da yalnızca varlık
@@ -16,6 +17,12 @@ const META_KEY = 'fagent.backup.v1';
 
 // Yedeklenen katmanlar. Önbellekler (ör. fagent.cryptomarket.cache.v2) BİLEREK dışarıda:
 // yeniden üretilebilirler ve yedeği şişirirler.
+//
+// DİKKAT — BURAYA EKLENEN ANAHTAR BULUTA DA GİDER: bu liste aynı zamanda hesap açan
+// kullanıcının bulut senkronunun (cloud.ts) beyaz listesidir. Yeni bir anahtar eklersen
+// gizlilik metnini (README, Hesap ekranı, ajan metinleri) ve aydınlatma metnini güncelle.
+// Önbellekler, AI bağlantı adresi (fagent.ai.proxyurl.v1), yedek meta verisi ve bulut
+// sahiplik işareti BİLEREK bu listede değildir.
 export const BACKED_UP_KEYS = [
   'fagent.portfolio.v1',      // portföy + işlem geçmişi
   'fagent.agent.memory.v1',   // ajanın kullanım/tercih belleği
@@ -55,14 +62,7 @@ function writeMeta(meta: BackupMeta): void {
 // Yedek dosyasının içeriğini üretir. SAF sayılmaz (localStorage okur) ama ağ/DOM'a dokunmaz —
 // ErrorBoundary bunu React durumu bozukken de çağırabilsin diye ayrı tutuldu.
 export function buildBackup(): BackupFile {
-  const data: Record<string, string> = {};
-  for (const key of BACKED_UP_KEYS) {
-    try {
-      const v = localStorage.getItem(key);
-      if (v !== null) data[key] = v;
-    } catch { /* okunamayan anahtarı atla — yarım yedek, hiç yedeksizden iyidir */ }
-  }
-  return { fagentBackup: BACKUP_VERSION, createdAt: new Date().toISOString(), data };
+  return { fagentBackup: BACKUP_VERSION, createdAt: new Date().toISOString(), data: snapshotUserData() };
 }
 
 export function downloadBackup(): void {
@@ -87,6 +87,93 @@ export interface RestoreResult {
   restoredKeys?: number;
 }
 
+// ---- Ortak doğrula-sonra-yaz çekirdeği ----
+//
+// Dosyadan geri yükleme (restoreBackup) VE bulut senkronu (cloud.ts) localStorage'a kullanıcı
+// verisini YALNIZCA buradan yazar — tek uygulama noktası. Gelen veri her zaman GÜVENİLMEYEN
+// girdi sayılır (dosya dışarıdan gelebilir; bulut satırını da kullanıcı kendi token'ıyla
+// REST üzerinden rastgele bir jsonb ile doldurabilir):
+//   • yalnızca BACKED_UP_KEYS'teki anahtarlar ve yalnızca `typeof === 'string'` değerler yazılır,
+//     bilinmeyen anahtarlar sessizce atlanır;
+//   • ya hep ya hiç: önce tamamı doğrulanır, yazılacak hiçbir şey yoksa HİÇBİR ŞEY yazılmaz.
+//
+// Kipler:
+//   'replace'       — bugünkü dosya geri yükleme davranışı: veride olmayan katmanlar SİLİNİR
+//                     (aksi halde eski veriyle yenisi karışırdı).
+//   'portfolioOnly' — yalnızca 'fagent.portfolio.v1' yazılır, diğer katmanlara dokunulmaz
+//                     (eski standalone biçimli bulut satırı yalnızca portföy içerir).
+
+export type ApplyMode = 'replace' | 'portfolioOnly';
+
+export type ApplyResult =
+  | { ok: true; written: number }
+  | { ok: false; reason: 'gecersiz' | 'bos' | 'yazilamadi' };
+
+const PORTFOLIO_KEY = 'fagent.portfolio.v1';
+
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+// Beyaz listeden geçirilmiş, yazılmaya hazır çiftler. SAF — localStorage'a dokunmaz.
+export function whitelistUserData(data: unknown, mode: ApplyMode): [string, string][] | undefined {
+  if (!isPlainObject(data)) return undefined;
+  const keys: readonly string[] = mode === 'portfolioOnly' ? [PORTFOLIO_KEY] : BACKED_UP_KEYS;
+  const out: [string, string][] = [];
+  for (const key of keys) {
+    if (!Object.prototype.hasOwnProperty.call(data, key)) continue;
+    const v = data[key];
+    if (typeof v === 'string') out.push([key, v]);
+  }
+  return out;
+}
+
+export function applyUserData(data: unknown, opts: { mode: ApplyMode }): ApplyResult {
+  const toWrite = whitelistUserData(data, opts.mode);
+  if (!toWrite) return { ok: false, reason: 'gecersiz' };
+  if (toWrite.length === 0) return { ok: false, reason: 'bos' };
+  try {
+    if (opts.mode === 'replace') {
+      for (const key of BACKED_UP_KEYS) localStorage.removeItem(key);
+    }
+    for (const [key, v] of toWrite) localStorage.setItem(key, v);
+  } catch {
+    return { ok: false, reason: 'yazilamadi' };
+  }
+  return { ok: true, written: toWrite.length };
+}
+
+// Kullanıcı katmanlarının anlık görüntüsü — buildBackup'ın `data` kısmı ve bulut satırının
+// gövdesi. Yalnızca BACKED_UP_KEYS; önbellekler, AI adresi, meta ve oturum token'ı GİRMEZ.
+export function snapshotUserData(): Record<string, string> {
+  const data: Record<string, string> = {};
+  for (const key of BACKED_UP_KEYS) {
+    try {
+      const v = localStorage.getItem(key);
+      if (v !== null) data[key] = v;
+    } catch { /* okunamayan anahtarı atla — yarım yedek, hiç yedeksizden iyidir */ }
+  }
+  return data;
+}
+
+// ---- Değişiklik bildirimi ----
+// Kalıcı katmanların (vergi, hedef, ajan hafızası, öğretilen bilgi) yazma noktaları bunu
+// çağırır; bulut senkronu (cloud.ts) dinleyip YALNIZCA kayıt zamanlar. Analitiğe, log'a ya
+// da telemetriye hiçbir şey yazılmaz — bildirim içerik taşımaz. Portföy (store.ts) kendi
+// aboneliğini (subscribePortfolio) kullanır.
+const userDataListeners = new Set<() => void>();
+
+export function notifyUserDataChanged(): void {
+  userDataListeners.forEach(fn => {
+    try { fn(); } catch { /* dinleyici hatası yazma noktasını bozmasın */ }
+  });
+}
+
+export function subscribeUserData(fn: () => void): () => void {
+  userDataListeners.add(fn);
+  return () => userDataListeners.delete(fn);
+}
+
 // Geri yükleme MEVCUT VERİNİN ÜZERİNE YAZAR — çağıran taraf önce kullanıcıya onaylatmalı.
 // Dosya bozuksa hiçbir şey yazılmaz (ya hep ya hiç): önce tamamı doğrulanır, sonra yazılır.
 export function restoreBackup(text: string): RestoreResult {
@@ -105,26 +192,19 @@ export function restoreBackup(text: string): RestoreResult {
     return { ok: false, message: 'Yedek dosyasının içeriği eksik.' };
   }
 
-  // BEYAZ LİSTE: yalnızca tanıdığımız anahtarlar yazılır. Dosya dışarıdan gelmiş olabilir.
-  const toWrite: [string, string][] = [];
-  for (const key of BACKED_UP_KEYS) {
-    const v = (file.data as Record<string, unknown>)[key];
-    if (typeof v === 'string') toWrite.push([key, v]);
-  }
-  if (toWrite.length === 0) {
-    return { ok: false, message: 'Yedekte geri yüklenebilir bir veri bulunamadı.' };
+  // BEYAZ LİSTE + ya hep ya hiç: ortak çekirdek (bulut senkronu da aynısını kullanır).
+  const result = applyUserData(file.data, { mode: 'replace' });
+  if (!result.ok) {
+    return result.reason === 'yazilamadi'
+      ? { ok: false, message: 'Yazma başarısız — tarayıcı depolama kotası dolu olabilir.' }
+      : { ok: false, message: 'Yedekte geri yüklenebilir bir veri bulunamadı.' };
   }
 
-  try {
-    // Yedekte olmayan katmanlar temizlenir — aksi halde eski veriyle yenisi karışırdı.
-    for (const key of BACKED_UP_KEYS) localStorage.removeItem(key);
-    for (const [key, v] of toWrite) localStorage.setItem(key, v);
-  } catch {
-    return { ok: false, message: 'Yazma başarısız — tarayıcı depolama kotası dolu olabilir.' };
-  }
-
+  // Meta (son yedek zamanı) yalnızca DOSYA yolunda yazılır; bulut yolu meta yazmaz.
   writeMeta({ ...getBackupMeta(), lastBackupAt: file.createdAt ?? new Date().toISOString() });
-  return { ok: true, message: `Yedek geri yüklendi (${toWrite.length} katman).`, restoredKeys: toWrite.length };
+  // Hesaplı kullanıcıda geri yüklenen veri buluta da gitsin (cloud.ts yalnızca kayıt zamanlar).
+  notifyUserDataChanged();
+  return { ok: true, message: `Yedek geri yüklendi (${result.written} katman).`, restoredKeys: result.written };
 }
 
 // Kullanıcıyı yedek almaya çağırmalı mıyız? Rahatsız etmemek için: portföy boşken hiç,

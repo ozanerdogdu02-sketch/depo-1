@@ -4,26 +4,32 @@ import {
   Bot, Send, TrendingUp, Trash2, RotateCcw, LayoutDashboard, ArrowLeftRight, BookOpen,
   Search, CalendarDays, BarChart3, PieChart as PieChartIcon, Bitcoin, Pencil, Check, X, Download,
   RefreshCw, Loader2, Wifi, Upload, GraduationCap, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown,
-  Sparkles, AlertTriangle, CheckCircle2, Receipt, Target, ShieldCheck,
+  Sparkles, AlertTriangle, CheckCircle2, Receipt, Target, ShieldCheck, LogIn,
 } from 'lucide-react';
 import { parseOtoAktarim } from './otoAktarim';
 import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, fmtDec, fmtCompact, investmentHistoryOf, todayLocalDate, ASSET_LABELS, AssetType, Holding, Txn } from './store';
 import { analyzePortfolio, chatReply, buildGreeting, extractMentionedHoldings, proactiveInsights, AgentMessage, ChartSpec, Insight } from './agent';
 import {
-  getProfile, recordTurn, resetMemory, updatePrefs, recordQuestion, recordAdvice, recordAnalysis,
+  getProfile, recordTurn, updatePrefs, recordQuestion, recordAdvice, recordAnalysis,
   AgentMemoryProfile, AgentPrefs, RiskLevel, AgentMode, VadeTercihi,
 } from './agentMemory';
-import { getTrainedFacts, teach, deleteFact, recordFactUse, resetTraining, TrainedFact } from './agentTraining';
+import { getTrainedFacts, teach, deleteFact, recordFactUse, TrainedFact } from './agentTraining';
 import { afterTaxOf, UNVERIFIED_TAX, driftOf } from './analytics';
-import { getTaxRates, setTaxRate, isCustomRate, resetTaxRates, TaxRates } from './taxRates';
-import { getTargets, setTarget, hasTargets, resetTargets, TargetAllocation } from './targetAllocation';
-import { downloadBackup, restoreBackup, getBackupMeta, shouldNudge, dismissNudge, resetBackupMeta, STALE_AFTER_DAYS } from './backup';
-import { useInflation, setUserInflation, loadLiveInflation, inflationSourceLabel, getInflation, resetInflation } from './inflation';
+import { getTaxRates, setTaxRate, isCustomRate, TaxRates } from './taxRates';
+import { getTargets, setTarget, hasTargets, TargetAllocation } from './targetAllocation';
+import { downloadBackup, restoreBackup, getBackupMeta, shouldNudge, dismissNudge, STALE_AFTER_DAYS } from './backup';
+import { clearLocalUserData } from './localData';
+// cloud.ts yan etkisi: env tanımlıysa hesap/bulut senkronunu başlatır; tanımsızsa hiçbir şey
+// yapmaz (istemci oluşturulmaz, ağ isteği atılmaz). Hesap arayüzü ve düğmesi yalnızca
+// cloudEnabled iken render edilir.
+import { cloudEnabled, useCloud, isCloudSynced } from './cloud';
+import { Account, syncLabel } from './Account';
+import { useInflation, setUserInflation, loadLiveInflation, inflationSourceLabel, getInflation } from './inflation';
 import { exportHoldingsCsv, exportTxnsCsv, parseHoldingsCsv } from './csv';
 import { CURRENCIES, COINS, fetchTryRate, fetchCryptoTryPrice, MarketFetchError } from './market';
 import { CryptoMarket } from './CryptoMarket';
 import { RiskPanel } from './RiskPanel';
-import { askAi, isAiConfigured, getAiProxyUrl, setAiProxyUrl, validateAiProxyUrl, resetAiProxyUrl, AiProxyError, AiChatMessage } from './aiAgent';
+import { askAi, isAiConfigured, getAiProxyUrl, setAiProxyUrl, validateAiProxyUrl, AiProxyError, AiChatMessage } from './aiAgent';
 
 // Dağılım grafiği: tek renk (kazanc = --accent), dilimler belirteçteki opaklık basamaklarıyla
 // ayrışır (belirtecler.json → grafik.cubuk-ve-dagilim). Yeni renk eklenmez; mor/pembe yasak.
@@ -57,7 +63,14 @@ const TXN_KIND_LABEL: Record<Txn['kind'], string> = { alis: 'ALIŞ', satis: 'SAT
 const TXN_KIND_BADGE: Record<Txn['kind'], string> = { alis: 'badge-green', satis: 'badge-red', gelir: 'badge-blue' };
 const TXN_KIND_SIGN: Record<Txn['kind'], '+' | '−'> = { alis: '+', satis: '−', gelir: '+' };
 
-type Tab = 'panel' | 'bugun' | 'hisseler' | 'fonlar' | 'kripto' | 'kriptopiyasa' | 'islemler' | 'projeksiyon' | 'ajan';
+type Tab = 'panel' | 'bugun' | 'hisseler' | 'fonlar' | 'kripto' | 'kriptopiyasa' | 'islemler' | 'projeksiyon' | 'ajan' | 'hesap';
+
+// Girişli ve senkron açık mı? Gizlilik metinleri buna göre koşullanır: hesap kapalı ya da
+// girişsizken bugünkü "yalnızca tarayıcında" metinleri BAYT BAYT aynı kalır; girişliyken
+// "hesabına eşitlenir" anlamına döner (verinin tarayıcıdan çıkmadığını iddia etmek yanlış olurdu).
+function useCloudSynced(): boolean {
+  return isCloudSynced(useCloud());
+}
 
 // Varlık ekleme formunda, seçili türe göre örnek ad ipucu — kripto sekmesinde "BIST 30 Fonu"
 // gibi yanıltıcı bir örnek yerine "Bitcoin" göstermek için (kullanıcı geri bildirimi).
@@ -81,6 +94,7 @@ function matchesSearch(name: string, query: string): boolean {
 }
 
 function Onboarding() {
+  const synced = useCloudSynced();
   return (
     <div className="card center fade" style={{ padding: '34px 28px' }}>
       <div className="welcome-icon">📊</div>
@@ -96,8 +110,10 @@ function Onboarding() {
         <button className="btn btn-secondary" onClick={actions.startEmpty}>Kendi paramı gireceğim</button>
       </div>
       <p className="hint" style={{ marginTop: 20 }}>
-        🔓 Bu sürümde anahtar gerekmez — panel, işlemler, projeksiyon ve ajan analizi tamamen anahtarsız çalışır.
-        Verilerin yalnızca kendi tarayıcında saklanır.
+        🔓 Bu sürümde anahtar gerekmez — panel, işlemler, projeksiyon ve ajan analizi tamamen anahtarsız çalışır.{' '}
+        {synced
+          ? 'Verilerin bu tarayıcıda saklanır ve Fagent hesabına (yalnızca sana açık, RLS korumalı kayıt) eşitlenir.'
+          : 'Verilerin yalnızca kendi tarayıcında saklanır.'}
       </p>
     </div>
   );
@@ -400,7 +416,8 @@ function TargetAllocationCard({ targets, onChange }: { targets: TargetAllocation
 
 // Veri yedeği kartı.
 //
-// FAGENT'ın tüm verisi yalnızca tarayıcıda durur — bu bilinçli bir gizlilik tercihi, ama tek
+// FAGENT'ın verisi varsayılan olarak yalnızca tarayıcıda durur (hesap açılırsa ayrıca kullanıcının
+// kendi RLS korumalı bulut kaydına eşitlenir — cloud.ts) — bu bilinçli bir gizlilik tercihi, ama tek
 // yan etkisi şu: tarayıcı verisi temizlenirse ya da cihaz değişirse her şey gider. Mevcut CSV
 // dışa aktarma yalnızca VARLIKLARI kurtarıyordu; işlem geçmişi, öğretilen bilgiler, stopaj
 // oranları ve hedef dağılım kapsam dışıydı. Bu kart beş katmanın tamamını taşır.
@@ -410,6 +427,7 @@ function TargetAllocationCard({ targets, onChange }: { targets: TargetAllocation
 // kullanıcıyı kesen bir bildirimden daha az rahatsız edici.
 function BackupCard() {
   const s = usePortfolio();
+  const synced = useCloudSynced();
   const fileRef = useRef<HTMLInputElement>(null);
   const [meta, setMeta] = useState(() => getBackupMeta());
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
@@ -459,8 +477,12 @@ function BackupCard() {
             {lastText
               ? `Son yedek: ${lastText}.`
               : 'Henüz yedek almadın.'}{' '}
-            Verilerin yalnızca bu tarayıcıda saklanıyor — tarayıcı verisi temizlenirse ya da cihaz
-            değişirse geri getirilemez. Yedek portföyü, işlem geçmişini, öğretilen bilgileri, stopaj
+            {synced
+              ? 'Verilerin bu tarayıcıda saklanıyor ve Fagent hesabına eşitleniyor; yedek dosyası yine de ' +
+                'senin elinde duran ikinci bir kopyadır. '
+              : 'Verilerin yalnızca bu tarayıcıda saklanıyor — tarayıcı verisi temizlenirse ya da cihaz ' +
+                'değişirse geri getirilemez. '}
+            Yedek portföyü, işlem geçmişini, öğretilen bilgileri, stopaj
             oranlarını ve hedef dağılımı birlikte taşır.
             {nudge && lastText && ` ${STALE_AFTER_DAYS} günden eski.`}
           </p>
@@ -497,8 +519,9 @@ function BackupCard() {
   );
 }
 
-// Harici bir otomasyon hattından (şema v1 JSON) portföyü içe alır. Dosya yoluyla — Fagent hiçbir ağ
-// isteği yapmaz, anahtar istemez; "veri tarayıcıdan çıkmaz" tezi bozulmaz.
+// Harici bir otomasyon hattından (şema v1 JSON) portföyü içe alır. Dosya yoluyla — bu aktarım için
+// Fagent hiçbir ağ isteği yapmaz, anahtar istemez. (Hesap açıksa içe alınan veri, diğer değişiklikler
+// gibi kullanıcının kendi hesabına eşitlenir — cloud.ts.)
 //
 // Kart bilerek yedek kartının hemen ardında: ikisi de "veri nereden gelir/nereye gider"
 // sorusunun parçası ve ikisi de üzerine yazan işlemler.
@@ -600,6 +623,7 @@ function OtoAktarimCard() {
 
 function Panel({ assetType, title, query }: PanelProps) {
   const s = usePortfolio();
+  const synced = useCloudSynced();
   const [name, setName] = useState('');
   const [type, setType] = useState<AssetType>(assetType ?? 'hisse');
   const [amount, setAmount] = useState('');
@@ -757,7 +781,7 @@ function Panel({ assetType, title, query }: PanelProps) {
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', columnGap: 28, rowGap: 14 }}>
           <div style={{ minWidth: 200 }}>
             <div className="big-number mono">{fmtTL(total)}</div>
-            <div className="sub">{classHoldings.length} varlık · veriler tarayıcında saklanır</div>
+            <div className="sub">{classHoldings.length} varlık · {synced ? 'veriler hesabına eşitlenir' : 'veriler tarayıcında saklanır'}</div>
           </div>
         {classHoldings.length > 0 && (
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginLeft: 'auto' }}>
@@ -1454,6 +1478,7 @@ function TeachPanel({ facts, onTeach, onDelete, open, onToggleOpen, q, a, onQCha
   onQChange: (v: string) => void;
   onAChange: (v: string) => void;
 }) {
+  const synced = useCloudSynced();
   const submit = () => {
     if (!q.trim() || !a.trim()) return;
     onTeach(q, a);
@@ -1480,7 +1505,8 @@ function TeachPanel({ facts, onTeach, onDelete, open, onToggleOpen, q, a, onQCha
             Bir soru-cevap öğret — bundan sonra benzer bir soru sorduğunda ajan önce bunu kullanır (çoğu
             built-in cevaptan önce gelir; al/sat tavsiyesi reddi ve bekleyen işlem iptali istisna — bu ikisi
             hiçbir öğretilmiş bilgiyle ezilemez). Bu bir yapay zeka eğitimi değil: kelime örtüşmesine göre
-            eşleşen, senin yazdığın sabit bir cevap kartıdır. Yalnızca tarayıcında saklanır.
+            eşleşen, senin yazdığın sabit bir cevap kartıdır.{' '}
+            {synced ? 'Bu tarayıcıda saklanır ve Fagent hesabına eşitlenir.' : 'Yalnızca tarayıcında saklanır.'}
           </p>
           <div>
             <label className="field" htmlFor="teach-q">Soru</label>
@@ -1533,8 +1559,8 @@ function findPrecedingUserText(messages: AgentMessage[], index: number): string 
 
 // BLOK 1 — "Ajan Ne Biliyor?" paneli. Ajanın belleğini kullanıcıya ŞEFFAF gösterir:
 // (1) kullanıcının düzenlediği tercihler, (2) portföyden türetilen bağlam (özet, takip edilen
-// varlıklar, veri güncelliği), (3) ajanın gözlemlediği son sorular/öneriler. Hiçbiri sunucuya
-// gitmez — tamamı tarayıcıda. Bu, ajanı "cevap veren bot"tan "seni tanıyan asistan"a yaklaştırır.
+// varlıklar, veri güncelliği), (3) ajanın gözlemlediği son sorular/öneriler. Varsayılan olarak
+// tamamı tarayıcıda; hesap açıksa kullanıcının kendi hesabına eşitlenir (cloud.ts). Bu, ajanı "cevap veren bot"tan "seni tanıyan asistan"a yaklaştırır.
 const RISK_OPTIONS: { v: RiskLevel; label: string }[] = [
   { v: 'dusuk', label: 'Düşük' }, { v: 'orta', label: 'Orta' }, { v: 'yuksek', label: 'Yüksek' },
 ];
@@ -1552,6 +1578,7 @@ function AgentMemoryCard({ mem, open, onToggle, onPrefs }: {
   onPrefs: (patch: Partial<AgentPrefs>) => void;
 }) {
   const s = usePortfolio();
+  const synced = useCloudSynced();
   const value = totalValue(s);
   const cost = totalCost(s);
   const { abs: pnlAbs, pct: pnlPct } = pnlOf(value, cost);
@@ -1663,7 +1690,9 @@ function AgentMemoryCard({ mem, open, onToggle, onPrefs }: {
           </div>
 
           <p className="hint" style={{ marginTop: 12, color: 'var(--faint)' }}>
-            🔒 Bu bellek yalnızca tarayıcında saklanır, hiçbir sunucuya gönderilmez. "SIFIRLA" ile tamamını silebilirsin.
+            {synced
+              ? '🔒 Bu bellek bu tarayıcıda saklanır ve Fagent hesabına (yalnızca sana açık, RLS korumalı kayıt) eşitlenir. "SIFIRLA" bu tarayıcıdaki veriyi siler; hesabındaki kopya için Hesabım → Hesabımı sil.'
+              : '🔒 Bu bellek yalnızca tarayıcında saklanır, hiçbir sunucuya gönderilmez. "SIFIRLA" ile tamamını silebilirsin.'}
             Bu bir yatırım tavsiyesi değildir; tercihler yalnızca ajanın bağlamını kişiselleştirir.
           </p>
         </div>
@@ -1674,6 +1703,7 @@ function AgentMemoryCard({ mem, open, onToggle, onPrefs }: {
 
 function Ajan() {
   const s = usePortfolio();
+  const synced = useCloudSynced();
   const [mem, setMem] = useState<AgentMemoryProfile>(() => getProfile());
   const [memoryOpen, setMemoryOpen] = useState(false);
   const refreshMem = () => setMem(getProfile());
@@ -1750,7 +1780,7 @@ function Ajan() {
     const userMsg: AgentMessage = { role: 'user', text };
     // Stopaj oranları ve hedef dağılım her turda TAZE okunuyor — kullanıcı Panel'deki kartta
     // değiştirdiyse ajan da aynı sayıyı kullansın (iki yerde farklı sayı söylemek en kötüsü olurdu).
-    const reply = chatReply(s, text, messages, getProfile(), facts, getTaxRates(), getTargets(), getInflation().pct);
+    const reply = chatReply(s, text, messages, getProfile(), facts, getTaxRates(), getTargets(), getInflation().pct, synced);
     recordTurn(reply.intentId, extractMentionedHoldings(s, text));
     recordQuestion(text);
     // Ajanın verdiği anlamlı (fallback/öneri-bekleyen olmayan) cevapları "son öneri/uyarı" belleğine düş.
@@ -1962,7 +1992,9 @@ function Ajan() {
         <p className="hint" style={{ marginTop: 12 }}>
           {aiUrl
             ? 'Bu ajan önce yerel kurallarla yanıtlar; yalnızca hiçbir kural bir soruyu tanımadığında senin bağladığın AI\'a sorar. Yanıtları yatırım tavsiyesi değildir.'
-            : 'Bu ajan yerel kurallarla çalışır; API anahtarı istemez ve verin tarayıcından çıkmaz. Yanıtları yatırım tavsiyesi değildir.'}
+            : synced
+              ? 'Bu ajan yerel kurallarla çalışır ve API anahtarı istemez; verin bu tarayıcıda işlenir ve yalnızca Fagent hesabına eşitlenir. Yanıtları yatırım tavsiyesi değildir.'
+              : 'Bu ajan yerel kurallarla çalışır; API anahtarı istemez ve verin tarayıcından çıkmaz. Yanıtları yatırım tavsiyesi değildir.'}
         </p>
       </div>
 
@@ -1987,7 +2019,9 @@ function Ajan() {
               gönderilir, gerçek bir dil modelinden yanıt alınır. Bu adres SENİN kendi Cloudflare
               Worker'ın olmalı — anahtarın (Gemini/Claude) yalnızca orada durur, bu uygulamaya ya da bize
               hiç girmez. Yalnızca https:// kabul edilir. Boş bırakırsan ajan tamamen yerel kalır ve
-              hiçbir veri tarayıcından çıkmaz.
+              {synced
+                ? ' sohbetin hiçbir AI servisine gönderilmez (verilerin yalnızca Fagent hesabına eşitlenir).'
+                : ' hiçbir veri tarayıcından çıkmaz.'}
             </p>
             <label className="field" htmlFor="ai-url">Worker adresi</label>
             <input
@@ -2047,8 +2081,15 @@ function SideLink({ active, onClick, icon: Icon, label, badge }: {
 
 export default function App() {
   const s = usePortfolio();
+  const cloud = useCloud();
   const [tab, setTab] = useState<Tab>('panel');
   const [query, setQuery] = useState('');
+
+  // Senkron çakışması (bulutta farklı kayıt + bu tarayıcıda veri): karar verilene kadar hiçbir şey
+  // eşitlenmez — kullanıcı kararı görebilsin diye Hesap ekranına geçilir.
+  useEffect(() => {
+    if (cloudEnabled && cloud.status === 'cakisma') setTab('hesap');
+  }, [cloud.status]);
 
   // Canlı enflasyonu bir kez dene (TCMB EVDS → Netlify Function proxy). Başarısızlık SESSİZDİR:
   // fonksiyon yoksa (yerel geliştirme), anahtar tanımsızsa ya da TCMB yanıt vermezse elle
@@ -2057,17 +2098,10 @@ export default function App() {
 
   const resetAll = () => {
     if (confirm('Tüm veriler silinsin ve başa dönülsün mü?')) {
-      actions.reset();
-      resetMemory();
-      resetTraining();
-      resetTaxRates();
-      resetTargets();
-      resetBackupMeta();
-      resetInflation(); // kullanıcının girdiği enflasyon oranı da kullanıcı verisidir
-      resetAiProxyUrl(); // bağlı AI worker adresi de kullanıcıya özel bir bağlantı ayarıdır
-      // Not: actions.reset() onboarded'ı false yapar, Panel unmount olur; bir sonraki
-      // onboarding'de yeniden mount olup getTargets()/getTaxRates()'i TAZE okur — bu yüzden
-      // kart state'lerini ayrıca sıfırlamak gerekmiyor.
+      // Gövde localData.ts'e taşındı (çıkış temizliği de aynı kümeyi kullanır). Davranış aynı:
+      // portföy, ajan hafızası, öğretilen bilgi, vergi, hedef, yedek meta, enflasyon, AI adresi.
+      // Hesaplı kullanıcıda buluttaki kopya SİLİNMEZ — onun yolu "Hesabı sil"dir.
+      clearLocalUserData();
     }
   };
 
@@ -2087,6 +2121,35 @@ export default function App() {
           <span className="status-dot" />
           {isAiConfigured() ? 'AI BAĞLI' : 'ANAHTARSIZ MOD'}
         </div>
+
+        {/* Fagent hesabı — YALNIZCA env tanımlıyken DOM'a girer. Onboarding'den önce de erişilebilir
+            (dolu bir hesaba yeni tarayıcıdan girmek için örnek veri yüklemek gerekmesin). */}
+        {cloudEnabled && (
+          <button
+            className={tab === 'hesap' ? 'side-account side-account-active' : 'side-account'}
+            onClick={() => setTab('hesap')}
+            aria-current={tab === 'hesap' ? 'page' : undefined}
+            aria-label={cloud.email ? `Fagent hesabı: ${cloud.email} — ${syncLabel(cloud.status)}` : undefined}
+            title={cloud.email ? syncLabel(cloud.status) : 'Giriş yap veya Fagent hesabı oluştur'}
+          >
+            {cloud.email ? (
+              <>
+                <span
+                  aria-hidden="true"
+                  className={
+                    cloud.status === 'hata' || cloud.status === 'cakisma' ? 'side-account-dot warn'
+                      : cloud.status === 'senkron' ? 'side-account-dot ok' : 'side-account-dot'
+                  }
+                />
+                <span className="side-account-email">{cloud.email}</span>
+              </>
+            ) : (
+              <>
+                <LogIn size={13} aria-hidden="true" /> GİRİŞ / KAYIT
+              </>
+            )}
+          </button>
+        )}
 
         {s.onboarded && (
           <>
@@ -2124,7 +2187,9 @@ export default function App() {
         {/* Ajan sekmesi dar ölçüde: 1100px'lik sütunda sohbet balonları (max-width %85)
             ~935px'e ulaşıp okunaklılığı düşürüyordu. */}
         <div className={`main-inner${tab === 'ajan' ? ' main-inner-narrow' : ''}`}>
-          {!s.onboarded ? (
+          {cloudEnabled && tab === 'hesap' ? (
+            <Account onSignedIn={() => setTab('panel')} />
+          ) : !s.onboarded ? (
             <Onboarding />
           ) : (
             <>

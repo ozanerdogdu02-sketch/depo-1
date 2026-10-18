@@ -9,6 +9,7 @@
 // "kendi koyduğun hedeften şu kadar saptın" ölçümdür. Bu dosyanın hiç varsayılanı olmaması
 // o ayrımın kod tarafındaki karşılığıdır.
 import { AssetType, ASSET_LABELS } from './store';
+import { notifyUserDataChanged } from './backup';
 
 const KEY = 'fagent.target.v1';
 
@@ -43,6 +44,7 @@ export function setTarget(type: AssetType, pct: number): TargetAllocation {
   const next = getTargets();
   next[type] = Math.min(100, Math.max(0, Number.isFinite(pct) ? pct : 0));
   try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* kota — bellekte kalır */ }
+  notifyUserDataChanged(); // hesaplı kullanıcıda bulut kaydı zamanlansın (cloud.ts)
   return next;
 }
 
@@ -54,4 +56,5 @@ export function hasTargets(targets: TargetAllocation): boolean {
 // SIFIRLA ile birlikte çağrılır (portföy + bellek + öğretilen bilgi + vergi oranları ile aynı anda).
 export function resetTargets(): void {
   try { localStorage.removeItem(KEY); } catch { /* yok */ }
+  notifyUserDataChanged();
 }

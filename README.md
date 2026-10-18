@@ -21,8 +21,10 @@ Yaygın uygulamalar brütte durur; bir kısmı reeli hesaplar. Vergi halkasını
 > tamamlayıcısı olduğu: [`docs/bloki-vs-fagent.md`](docs/bloki-vs-fagent.md)
 
 **Temel ilke: API anahtarı gerektirmez.** Hiçbir özellik, istemci tarafında bir Anthropic/OpenAI
-anahtarı olmadan çalışmayı bırakmaz. Portföy verisi yalnızca tarayıcıda (`localStorage`) tutulur —
-veri toplama yok.
+anahtarı olmadan çalışmayı bırakmaz. Portföy verisi **varsayılan olarak** yalnızca tarayıcıda
+(`localStorage`) tutulur — veri toplama yok. Kullanıcı isterse opsiyonel bir **Fagent hesabı** açabilir;
+o zaman verisi yalnızca kendi hesabına bağlı, RLS korumalı tek bir kayda eşitlenir (bkz.
+"Hesap ve bulut senkronu (opsiyonel)"). Hesap kurulumda kapalıdır ve açılmadıkça hiçbir ağ isteği atılmaz.
 
 **Tek istisna — TCMB EVDS (opsiyonel):** enflasyon oranını resmî kaynaktan çekmek için bir Netlify
 Function proxy'si var (`netlify/functions/evds.mjs`). Anahtar sunucu ortam değişkeninde durur,
@@ -39,6 +41,56 @@ npm run typecheck   # tsc --noEmit
 npm run build        # dist/ üretir (Vercel/Netlify: build=npm run build, çıktı=dist)
 ```
 
+## Hesap ve bulut senkronu (opsiyonel)
+
+Kurulumda **kapalıdır**. `VITE_SUPABASE_URL` ve `VITE_SUPABASE_PUBLISHABLE_KEY` tanımsızken:
+Supabase kütüphanesi yüklenmez, istemci oluşturulmaz, hiçbir ağ isteği atılmaz; kenar çubuğunda hesap
+düğmesi görünmez ve uygulama yalnızca tarayıcıda çalışır.
+
+Açmak için `.env.example`'ı `.env.local` olarak kopyalayıp Supabase projesinin URL'sini ve
+**publishable (anon)** anahtarını yaz. Gizli/servis (`service_role`) anahtarı hiçbir `VITE_`
+değişkenine konmaz. Tablo, RLS politikaları ve hesap silme fonksiyonu:
+`supabase/migrations/20261018000000_portfolios_and_account_deletion.sql` (projeye henüz uygulanmadı).
+
+```bash
+cp .env.example .env.local   # iki değişkeni doldur
+npm run dev
+```
+
+Tanımlıyken kenar çubuğunda **GİRİŞ / KAYIT** düğmesi çıkar: e-postayla kayıt (açıklama + onay kutusu),
+giriş, şifre sıfırlama, çıkış ve onaylı hesap silme. Bulut yalnızca kullanıcı açıkça giriş yaptıktan
+sonra devreye girer; anonim oturum yok.
+
+**Hesaba eşitlenen katmanlar** (`backup.ts` → `BACKED_UP_KEYS`, yedek dosyasıyla aynı beyaz liste):
+
+- portföy ve işlem geçmişi (`fagent.portfolio.v1`)
+- ajan kullanım belleği — hangi konularla ilgilendiğin, tercihler, son sorular (`fagent.agent.memory.v1`)
+- öğretilen soru-cevaplar (`fagent.agent.training.v1`)
+- stopaj oranları (`fagent.tax.v1`)
+- hedef dağılım (`fagent.target.v1`)
+
+**Eşitlenmeyenler:** fiyat önbellekleri (kripto piyasa, fiyat geçmişi), bağlanan AI adresi
+(`fagent.ai.proxyurl.v1`), yedek meta verisi, Supabase oturum bilgisi (`sb-*-auth-token`) ve
+senkronun kendi işaretleri. Enflasyon tercihi tarayıcıda da kalıcı tutulmadığı için eşitlenmez.
+
+Davranış:
+
+- Kayıt yalnızca kullanıcının kendi satırıdır; RLS diğer kullanıcıların okumasını/yazmasını engeller.
+  Satır, hizmeti işleten taraf ve altyapı sağlayıcısı (Supabase) tarafından teknik olarak saklanır;
+  saklama bölgesi gerçek proje kurulurken (plan adım 5) belirlenecek.
+- Girişte hesapta kayıt varsa ve bu tarayıcıda farklı veri varsa hiçbir şey otomatik uygulanmaz:
+  Hesap ekranı yedek indirme, "Hesabımdaki veriyi yükle" ve "Çıkış yap" seçeneklerini sunar.
+- **SIFIRLA** yalnızca bu tarayıcıdaki veriyi siler; hesaptaki kopya kalır ve sonraki girişte geri
+  gelir. Hesaptaki veriyi silmenin yolu Hesabım → **Hesabımı sil**'dir.
+- **Çıkışta** bu tarayıcıdaki kullanıcı katmanları, fiyat önbellekleri ve oturum bilgisi temizlenir.
+- Arayüzdeki gizlilik metinleri iki durumlu: hesapsız/girişsiz kullanımda "yalnızca tarayıcında",
+  girişliyken "hesabına eşitlenir" der.
+
+> **Doğrulama durumu:** auth ve senkron yalnızca `page.route()` ile taklit edilen (sahte) bir
+> Supabase'e karşı denendi. Gerçek bir Supabase projesine karşı — RLS politikaları,
+> `delete_my_account`, e-posta doğrulama/sıfırlama yönlendirmeleri — **doğrulanmadı** (plan adım 5).
+> Kayıt ekranındaki açıklama KVKK aydınlatma metni değildir; aydınlatma metni plan adım 7'ye kaldı.
+
 ## Dosya Yapısı
 
 ```
@@ -52,7 +104,11 @@ src/
   agentTraining.ts  — Ajan'ın EĞİTİLEBİLİR bilgi tabanı (öğretilen soru-cevaplar, localStorage)
   taxRates.ts       — kullanıcının düzenlediği stopaj oranları (localStorage)
   targetAllocation.ts — kullanıcının girdiği HEDEF dağılım (localStorage; varsayılanı YOK)
-  backup.ts         — tam veri yedeği: beş katmanı tek JSON'da dışa/geri al (beyaz listeli)
+  backup.ts         — tam veri yedeği: beş katmanı tek JSON'da dışa/geri al (beyaz listeli);
+                      bulut senkronu da aynı beyaz liste + doğrula-yaz çekirdeğini kullanır
+  cloud.ts          — OPSİYONEL hesap + bulut senkronu (Supabase; env tanımsızken tamamen kapalı)
+  Account.tsx       — Hesap ekranı: giriş/kayıt/şifre sıfırlama/çıkış/hesap silme/çakışma kararı
+  localData.ts      — SIFIRLA ve çıkış temizliği (yerel kullanıcı katmanları)
   ErrorBoundary.tsx — render hatasında beyaz ekran yerine veri kurtarma ekranı
   inflation.ts      — enflasyon oranının TEK KAYNAĞI (varsayım / TCMB EVDS / kullanıcı)
   evds.ts           — TCMB EVDS istemcisi; hata FIRLATMAZ, başarısızlıkta varsayıma düşülür

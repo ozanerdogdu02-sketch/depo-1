@@ -7,6 +7,7 @@
 // çelişir; burada aynı KAVRAM (gözlemle → çıkar → kalıcı depola → gelecekte kullan)
 // tamamen yerel/kuralsal biçimde uygulanır.
 import { AssetType } from './store';
+import { notifyUserDataChanged } from './backup';
 
 const KEY = 'fagent.agent.memory.v1';
 
@@ -81,6 +82,7 @@ function load(): AgentMemoryProfile {
 
 function save(p: AgentMemoryProfile): void {
   localStorage.setItem(KEY, JSON.stringify(p));
+  notifyUserDataChanged(); // hesaplı kullanıcıda bulut kaydı zamanlansın (cloud.ts)
 }
 
 export function getProfile(): AgentMemoryProfile {
@@ -157,4 +159,5 @@ export function mostMentionedHolding(p: AgentMemoryProfile): string | undefined 
 // profili bırakmamak KVKK'ya bu repodaki genel yaklaşımla uyumludur (bkz. Aura Finance bölümü).
 export function resetMemory(): void {
   localStorage.removeItem(KEY);
+  notifyUserDataChanged();
 }
