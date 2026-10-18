@@ -7,6 +7,29 @@ Projeksiyon ve bir **Demo Ajan** (sohbet + grafik çizme + hafıza + eğitilebil
 anahtarı olmadan çalışmayı bırakmaz. Tüm veriler yalnızca tarayıcıda (`localStorage`) tutulur —
 sunucu yok, veri toplama yok.
 
+## Hesap ve Bulut Senkronu (opsiyonel)
+
+Uygulama hesapsız çalışmaya devam eder. `VITE_SUPABASE_URL` ve `VITE_SUPABASE_PUBLISHABLE_KEY`
+tanımlıysa kenar çubuğunda **GİRİŞ / KAYIT** düğmesi çıkar:
+
+- E-posta + şifre ile kayıt (e-posta doğrulamalı), giriş, şifremi unuttum / yeni şifre belirleme
+- Giriş yapan kullanıcının portföyü `portfolios` tablosuna (jsonb) kaydedilir; değişiklikler ~1 sn
+  gecikmeyle otomatik eşitlenir. İlk girişte bu tarayıcıdaki portföy hesaba taşınır; bulutta kayıt
+  varsa o esas alınır.
+- Çıkışta bu tarayıcıdaki portföy temizlenir (veri bulutta kalır).
+- **Hesabımı sil:** `delete_my_account()` fonksiyonu kullanıcının hesabını ve verisini kalıcı siler (KVKK).
+- Erişim RLS ile yalnızca satır sahibine açıktır. Publishable key istemcide kullanılmak içindir.
+
+Kurulum:
+
+1. Supabase projesinde `supabase/migrations/` altındaki SQL'i çalıştır.
+2. `.env.example`'ı `.env.local` olarak kopyala, URL ve publishable key'i doldur.
+3. Supabase → Authentication → URL Configuration: **Site URL** ve **Redirect URLs** alanlarına
+   canlı adresi ekle (ör. `https://fagent.vercel.app`), yoksa doğrulama bağlantıları localhost'a gider.
+4. Barındırma servisinde (Vercel) aynı iki ortam değişkenini tanımla.
+
+Kod: `src/cloud.ts` (oturum + senkron), `src/Account.tsx` (arayüz), test: `tests/e2e/fagent-auth-e2e.mjs`.
+
 ## Kurulum ve Geliştirme
 
 ```bash

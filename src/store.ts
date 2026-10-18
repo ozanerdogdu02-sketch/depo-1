@@ -115,8 +115,18 @@ function load(): PortfolioState {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return EMPTY;
-    const parsed = JSON.parse(raw) as PortfolioState;
-    if (!Array.isArray(parsed.holdings) || !Array.isArray(parsed.txns)) return EMPTY;
+    return normalize(JSON.parse(raw));
+  } catch {
+    return EMPTY;
+  }
+}
+
+// Dışarıdan gelen (localStorage ya da bulut) ham veriyi güncel şemaya taşır.
+// Geçersiz yapı EMPTY döner — bozuk bir bulut kaydı yerel veriyi asla çökertmez.
+function normalize(input: unknown): PortfolioState {
+  try {
+    const parsed = input as PortfolioState;
+    if (!parsed || !Array.isArray(parsed.holdings) || !Array.isArray(parsed.txns)) return EMPTY;
     // Eski sürümden gelen veride costBasis yoksa, kâr/zarar sıfır kabul edilir (amount'a eşitlenir).
     const holdings = parsed.holdings.map(h => ({
       ...h,
@@ -162,6 +172,10 @@ export const actions = {
   reset(): void {
     localStorage.removeItem(KEY);
     commit(EMPTY);
+  },
+  // Bulut senkronu için: buluttan gelen portföyü yerel durumun yerine koyar.
+  replaceAll(next: unknown): void {
+    commit(normalize(next));
   },
   addHolding(name: string, type: AssetType, amount: number, quantity?: number, symbol?: string): void {
     const trimmedName = name.trim();
@@ -243,6 +257,16 @@ export const actions = {
     commit({ ...state, holdings, txns: [txn, ...state.txns], realizedPnl: state.realizedPnl + realizedDelta });
   },
 };
+
+// React dışı modüller (bulut senkronu) için anlık durum ve değişiklik aboneliği.
+export function getPortfolio(): PortfolioState {
+  return state;
+}
+
+export function subscribePortfolio(fn: () => void): () => void {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
 
 export function usePortfolio(): PortfolioState {
   return useSyncExternalStore(

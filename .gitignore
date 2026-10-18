@@ -1,3 +1,11 @@
 
 # e2e test ekran görüntüleri
 tests/.artifacts/
+
+# yerel ortam değişkenleri
+.env
+.env.local
+
+# bağımlılıklar ve derleme çıktısı
+node_modules/
+dist/

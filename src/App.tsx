@@ -4,7 +4,7 @@ import {
   Bot, Send, TrendingUp, Trash2, RotateCcw, LayoutDashboard, ArrowLeftRight, BookOpen,
   Search, CalendarDays, BarChart3, PieChart as PieChartIcon, Bitcoin, Pencil, Check, X, Download,
   RefreshCw, Loader2, Wifi, Upload, GraduationCap, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown,
-  Sparkles, AlertTriangle, CheckCircle2,
+  Sparkles, AlertTriangle, CheckCircle2, LogIn,
 } from 'lucide-react';
 import { usePortfolio, actions, totalValue, totalCost, pnlOf, fmtTL, fmtPct, fmtSigned, fmtCompact, investmentHistoryOf, todayLocalDate, ASSET_LABELS, AssetType, Holding } from './store';
 import { analyzePortfolio, chatReply, buildGreeting, extractMentionedHoldings, proactiveInsights, AgentMessage, ChartSpec, Insight } from './agent';
@@ -17,10 +17,12 @@ import { exportHoldingsCsv, exportTxnsCsv, parseHoldingsCsv } from './csv';
 import { CURRENCIES, COINS, fetchTryRate, fetchCryptoTryPrice, MarketFetchError } from './market';
 import { CryptoMarket } from './CryptoMarket';
 import { RiskPanel } from './RiskPanel';
+import { Account, syncLabel } from './Account';
+import { cloudEnabled, useCloud } from './cloud';
 
 const PIE_COLORS = ['#2dd4a7', '#38bdf8', '#fbbf24', '#a78bfa', '#f87171', '#f472b6'];
 
-type Tab = 'panel' | 'bugun' | 'hisseler' | 'fonlar' | 'kripto' | 'kriptopiyasa' | 'islemler' | 'projeksiyon' | 'ajan';
+type Tab = 'panel' | 'bugun' | 'hisseler' | 'fonlar' | 'kripto' | 'kriptopiyasa' | 'islemler' | 'projeksiyon' | 'ajan' | 'hesap';
 
 // Varlık ekleme formunda, seçili türe göre örnek ad ipucu — kripto sekmesinde "BIST 30 Fonu"
 // gibi yanıltıcı bir örnek yerine "Bitcoin" göstermek için (kullanıcı geri bildirimi).
@@ -57,7 +59,9 @@ function Onboarding() {
       </div>
       <p className="hint" style={{ marginTop: 20 }}>
         🔓 Bu sürümde anahtar gerekmez — panel, işlemler, projeksiyon ve ajan analizi tamamen anahtarsız çalışır.
-        Verilerin yalnızca kendi tarayıcında saklanır.
+        {cloudEnabled
+          ? ' Hesap açmadan kullanırsan verilerin yalnızca bu tarayıcıda saklanır; ücretsiz hesapla tüm cihazlarından erişirsin.'
+          : ' Verilerin yalnızca kendi tarayıcında saklanır.'}
       </p>
     </div>
   );
@@ -1375,6 +1379,7 @@ function SideLink({ active, onClick, icon: Icon, label, badge }: {
 
 export default function App() {
   const s = usePortfolio();
+  const cloud = useCloud();
   const [tab, setTab] = useState<Tab>('panel');
   const [query, setQuery] = useState('');
 
@@ -1398,6 +1403,25 @@ export default function App() {
           <span className="status-dot" />
           ANAHTARSIZ MOD
         </div>
+
+        {cloudEnabled && (
+          <button
+            className={tab === 'hesap' ? 'side-account side-account-active' : 'side-account'}
+            onClick={() => setTab('hesap')}
+            title={cloud.email ? syncLabel(cloud.status) : 'Giriş yap veya hesap oluştur'}
+          >
+            {cloud.email ? (
+              <>
+                <span className={cloud.status === 'hata' ? 'side-account-dot err' : cloud.status === 'senkron' ? 'side-account-dot ok' : 'side-account-dot'} />
+                <span className="side-account-email">{cloud.email}</span>
+              </>
+            ) : (
+              <>
+                <LogIn size={13} /> GİRİŞ / KAYIT
+              </>
+            )}
+          </button>
+        )}
 
         {s.onboarded && (
           <>
@@ -1433,7 +1457,9 @@ export default function App() {
 
       <main className="main">
         <div className="main-inner">
-          {!s.onboarded ? (
+          {tab === 'hesap' ? (
+            <Account onSignedIn={() => setTab('panel')} />
+          ) : !s.onboarded ? (
             <Onboarding />
           ) : (
             <>
