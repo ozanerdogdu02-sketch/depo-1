@@ -1,0 +1,104 @@
+{
+  "ext_resources": [
+    {
+      "id": "https://unpkg.com/react@18.3.1/umd/react.production.min.js",
+      "uuid": "a9df94d1-2991-40b0-8a55-92ed740434b9"
+    },
+    {
+      "id": "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js",
+      "uuid": "fc674a94-5f10-4093-a3ba-78a5055701a8"
+    }
+  ],
+  "manifest": [
+    {
+      "uuid": "e9c08431-13bd-4276-9be3-bde7e28fb933",
+      "mime": "application/javascript",
+      "compressed": true,
+      "bytes": 300
+    },
+    {
+      "uuid": "54805792-3c7f-4a00-9600-9911242879e9",
+      "mime": "text/javascript",
+      "compressed": true,
+      "bytes": 69150
+    },
+    {
+      "uuid": "a9df94d1-2991-40b0-8a55-92ed740434b9",
+      "mime": "text/javascript",
+      "compressed": true,
+      "bytes": 10751
+    },
+    {
+      "uuid": "fc674a94-5f10-4093-a3ba-78a5055701a8",
+      "mime": "text/javascript",
+      "compressed": true,
+      "bytes": 131835
+    },
+    {
+      "uuid": "69509e31-d95e-4a36-9cc1-6250cada8753",
+      "mime": "font/woff2",
+      "compressed": false,
+      "bytes": 25960
+    },
+    {
+      "uuid": "8819b35d-e480-4dc6-8d12-bd7daaaf96ff",
+      "mime": "font/woff2",
+      "compressed": false,
+      "bytes": 18748
+    },
+    {
+      "uuid": "9d7837be-d545-41cf-9295-ec4c5c4ad79b",
+      "mime": "font/woff2",
+      "compressed": false,
+      "bytes": 11232
+    },
+    {
+      "uuid": "3b97ea63-dfa7-4dab-9724-c7d8a85813ec",
+      "mime": "font/woff2",
+      "compressed": false,
+      "bytes": 18996
+    },
+    {
+      "uuid": "a69ec3af-056e-4728-ad11-29f24ecaa6bd",
+      "mime": "font/woff2",
+      "compressed": false,
+      "bytes": 10252
+    },
+    {
+      "uuid": "e47d7b76-34ba-43b2-b610-d3841add4c16",
+      "mime": "font/woff2",
+      "compressed": false,
+      "bytes": 85068
+    },
+    {
+      "uuid": "abfb57b1-2adb-4e35-baf3-b75bc27fbf2d",
+      "mime": "font/woff2",
+      "compressed": false,
+      "bytes": 48256
+    },
+    {
+      "uuid": "c68d45fa-400a-4676-a104-beea974a0f73",
+      "mime": "font/woff2",
+      "compressed": false,
+      "bytes": 147380
+    },
+    {
+      "uuid": "4976446c-2b26-42a5-9791-8d16237dc10c",
+      "mime": "font/woff",
+      "compressed": false,
+      "bytes": 488716
+    },
+    {
+      "uuid": "eeef8c7d-5c91-47a4-a8eb-d3021e9922f6",
+      "mime": "font/ttf",
+      "compressed": true,
+      "bytes": 488636
+    },
+    {
+      "uuid": "97eb9adf-de9f-4037-a05a-c07dbbb427ae",
+      "mime": "image/svg+xml",
+      "compressed": true,
+      "bytes": 2996371
+    }
+  ]
+}
