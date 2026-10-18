@@ -59,12 +59,12 @@ Hisseler, Fonlar, Kripto Varlıklar, Kripto Piyasa, İşlemler, Projeksiyon, Aja
 Portföy takibinin ötesinde şunları yapar:
 
 - **Proaktif içgörü kartı** — Panel açılır açılmaz, kullanıcı hiçbir şey sormadan çalışır
-  (`fagent/src/agent.ts` → `proactiveInsights`).
+  (`src/agent.ts` → `proactiveInsights`).
 - **Gerçek finansal matematik** — reel getiri, XIRR, Herfindahl yoğunlaşma, katkı/getiri
   ayrıştırması, volatilite, maksimum düşüş, Sharpe, korelasyon, çeşitlendirme faydası
-  (`fagent/src/analytics.ts`).
+  (`src/analytics.ts`).
 - **Gerçek tarihsel fiyat serisi** — CoinGecko ve Frankfurter (ECB) uçlarından, anahtarsız
-  (`fagent/src/priceHistory.ts`).
+  (`src/priceHistory.ts`).
 - **Grafik yorumlama** — ajan "işte grafiğin" deyip susmaz, grafiğin ne söylediğini hesaplar.
 - **Ajan katmanları** — eğitilebilir soru-cevap tabanı, uzun süreli bellek, 👍/👎 geri bildirim
   döngüsü, komutla işlem → **Onayla/Vazgeç** onay akışı.
@@ -160,7 +160,7 @@ Bunun getirdikleri:
 
 Bunun karşılığında serbest doğal dilde bir LLM'in esnekliğine sahip değildir. FAGENT'ın mimarisi
 bu geçişe hazır tutulmuştur: ajanın yanıt mantığı saf fonksiyonlar halinde tek dosyada izole
-edilmiştir (`fagent/src/agent.ts` — hiçbir ağ/depolama erişimi içermez), böylece bir LLM
+edilmiştir (`src/agent.ts` — hiçbir ağ/depolama erişimi içermez), böylece bir LLM
 proxy'sine geçiş tek noktadan yapılabilir.
 
 ---
@@ -264,11 +264,11 @@ Bloki'nin yetenekleri duyurudan bu yana genişlemiş olabilir; bu dokümandaki k
 
 | İddia | Kaynak dosya |
 |---|---|
-| Proaktif içgörüler, grafik yorumlama, işlem komutu algılama | `fagent/src/agent.ts` |
-| Reel getiri (Fisher), XIRR, HHI, volatilite, Sharpe, korelasyon, çeşitlendirme faydası | `fagent/src/analytics.ts` |
-| Tarihsel fiyat serisi ve kapsam oranı (`coveragePct`) | `fagent/src/priceHistory.ts` |
-| Eğitilebilir bilgi tabanı ve uzun süreli bellek | `fagent/src/agentTraining.ts`, `fagent/src/agentMemory.ts` |
-| Sekmeler, Onayla/Vazgeç akışı, 👍/👎 geri bildirimi | `fagent/src/App.tsx` |
-| Veri modeli, `localStorage`, sunucusuz mimari | `fagent/src/store.ts` |
+| Proaktif içgörüler, grafik yorumlama, işlem komutu algılama | `src/agent.ts` |
+| Reel getiri (Fisher), XIRR, HHI, volatilite, Sharpe, korelasyon, çeşitlendirme faydası | `src/analytics.ts` |
+| Tarihsel fiyat serisi ve kapsam oranı (`coveragePct`) | `src/priceHistory.ts` |
+| Eğitilebilir bilgi tabanı ve uzun süreli bellek | `src/agentTraining.ts`, `src/agentMemory.ts` |
+| Sekmeler, Onayla/Vazgeç akışı, 👍/👎 geri bildirimi | `src/App.tsx` |
+| Veri modeli, `localStorage`, sunucusuz mimari | `src/store.ts` |
 
-Mimari kurallar ve tasarım gerekçeleri için: [`AGENTS.md`](../AGENTS.md), [`fagent/README.md`](../fagent/README.md), [`CLAUDE.md`](../CLAUDE.md).
+Mimari kurallar ve tasarım gerekçeleri için: [`AGENTS.md`](../AGENTS.md), [`README.md`](../README.md), [`CLAUDE.md`](../CLAUDE.md).

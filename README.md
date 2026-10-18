@@ -18,7 +18,7 @@ Yaygın uygulamalar brütte durur; bir kısmı reeli hesaplar. Vergi halkasını
 çünkü mevduat toplayan bir kurum kendi stopajını görünür kılmak istemez. Bağımsız bir ürün yapabilir.
 
 > FAGENT'ın BtcTurk'ün yapay zekâ asistanı **Bloki**'den nerede ayrıştığı ve neden onun
-> tamamlayıcısı olduğu: [`../docs/bloki-vs-fagent.md`](../docs/bloki-vs-fagent.md)
+> tamamlayıcısı olduğu: [`docs/bloki-vs-fagent.md`](docs/bloki-vs-fagent.md)
 
 **Temel ilke: API anahtarı gerektirmez.** Hiçbir özellik, istemci tarafında bir Anthropic/OpenAI
 anahtarı olmadan çalışmayı bırakmaz. Portföy verisi yalnızca tarayıcıda (`localStorage`) tutulur —
@@ -36,7 +36,7 @@ tam çalışmaya devam eder; canlı veri bir bonustur, şart değildir.
 npm install
 npm run dev         # http://localhost:5173
 npm run typecheck   # tsc --noEmit
-npm run build        # dist/ üretir (Netlify: base=fagent, build=npm run build, publish=fagent/dist)
+npm run build        # dist/ üretir (Vercel/Netlify: build=npm run build, çıktı=dist)
 ```
 
 ## Dosya Yapısı
@@ -261,7 +261,7 @@ Sidebar'daki **SIFIRLA** üçünü de temizler.
 
 ## Test Kapsamı
 
-Playwright e2e testleri artık **repo içinde**: `fagent/tests/e2e/` — 23 dosya, **415 kontrol**.
+Playwright e2e testleri artık **repo içinde**: `tests/e2e/` — 23 dosya, **415 kontrol**.
 
 ```bash
 npm run test:e2e     # Vite dev sunucusunu başlatır, tüm takımları sırayla çalıştırır

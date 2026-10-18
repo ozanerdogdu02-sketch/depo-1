@@ -116,10 +116,10 @@ canlı site güncel, ama repo ile yayın arasındaki otomatik bağ şu an kopuk.
 | | |
 |---|---|
 | Site | `fagentai.netlify.app` |
-| Yapılandırma | `fagent/netlify.toml` (repoya eklendi) |
+| Yapılandırma | `netlify.toml` (repoya eklendi) |
 | Base directory | `fagent` |
 | Build | `npm run build` |
-| Publish | `dist` *(base'e göreli — `fagent/dist` değil)* |
+| Publish | `dist`  |
 | Functions | `netlify/functions` |
 | Yönlendirme | `/api/evds` → `/.netlify/functions/evds` |
 | Ortam değişkeni | `EVDS_API_KEY` — ⚠️ **tanımlı değil** |

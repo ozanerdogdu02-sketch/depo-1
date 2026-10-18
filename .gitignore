@@ -1,4 +1,21 @@
+
+# Bağımlılıklar ve derleme çıktıları
 node_modules/
 dist/
+
+# Ortam değişkenleri ve yerel sırlar
+.env
+.env.*
+!.env.example
+
+# Test ve çalışma artifaktları
+tests/.artifacts/
+*.log
+
+# İşletim sistemi / editör
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
 .vite/
 *.local

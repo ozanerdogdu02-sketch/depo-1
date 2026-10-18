@@ -7,7 +7,7 @@ içgörüler, komutla işlem) doğrular.
 ## Çalıştırma
 
 ```bash
-cd fagent
+
 npm install                       # playwright-core devDependency olarak gelir
 npm run test:e2e                  # dev sunucusunu başlatır, tüm testleri koşar, kapatır
 ```

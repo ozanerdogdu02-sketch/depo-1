@@ -1,8 +1,8 @@
-# Netlify yapılandırması. Netlify arayüzündeki ayarlar (base=fagent, build=npm run build,
-# publish=fagent/dist) buraya taşındı — fonksiyon eklemek için zaten bir dosya gerekiyordu ve
+# Netlify yapılandırması. Netlify arayüzündeki ayarlar (build=npm run build,
+# publish=dist) buraya taşındı — fonksiyon eklemek için zaten bir dosya gerekiyordu ve
 # yapılandırmanın yarısı arayüzde yarısı repoda durmasındansa tamamı repoda dursun.
 #
-# Yollar base directory'ye (fagent/) GÖRELİDİR — bu yüzden "dist", "fagent/dist" değil.
+# Uygulama repo kökündedir; base directory boş bırakılır.
 
 [build]
   command = "npm run build"
