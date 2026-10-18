@@ -1,6 +1,7 @@
 ---
 name: fagent-veri-akisi
 description: FAGENT'ın veri akışı ve hesaplama sahibi. Veri modeli (store), yerel depolama katmanları, yedekleme, bulut senkronu (Supabase), canlı fiyat ve enflasyon kaynakları, finansal matematik ve sunucu fonksiyonları üzerinde çalışır ya da bunları inceler. Veri bütünlüğü, senkron, hesaplama doğruluğu veya dış veri kaynağı işi olduğunda kullan.
+model: sonnet
 tools: Read, Edit, Write, Grep, Glob, Bash
 ---
 

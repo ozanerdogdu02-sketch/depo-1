@@ -1,6 +1,7 @@
 ---
 name: fagent-uyum
 description: FAGENT'ın finansal uyum denetçisi. Ürünün yatırım tavsiyesi vermediğini, işlem yürütmediğini, sahte veri göstermediğini ve varsayımları açıkça etiketlediğini denetler; plana kısıt koyar ve değişiklikleri bu açıdan inceler. Kod yazmaz. Ajan metni, içgörü/uyarı metni, yeni hesaplama, veri kaynağı veya pazarlama metni değiştiğinde kullan.
+model: sonnet
 tools: Read, Grep, Glob, Bash
 ---
 

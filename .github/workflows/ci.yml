@@ -32,6 +32,9 @@ jobs:
       - name: Üretim derlemesi
         run: npm run build
 
+      - name: Güvenlik taraması (gizli anahtar, .env, VITE_ gizli değişken, npm audit)
+        run: npm run guvenlik -- --dist
+
       - name: Chrome yolunu belirle
         shell: bash
         run: |

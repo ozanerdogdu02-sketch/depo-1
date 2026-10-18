@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git push --force-with-lease:*)",
+      "Bash(git push origin main:*)",
+      "Bash(git push origin fagent-stable:*)",
+      "Bash(git push origin fagent-standalone:*)",
+      "Bash(git push origin yedek/canli-site:*)",
+      "Bash(git push origin yedek/fagent-ana:*)",
+      "Bash(git push origin yedek/fagent-ana-tasarim-v7:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git branch -D:*)",
+      "Bash(git clean -fdx:*)",
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Read(./.env.production)",
+      "Read(./.env.production.local)"
+    ]
+  }
+}

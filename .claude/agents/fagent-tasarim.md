@@ -1,6 +1,7 @@
 ---
 name: fagent-tasarim
 description: FAGENT'ın arayüz ve deneyim sahibi. Ekranlar, bileşenler, görsel dil (Nocturne), erişilebilirlik, mobil yerleşim ve Türkçe arayüz metinleri üzerinde çalışır ya da bunları inceler. UI değişikliği, tasarım tutarlılığı, erişilebilirlik veya metin (UX copy) işi olduğunda kullan.
+model: sonnet
 tools: Read, Edit, Write, Grep, Glob, Bash
 ---
 

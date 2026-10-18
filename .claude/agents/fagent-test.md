@@ -1,6 +1,7 @@
 ---
 name: fagent-test
 description: FAGENT'ın kalite ve test sahibi. Yeni davranış için Playwright e2e kontrolleri yazar, typecheck + build + e2e kapısını çalıştırır ve sonucu çıktısıyla raporlar. Bir değişikliğin doğrulanması, regresyon kontrolü veya test kapsamı işi olduğunda kullan.
+model: sonnet
 tools: Read, Edit, Write, Grep, Glob, Bash
 ---
 
