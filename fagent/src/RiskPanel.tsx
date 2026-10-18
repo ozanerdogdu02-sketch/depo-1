@@ -9,11 +9,13 @@ import { volatilityLevel } from './analytics';
 // etiketliyoruz — uydurma bir sabit göstermek yanıltıcı olurdu.
 const DEFAULT_RISK_FREE_PCT = 45;
 
+// Seviye artış/azalış anlamı taşımaz (belirteç: renk yalnız kazanc/kayip/vurgu) — hepsi metin
+// renginde; seviye altındaki etikette sözcükle yazılır.
 const LEVEL_TEXT: Record<ReturnType<typeof volatilityLevel>, { label: string; color: string }> = {
-  'dusuk': { label: 'düşük', color: 'var(--accent)' },
-  'orta': { label: 'orta', color: 'var(--blue)' },
-  'yuksek': { label: 'yüksek', color: 'var(--amber, #fbbf24)' },
-  'cok-yuksek': { label: 'çok yüksek', color: 'var(--red)' },
+  'dusuk': { label: 'düşük', color: 'var(--text)' },
+  'orta': { label: 'orta', color: 'var(--text)' },
+  'yuksek': { label: 'yüksek', color: 'var(--text)' },
+  'cok-yuksek': { label: 'çok yüksek', color: 'var(--text)' },
 };
 
 // Risk Analizi — GERÇEK tarihsel fiyat serisinden volatilite, maksimum düşüş ve
@@ -39,7 +41,7 @@ export function RiskPanel() {
   const level = hasCoverage ? volatilityLevel(report.portfolioVolPct) : undefined;
 
   return (
-    <div className="card" style={{ borderColor: 'rgba(251,191,36,0.35)' }}>
+    <div className="card">
       <button
         onClick={() => setOpen(o => !o)}
         style={{ width: '100%', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0,
@@ -47,8 +49,8 @@ export function RiskPanel() {
         aria-expanded={open}
       >
         <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 0 }}>
-          <ShieldAlert size={14} color="var(--amber, #fbbf24)" /> Risk Analizi
-          <span className="badge" style={{ color: 'var(--amber, #fbbf24)', borderColor: 'rgba(251,191,36,0.4)' }}>GERÇEK VERİ</span>
+          <ShieldAlert size={14} /> Risk Analizi
+          <span className="badge">GERÇEK VERİ</span>
         </span>
         {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
       </button>
@@ -68,7 +70,7 @@ export function RiskPanel() {
                 onChange={e => setRiskFree(Math.min(200, Math.max(0, Number(e.target.value))))}
               />
             </div>
-            <button className="btn btn-primary btn-inline" onClick={run} disabled={loading || s.holdings.length === 0}>
+            <button className="btn btn-secondary btn-inline" onClick={run} disabled={loading || s.holdings.length === 0}>
               {loading ? <Loader2 size={14} className="spin-icon" /> : <Activity size={14} />}
               {loading ? 'Hesaplanıyor…' : 'Hesapla'}
             </button>
@@ -96,7 +98,8 @@ export function RiskPanel() {
           {hasCoverage && level && (
             <>
               {/* Kapsam beyanı — metrikten ÖNCE, çünkü rakamın ne kadarını temsil ettiği kritik */}
-              <p className="hint" style={{ marginBottom: 12, color: report.coveragePct < 60 ? 'var(--amber, #fbbf24)' : undefined }}>
+              <p className="hint" style={{ marginBottom: 12, color: report.coveragePct < 60 ? 'var(--text)' : undefined }}>
+                {report.coveragePct < 60 && <strong>Uyarı: </strong>}
                 📊 Bu rakamlar portföyünün <strong style={{ color: 'var(--text)' }}>%{fmtDec(report.coveragePct, 0)}</strong>'ini kapsıyor
                 ({fmtTL(report.coveredValue)} / {fmtTL(report.totalValue)}).
                 {report.uncovered.length > 0 && ` Kapsam dışı: ${report.uncovered.map(u => u.name).join(', ')}.`}
@@ -145,10 +148,10 @@ export function RiskPanel() {
                   İki farklı portföy volatilitesi göstermek kullanıcıyı şaşırtırdı. */}
               {report.decomposition && report.decomposition.weightedAvgVolPct - report.portfolioVolPct > 0.1 && (
                 <p className="hint" style={{ marginBottom: 12 }}>
-                  <strong style={{ color: 'var(--accent)' }}>Çeşitlendirme faydası:</strong> varlıkların tek tek volatilitelerinin ağırlıklı ortalaması
+                  <strong style={{ color: 'var(--text)' }}>Çeşitlendirme faydası:</strong> varlıkların tek tek volatilitelerinin ağırlıklı ortalaması
                   %{fmtDec(report.decomposition.weightedAvgVolPct, 1)} olurdu (hepsi birlikte hareket etseydi); gerçekte portföy volatiliten
                   %{fmtDec(report.portfolioVolPct, 1)}. Aradaki{' '}
-                  <strong style={{ color: 'var(--accent)' }}>{fmtDec((report.decomposition.weightedAvgVolPct - report.portfolioVolPct), 1)} puan</strong>,
+                  <strong style={{ color: 'var(--text)' }}>{fmtDec((report.decomposition.weightedAvgVolPct - report.portfolioVolPct), 1)} puan</strong>,
                   varlıkların birlikte hareket etmemesinden gelen somut kazanç.
                 </p>
               )}

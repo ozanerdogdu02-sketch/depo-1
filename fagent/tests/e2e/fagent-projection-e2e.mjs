@@ -25,6 +25,15 @@ check('Enflasyon varsayımı girişi var', await page.locator('#p-inflation').co
 
 // --- Üç senaryo çizgisi çiziliyor mu ---
 check('Grafikte 3 senaryo çizgisi var', await page.locator('.recharts-line').count() >= 3);
+// Belirteç: senaryolar renkle değil biçimle ayrışır — üç çizgi de kazanc renginde, kesik
+// desen ya da opaklık çiftleri birbirinden farklı. Mor/mavi/kırmızı yok.
+const lineStyles = await page.locator('.recharts-line-curve').evaluateAll(els => els.map(el => ({
+  stroke: el.getAttribute('stroke'), dash: el.getAttribute('stroke-dasharray') ?? '', op: el.getAttribute('stroke-opacity') ?? '1',
+})));
+check('Senaryo çizgilerinin hepsi kazanc renginde', lineStyles.length >= 3 && lineStyles.every(l => l.stroke === 'var(--accent)'));
+check('Senaryo çizgileri biçimle ayrışıyor (desen/opaklık farklı)', new Set(lineStyles.map(l => `${l.dash}|${l.op}`)).size === lineStyles.length);
+const tickSizes = await page.locator('.recharts-cartesian-axis-tick-value').evaluateAll(els => els.map(el => parseFloat(getComputedStyle(el).fontSize)));
+check('Eksen yazısı en az 12 px', tickSizes.length > 0 && tickSizes.every(px => px >= 12));
 check('"Bugünkü alım gücü" (reel) gösteriliyor', await page.locator('text=Bugünkü alım gücü').count() > 0);
 check('3 senaryo başlığı (Düşük/Orta/Yüksek) görünür',
   await page.locator('text=Düşük').count() > 0 &&

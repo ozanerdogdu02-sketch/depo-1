@@ -42,6 +42,10 @@ await ask('dağılımımı çiz');
 await page.waitForTimeout(300);
 check('Dağılım grafiği istek metni geldi', (await page.locator('.msg-agent').last().textContent())?.includes('Sınıf Dağılımı') ?? false);
 check('Pasta grafik DOM\'a çizildi (sohbet içinde)', await page.locator('.msg-agent').last().locator('.recharts-pie').count() > 0);
+const sohbetSira = await page.locator('.msg-agent').last().locator('.pie-sira').allTextContents();
+const sohbetLejant = await page.locator('.msg-agent').last().locator('.pie-lejant > div').allTextContents();
+check('Sohbet pastasında sıra numaraları ve aynı sayıda numaralı lejant satırı var',
+  sohbetSira.length > 0 && sohbetSira.length === sohbetLejant.length && sohbetLejant.every((t, i) => t.trim().startsWith(`${i + 1} · `)));
 await page.screenshot({ path: `${out}/a1-ajan-pasta-grafik.png` });
 
 // --- Grafik çizme: yatırım geçmişi ---

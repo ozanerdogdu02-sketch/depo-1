@@ -116,7 +116,7 @@ export function CryptoMarket() {
   const SortBtn = ({ k, label }: { k: SortKey; label: string }) => (
     <button
       className="mini-btn cm-sort" onClick={() => toggleSort(k)} aria-pressed={sortKey === k}
-      style={{ borderColor: sortKey === k ? 'var(--blue)' : undefined, color: sortKey === k ? 'var(--blue)' : undefined }}
+      style={{ borderColor: sortKey === k ? 'var(--blue)' : undefined, color: sortKey === k ? 'var(--text)' : undefined }}
     >
       <ArrowUpDown size={10} /> {label}{sortKey === k ? (sortAsc ? ' ↑' : ' ↓') : ''}
     </button>
@@ -138,10 +138,10 @@ export function CryptoMarket() {
         </p>
 
         {stale && coins && (
-          <p className="hint" style={{ marginTop: 8, color: 'var(--amber, #fbbf24)', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+          <p className="hint" style={{ marginTop: 8, color: 'var(--text)', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
             <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 2 }} />
             <span>
-              Canlı fiyat alınamadı (ücretsiz servisin istek sınırı) — aşağıdakiler
+              <strong>Uyarı:</strong> Canlı fiyat alınamadı (ücretsiz servisin istek sınırı) — aşağıdakiler
               <strong> {new Date(fetchedAt!).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</strong> tarihindeki
               son gerçek fiyatlar. Birkaç dakika sonra "Yenile" ile güncelleyebilirsin.
             </span>
@@ -178,8 +178,8 @@ export function CryptoMarket() {
       )}
 
       {error && (
-        <div className="card" style={{ borderColor: 'rgba(248,113,113,0.4)' }}>
-          <p className="hint" style={{ color: 'var(--red)', marginBottom: 10 }}>{error}</p>
+        <div className="card">
+          <p className="hint" style={{ color: 'var(--text)', marginBottom: 10 }}>{error}</p>
           <button className="btn btn-primary btn-inline" onClick={() => load(true)} disabled={loading}>
             {loading ? <Loader2 size={13} className="spin-icon" /> : <RefreshCw size={13} />} Tekrar dene
           </button>
@@ -227,7 +227,7 @@ export function CryptoMarket() {
                     onKeyDown={e => { if (e.key === 'Enter') addCoin(coin); }}
                   />
                   <button className="mini-btn cm-add" onClick={() => addCoin(coin)} disabled={!(Number(amounts[coin.id]) > 0)}>
-                    {added[coin.id] ? <CheckCircle2 size={11} color="var(--accent)" /> : <Plus size={11} />}
+                    {added[coin.id] ? <CheckCircle2 size={11} /> : <Plus size={11} />}
                     {added[coin.id] ? 'eklendi' : 'Ekle'}
                   </button>
                 </div>

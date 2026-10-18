@@ -15,6 +15,16 @@ await page.waitForTimeout(400);
 check('Örnek veride grafik görünür', await page.locator('text=Net Yatırım Tutarı Geçmişi').count() === 1);
 check('Grafik açıklaması doğru (piyasa performansı değil)', await page.locator('text=piyasa performansını değil').count() === 1);
 check('Alanlı grafik (area) çizildi', await page.locator('.recharts-area').count() > 0);
+// Belirteç: çizgi kazanc 2 px, alan kazanc %12 opaklık; gradyan yok.
+check('Net yatırım grafiğinde gradyan yok', await page.locator('.recharts-wrapper linearGradient').count() === 0);
+const areaFill = page.locator('.recharts-area-area').first();
+check('Alan dolgusu kazanc %12', (await areaFill.getAttribute('fill')) === 'var(--accent)' && (await areaFill.getAttribute('fill-opacity')) === '0.12');
+// Pasta: ton bilgi taşımaz — her dilimde sıra numarası, lejantta aynı numara + ad (5 sınıflı örnek).
+const dagilimKart = page.locator('.card').filter({ has: page.locator('.card-title', { hasText: 'Sınıf Dağılımı' }) });
+const siralar = await dagilimKart.locator('.pie-sira').allTextContents();
+check('Pasta dilimlerinde 1..n sıra numarası var', siralar.length === 5 && siralar.join(',') === '1,2,3,4,5');
+const lejant = (await dagilimKart.locator('.list-row').allTextContents()).map(t => t.replace(/\s+/g, ' ').trim());
+check('Lejant "n · Ad" biçiminde ve numaralar dilimlerle aynı', lejant.length === 5 && lejant.every((t, i) => t.startsWith(`${i + 1} · `)));
 await page.screenshot({ path: `${out}/c1-grafik-orneklle.png` });
 
 // --- Filtrelenmiş görünümde (Hisseler) grafik OLMAMALI ---

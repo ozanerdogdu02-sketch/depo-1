@@ -49,12 +49,12 @@ export class ErrorBoundary extends Component<Props, State> {
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
         <div className="card" style={{ maxWidth: 620, width: '100%', borderColor: 'rgba(248,113,113,0.4)' }}>
           <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <AlertTriangle size={14} color="var(--red)" /> Bir şeyler ters gitti
+            <AlertTriangle size={14} color="var(--text)" /> Bir şeyler ters gitti
           </div>
 
           <p style={{ fontSize: 14.5, lineHeight: 1.6, marginBottom: 12 }}>
             Arayüzde beklenmedik bir hata oluştu ve ekran çizilemedi.{' '}
-            <strong style={{ color: 'var(--accent)' }}>Verilerin silinmedi</strong> — portföyün,
+            <strong style={{ color: 'var(--text)' }}>Verilerin silinmedi</strong> — portföyün,
             işlem geçmişin ve ayarların tarayıcında olduğu gibi duruyor.
           </p>
 
@@ -77,8 +77,8 @@ export class ErrorBoundary extends Component<Props, State> {
             </button>
           </div>
 
-          <p className="hint" style={{ color: 'var(--red)', marginBottom: 14 }}>
-            Sol menüdeki SIFIRLA'ya basma — o düğme verilerini kalıcı olarak siler ve bu hatayı çözmez.
+          <p className="hint" style={{ color: 'var(--text)', marginBottom: 14 }}>
+            <strong>Uyarı:</strong> Sol menüdeki SIFIRLA'ya basma — o düğme verilerini kalıcı olarak siler ve bu hatayı çözmez.
           </p>
 
           <details style={{ fontSize: 12.5 }}>

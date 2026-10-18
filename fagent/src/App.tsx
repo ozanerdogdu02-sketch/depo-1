@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { PieChart, Pie, Cell, Tooltip, AreaChart, Area, BarChart, Bar, LineChart, Line, Legend, XAxis, YAxis, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, AreaChart, Area, BarChart, Bar, LineChart, Line, Legend, XAxis, YAxis, ResponsiveContainer, type PieLabelRenderProps } from 'recharts';
 import {
   Bot, Send, TrendingUp, Trash2, RotateCcw, LayoutDashboard, ArrowLeftRight, BookOpen,
   Search, CalendarDays, BarChart3, PieChart as PieChartIcon, Bitcoin, Pencil, Check, X, Download,
@@ -25,7 +25,31 @@ import { CryptoMarket } from './CryptoMarket';
 import { RiskPanel } from './RiskPanel';
 import { askAi, isAiConfigured, getAiProxyUrl, setAiProxyUrl, validateAiProxyUrl, resetAiProxyUrl, AiProxyError, AiChatMessage } from './aiAgent';
 
-const PIE_COLORS = ['#2dd4a7', '#38bdf8', '#fbbf24', '#a78bfa', '#f87171', '#f472b6'];
+// Dağılım grafiği: tek renk (kazanc = --accent), dilimler belirteçteki opaklık basamaklarıyla
+// ayrışır (belirtecler.json → grafik.cubuk-ve-dagilim). Yeni renk eklenmez; mor/pembe yasak.
+// Basamaklar sırayla döner: 5-6 sınıfta ton tekrar eder ve %25/%45 basamakları yüzey üstünde 3:1'in
+// altında kalır. Bu yüzden ton BİLGİ TAŞIMAZ — her dilimin halka dışında sıra numarası vardır ve
+// lejant aynı numarayla "1 · Ad · tutar · pay" yazar.
+const PIE_OPACITY = [1, 0.7, 0.45, 0.25];
+const RADIAN = Math.PI / 180;
+function pieNumberLabel(p: PieLabelRenderProps) {
+  const r = Number(p.outerRadius) + 10;
+  const a = -(p.midAngle ?? 0) * RADIAN;
+  return (
+    <text
+      x={Number(p.cx) + r * Math.cos(a)} y={Number(p.cy) + r * Math.sin(a)}
+      fill="var(--text)" fontSize={12} textAnchor="middle" dominantBaseline="central" className="pie-sira"
+    >
+      {p.index + 1}
+    </text>
+  );
+}
+
+// Grafik ortak stilleri — renkler yalnız index.css belirteç değişkenlerinden gelir.
+// itemStyle verilmezse Recharts satır metnini #000 ya da seri rengiyle boyuyor.
+const CHART_TOOLTIP_STYLE = { background: 'var(--surface-2)', border: '1px solid var(--line)', borderRadius: 10, fontSize: 13 };
+const CHART_TOOLTIP_ITEM = { color: 'var(--text)' };
+const CHART_AXIS_TICK = { fill: 'var(--muted)', fontSize: 12 };
 
 // İşlem türü → rozet metni/rengi/işaret. 'gelir' (temettü/faiz) 'alış' gibi POZİTİF gösterilir
 // (portföye giren para) ama karıştırılmasın diye ayrı bir renk/etiket taşır.
@@ -106,9 +130,11 @@ function formatFetchedAt(iso: string): string {
 
 
 function insightVisual(level: Insight['level']): { icon: typeof AlertTriangle; color: string } {
-  if (level === 'uyari') return { icon: AlertTriangle, color: 'var(--red)' };
-  if (level === 'iyi') return { icon: CheckCircle2, color: 'var(--accent)' };
-  return { icon: Sparkles, color: 'var(--blue)' };
+  // Belirteç: renk yalnız artış/azalış/birincil eylem anlamı taşır. Seviye simgenin şekliyle
+  // (üçgen / onay / ışıltı) ayrışır; uyarı metin renginde, diğerleri metin-ikincil.
+  if (level === 'uyari') return { icon: AlertTriangle, color: 'var(--text)' };
+  if (level === 'iyi') return { icon: CheckCircle2, color: 'var(--muted)' };
+  return { icon: Sparkles, color: 'var(--muted)' };
 }
 
 // FAGENT'ın Bloki'den ayrıştığı çekirdek: kullanıcı SORMADAN, panel açılır açılmaz otomatik
@@ -127,10 +153,10 @@ function ProactiveInsightsCard({ targets }: { targets: TargetAllocation }) {
   if (insights.length === 0) return null;
 
   return (
-    <div className="card" style={{ borderColor: 'rgba(56,189,248,0.35)' }}>
+    <div className="card">
       <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Sparkles size={14} color="var(--blue)" /> Proaktif İçgörüler
-        <span className="badge" style={{ marginLeft: 2, color: 'var(--blue)', borderColor: 'rgba(56,189,248,0.4)' }}>OTOMATİK</span>
+        <Sparkles size={14} /> Proaktif İçgörüler
+        <span className="badge" style={{ marginLeft: 2 }}>OTOMATİK</span>
       </div>
       <p className="hint" style={{ marginBottom: 12 }}>
         Bunları sen sormadan, portföyünü açar açmaz hesapladım.
@@ -157,7 +183,7 @@ function ProactiveInsightsCard({ targets }: { targets: TargetAllocation }) {
           onChange={e => setUserInflation(Number(e.target.value))}
         />
         <span className="hint" style={{ margin: 0, flex: '1 1 240px' }}>
-          — kaynak: <span style={{ color: inf.source === 'evds' ? 'var(--accent)' : 'var(--faint)' }}>{inflationSourceLabel(inf)}</span>.
+          — kaynak: <span style={{ color: inf.source === 'evds' ? 'var(--text)' : 'var(--faint)' }}>{inflationSourceLabel(inf)}</span>.
           Reel getiri hesapları bu orana dayanır; kendi oranını girerek senaryo deneyebilirsin.
         </span>
       </div>
@@ -184,7 +210,7 @@ function AfterTaxCard() {
   return (
     <div className="card">
       <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Receipt size={14} color="var(--accent)" /> Vergi Sonrası Net Getiri
+        <Receipt size={14} /> Vergi Sonrası Net Getiri
       </div>
       <p className="hint" style={{ marginBottom: 12 }}>
         Zincirin tamamı: brüt kazanç → stopaj → net kazanç → enflasyon → reel.
@@ -290,7 +316,7 @@ function TargetAllocationCard({ targets, onChange }: { targets: TargetAllocation
           <span className="hint" style={{ margin: 0 }}>% hedef ağırlık</span>
         </div>
       ))}
-      <div className="hint" style={{ margin: 0, color: Math.round(sumPct) === 100 ? 'var(--faint)' : 'var(--red)' }}>
+      <div className="hint" style={{ margin: 0, color: Math.round(sumPct) === 100 ? 'var(--faint)' : 'var(--text)' }}>
         Toplam: %{fmtDec(sumPct, 1)}
         {Math.round(sumPct) !== 100 && ' — %100 olması beklenir. Hesabı yine yaparım ama sayılarını kendiliğinden düzeltmem.'}
       </div>
@@ -302,7 +328,7 @@ function TargetAllocationCard({ targets, onChange }: { targets: TargetAllocation
     return (
       <div className="card">
         <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Target size={14} color="var(--accent)" /> Hedef Dağılım
+          <Target size={14} /> Hedef Dağılım
         </div>
         <p className="hint" style={{ marginBottom: 12 }}>
           Her varlık sınıfı için hedef ağırlığını gir; portföyün hedefinden ne kadar saptığını
@@ -319,7 +345,7 @@ function TargetAllocationCard({ targets, onChange }: { targets: TargetAllocation
   return (
     <div className="card">
       <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Target size={14} color="var(--accent)" /> Hedef Dağılım
+        <Target size={14} /> Hedef Dağılım
       </div>
       <p className="hint" style={{ marginBottom: 12 }}>
         {result && result.breachedCount > 0
@@ -335,13 +361,13 @@ function TargetAllocationCard({ targets, onChange }: { targets: TargetAllocation
               <div key={r.type} className="list-row">
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   {r.breached
-                    ? <AlertTriangle size={14} color="var(--red)" style={{ flexShrink: 0 }} />
-                    : <CheckCircle2 size={14} color="var(--accent)" style={{ flexShrink: 0 }} />}
+                    ? <AlertTriangle size={14} color="var(--text)" style={{ flexShrink: 0 }} />
+                    : <CheckCircle2 size={14} color="var(--muted)" style={{ flexShrink: 0 }} />}
                   {ASSET_LABELS[r.type]}
                 </span>
                 <span className="mono sub">
                   hedef %{fmtDec(r.targetPct, 0)} · güncel %{fmtDec(r.actualPct, 1)} ·{' '}
-                  <span style={{ color: r.breached ? 'var(--red)' : 'var(--faint)' }}>
+                  <span style={{ color: r.breached ? 'var(--text)' : 'var(--faint)' }}>
                     {yon}{fmtDec(Math.abs(r.driftPp), 1)} puan
                   </span>{' '}
                   <span style={{ opacity: 0.6 }}>(bant {fmtDec(r.bandPp, 1)})</span>
@@ -357,7 +383,7 @@ function TargetAllocationCard({ targets, onChange }: { targets: TargetAllocation
           {open ? 'Hedefleri gizle' : 'Hedefleri düzenle'}
         </button>
         {Math.round(sumPct) !== 100 && (
-          <span className="hint" style={{ margin: 0, color: 'var(--red)' }}>Hedef toplamın %{fmtDec(sumPct, 1)} — %100 değil.</span>
+          <span className="hint" style={{ margin: 0, color: 'var(--text)' }}>Hedef toplamın %{fmtDec(sumPct, 1)} — %100 değil.</span>
         )}
       </div>
 
@@ -420,10 +446,11 @@ function BackupCard() {
     : null;
 
   return (
-    <div className="card" style={nudge ? { borderColor: 'rgba(251,191,36,0.45)' } : undefined}>
+    <div className="card" style={nudge ? { borderColor: 'var(--line-strong)' } : undefined}>
       <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        {nudge ? <AlertTriangle size={14} color="var(--amber)" /> : <ShieldCheck size={14} color="var(--accent)" />}
+        {nudge ? <AlertTriangle size={14} color="var(--text)" /> : <ShieldCheck size={14} />}
         Veri Yedeği
+        {nudge && <span className="badge" style={{ color: 'var(--text)', borderColor: 'var(--line-strong)' }}>UYARI</span>}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
@@ -462,7 +489,7 @@ function BackupCard() {
       </div>
 
       {msg && (
-        <p className="hint" style={{ marginTop: 10, marginBottom: 0, color: msg.ok ? 'var(--accent)' : 'var(--red)' }}>
+        <p className="hint" style={{ marginTop: 10, marginBottom: 0, color: msg.ok ? undefined : 'var(--text)' }}>
           {msg.text}
         </p>
       )}
@@ -521,7 +548,7 @@ function OtoAktarimCard() {
   return (
     <div className="card">
       <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <ArrowLeftRight size={14} color="var(--accent)" />
+        <ArrowLeftRight size={14} />
         Otomasyon Aktarımı
       </div>
 
@@ -550,7 +577,7 @@ function OtoAktarimCard() {
       </div>
 
       {msg && (
-        <p className="hint" style={{ marginTop: 10, marginBottom: 0, color: msg.ok ? 'var(--accent)' : 'var(--red)' }}>
+        <p className="hint" style={{ marginTop: 10, marginBottom: 0, color: msg.ok ? undefined : 'var(--text)' }}>
           {msg.text}
         </p>
       )}
@@ -558,7 +585,12 @@ function OtoAktarimCard() {
       {/* Uyarılar sessizce yutulmaz: bir sayının neden öyle göründüğünü söylemeyen ekran,
           yanlış okunan sayıdan daha kötüdür. */}
       {uyarilar.length > 0 && (
-        <ul className="hint" style={{ marginTop: 8, marginBottom: 0, paddingLeft: 18, color: 'var(--amber)' }}>
+        <p className="hint" style={{ marginTop: 8, marginBottom: 0, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <AlertTriangle size={13} style={{ flexShrink: 0 }} /> <strong>Uyarı</strong>
+        </p>
+      )}
+      {uyarilar.length > 0 && (
+        <ul className="hint" style={{ marginTop: 4, marginBottom: 0, paddingLeft: 18, color: 'var(--text)' }}>
           {uyarilar.map((u, i) => <li key={i} style={{ marginTop: i ? 4 : 0 }}>{u}</li>)}
         </ul>
       )}
@@ -774,21 +806,15 @@ function Panel({ assetType, title, query }: PanelProps) {
           <div className="card-title">Net Yatırım Tutarı Geçmişi</div>
           <ResponsiveContainer width="100%" height={160}>
             <AreaChart data={investmentHistory} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
-              <defs>
-                <linearGradient id="investGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#38bdf8" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="tarih" tick={{ fill: 'rgba(214,228,238,0.4)', fontSize: 11 }} axisLine={false} tickLine={false}
+              <XAxis dataKey="tarih" tick={CHART_AXIS_TICK} axisLine={false} tickLine={false}
                 tickFormatter={d => new Date(d).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })} />
-              <YAxis tick={{ fill: 'rgba(214,228,238,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => fmtCompact(Number(v))} width={40} />
+              <YAxis tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={v => fmtCompact(Number(v))} width={40} />
               <Tooltip
                 labelFormatter={d => new Date(d).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
                 formatter={v => [fmtTL(Number(v)), 'Net yatırım']}
-                contentStyle={{ background: '#16212c', border: '1px solid rgba(148,180,200,0.2)', borderRadius: 10, fontSize: 13 }}
+                contentStyle={CHART_TOOLTIP_STYLE} itemStyle={CHART_TOOLTIP_ITEM}
               />
-              <Area type="monotone" dataKey="tutar" stroke="#38bdf8" strokeWidth={2.5} fill="url(#investGrad)" />
+              <Area type="monotone" dataKey="tutar" stroke="var(--accent)" strokeWidth={2} fill="var(--accent)" fillOpacity={0.12} />
             </AreaChart>
           </ResponsiveContainer>
           <p className="hint" style={{ marginTop: 8 }}>
@@ -804,17 +830,18 @@ function Panel({ assetType, title, query }: PanelProps) {
           {pieData.length > 0 ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
               <PieChart width={180} height={180}>
-                <Pie data={pieData} cx={85} cy={85} innerRadius={52} outerRadius={78} dataKey="value" strokeWidth={0}>
-                  {pieData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                <Pie data={pieData} cx={85} cy={85} innerRadius={44} outerRadius={66} dataKey="value" stroke="var(--surface)" strokeWidth={2}
+                  label={pieNumberLabel} labelLine={false} isAnimationActive={false}>
+                  {pieData.map((_, i) => <Cell key={i} fill="var(--accent)" fillOpacity={PIE_OPACITY[i % PIE_OPACITY.length]} />)}
                 </Pie>
-                <Tooltip formatter={v => fmtTL(Number(v))} contentStyle={{ background: '#16212c', border: '1px solid rgba(148,180,200,0.2)', borderRadius: 10, fontSize: 13 }} />
+                <Tooltip formatter={v => fmtTL(Number(v))} contentStyle={CHART_TOOLTIP_STYLE} itemStyle={CHART_TOOLTIP_ITEM} />
               </PieChart>
               <div style={{ flex: 1, minWidth: 200 }}>
                 {pieData.map((d, i) => (
                   <div key={d.name} className="list-row">
                     <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ width: 9, height: 9, borderRadius: '50%', background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                      {d.name}
+                      <span style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--accent)', opacity: PIE_OPACITY[i % PIE_OPACITY.length] }} />
+                      <span className="mono">{i + 1}</span> · {d.name}
                     </span>
                     <span className="mono sub">{fmtTL(d.value)} · %{total ? Math.round((d.value / total) * 100) : 0}</span>
                   </div>
@@ -855,7 +882,7 @@ function Panel({ assetType, title, query }: PanelProps) {
           </span>
         </div>
         {importMsg && (
-          <p className="hint" style={{ marginBottom: 10, color: importMsg.ok ? 'var(--accent)' : 'var(--red)' }}>
+          <p className="hint" style={{ marginBottom: 10, color: importMsg.ok ? undefined : 'var(--text)' }}>
             {importMsg.ok ? '✓' : '✗'} {importMsg.text}
           </p>
         )}
@@ -897,7 +924,7 @@ function Panel({ assetType, title, query }: PanelProps) {
                   </div>
                 )}
                 {refreshError?.id === h.id && (
-                  <div className="hint" style={{ marginTop: 2, color: 'var(--red)' }}>{refreshError.message}</div>
+                  <div className="hint" style={{ marginTop: 2, color: 'var(--text)' }}>{refreshError.message}</div>
                 )}
               </div>
               {isEditing ? (
@@ -911,7 +938,7 @@ function Panel({ assetType, title, query }: PanelProps) {
                     aria-label={`${h.name} güncel değerini gir`}
                   />
                   <button aria-label="kaydet" onClick={saveEdit}
-                    style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', padding: 4 }}>
+                    style={{ background: 'none', border: 'none', color: 'var(--text)', cursor: 'pointer', padding: 4 }}>
                     <Check size={16} />
                   </button>
                   <button aria-label="vazgeç" onClick={cancelEdit}
@@ -926,7 +953,7 @@ function Panel({ assetType, title, query }: PanelProps) {
                     <button
                       aria-label={`${h.name} fiyatını canlı kaynaktan güncelle`} title="Canlı fiyatı çek"
                       onClick={() => refreshPrice(h)} disabled={refreshingId === h.id}
-                      style={{ background: 'none', border: 'none', color: 'var(--blue)', cursor: refreshingId === h.id ? 'not-allowed' : 'pointer', padding: 4 }}>
+                      style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: refreshingId === h.id ? 'not-allowed' : 'pointer', padding: 4 }}>
                       {refreshingId === h.id ? <Loader2 size={14} className="spin-icon" /> : <RefreshCw size={14} />}
                     </button>
                   )}
@@ -951,7 +978,7 @@ function Panel({ assetType, title, query }: PanelProps) {
               onChange={e => { setName(e.target.value); setNameError(null); }}
               onKeyDown={e => { if (e.key === 'Enter') addHolding(); }}
             />
-            {nameError && <p className="hint" style={{ marginTop: 4, color: 'var(--red)' }}>{nameError}</p>}
+            {nameError && <p className="hint" style={{ marginTop: 4, color: 'var(--text)' }}>{nameError}</p>}
           </div>
           <div>
             <label className="field" htmlFor="h-type">Tür</label>
@@ -964,8 +991,8 @@ function Panel({ assetType, title, query }: PanelProps) {
         {(type === 'doviz' || type === 'kripto') && (
           <div className="live-link-box">
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-              <Wifi size={12} color="var(--blue)" />
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--blue)' }}>Canlı Fiyata Bağla (opsiyonel)</span>
+              <Wifi size={12} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)' }}>Canlı Fiyata Bağla (opsiyonel)</span>
             </div>
             <div className="grid-2">
               <div>
@@ -996,9 +1023,9 @@ function Panel({ assetType, title, query }: PanelProps) {
               {liveBusy ? <Loader2 size={11} className="spin-icon" /> : <RefreshCw size={11} />}
               {liveBusy ? 'Hesaplanıyor…' : 'Hesapla ve Doldur'}
             </button>
-            {liveError && <p className="hint" style={{ marginTop: 8, color: 'var(--red)' }}>{liveError}</p>}
+            {liveError && <p className="hint" style={{ marginTop: 8, color: 'var(--text)' }}>{liveError}</p>}
             {linkedQuantity !== null && !liveError && (
-              <p className="hint" style={{ marginTop: 8, color: 'var(--accent)' }}>
+              <p className="hint" style={{ marginTop: 8 }}>
                 ✓ Tutar dolduruldu — "Ekle"ye basınca bu varlık canlı fiyata bağlanır.
               </p>
             )}
@@ -1066,11 +1093,11 @@ function Bugun() {
       <div className="grid-2">
         <div className="card">
           <div className="card-title">Bugünkü Alışlar</div>
-          <div className="big-number mono" style={{ fontSize: 24, color: 'var(--accent)' }}>{fmtTL(buyTotal)}</div>
+          <div className="big-number mono" style={{ fontSize: 24 }}>{fmtTL(buyTotal)}</div>
         </div>
         <div className="card">
           <div className="card-title">Bugünkü Satışlar</div>
-          <div className="big-number mono" style={{ fontSize: 24, color: 'var(--red)' }}>{fmtTL(sellTotal)}</div>
+          <div className="big-number mono" style={{ fontSize: 24 }}>{fmtTL(sellTotal)}</div>
         </div>
       </div>
 
@@ -1191,7 +1218,7 @@ function Islemler({ query }: { query: string }) {
             <div className="row" style={{ marginTop: 12, alignItems: 'flex-end', justifyContent: 'flex-end' }}>
               <button className="btn btn-primary btn-inline" onClick={add} disabled={!(Number(amount) > 0)}>Kaydet</button>
             </div>
-            {amountError && <p className="hint" style={{ marginTop: 8, color: 'var(--red)' }}>{amountError}</p>}
+            {amountError && <p className="hint" style={{ marginTop: 8, color: 'var(--text)' }}>{amountError}</p>}
             <p className="hint" style={{ marginTop: 8 }}>
               {kind === 'gelir'
                 ? 'Gelir (temettü/faiz/kupon): varlığın miktarı ve maliyeti DEĞİŞMEZ, girdiğin tutar doğrudan gerçekleşmiş kâra eklenir.'
@@ -1240,9 +1267,9 @@ function projectFinalValue(start: number, monthly: number, annualPct: number, ye
 // Üç senaryo — düşük / orta / yüksek getiri. Kullanıcının geri bildirimi: tek bir "beklenen getiri"
 // yerine bir aralık göstermek + enflasyonun (reel getiri) etkisini vurgulamak daha dürüst.
 const SCENARIOS = [
-  { key: 'dusuk', label: 'Düşük', color: '#f87171', defaultRate: 20 },
-  { key: 'orta', label: 'Orta', color: '#38bdf8', defaultRate: 35 },
-  { key: 'yuksek', label: 'Yüksek', color: '#2dd4a7', defaultRate: 50 },
+  { key: 'dusuk', label: 'Düşük', dash: '2 4', border: 'dotted', opacity: 0.45, defaultRate: 20 },
+  { key: 'orta', label: 'Orta', dash: '6 4', border: 'dashed', opacity: 0.7, defaultRate: 35 },
+  { key: 'yuksek', label: 'Yüksek', dash: undefined, border: 'solid', opacity: 1, defaultRate: 50 },
 ] as const;
 
 function Projeksiyon() {
@@ -1301,7 +1328,7 @@ function Projeksiyon() {
         <div className="grid-3" style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
           {SCENARIOS.map(sc => (
             <div key={sc.key}>
-              <label className="field" htmlFor={`p-rate-${sc.key}`} style={{ color: sc.color }}>{sc.label} getiri (%)</label>
+              <label className="field" htmlFor={`p-rate-${sc.key}`}>{sc.label} getiri (%)</label>
               <input
                 id={`p-rate-${sc.key}`} className="input" type="number" min="0" max="200" value={rates[sc.key]}
                 onChange={e => setRates(r => ({ ...r, [sc.key]: Math.min(200, Math.max(0, Number(e.target.value))) }))}
@@ -1311,7 +1338,7 @@ function Projeksiyon() {
         </div>
         <div style={{ marginTop: 12 }}>
           <label className="field" htmlFor="p-years">Süre: {years} yıl</label>
-          <input id="p-years" type="range" min="1" max="30" value={years} onChange={e => setYears(Number(e.target.value))} style={{ width: '100%', accentColor: 'var(--accent)' }} />
+          <input id="p-years" type="range" min="1" max="30" value={years} onChange={e => setYears(Number(e.target.value))} style={{ width: '100%', accentColor: 'var(--blue)' }} />
         </div>
       </div>
 
@@ -1319,8 +1346,8 @@ function Projeksiyon() {
         <div className="card-title">{years} Yıl Sonunda — 3 Senaryo</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 4 }}>
           {results.map(r => (
-            <div key={r.key} style={{ borderTop: `2px solid ${r.color}`, paddingTop: 8 }}>
-              <div className="sub" style={{ color: r.color, fontWeight: 600 }}>{r.label} (%{rates[r.key]})</div>
+            <div key={r.key} style={{ borderTop: `2px ${r.border} var(--accent)`, paddingTop: 8 }}>
+              <div className="sub" style={{ fontWeight: 600 }}>{r.label} (%{rates[r.key]})</div>
               <div className="mono" style={{ fontSize: 17, fontWeight: 700 }}>{fmtTL(r.nominal)}</div>
               <div className="sub" style={{ marginTop: 4 }}>Bugünkü alım gücü:</div>
               <div className="mono" style={{ fontSize: 13.5, fontWeight: 600, color: r.real >= invested ? 'var(--accent)' : 'var(--red)' }}>
@@ -1337,13 +1364,15 @@ function Projeksiyon() {
         <div style={{ marginTop: 14 }}>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={data} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
-              <XAxis dataKey="yil" tick={{ fill: 'rgba(214,228,238,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: 'rgba(214,228,238,0.4)', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => fmtCompact(Number(v))} width={44} />
-              <Tooltip formatter={(v, n) => [fmtTL(Number(v)), String(n)]} contentStyle={{ background: '#16212c', border: '1px solid rgba(148,180,200,0.2)', borderRadius: 10, fontSize: 13 }} />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Line type="monotone" dataKey="yuksek" name="Yüksek" stroke="#2dd4a7" strokeWidth={2.5} dot={false} />
-              <Line type="monotone" dataKey="orta" name="Orta" stroke="#38bdf8" strokeWidth={2.5} dot={false} />
-              <Line type="monotone" dataKey="dusuk" name="Düşük" stroke="#f87171" strokeWidth={2.5} dot={false} />
+              <XAxis dataKey="yil" tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} />
+              <YAxis tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={v => fmtCompact(Number(v))} width={44} />
+              <Tooltip formatter={(v, n) => [fmtTL(Number(v)), String(n)]} contentStyle={CHART_TOOLTIP_STYLE} itemStyle={CHART_TOOLTIP_ITEM} />
+              {/* plainline: lejant simgesi çizginin kesik/noktalı biçimini taşır; yazı metin renginde. */}
+              <Legend iconType="plainline" wrapperStyle={{ fontSize: 12 }} formatter={v => <span style={{ color: 'var(--text)' }}>{v}</span>} />
+              {[...SCENARIOS].reverse().map(sc => (
+                <Line key={sc.key} type="monotone" dataKey={sc.key} name={sc.label} stroke="var(--accent)" strokeWidth={2}
+                  strokeOpacity={sc.opacity} strokeDasharray={sc.dash} dot={false} />
+              ))}
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -1356,9 +1385,6 @@ function Projeksiyon() {
   );
 }
 
-const CHART_TOOLTIP_STYLE = { background: '#16212c', border: '1px solid rgba(148,180,200,0.2)', borderRadius: 10, fontSize: 13 };
-const CHART_AXIS_TICK = { fill: 'rgba(214,228,238,0.4)', fontSize: 11 };
-
 // Ajan'ın sohbet içinde ürettiği grafikleri (pasta/alan/çubuk) çizer — Panel/Projeksiyon'daki
 // aynı Recharts kurulumunu, tek bir ChartSpec'ten türeterek tekrar kullanır.
 function AgentChartView({ chart }: { chart: ChartSpec }) {
@@ -1368,27 +1394,35 @@ function AgentChartView({ chart }: { chart: ChartSpec }) {
       {chart.kind === 'pie' && (
         <ResponsiveContainer width="100%" height={170}>
           <PieChart>
-            <Pie data={chart.data} dataKey={chart.dataKey} nameKey={chart.nameKey} cx="50%" cy="50%" innerRadius={40} outerRadius={65} strokeWidth={0}>
-              {chart.data.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+            <Pie data={chart.data} dataKey={chart.dataKey} nameKey={chart.nameKey} cx="50%" cy="50%" innerRadius={40} outerRadius={65} stroke="var(--surface-2)" strokeWidth={2}
+              label={pieNumberLabel} labelLine={false} isAnimationActive={false}>
+              {chart.data.map((_, i) => <Cell key={i} fill="var(--accent)" fillOpacity={PIE_OPACITY[i % PIE_OPACITY.length]} />)}
             </Pie>
-            <Tooltip formatter={v => fmtTL(Number(v))} contentStyle={CHART_TOOLTIP_STYLE} />
+            <Tooltip formatter={v => fmtTL(Number(v))} contentStyle={CHART_TOOLTIP_STYLE} itemStyle={CHART_TOOLTIP_ITEM} />
           </PieChart>
         </ResponsiveContainer>
       )}
+      {chart.kind === 'pie' && (() => {
+        // Sohbet pastasının lejantı: dilimdeki numarayla aynı sıra — "1 · Ad · tutar · pay".
+        const sum = chart.data.reduce((t, d) => t + Number(d[chart.dataKey]), 0);
+        return (
+          <div className="pie-lejant" style={{ fontSize: 12, lineHeight: 1.6, whiteSpace: 'normal' }}>
+            {chart.data.map((d, i) => (
+              <div key={i}>
+                <span className="mono">{i + 1}</span> · {String(d[chart.nameKey])} · {fmtTL(Number(d[chart.dataKey]))} · %{sum ? Math.round((Number(d[chart.dataKey]) / sum) * 100) : 0}
+              </div>
+            ))}
+          </div>
+        );
+      })()}
       {chart.kind === 'area' && (
         <ResponsiveContainer width="100%" height={150}>
           <AreaChart data={chart.data} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
-            <defs>
-              <linearGradient id="agentAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.35} />
-                <stop offset="95%" stopColor="#38bdf8" stopOpacity={0} />
-              </linearGradient>
-            </defs>
             <XAxis dataKey={chart.nameKey} tick={CHART_AXIS_TICK} axisLine={false} tickLine={false}
               tickFormatter={d => new Date(d).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })} />
-            <YAxis tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={v => fmtCompact(Number(v))} width={36} />
-            <Tooltip formatter={v => fmtTL(Number(v))} contentStyle={CHART_TOOLTIP_STYLE} />
-            <Area type="monotone" dataKey={chart.dataKey} stroke="#38bdf8" strokeWidth={2} fill="url(#agentAreaGrad)" />
+            <YAxis tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={v => fmtCompact(Number(v))} width={40} />
+            <Tooltip formatter={v => fmtTL(Number(v))} contentStyle={CHART_TOOLTIP_STYLE} itemStyle={CHART_TOOLTIP_ITEM} />
+            <Area type="monotone" dataKey={chart.dataKey} stroke="var(--accent)" strokeWidth={2} fill="var(--accent)" fillOpacity={0.12} />
           </AreaChart>
         </ResponsiveContainer>
       )}
@@ -1396,10 +1430,11 @@ function AgentChartView({ chart }: { chart: ChartSpec }) {
         <ResponsiveContainer width="100%" height={170}>
           <BarChart data={chart.data} margin={{ top: 5, right: 5, bottom: 0, left: 0 }}>
             <XAxis dataKey={chart.nameKey} tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} hide={chart.data.length > 4} />
-            <YAxis tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={v => fmtCompact(Number(v))} width={36} />
-            <Tooltip formatter={v => fmtTL(Number(v))} contentStyle={CHART_TOOLTIP_STYLE} />
+            <YAxis tick={CHART_AXIS_TICK} axisLine={false} tickLine={false} tickFormatter={v => fmtCompact(Number(v))} width={40} />
+            <Tooltip formatter={v => fmtTL(Number(v))} contentStyle={CHART_TOOLTIP_STYLE} itemStyle={CHART_TOOLTIP_ITEM} />
             <Bar dataKey={chart.dataKey} radius={[4, 4, 0, 0]}>
-              {chart.data.map((d, i) => <Cell key={i} fill={Number(d[chart.dataKey]) >= 0 ? '#2dd4a7' : '#f87171'} />)}
+              {/* Kâr = artış (kazanc), zarar = azalış (kayip) */}
+              {chart.data.map((d, i) => <Cell key={i} fill={Number(d[chart.dataKey]) >= 0 ? 'var(--accent)' : 'var(--red)'} />)}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
@@ -1459,7 +1494,7 @@ function TeachPanel({ facts, onTeach, onDelete, open, onToggleOpen, q, a, onQCha
             />
           </div>
           <div className="row" style={{ marginTop: 10 }}>
-            <button className="btn btn-primary btn-inline" onClick={submit} disabled={!q.trim() || !a.trim()}>
+            <button className="btn btn-secondary btn-inline" onClick={submit} disabled={!q.trim() || !a.trim()}>
               <GraduationCap size={15} /> Öğret
             </button>
           </div>
@@ -1532,15 +1567,15 @@ function AgentMemoryCard({ mem, open, onToggle, onPrefs }: {
   };
 
   return (
-    <div className="card" style={{ borderColor: 'rgba(56,189,248,0.35)' }}>
+    <div className="card">
       <button
         onClick={onToggle}
         style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'inherit',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
       >
         <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
-          <Bot size={14} color="var(--blue)" /> Ajan Ne Biliyor?
-          <span className="badge" style={{ color: 'var(--blue)', borderColor: 'rgba(56,189,248,0.4)' }}>HAFIZA</span>
+          <Bot size={14} /> Ajan Ne Biliyor?
+          <span className="badge">HAFIZA</span>
         </span>
         {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
       </button>
@@ -1578,7 +1613,7 @@ function AgentMemoryCard({ mem, open, onToggle, onPrefs }: {
                   <button
                     key={t} type="button" className="mini-btn" onClick={() => toggleInterest(t)}
                     aria-pressed={active}
-                    style={{ borderColor: active ? 'var(--blue)' : undefined, color: active ? 'var(--blue)' : undefined, fontWeight: active ? 600 : 400 }}
+                    style={{ borderColor: active ? 'var(--blue)' : undefined, color: active ? 'var(--text)' : undefined, fontWeight: active ? 600 : 400 }}
                   >
                     {active ? '✓ ' : ''}{ASSET_LABELS[t]}
                   </button>
@@ -1855,7 +1890,7 @@ function Ajan() {
           {messages.map((m, i) => (
             <div key={i} className={`msg ${m.role === 'agent' ? 'msg-agent' : 'msg-user'}`}>
               {m.aiGenerated && (
-                <div className="hint" style={{ margin: '0 0 4px', color: 'var(--blue)', fontSize: 11 }}>
+                <div className="hint" style={{ margin: '0 0 4px', color: 'var(--muted)', fontSize: 11 }}>
                   🤖 AI yanıtı — senin bağladığın modelden, yerel kuraldan değil
                 </div>
               )}
@@ -1888,7 +1923,7 @@ function Ajan() {
                     onClick={() => rate(i, 'up')}
                     style={{
                       background: 'none', border: 'none', cursor: m.rated ? 'default' : 'pointer', padding: 3,
-                      color: m.rated === 'up' ? 'var(--accent)' : 'var(--faint)', opacity: m.rated && m.rated !== 'up' ? 0.35 : 1,
+                      color: m.rated === 'up' ? 'var(--text)' : 'var(--faint)', opacity: m.rated && m.rated !== 'up' ? 0.35 : 1,
                     }}>
                     <ThumbsUp size={13} />
                   </button>
@@ -1897,7 +1932,7 @@ function Ajan() {
                     onClick={() => rate(i, 'down')}
                     style={{
                       background: 'none', border: 'none', cursor: m.rated ? 'default' : 'pointer', padding: 3,
-                      color: m.rated === 'down' ? 'var(--red)' : 'var(--faint)', opacity: m.rated && m.rated !== 'down' ? 0.35 : 1,
+                      color: m.rated === 'down' ? 'var(--text)' : 'var(--faint)', opacity: m.rated && m.rated !== 'down' ? 0.35 : 1,
                     }}>
                     <ThumbsDown size={13} />
                   </button>
@@ -1907,7 +1942,7 @@ function Ajan() {
           ))}
         </div>
         <div className="row" style={{ marginBottom: 12 }}>
-          <button className="btn btn-primary btn-inline" onClick={runAnalysis}>
+          <button className="btn btn-secondary btn-inline" onClick={runAnalysis}>
             <TrendingUp size={15} /> Analiz Et
           </button>
         </div>
@@ -1920,7 +1955,7 @@ function Ajan() {
             onKeyDown={e => { if (e.key === 'Enter') send(); }}
             aria-label="Ajana soru sor"
           />
-          <button className="btn btn-blue btn-inline" onClick={send} disabled={!input.trim()} aria-label="Gönder">
+          <button className="btn btn-primary btn-inline" onClick={send} disabled={!input.trim()} aria-label="Gönder">
             <Send size={15} />
           </button>
         </div>
@@ -1960,14 +1995,14 @@ function Ajan() {
               value={aiUrlDraft} onChange={e => { setAiUrlDraft(e.target.value); setAiUrlError(null); }}
               onKeyDown={e => { if (e.key === 'Enter') saveAiUrl(); }}
             />
-            {aiUrlError && <p className="hint" style={{ marginTop: 6, color: 'var(--red)' }}>{aiUrlError}</p>}
+            {aiUrlError && <p className="hint" style={{ marginTop: 6, color: 'var(--text)' }}>{aiUrlError}</p>}
             <div className="row" style={{ marginTop: 10, justifyContent: 'flex-end', gap: 8 }}>
               {aiUrl && (
                 <>
                   <span className="hint" style={{ marginRight: 'auto' }}>
                     {aiTestState === 'testing' && <><Loader2 size={12} className="spin-icon" style={{ verticalAlign: 'middle' }} /> test ediliyor…</>}
-                    {aiTestState === 'ok' && <span style={{ color: 'var(--accent)' }}>✓ bağlantı çalışıyor</span>}
-                    {aiTestState === 'fail' && <span style={{ color: 'var(--red)' }}>✗ yanıt alınamadı</span>}
+                    {aiTestState === 'ok' && <span style={{ color: 'var(--text)' }}>✓ bağlantı çalışıyor</span>}
+                    {aiTestState === 'fail' && <span style={{ color: 'var(--text)' }}>✗ yanıt alınamadı</span>}
                   </span>
                   <button className="btn btn-secondary btn-inline" onClick={testAiConnection} disabled={aiTestState === 'testing'}>
                     Bağlantıyı Test Et
@@ -1977,7 +2012,7 @@ function Ajan() {
                   </button>
                 </>
               )}
-              <button className="btn btn-primary btn-inline" onClick={saveAiUrl}>
+              <button className="btn btn-secondary btn-inline" onClick={saveAiUrl}>
                 Kaydet
               </button>
             </div>
