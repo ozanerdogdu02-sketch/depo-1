@@ -31,6 +31,17 @@ Kurallar: `AGENTS.md` (önce onu oku). Karar geçmişi: `docs/karar-gunlugu.md`.
 7. Yasal metinler — KVKK aydınlatma, kullanım koşulları, tavsiye değildir.
 8. Devir paketi — kurulum/devir dokümanı, ortam değişkenleri, gizlilik dostu metrik.
 
+## NEREDEN DEVAM EDİLİR (2026-10-19 son durum)
+
+- Ürün dalı `urun/birlesik` temiz ve yeşil (adım 1–2 tamam). Yarım kod yok.
+- **Sıradaki iş: adım 3.** Ekip planı hazır ve güvenlik/uyum danışmasından geçti: `docs/adim3-ekip-plani.md`
+  (K1 aiAgent'ı çıkar → K2 "deftere kayıt" dili + 9 tavsiye kalıbı → K3 testler). Koşu kredi bittiği için K1'in
+  başında durduruldu; kalemleri sırayla uygula, sonra kapıyı koş.
+- Sonraki işler: `docs/is-kuyrugu.md` (34 iş + G1–G3 görsel).
+- Vercel: `fagent` projesi (takım MYSELF) Vite/`dist` olarak ayarlandı ve yalnızca `urun/birlesik` dalını derler;
+  GitHub reposu henüz bağlı değil (kullanıcı Vercel → Settings → Git'ten bağlayacak). fagent.vercel.app hâlâ eski maket.
+- Tasarım dosyaları: `docs/tasarim/`.
+
 ## Geliştirme ekibi
 
 Altı rollü çok ajanlı ekip `.claude/agents/` altında, iş akışı `.claude/workflows/fagent-ekip.js`.
