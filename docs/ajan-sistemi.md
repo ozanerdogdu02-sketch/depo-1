@@ -16,6 +16,7 @@ teslim alır, inceler ve düzeltme ister. Son karar her zaman insanındır.
 | Güvenlik | `.claude/agents/fagent-guvenlik.md` | İki mercek (erişim/veri, istemci/tedarik zinciri): gizli anahtar, RLS, XSS, içe aktarma, sunucu fonksiyonu, bağımlılık, KVKK | Hayır |
 | Uyum | `.claude/agents/fagent-uyum.md` | Tavsiye yok, işlem yürütme yok, sahte veri yok, varsayım etiketi denetimi | Hayır |
 | Test | `.claude/agents/fagent-test.md` | E2e kontrolü yazar, typecheck + build + e2e kapısını çalıştırır | Evet (yalnız test) |
+| Yönetmen | `.claude/agents/fagent-yonetmen.md` | Üst rol: ekip için araştırma ve görev istemleri yazar, rollerin düzenini sağlar, sonuçları birleştirip kurala aykırıyı eler | Hayır |
 
 ## Nasıl konuşurlar — pano protokolü
 
@@ -114,3 +115,29 @@ Tipik bir koşu 12–20 ajan çağrısıdır (1 plan + 2 danışma + 1 revizyon 
 incelemeleridir ve bilinçli olarak kısılmaz. Küçük işler için tek bir rolü çağırmak
 daha ucuzdur; ekibi riskli ya da çok alanlı işlere sakla (kimlik doğrulama, veri senkronu,
 ödeme/abonelik, yeni veri kaynağı, büyük arayüz değişikliği).
+
+## Araştırma aşaması (`.claude/workflows/fagent-arastirma.js`)
+
+Bir ekip koşusu bittikten sonra, yapılan iş dünyadaki en iyi örneklerle karşılaştırılır.
+Kod değiştirmez.
+
+```
+Brifing ─▶ Araştırma (paralel) ─▶ Sentez
+yönetmen    tasarım, veri akışı,     yönetmen
+(istem      güvenlik, uyum, test
+ yazar)     (web + kod okuma)
+```
+
+- **Yönetmen** önce ekibin gerçekte ne yaptığını okur, sonra her rol için adlandırılmış
+  referanslarla (ürünler, açık kaynak projeler, standartlar) o işe özel bir istem yazar ve
+  tüm rollerin uyacağı düzen kurallarını koyar.
+- **Roller** kendi alanlarında referansları derinlemesine inceler; her karşılaştırma kaynak,
+  bizdeki durum, öneri, öncelik ve efor içerir. Kimse dosya değiştirmez.
+- **Sentez:** yönetmen tekrarları birleştirir, çelişkileri çözer, kurala aykırı ya da kaynaksız
+  önerileri gerekçesiyle reddeder, kalanları 8 adımlık plana bağlayıp önceliklendirir ve ekibe
+  verilecek hazır görev metinlerini yazar.
+- Modeller: yönetmen Opus, güvenlik araştırması Opus/yüksek, diğer roller Sonnet. Bütçe koruması
+  ekip iş akışıyla aynı.
+
+Çalıştırma: `fagent-arastirma workflow'unu şu konuyla çalıştır: "<yapılan iş>"`.
+
