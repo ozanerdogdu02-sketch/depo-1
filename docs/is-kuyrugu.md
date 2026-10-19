@@ -51,7 +51,7 @@ iş eklenmez. Ekip bir işi bitirince durumunu **Tamam** yapar ve commit'i yazar
 | 32 | fast-check ile mülk tabanlı testler (xirr, whitelistUserData) | 8 | dusuk | orta | Bekliyor | araştırma: fagent-test |
 | 33 | İsteğe bağlı TOTP ile iki adımlı doğrulama | plan dışı (adım 8 sonrası) | dusuk | orta | Bekliyor | araştırma: fagent-guvenlik |
 | 34 | agent.ts için Stryker mutasyon testi | plan dışı | dusuk | buyuk | Bekliyor | araştırma: fagent-test |
-| G1 | Hesap ekranı: 'Şifremi unuttum' ile 'Hesapsız devam et' bitişik | 6 | orta | küçük | Bekliyor | görsel kontrol |
+| G1 | Hesap ekranı: 'Şifremi unuttum' ile 'Hesapsız devam et' bitişik | 6 | orta | küçük | ✅ Tamam (index.css) | görsel kontrol |
 | G2 | Telefon (375px): menü ilk ekranı kaplıyor; alt sekme çubuğu + 'Daha fazla' | 6 | yüksek | orta | Bekliyor | görsel kontrol |
 | G3 | Yüzde biçimi: '%-22,69' yerine '-%22,69' | 6 | düşük | küçük | Bekliyor | görsel kontrol |
 

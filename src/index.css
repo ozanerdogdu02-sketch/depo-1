@@ -130,7 +130,7 @@ body {
 .auth-note { margin-top: 12px; font-size: 13px; line-height: 1.5; padding: 10px 12px; border-radius: 10px; color: var(--text); }
 .auth-note-ok { background: var(--surface-2); }
 .auth-note-err { background: var(--surface-2); box-shadow: inset 3px 0 0 var(--line-strong); }
-.auth-links { margin-top: 10px; }
+.auth-links { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px 20px; }
 .auth-backup-hint { margin-top: 14px; }
 .link-btn {
   display: inline-flex; align-items: center; gap: 5px; background: none; border: none; padding: 0;
