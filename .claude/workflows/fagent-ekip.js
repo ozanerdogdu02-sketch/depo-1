@@ -19,6 +19,13 @@ const GOREV = (girdi.gorev || '').trim()
 if (!GOREV) throw new Error('args.gorev boş — ekibe bir görev ver.')
 const MAKS_KALEM = girdi.maksKalem || 4
 const MAKS_TUR = girdi.maksDuzeltmeTuru === undefined ? 2 : girdi.maksDuzeltmeTuru
+// DEVAM KİPİ: durdurulmuş bir koşuyu kaldığı yerden sürdürür. Plan ve danışma YENİDEN yapılmaz —
+// güvenlik/uyum kısıtları önceki koşuda revize planın kalem açıklamalarına işlenmiştir.
+//   devam: { plan: <revize PLAN>, tamamlanan: ['K1'], yarim: ['K2'], onceTeslimler: [<TESLIM + kalem, sahip>] }
+// Tamamlanan kalemler atlanır; yarım kalan kalemin sahibi çalışma ağacındaki mevcut değişiklikleri
+// okuyup tamamlar. Test, iki mercekli güvenlik incelemesi ve karar her zaman baştan yapılır.
+const DEVAM = girdi.devam || null
+if (DEVAM && (!DEVAM.plan || !Array.isArray(DEVAM.plan.kalemler))) throw new Error('args.devam.plan geçersiz — revize plan nesnesi gerekli.')
 
 // ───────────────────────────── Bütçe koruması (güvenli durdurma) ─────────────────────────────
 // Kullanım limiti tükenmeye yaklaşınca akış bir ajanı YARIDA KESMEZ — yarıda kesilen uygulayıcı
@@ -266,9 +273,17 @@ const KARAR = {
 const engelleyici = b => b.ciddiyet === 'kritik' || b.ciddiyet === 'yuksek'
 
 // ───────────────────────────── 1. Plan ─────────────────────────────
+let plan
+if (DEVAM) {
+  phase('Plan')
+  plan = DEVAM.plan
+  durum.plan = plan
+  log(`Devam kipi: önceki koşunun revize planı kullanılıyor; plan ve danışma atlandı. Tamamlanan: ${(DEVAM.tamamlanan || []).join(', ') || '-'} · yarım: ${(DEVAM.yarim || []).join(', ') || '-'}`)
+  yaz('fagent-urun-lideri', 'ekip', 'plan-v2', { devam: true, kalemler: plan.kalemler.map(k => `${k.id} (${k.sahip}): ${k.baslik}`), tamamlanan: DEVAM.tamamlanan || [], yarim: DEVAM.yarim || [] })
+} else {
 phase('Plan')
 if (butceAz('Plan')) return guvenliDur()
-let plan = await agent(
+plan = await agent(
   rolIstemi('fagent-urun-lideri', [
     'Görevi en fazla ' + MAKS_KALEM + ' iş kalemine böl. Önce ilgili kodu gerçekten oku.',
     'Her kalemin tek bir sahibi olsun (fagent-tasarim, fagent-veri-akisi veya fagent-test).',
@@ -328,6 +343,7 @@ const revize = await agent(
 )
 if (revize) plan = revize
 durum.plan = plan
+}
 let kalemler = plan.kalemler
 if (kalemler.length > MAKS_KALEM) {
   log(`Plan ${kalemler.length} kalem içeriyor; ilk ${MAKS_KALEM} kalem uygulanacak, kalanlar ertelendi: ${kalemler.slice(MAKS_KALEM).map(k => k.id).join(', ')}`)
@@ -340,11 +356,17 @@ yaz('fagent-urun-lideri', 'ekip', 'plan-v2', { kalemler: kalemler.map(k => `${k.
 // ───────────────────────────── 3. Uygulama ─────────────────────────────
 // Sıralı, çünkü uygulayıcılar aynı çalışma ağacını düzenler; paralel düzenleme çakışırdı.
 phase('Uygulama')
-const teslimler = []
+const teslimler = DEVAM ? (DEVAM.onceTeslimler || []).slice() : []
+for (const t of teslimler) yaz(t.sahip, 'ekip', 'teslim', `${t.kalem} [${t.durum}] (önceki koşu) ${String(t.ozet).slice(0, 600)}`)
+durum.teslimler = teslimler
+const tamamlanan = new Set(DEVAM ? DEVAM.tamamlanan || [] : [])
+const yarim = new Set(DEVAM ? DEVAM.yarim || [] : [])
 for (const k of kalemler) {
+  if (tamamlanan.has(k.id)) { log(`${k.id} önceki koşuda tamamlandı — atlandı.`); continue }
   if (butceAz(`Uygulama ${k.id}`)) return guvenliDur()
   const t = await agent(
     rolIstemi(k.sahip, [
+      yarim.has(k.id) ? `DİKKAT — DEVAM: Bu kalem önceki koşuda uygulanırken YARIDA KESİLDİ. Çalışma ağacında yarım değişiklikler var. Önce \`git status\` ve \`git diff\` ile mevcut durumu oku (izlenmeyen yeni dosyalar dahil), yarım kalanı TAMAMLA; baştan yazma, başka kalemlerin (${[...tamamlanan].join(', ') || '-'}) değişikliklerini bozma.` : '',
       `Kalem ${k.id}: ${k.baslik}`,
       k.aciklama,
       'Kabul ölçütleri:\n- ' + k.kabulOlcutleri.join('\n- '),

@@ -18,8 +18,10 @@ function git(args) {
   return execFileSync('git', args, { encoding: 'utf8' }).split('\n').filter(Boolean);
 }
 
-// Taranan metin dosyaları: git'in izlediği her şey (node_modules ve dist zaten izlenmez).
-const izlenen = git(['ls-files']);
+// Taranan metin dosyaları: git'in izlediği her şey VE henüz eklenmemiş yeni dosyalar
+// (.gitignore'dakiler hariç). Yeni dosyalar commit edilmeden önce de taranmalı: ekip iş
+// akışında incelenen işin tamamı commit'siz çalışma ağacındadır.
+const izlenen = [...new Set(git(['ls-files', '--cached', '--others', '--exclude-standard']))];
 const ikili = /\.(png|jpe?g|gif|ico|webp|woff2?|ttf|zip|pdf)$/i;
 // Bu betik ve kural belgeleri desenleri tarif ettiği için kendileriyle eşleşir; taranmaz.
 const muaf = new Set(['scripts/guvenlik-tarama.mjs']);
@@ -120,7 +122,7 @@ if (audit === 'calismadi' || !audit.metadata) {
 // ───────────── Rapor ─────────────
 const kritik = bulgular.filter(b => b.ciddiyet === 'kritik');
 const uyari = bulgular.filter(b => b.ciddiyet === 'uyari');
-console.log(`Güvenlik taraması: ${izlenen.length} izlenen dosya${existsSync('dist') ? ' + dist/' : ''}, npm audit ${audit === 'calismadi' || !audit.metadata ? 'ÇALIŞMADI' : 'çalıştı'}.`);
+console.log(`Güvenlik taraması: ${izlenen.length} dosya (izlenen + yeni)${existsSync('dist') ? ' + dist/' : ''}, npm audit ${audit === 'calismadi' || !audit.metadata ? 'ÇALIŞMADI' : 'çalıştı'}.`);
 for (const b of [...kritik, ...uyari]) console.log(`${b.ciddiyet === 'kritik' ? '✗ KRİTİK' : '! uyarı '} [${b.kural}] ${b.yer} — ${b.aciklama}`);
 console.log(`SONUÇ: ${kritik.length} kritik, ${uyari.length} uyarı.`);
 process.exit(kritik.length ? 1 : 0);
