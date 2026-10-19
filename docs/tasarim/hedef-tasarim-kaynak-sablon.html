@@ -1,0 +1,6091 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="54805792-3c7f-4a00-9600-9911242879e9"></script>
+<title>FAGENT · Portföy Ajanı</title>
+
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>/* Nocturne — design-system tokens and component classes. This file is the source of truth for the system's look; retune it here and see readme.md. */
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("69509e31-d95e-4a36-9cc1-6250cada8753") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("8819b35d-e480-4dc6-8d12-bd7daaaf96ff") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("9d7837be-d545-41cf-9295-ec4c5c4ad79b") format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("3b97ea63-dfa7-4dab-9724-c7d8a85813ec") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("a69ec3af-056e-4728-ad11-29f24ecaa6bd") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("e47d7b76-34ba-43b2-b610-d3841add4c16") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("abfb57b1-2adb-4e35-baf3-b75bc27fbf2d") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("69509e31-d95e-4a36-9cc1-6250cada8753") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("8819b35d-e480-4dc6-8d12-bd7daaaf96ff") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("9d7837be-d545-41cf-9295-ec4c5c4ad79b") format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("3b97ea63-dfa7-4dab-9724-c7d8a85813ec") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("a69ec3af-056e-4728-ad11-29f24ecaa6bd") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("e47d7b76-34ba-43b2-b610-d3841add4c16") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("abfb57b1-2adb-4e35-baf3-b75bc27fbf2d") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("69509e31-d95e-4a36-9cc1-6250cada8753") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("8819b35d-e480-4dc6-8d12-bd7daaaf96ff") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("9d7837be-d545-41cf-9295-ec4c5c4ad79b") format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("3b97ea63-dfa7-4dab-9724-c7d8a85813ec") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("a69ec3af-056e-4728-ad11-29f24ecaa6bd") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("e47d7b76-34ba-43b2-b610-d3841add4c16") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("abfb57b1-2adb-4e35-baf3-b75bc27fbf2d") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("69509e31-d95e-4a36-9cc1-6250cada8753") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("8819b35d-e480-4dc6-8d12-bd7daaaf96ff") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("9d7837be-d545-41cf-9295-ec4c5c4ad79b") format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("3b97ea63-dfa7-4dab-9724-c7d8a85813ec") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("a69ec3af-056e-4728-ad11-29f24ecaa6bd") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("e47d7b76-34ba-43b2-b610-d3841add4c16") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("abfb57b1-2adb-4e35-baf3-b75bc27fbf2d") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+
+:root {
+  --color-bg: #161826;
+  --color-surface: #232532;
+  --color-text: #e9e9ed;
+  --color-accent: #9184d9; /* review round 7 (Barron): the accent moves to
+     the product's blurple — OKLCH hue 289.2, the hue of the app's own Pro
+     accent (#9a8fe0, --om-accent-pro) — at the same lightness the steel
+     accent held (L 0.660, so the documented ratios survive) and chroma
+     in the product blurple's own range (its token sits at C 0.118; the
+     accent takes 0.125, from the old steel's 0.030):
+     the accent now reads as an accent rather than another neutral. */
+  --color-accent-2: #a7a1db; /* the machine-derived stand-in follows: same
+     hue, same L 0.734, chroma at the same 2:3 proportion it held */
+  --color-divider: color-mix(in srgb, #e9e9ed 16%, transparent);
+
+  /* Tonal ramps — generated in OKLCH on one shared lightness scale, so the
+     same step of any role matches the others in visual value. */
+  --color-neutral-100: #f3f5fe;
+  --color-neutral-200: #e4e7f5;
+  --color-neutral-300: #cfd3e5;
+  --color-neutral-400: #b2b6ca;
+  --color-neutral-500: #9397ab;
+  --color-neutral-600: #75798c;
+  --color-neutral-700: #595d6c;
+  --color-neutral-800: #3f424d;
+  --color-neutral-900: #292b31;
+
+  --color-accent-100: #f5f4ff;
+  --color-accent-200: #e7e5fe;
+  --color-accent-300: #d2cefd;
+  --color-accent-400: #b5abfc;
+  --color-accent-500: #968ae0;
+  --color-accent-600: #796cbf;
+  --color-accent-700: #5d5294;
+  --color-accent-800: #423a6a;
+  --color-accent-900: #2b2741;
+
+  --color-accent-2-100: #f5f4ff;
+  --color-accent-2-200: #e7e5fe;
+  --color-accent-2-300: #d2cefd;
+  --color-accent-2-400: #b5afe8;
+  --color-accent-2-500: #9690c9;
+  --color-accent-2-600: #7972a9;
+  --color-accent-2-700: #5c5783;
+  --color-accent-2-800: #423e5d;
+  --color-accent-2-900: #2b293a;
+
+  /* Deck section-divider ground — review round 3: saturation as presence.
+     Dividers take a saturated deep indigo (hue 277, the neutral ramp's own
+     family; C 0.094 — written when the accent held C 0.030, before the
+     round-7 blurple raised it past the ground's) with a lighter bloom and
+     a ghost tint of the same hue, while the slide grounds stay
+     desaturated. Deck-scale fills only — not interface colors. */
+  --color-section: #262a60;
+  --color-section-glow: #353b80;
+  --color-section-ghost: #4c5397;
+
+  --font-heading: "Inter", system-ui, sans-serif;
+  --font-heading-weight: 500;
+  --font-body: "Inter", system-ui, sans-serif;
+
+  --space-1: 2.8px;
+  --space-2: 5.6px;
+  --space-3: 8.4px;
+  --space-4: 11.2px;
+  --space-6: 16.8px;
+  --space-8: 22.4px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+
+  /* Elevation — derived from the ground: soft ink-tinted shadows on a
+     light theme, a hairline edge + ambient darkness on a dark one. */
+  --shadow-sm: 0 0 0 1px #3f424d;
+  --shadow-md: 0 0 0 1px #595d6c, 0 6px 18px rgba(0,0,0,0.55);
+  --shadow-lg: 0 0 0 1px #9397ab, 0 16px 40px rgba(0,0,0,0.65);
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: var(--font-heading-weight); }
+
+.lighten{mix-blend-mode:lighten;background-color:transparent}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   Components — built with the tokens above. Plain CSS
+   on plain HTML: no JavaScript, no build step. Each class is documented in
+   readme.md and demonstrated in foundations/ and components/.
+   ══════════════════════════════════════════════════════════════════════ */
+
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; font-size: 15px; line-height: 1.55; font-weight: 400; }
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  line-height: 1.12; letter-spacing: -0.015em; margin: 0 0 var(--space-2);
+}
+h1 { font-size: 42px; }
+h2 { font-size: 32px; }
+h3 { font-size: 25px; }
+h4 { font-size: 20px; }
+h5 { font-size: 16px; }
+h6 { font-size: 13px; }
+h6 { letter-spacing: 0.08em; text-transform: uppercase; }
+p { margin: 0 0 var(--space-3); }
+a { color: var(--color-accent); text-underline-offset: 3px; }
+img { display: block; max-width: 100%; }
+figure { margin: 0; }
+figcaption {
+  font-size: 11px; margin-top: var(--space-1);
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+}
+.text-muted { color: color-mix(in srgb, var(--color-text) 55%, transparent); }
+:focus { outline: none; }
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+::selection { background: color-mix(in srgb, var(--color-accent) 30%, transparent); }
+
+/* — rules — */
+/* Rules fade to transparent at both ends instead of stopping cleanly — a
+   Nocturne signature. The ramp is 48px an end (one deck baseline unit),
+   painted from the same divider token. Freestanding rules fade; box
+   outlines, in-control separators, and short accent marks stay solid. */
+.hr {
+  height: 1px; border: 0; margin: var(--space-4) 0;
+  background: linear-gradient(to right,
+    transparent, var(--color-divider) 48px,
+    var(--color-divider) calc(100% - 48px), transparent);
+}
+
+/* — buttons — */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  cursor: pointer; text-decoration: none;
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 14px; line-height: 1.2; color: var(--color-text); /* matches the .input's 14px —
+     the pair sits side by side in sign-up rows */
+  background: transparent; border: 1px solid transparent;
+  padding: var(--space-2) calc(var(--space-3) * 1.2);
+  border-radius: var(--radius-md);
+}
+.btn svg { display: block; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary { color: var(--color-accent); border-color: var(--color-accent); }
+.btn-primary:hover { background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
+.btn-primary:active { background: color-mix(in srgb, var(--color-accent) 22%, transparent); }
+.btn-secondary { border-color: var(--color-divider); }
+.btn-secondary:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+.btn-secondary:active { background: color-mix(in srgb, var(--color-text) 14%, transparent); }
+.btn-ghost { color: var(--color-accent); padding-inline: var(--space-1); }
+.btn-ghost:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+.btn-ghost:active { background: color-mix(in srgb, var(--color-accent) 18%, transparent); }
+.btn-icon { width: 36px; height: 36px; padding: 0; }
+.btn-block { width: 100%; margin-top: var(--space-2); }
+
+/* — forms — */
+.field > label {
+  display: block; font-size: 12px; margin-bottom: 5px;
+  color: color-mix(in srgb, var(--color-text) 70%, transparent);
+}
+.input {
+  width: 100%; min-height: 36px; padding: 6px 10px; font: inherit;
+  font-size: 14px; color: var(--color-text); caret-color: var(--color-accent);
+  background: var(--color-surface);
+  border: 1px solid var(--color-divider); border-radius: var(--radius-md);
+}
+.input:hover { border-color: color-mix(in srgb, var(--color-text) 45%, transparent); }
+.input:focus-visible { border-color: var(--color-accent); outline-offset: 0; }
+textarea.input { min-height: 90px; resize: vertical; }
+.radio { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; }
+.radio input, .seg-opt input {
+  position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none;
+}
+.radio .dot {
+  width: 16px; height: 16px; flex: none; border-radius: 50%;
+  border: 1.5px solid var(--color-divider);
+}
+.radio:hover .dot { border-color: var(--color-accent); }
+.radio input:checked + .dot {
+  border-color: var(--color-accent); background: var(--color-accent);
+  box-shadow: inset 0 0 0 4px var(--color-bg);
+}
+.radio input:focus-visible + .dot { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.seg {
+  display: inline-flex; overflow: hidden;
+  border: 1px solid var(--color-divider); border-radius: var(--radius-md);
+}
+.seg-opt {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; font-size: 13px; cursor: pointer;
+}
+.seg-opt + .seg-opt { border-left: 1px solid var(--color-divider); }
+.seg-opt:has(input:checked) { color: var(--color-accent); box-shadow: inset 0 0 0 1px var(--color-accent); }
+.seg-opt:not(:has(input:checked)):hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+.seg-opt:has(input:focus-visible) { outline: 2px solid var(--color-accent); outline-offset: -2px; }
+
+/* — cards — */
+.card {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  padding: var(--space-3); border-radius: var(--radius-md); background: var(--color-surface);
+}
+.card-kicker { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-accent); }
+.card-title {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 17px; line-height: 1.2;
+}
+.card-body { margin: 0; font-size: 13px; opacity: 0.8; flex: 1; }
+.card-meta {
+  display: flex; align-items: center; gap: 6px; font-size: 11px;
+  color: color-mix(in srgb, var(--color-text) 50%, transparent);
+}
+.elev-sm { box-shadow: var(--shadow-sm); }
+.elev-md { box-shadow: var(--shadow-md); }
+.elev-lg { box-shadow: var(--shadow-lg); }
+
+/* — tags — */
+.tag {
+  display: inline-flex; align-items: center; font-size: 11px;
+  letter-spacing: 0.02em; padding: 3px 10px;
+  border-radius: calc(var(--radius-md) * 0.75);
+}
+.tag-accent { background: var(--color-accent-800); color: var(--color-accent-100); }
+.tag-accent-2 { background: var(--color-accent-2-800); color: var(--color-accent-2-100); }
+.tag-neutral { background: var(--color-neutral-800); color: var(--color-neutral-100); }
+.tag-outline { border: 1px solid var(--color-accent); color: var(--color-accent); }
+
+/* — navigation — */
+.nav {
+  display: flex; align-items: center; gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: none;
+}
+.nav-brand {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 18px; margin-right: auto;
+}
+.nav a { color: inherit; text-decoration: none; font-size: 14px; }
+.nav a:hover, .nav a[aria-current='page'] { color: var(--color-accent); }
+
+/* — tables — */
+.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table th {
+  text-align: left; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: color-mix(in srgb, var(--color-text) 60%, transparent);
+  padding: var(--space-2); border-bottom: 1px solid transparent; /* keeps layout; the row paints the fading rule */
+}
+.table td {
+  padding: var(--space-2);
+  border-bottom: 1px solid transparent;
+}
+/* Row rules as row-level strips so the end-fade spans the row, not each cell. */
+.table thead tr {
+  background: linear-gradient(to right,
+    transparent, var(--color-divider) 48px,
+    var(--color-divider) calc(100% - 48px), transparent) no-repeat bottom / 100% 1px;
+}
+.table tbody tr {
+  background: linear-gradient(to right,
+    transparent, color-mix(in srgb, var(--color-text) 8%, transparent) 48px,
+    color-mix(in srgb, var(--color-text) 8%, transparent) calc(100% - 48px), transparent) no-repeat bottom / 100% 1px;
+}
+.table tbody tr:hover {
+  /* the hover tint layers over the row rule, which keeps painting */
+  background:
+    linear-gradient(color-mix(in srgb, var(--color-text) 4%, transparent),
+                    color-mix(in srgb, var(--color-text) 4%, transparent)) no-repeat 0 0 / 100% 100%,
+    linear-gradient(to right,
+      transparent, color-mix(in srgb, var(--color-text) 8%, transparent) 48px,
+      color-mix(in srgb, var(--color-text) 8%, transparent) calc(100% - 48px), transparent) no-repeat bottom / 100% 1px;
+}
+
+/* — dialog — */
+.dialog-backdrop {
+  position: fixed; inset: 0; display: grid; place-items: center;
+  padding: var(--space-4);
+  background: color-mix(in srgb, var(--color-neutral-900) 50%, transparent);
+}
+.dialog {
+  width: min(440px, 100%); display: flex; flex-direction: column; gap: var(--space-3);
+  padding: var(--space-4); border-radius: var(--radius-lg);
+  background: var(--color-surface); box-shadow: var(--shadow-lg);
+}
+.dialog-title {
+  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 20px;
+}
+.dialog-body { font-size: 14px; opacity: 0.85; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
+
+</style>
+<script src="e9c08431-13bd-4276-9be3-bde7e28fb933"></script>
+<style>@font-face {
+  font-family: "Phosphor";
+  src:
+    url("c68d45fa-400a-4676-a104-beea974a0f73") format("woff2"),
+    url("4976446c-2b26-42a5-9791-8d16237dc10c") format("woff"),
+    url("eeef8c7d-5c91-47a4-a8eb-d3021e9922f6") format("truetype"),
+    url("97eb9adf-de9f-4037-a05a-c07dbbb427ae#Phosphor") format("svg");
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+.ph {
+  /* use !important to prevent issues with browser extensions that change fonts */
+  font-family: "Phosphor" !important;
+  speak: never;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+
+  /* Enable Ligatures ================ */
+  letter-spacing: 0;
+  -webkit-font-feature-settings: "liga";
+  -moz-font-feature-settings: "liga=1";
+  -moz-font-feature-settings: "liga";
+  -ms-font-feature-settings: "liga" 1;
+  font-feature-settings: "liga";
+  -webkit-font-variant-ligatures: discretionary-ligatures;
+  font-variant-ligatures: discretionary-ligatures;
+
+  /* Better Font Rendering =========== */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.ph.ph-acorn:before {
+  content: "\eb9a";
+}
+.ph.ph-address-book:before {
+  content: "\e6f8";
+}
+.ph.ph-address-book-tabs:before {
+  content: "\ee4e";
+}
+.ph.ph-air-traffic-control:before {
+  content: "\ecd8";
+}
+.ph.ph-airplane:before {
+  content: "\e002";
+}
+.ph.ph-airplane-in-flight:before {
+  content: "\e4fe";
+}
+.ph.ph-airplane-landing:before {
+  content: "\e502";
+}
+.ph.ph-airplane-takeoff:before {
+  content: "\e504";
+}
+.ph.ph-airplane-taxiing:before {
+  content: "\e500";
+}
+.ph.ph-airplane-tilt:before {
+  content: "\e5d6";
+}
+.ph.ph-airplay:before {
+  content: "\e004";
+}
+.ph.ph-alarm:before {
+  content: "\e006";
+}
+.ph.ph-alien:before {
+  content: "\e8a6";
+}
+.ph.ph-align-bottom:before {
+  content: "\e506";
+}
+.ph.ph-align-bottom-simple:before {
+  content: "\eb0c";
+}
+.ph.ph-align-center-horizontal:before {
+  content: "\e50a";
+}
+.ph.ph-align-center-horizontal-simple:before {
+  content: "\eb0e";
+}
+.ph.ph-align-center-vertical:before {
+  content: "\e50c";
+}
+.ph.ph-align-center-vertical-simple:before {
+  content: "\eb10";
+}
+.ph.ph-align-left:before {
+  content: "\e50e";
+}
+.ph.ph-align-left-simple:before {
+  content: "\eaee";
+}
+.ph.ph-align-right:before {
+  content: "\e510";
+}
+.ph.ph-align-right-simple:before {
+  content: "\eb12";
+}
+.ph.ph-align-top:before {
+  content: "\e512";
+}
+.ph.ph-align-top-simple:before {
+  content: "\eb14";
+}
+.ph.ph-amazon-logo:before {
+  content: "\e96c";
+}
+.ph.ph-ambulance:before {
+  content: "\e572";
+}
+.ph.ph-anchor:before {
+  content: "\e514";
+}
+.ph.ph-anchor-simple:before {
+  content: "\e5d8";
+}
+.ph.ph-android-logo:before {
+  content: "\e008";
+}
+.ph.ph-angle:before {
+  content: "\e7bc";
+}
+.ph.ph-angular-logo:before {
+  content: "\eb80";
+}
+.ph.ph-aperture:before {
+  content: "\e00a";
+}
+.ph.ph-app-store-logo:before {
+  content: "\e974";
+}
+.ph.ph-app-window:before {
+  content: "\e5da";
+}
+.ph.ph-apple-logo:before {
+  content: "\e516";
+}
+.ph.ph-apple-podcasts-logo:before {
+  content: "\eb96";
+}
+.ph.ph-approximate-equals:before {
+  content: "\edaa";
+}
+.ph.ph-archive:before {
+  content: "\e00c";
+}
+.ph.ph-armchair:before {
+  content: "\e012";
+}
+.ph.ph-arrow-arc-left:before {
+  content: "\e014";
+}
+.ph.ph-arrow-arc-right:before {
+  content: "\e016";
+}
+.ph.ph-arrow-bend-double-up-left:before {
+  content: "\e03a";
+}
+.ph.ph-arrow-bend-double-up-right:before {
+  content: "\e03c";
+}
+.ph.ph-arrow-bend-down-left:before {
+  content: "\e018";
+}
+.ph.ph-arrow-bend-down-right:before {
+  content: "\e01a";
+}
+.ph.ph-arrow-bend-left-down:before {
+  content: "\e01c";
+}
+.ph.ph-arrow-bend-left-up:before {
+  content: "\e01e";
+}
+.ph.ph-arrow-bend-right-down:before {
+  content: "\e020";
+}
+.ph.ph-arrow-bend-right-up:before {
+  content: "\e022";
+}
+.ph.ph-arrow-bend-up-left:before {
+  content: "\e024";
+}
+.ph.ph-arrow-bend-up-right:before {
+  content: "\e026";
+}
+.ph.ph-arrow-circle-down:before {
+  content: "\e028";
+}
+.ph.ph-arrow-circle-down-left:before {
+  content: "\e02a";
+}
+.ph.ph-arrow-circle-down-right:before {
+  content: "\e02c";
+}
+.ph.ph-arrow-circle-left:before {
+  content: "\e05a";
+}
+.ph.ph-arrow-circle-right:before {
+  content: "\e02e";
+}
+.ph.ph-arrow-circle-up:before {
+  content: "\e030";
+}
+.ph.ph-arrow-circle-up-left:before {
+  content: "\e032";
+}
+.ph.ph-arrow-circle-up-right:before {
+  content: "\e034";
+}
+.ph.ph-arrow-clockwise:before {
+  content: "\e036";
+}
+.ph.ph-arrow-counter-clockwise:before {
+  content: "\e038";
+}
+.ph.ph-arrow-down:before {
+  content: "\e03e";
+}
+.ph.ph-arrow-down-left:before {
+  content: "\e040";
+}
+.ph.ph-arrow-down-right:before {
+  content: "\e042";
+}
+.ph.ph-arrow-elbow-down-left:before {
+  content: "\e044";
+}
+.ph.ph-arrow-elbow-down-right:before {
+  content: "\e046";
+}
+.ph.ph-arrow-elbow-left:before {
+  content: "\e048";
+}
+.ph.ph-arrow-elbow-left-down:before {
+  content: "\e04a";
+}
+.ph.ph-arrow-elbow-left-up:before {
+  content: "\e04c";
+}
+.ph.ph-arrow-elbow-right:before {
+  content: "\e04e";
+}
+.ph.ph-arrow-elbow-right-down:before {
+  content: "\e050";
+}
+.ph.ph-arrow-elbow-right-up:before {
+  content: "\e052";
+}
+.ph.ph-arrow-elbow-up-left:before {
+  content: "\e054";
+}
+.ph.ph-arrow-elbow-up-right:before {
+  content: "\e056";
+}
+.ph.ph-arrow-fat-down:before {
+  content: "\e518";
+}
+.ph.ph-arrow-fat-left:before {
+  content: "\e51a";
+}
+.ph.ph-arrow-fat-line-down:before {
+  content: "\e51c";
+}
+.ph.ph-arrow-fat-line-left:before {
+  content: "\e51e";
+}
+.ph.ph-arrow-fat-line-right:before {
+  content: "\e520";
+}
+.ph.ph-arrow-fat-line-up:before {
+  content: "\e522";
+}
+.ph.ph-arrow-fat-lines-down:before {
+  content: "\e524";
+}
+.ph.ph-arrow-fat-lines-left:before {
+  content: "\e526";
+}
+.ph.ph-arrow-fat-lines-right:before {
+  content: "\e528";
+}
+.ph.ph-arrow-fat-lines-up:before {
+  content: "\e52a";
+}
+.ph.ph-arrow-fat-right:before {
+  content: "\e52c";
+}
+.ph.ph-arrow-fat-up:before {
+  content: "\e52e";
+}
+.ph.ph-arrow-left:before {
+  content: "\e058";
+}
+.ph.ph-arrow-line-down:before {
+  content: "\e05c";
+}
+.ph.ph-arrow-line-down-left:before {
+  content: "\e05e";
+}
+.ph.ph-arrow-line-down-right:before {
+  content: "\e060";
+}
+.ph.ph-arrow-line-left:before {
+  content: "\e062";
+}
+.ph.ph-arrow-line-right:before {
+  content: "\e064";
+}
+.ph.ph-arrow-line-up:before {
+  content: "\e066";
+}
+.ph.ph-arrow-line-up-left:before {
+  content: "\e068";
+}
+.ph.ph-arrow-line-up-right:before {
+  content: "\e06a";
+}
+.ph.ph-arrow-right:before {
+  content: "\e06c";
+}
+.ph.ph-arrow-square-down:before {
+  content: "\e06e";
+}
+.ph.ph-arrow-square-down-left:before {
+  content: "\e070";
+}
+.ph.ph-arrow-square-down-right:before {
+  content: "\e072";
+}
+.ph.ph-arrow-square-in:before {
+  content: "\e5dc";
+}
+.ph.ph-arrow-square-left:before {
+  content: "\e074";
+}
+.ph.ph-arrow-square-out:before {
+  content: "\e5de";
+}
+.ph.ph-arrow-square-right:before {
+  content: "\e076";
+}
+.ph.ph-arrow-square-up:before {
+  content: "\e078";
+}
+.ph.ph-arrow-square-up-left:before {
+  content: "\e07a";
+}
+.ph.ph-arrow-square-up-right:before {
+  content: "\e07c";
+}
+.ph.ph-arrow-u-down-left:before {
+  content: "\e07e";
+}
+.ph.ph-arrow-u-down-right:before {
+  content: "\e080";
+}
+.ph.ph-arrow-u-left-down:before {
+  content: "\e082";
+}
+.ph.ph-arrow-u-left-up:before {
+  content: "\e084";
+}
+.ph.ph-arrow-u-right-down:before {
+  content: "\e086";
+}
+.ph.ph-arrow-u-right-up:before {
+  content: "\e088";
+}
+.ph.ph-arrow-u-up-left:before {
+  content: "\e08a";
+}
+.ph.ph-arrow-u-up-right:before {
+  content: "\e08c";
+}
+.ph.ph-arrow-up:before {
+  content: "\e08e";
+}
+.ph.ph-arrow-up-left:before {
+  content: "\e090";
+}
+.ph.ph-arrow-up-right:before {
+  content: "\e092";
+}
+.ph.ph-arrows-clockwise:before {
+  content: "\e094";
+}
+.ph.ph-arrows-counter-clockwise:before {
+  content: "\e096";
+}
+.ph.ph-arrows-down-up:before {
+  content: "\e098";
+}
+.ph.ph-arrows-horizontal:before {
+  content: "\eb06";
+}
+.ph.ph-arrows-in:before {
+  content: "\e09a";
+}
+.ph.ph-arrows-in-cardinal:before {
+  content: "\e09c";
+}
+.ph.ph-arrows-in-line-horizontal:before {
+  content: "\e530";
+}
+.ph.ph-arrows-in-line-vertical:before {
+  content: "\e532";
+}
+.ph.ph-arrows-in-simple:before {
+  content: "\e09e";
+}
+.ph.ph-arrows-left-right:before {
+  content: "\e0a0";
+}
+.ph.ph-arrows-merge:before {
+  content: "\ed3e";
+}
+.ph.ph-arrows-out:before {
+  content: "\e0a2";
+}
+.ph.ph-arrows-out-cardinal:before {
+  content: "\e0a4";
+}
+.ph.ph-arrows-out-line-horizontal:before {
+  content: "\e534";
+}
+.ph.ph-arrows-out-line-vertical:before {
+  content: "\e536";
+}
+.ph.ph-arrows-out-simple:before {
+  content: "\e0a6";
+}
+.ph.ph-arrows-split:before {
+  content: "\ed3c";
+}
+.ph.ph-arrows-vertical:before {
+  content: "\eb04";
+}
+.ph.ph-article:before {
+  content: "\e0a8";
+}
+.ph.ph-article-medium:before {
+  content: "\e5e0";
+}
+.ph.ph-article-ny-times:before {
+  content: "\e5e2";
+}
+.ph.ph-asclepius:before {
+  content: "\ee34";
+}
+.ph.ph-caduceus:before {
+  content: "\ee34";
+}
+.ph.ph-asterisk:before {
+  content: "\e0aa";
+}
+.ph.ph-asterisk-simple:before {
+  content: "\e832";
+}
+.ph.ph-at:before {
+  content: "\e0ac";
+}
+.ph.ph-atom:before {
+  content: "\e5e4";
+}
+.ph.ph-avocado:before {
+  content: "\ee04";
+}
+.ph.ph-axe:before {
+  content: "\e9fc";
+}
+.ph.ph-baby:before {
+  content: "\e774";
+}
+.ph.ph-baby-carriage:before {
+  content: "\e818";
+}
+.ph.ph-backpack:before {
+  content: "\e922";
+}
+.ph.ph-backspace:before {
+  content: "\e0ae";
+}
+.ph.ph-bag:before {
+  content: "\e0b0";
+}
+.ph.ph-bag-simple:before {
+  content: "\e5e6";
+}
+.ph.ph-balloon:before {
+  content: "\e76c";
+}
+.ph.ph-bandaids:before {
+  content: "\e0b2";
+}
+.ph.ph-bank:before {
+  content: "\e0b4";
+}
+.ph.ph-barbell:before {
+  content: "\e0b6";
+}
+.ph.ph-barcode:before {
+  content: "\e0b8";
+}
+.ph.ph-barn:before {
+  content: "\ec72";
+}
+.ph.ph-barricade:before {
+  content: "\e948";
+}
+.ph.ph-baseball:before {
+  content: "\e71a";
+}
+.ph.ph-baseball-cap:before {
+  content: "\ea28";
+}
+.ph.ph-baseball-helmet:before {
+  content: "\ee4a";
+}
+.ph.ph-basket:before {
+  content: "\e964";
+}
+.ph.ph-basketball:before {
+  content: "\e724";
+}
+.ph.ph-bathtub:before {
+  content: "\e81e";
+}
+.ph.ph-battery-charging:before {
+  content: "\e0ba";
+}
+.ph.ph-battery-charging-vertical:before {
+  content: "\e0bc";
+}
+.ph.ph-battery-empty:before {
+  content: "\e0be";
+}
+.ph.ph-battery-full:before {
+  content: "\e0c0";
+}
+.ph.ph-battery-high:before {
+  content: "\e0c2";
+}
+.ph.ph-battery-low:before {
+  content: "\e0c4";
+}
+.ph.ph-battery-medium:before {
+  content: "\e0c6";
+}
+.ph.ph-battery-plus:before {
+  content: "\e808";
+}
+.ph.ph-battery-plus-vertical:before {
+  content: "\ec50";
+}
+.ph.ph-battery-vertical-empty:before {
+  content: "\e7c6";
+}
+.ph.ph-battery-vertical-full:before {
+  content: "\e7c4";
+}
+.ph.ph-battery-vertical-high:before {
+  content: "\e7c2";
+}
+.ph.ph-battery-vertical-low:before {
+  content: "\e7be";
+}
+.ph.ph-battery-vertical-medium:before {
+  content: "\e7c0";
+}
+.ph.ph-battery-warning:before {
+  content: "\e0c8";
+}
+.ph.ph-battery-warning-vertical:before {
+  content: "\e0ca";
+}
+.ph.ph-beach-ball:before {
+  content: "\ed24";
+}
+.ph.ph-beanie:before {
+  content: "\ea2a";
+}
+.ph.ph-bed:before {
+  content: "\e0cc";
+}
+.ph.ph-beer-bottle:before {
+  content: "\e7b0";
+}
+.ph.ph-beer-stein:before {
+  content: "\eb62";
+}
+.ph.ph-behance-logo:before {
+  content: "\e7f4";
+}
+.ph.ph-bell:before {
+  content: "\e0ce";
+}
+.ph.ph-bell-ringing:before {
+  content: "\e5e8";
+}
+.ph.ph-bell-simple:before {
+  content: "\e0d0";
+}
+.ph.ph-bell-simple-ringing:before {
+  content: "\e5ea";
+}
+.ph.ph-bell-simple-slash:before {
+  content: "\e0d2";
+}
+.ph.ph-bell-simple-z:before {
+  content: "\e5ec";
+}
+.ph.ph-bell-slash:before {
+  content: "\e0d4";
+}
+.ph.ph-bell-z:before {
+  content: "\e5ee";
+}
+.ph.ph-belt:before {
+  content: "\ea2c";
+}
+.ph.ph-bezier-curve:before {
+  content: "\eb00";
+}
+.ph.ph-bicycle:before {
+  content: "\e0d6";
+}
+.ph.ph-binary:before {
+  content: "\ee60";
+}
+.ph.ph-binoculars:before {
+  content: "\ea64";
+}
+.ph.ph-biohazard:before {
+  content: "\e9e0";
+}
+.ph.ph-bird:before {
+  content: "\e72c";
+}
+.ph.ph-blueprint:before {
+  content: "\eda0";
+}
+.ph.ph-bluetooth:before {
+  content: "\e0da";
+}
+.ph.ph-bluetooth-connected:before {
+  content: "\e0dc";
+}
+.ph.ph-bluetooth-slash:before {
+  content: "\e0de";
+}
+.ph.ph-bluetooth-x:before {
+  content: "\e0e0";
+}
+.ph.ph-boat:before {
+  content: "\e786";
+}
+.ph.ph-bomb:before {
+  content: "\ee0a";
+}
+.ph.ph-bone:before {
+  content: "\e7f2";
+}
+.ph.ph-book:before {
+  content: "\e0e2";
+}
+.ph.ph-book-bookmark:before {
+  content: "\e0e4";
+}
+.ph.ph-book-open:before {
+  content: "\e0e6";
+}
+.ph.ph-book-open-text:before {
+  content: "\e8f2";
+}
+.ph.ph-book-open-user:before {
+  content: "\ede0";
+}
+.ph.ph-bookmark:before {
+  content: "\e0e8";
+}
+.ph.ph-bookmark-simple:before {
+  content: "\e0ea";
+}
+.ph.ph-bookmarks:before {
+  content: "\e0ec";
+}
+.ph.ph-bookmarks-simple:before {
+  content: "\e5f0";
+}
+.ph.ph-books:before {
+  content: "\e758";
+}
+.ph.ph-boot:before {
+  content: "\ecca";
+}
+.ph.ph-boules:before {
+  content: "\e722";
+}
+.ph.ph-bounding-box:before {
+  content: "\e6ce";
+}
+.ph.ph-bowl-food:before {
+  content: "\eaa4";
+}
+.ph.ph-bowl-steam:before {
+  content: "\e8e4";
+}
+.ph.ph-bowling-ball:before {
+  content: "\ea34";
+}
+.ph.ph-box-arrow-down:before {
+  content: "\e00e";
+}
+.ph.ph-archive-box:before {
+  content: "\e00e";
+}
+.ph.ph-box-arrow-up:before {
+  content: "\ee54";
+}
+.ph.ph-boxing-glove:before {
+  content: "\ea36";
+}
+.ph.ph-brackets-angle:before {
+  content: "\e862";
+}
+.ph.ph-brackets-curly:before {
+  content: "\e860";
+}
+.ph.ph-brackets-round:before {
+  content: "\e864";
+}
+.ph.ph-brackets-square:before {
+  content: "\e85e";
+}
+.ph.ph-brain:before {
+  content: "\e74e";
+}
+.ph.ph-brandy:before {
+  content: "\e6b4";
+}
+.ph.ph-bread:before {
+  content: "\e81c";
+}
+.ph.ph-bridge:before {
+  content: "\ea68";
+}
+.ph.ph-briefcase:before {
+  content: "\e0ee";
+}
+.ph.ph-briefcase-metal:before {
+  content: "\e5f2";
+}
+.ph.ph-broadcast:before {
+  content: "\e0f2";
+}
+.ph.ph-broom:before {
+  content: "\ec54";
+}
+.ph.ph-browser:before {
+  content: "\e0f4";
+}
+.ph.ph-browsers:before {
+  content: "\e0f6";
+}
+.ph.ph-bug:before {
+  content: "\e5f4";
+}
+.ph.ph-bug-beetle:before {
+  content: "\e5f6";
+}
+.ph.ph-bug-droid:before {
+  content: "\e5f8";
+}
+.ph.ph-building:before {
+  content: "\e100";
+}
+.ph.ph-building-apartment:before {
+  content: "\e0fe";
+}
+.ph.ph-building-office:before {
+  content: "\e0ff";
+}
+.ph.ph-buildings:before {
+  content: "\e102";
+}
+.ph.ph-bulldozer:before {
+  content: "\ec6c";
+}
+.ph.ph-bus:before {
+  content: "\e106";
+}
+.ph.ph-butterfly:before {
+  content: "\ea6e";
+}
+.ph.ph-cable-car:before {
+  content: "\e49c";
+}
+.ph.ph-cactus:before {
+  content: "\e918";
+}
+.ph.ph-cake:before {
+  content: "\e780";
+}
+.ph.ph-calculator:before {
+  content: "\e538";
+}
+.ph.ph-calendar:before {
+  content: "\e108";
+}
+.ph.ph-calendar-blank:before {
+  content: "\e10a";
+}
+.ph.ph-calendar-check:before {
+  content: "\e712";
+}
+.ph.ph-calendar-dot:before {
+  content: "\e7b2";
+}
+.ph.ph-calendar-dots:before {
+  content: "\e7b4";
+}
+.ph.ph-calendar-heart:before {
+  content: "\e8b0";
+}
+.ph.ph-calendar-minus:before {
+  content: "\ea14";
+}
+.ph.ph-calendar-plus:before {
+  content: "\e714";
+}
+.ph.ph-calendar-slash:before {
+  content: "\ea12";
+}
+.ph.ph-calendar-star:before {
+  content: "\e8b2";
+}
+.ph.ph-calendar-x:before {
+  content: "\e10c";
+}
+.ph.ph-call-bell:before {
+  content: "\e7de";
+}
+.ph.ph-camera:before {
+  content: "\e10e";
+}
+.ph.ph-camera-plus:before {
+  content: "\ec58";
+}
+.ph.ph-camera-rotate:before {
+  content: "\e7a4";
+}
+.ph.ph-camera-slash:before {
+  content: "\e110";
+}
+.ph.ph-campfire:before {
+  content: "\e9d8";
+}
+.ph.ph-car:before {
+  content: "\e112";
+}
+.ph.ph-car-battery:before {
+  content: "\ee30";
+}
+.ph.ph-car-profile:before {
+  content: "\e8cc";
+}
+.ph.ph-car-simple:before {
+  content: "\e114";
+}
+.ph.ph-cardholder:before {
+  content: "\e5fa";
+}
+.ph.ph-cards:before {
+  content: "\e0f8";
+}
+.ph.ph-cards-three:before {
+  content: "\ee50";
+}
+.ph.ph-caret-circle-double-down:before {
+  content: "\e116";
+}
+.ph.ph-caret-circle-double-left:before {
+  content: "\e118";
+}
+.ph.ph-caret-circle-double-right:before {
+  content: "\e11a";
+}
+.ph.ph-caret-circle-double-up:before {
+  content: "\e11c";
+}
+.ph.ph-caret-circle-down:before {
+  content: "\e11e";
+}
+.ph.ph-caret-circle-left:before {
+  content: "\e120";
+}
+.ph.ph-caret-circle-right:before {
+  content: "\e122";
+}
+.ph.ph-caret-circle-up:before {
+  content: "\e124";
+}
+.ph.ph-caret-circle-up-down:before {
+  content: "\e13e";
+}
+.ph.ph-caret-double-down:before {
+  content: "\e126";
+}
+.ph.ph-caret-double-left:before {
+  content: "\e128";
+}
+.ph.ph-caret-double-right:before {
+  content: "\e12a";
+}
+.ph.ph-caret-double-up:before {
+  content: "\e12c";
+}
+.ph.ph-caret-down:before {
+  content: "\e136";
+}
+.ph.ph-caret-left:before {
+  content: "\e138";
+}
+.ph.ph-caret-line-down:before {
+  content: "\e134";
+}
+.ph.ph-caret-line-left:before {
+  content: "\e132";
+}
+.ph.ph-caret-line-right:before {
+  content: "\e130";
+}
+.ph.ph-caret-line-up:before {
+  content: "\e12e";
+}
+.ph.ph-caret-right:before {
+  content: "\e13a";
+}
+.ph.ph-caret-up:before {
+  content: "\e13c";
+}
+.ph.ph-caret-up-down:before {
+  content: "\e140";
+}
+.ph.ph-carrot:before {
+  content: "\ed38";
+}
+.ph.ph-cash-register:before {
+  content: "\ed80";
+}
+.ph.ph-cassette-tape:before {
+  content: "\ed2e";
+}
+.ph.ph-castle-turret:before {
+  content: "\e9d0";
+}
+.ph.ph-cat:before {
+  content: "\e748";
+}
+.ph.ph-cell-signal-full:before {
+  content: "\e142";
+}
+.ph.ph-cell-signal-high:before {
+  content: "\e144";
+}
+.ph.ph-cell-signal-low:before {
+  content: "\e146";
+}
+.ph.ph-cell-signal-medium:before {
+  content: "\e148";
+}
+.ph.ph-cell-signal-none:before {
+  content: "\e14a";
+}
+.ph.ph-cell-signal-slash:before {
+  content: "\e14c";
+}
+.ph.ph-cell-signal-x:before {
+  content: "\e14e";
+}
+.ph.ph-cell-tower:before {
+  content: "\ebaa";
+}
+.ph.ph-certificate:before {
+  content: "\e766";
+}
+.ph.ph-chair:before {
+  content: "\e950";
+}
+.ph.ph-chalkboard:before {
+  content: "\e5fc";
+}
+.ph.ph-chalkboard-simple:before {
+  content: "\e5fe";
+}
+.ph.ph-chalkboard-teacher:before {
+  content: "\e600";
+}
+.ph.ph-champagne:before {
+  content: "\eaca";
+}
+.ph.ph-charging-station:before {
+  content: "\e8d0";
+}
+.ph.ph-chart-bar:before {
+  content: "\e150";
+}
+.ph.ph-chart-bar-horizontal:before {
+  content: "\e152";
+}
+.ph.ph-chart-donut:before {
+  content: "\eaa6";
+}
+.ph.ph-chart-line:before {
+  content: "\e154";
+}
+.ph.ph-chart-line-down:before {
+  content: "\e8b6";
+}
+.ph.ph-chart-line-up:before {
+  content: "\e156";
+}
+.ph.ph-chart-pie:before {
+  content: "\e158";
+}
+.ph.ph-chart-pie-slice:before {
+  content: "\e15a";
+}
+.ph.ph-chart-polar:before {
+  content: "\eaa8";
+}
+.ph.ph-chart-scatter:before {
+  content: "\eaac";
+}
+.ph.ph-chat:before {
+  content: "\e15c";
+}
+.ph.ph-chat-centered:before {
+  content: "\e160";
+}
+.ph.ph-chat-centered-dots:before {
+  content: "\e164";
+}
+.ph.ph-chat-centered-slash:before {
+  content: "\e162";
+}
+.ph.ph-chat-centered-text:before {
+  content: "\e166";
+}
+.ph.ph-chat-circle:before {
+  content: "\e168";
+}
+.ph.ph-chat-circle-dots:before {
+  content: "\e16c";
+}
+.ph.ph-chat-circle-slash:before {
+  content: "\e16a";
+}
+.ph.ph-chat-circle-text:before {
+  content: "\e16e";
+}
+.ph.ph-chat-dots:before {
+  content: "\e170";
+}
+.ph.ph-chat-slash:before {
+  content: "\e15e";
+}
+.ph.ph-chat-teardrop:before {
+  content: "\e172";
+}
+.ph.ph-chat-teardrop-dots:before {
+  content: "\e176";
+}
+.ph.ph-chat-teardrop-slash:before {
+  content: "\e174";
+}
+.ph.ph-chat-teardrop-text:before {
+  content: "\e178";
+}
+.ph.ph-chat-text:before {
+  content: "\e17a";
+}
+.ph.ph-chats:before {
+  content: "\e17c";
+}
+.ph.ph-chats-circle:before {
+  content: "\e17e";
+}
+.ph.ph-chats-teardrop:before {
+  content: "\e180";
+}
+.ph.ph-check:before {
+  content: "\e182";
+}
+.ph.ph-check-circle:before {
+  content: "\e184";
+}
+.ph.ph-check-fat:before {
+  content: "\eba6";
+}
+.ph.ph-check-square:before {
+  content: "\e186";
+}
+.ph.ph-check-square-offset:before {
+  content: "\e188";
+}
+.ph.ph-checkerboard:before {
+  content: "\e8c4";
+}
+.ph.ph-checks:before {
+  content: "\e53a";
+}
+.ph.ph-cheers:before {
+  content: "\ea4a";
+}
+.ph.ph-cheese:before {
+  content: "\e9fe";
+}
+.ph.ph-chef-hat:before {
+  content: "\ed8e";
+}
+.ph.ph-cherries:before {
+  content: "\e830";
+}
+.ph.ph-church:before {
+  content: "\ecea";
+}
+.ph.ph-cigarette:before {
+  content: "\ed90";
+}
+.ph.ph-cigarette-slash:before {
+  content: "\ed92";
+}
+.ph.ph-circle:before {
+  content: "\e18a";
+}
+.ph.ph-circle-dashed:before {
+  content: "\e602";
+}
+.ph.ph-circle-half:before {
+  content: "\e18c";
+}
+.ph.ph-circle-half-tilt:before {
+  content: "\e18e";
+}
+.ph.ph-circle-notch:before {
+  content: "\eb44";
+}
+.ph.ph-circles-four:before {
+  content: "\e190";
+}
+.ph.ph-circles-three:before {
+  content: "\e192";
+}
+.ph.ph-circles-three-plus:before {
+  content: "\e194";
+}
+.ph.ph-circuitry:before {
+  content: "\e9c2";
+}
+.ph.ph-city:before {
+  content: "\ea6a";
+}
+.ph.ph-clipboard:before {
+  content: "\e196";
+}
+.ph.ph-clipboard-text:before {
+  content: "\e198";
+}
+.ph.ph-clock:before {
+  content: "\e19a";
+}
+.ph.ph-clock-afternoon:before {
+  content: "\e19c";
+}
+.ph.ph-clock-clockwise:before {
+  content: "\e19e";
+}
+.ph.ph-clock-countdown:before {
+  content: "\ed2c";
+}
+.ph.ph-clock-counter-clockwise:before {
+  content: "\e1a0";
+}
+.ph.ph-clock-user:before {
+  content: "\edec";
+}
+.ph.ph-closed-captioning:before {
+  content: "\e1a4";
+}
+.ph.ph-cloud:before {
+  content: "\e1aa";
+}
+.ph.ph-cloud-arrow-down:before {
+  content: "\e1ac";
+}
+.ph.ph-cloud-arrow-up:before {
+  content: "\e1ae";
+}
+.ph.ph-cloud-check:before {
+  content: "\e1b0";
+}
+.ph.ph-cloud-fog:before {
+  content: "\e53c";
+}
+.ph.ph-cloud-lightning:before {
+  content: "\e1b2";
+}
+.ph.ph-cloud-moon:before {
+  content: "\e53e";
+}
+.ph.ph-cloud-rain:before {
+  content: "\e1b4";
+}
+.ph.ph-cloud-slash:before {
+  content: "\e1b6";
+}
+.ph.ph-cloud-snow:before {
+  content: "\e1b8";
+}
+.ph.ph-cloud-sun:before {
+  content: "\e540";
+}
+.ph.ph-cloud-warning:before {
+  content: "\ea98";
+}
+.ph.ph-cloud-x:before {
+  content: "\ea96";
+}
+.ph.ph-clover:before {
+  content: "\edc8";
+}
+.ph.ph-club:before {
+  content: "\e1ba";
+}
+.ph.ph-coat-hanger:before {
+  content: "\e7fe";
+}
+.ph.ph-coda-logo:before {
+  content: "\e7ce";
+}
+.ph.ph-code:before {
+  content: "\e1bc";
+}
+.ph.ph-code-block:before {
+  content: "\eafe";
+}
+.ph.ph-code-simple:before {
+  content: "\e1be";
+}
+.ph.ph-codepen-logo:before {
+  content: "\e978";
+}
+.ph.ph-codesandbox-logo:before {
+  content: "\ea06";
+}
+.ph.ph-coffee:before {
+  content: "\e1c2";
+}
+.ph.ph-coffee-bean:before {
+  content: "\e1c0";
+}
+.ph.ph-coin:before {
+  content: "\e60e";
+}
+.ph.ph-coin-vertical:before {
+  content: "\eb48";
+}
+.ph.ph-coins:before {
+  content: "\e78e";
+}
+.ph.ph-columns:before {
+  content: "\e546";
+}
+.ph.ph-columns-plus-left:before {
+  content: "\e544";
+}
+.ph.ph-columns-plus-right:before {
+  content: "\e542";
+}
+.ph.ph-command:before {
+  content: "\e1c4";
+}
+.ph.ph-compass:before {
+  content: "\e1c8";
+}
+.ph.ph-compass-rose:before {
+  content: "\e1c6";
+}
+.ph.ph-compass-tool:before {
+  content: "\ea0e";
+}
+.ph.ph-computer-tower:before {
+  content: "\e548";
+}
+.ph.ph-confetti:before {
+  content: "\e81a";
+}
+.ph.ph-contactless-payment:before {
+  content: "\ed42";
+}
+.ph.ph-control:before {
+  content: "\eca6";
+}
+.ph.ph-cookie:before {
+  content: "\e6ca";
+}
+.ph.ph-cooking-pot:before {
+  content: "\e764";
+}
+.ph.ph-copy:before {
+  content: "\e1ca";
+}
+.ph.ph-copy-simple:before {
+  content: "\e1cc";
+}
+.ph.ph-copyleft:before {
+  content: "\e86a";
+}
+.ph.ph-copyright:before {
+  content: "\e54a";
+}
+.ph.ph-corners-in:before {
+  content: "\e1ce";
+}
+.ph.ph-corners-out:before {
+  content: "\e1d0";
+}
+.ph.ph-couch:before {
+  content: "\e7f6";
+}
+.ph.ph-court-basketball:before {
+  content: "\ee36";
+}
+.ph.ph-cow:before {
+  content: "\eabe";
+}
+.ph.ph-cowboy-hat:before {
+  content: "\ed12";
+}
+.ph.ph-cpu:before {
+  content: "\e610";
+}
+.ph.ph-crane:before {
+  content: "\ed48";
+}
+.ph.ph-crane-tower:before {
+  content: "\ed49";
+}
+.ph.ph-credit-card:before {
+  content: "\e1d2";
+}
+.ph.ph-cricket:before {
+  content: "\ee12";
+}
+.ph.ph-crop:before {
+  content: "\e1d4";
+}
+.ph.ph-cross:before {
+  content: "\e8a0";
+}
+.ph.ph-crosshair:before {
+  content: "\e1d6";
+}
+.ph.ph-crosshair-simple:before {
+  content: "\e1d8";
+}
+.ph.ph-crown:before {
+  content: "\e614";
+}
+.ph.ph-crown-cross:before {
+  content: "\ee5e";
+}
+.ph.ph-crown-simple:before {
+  content: "\e616";
+}
+.ph.ph-cube:before {
+  content: "\e1da";
+}
+.ph.ph-cube-focus:before {
+  content: "\ed0a";
+}
+.ph.ph-cube-transparent:before {
+  content: "\ec7c";
+}
+.ph.ph-currency-btc:before {
+  content: "\e618";
+}
+.ph.ph-currency-circle-dollar:before {
+  content: "\e54c";
+}
+.ph.ph-currency-cny:before {
+  content: "\e54e";
+}
+.ph.ph-currency-dollar:before {
+  content: "\e550";
+}
+.ph.ph-currency-dollar-simple:before {
+  content: "\e552";
+}
+.ph.ph-currency-eth:before {
+  content: "\eada";
+}
+.ph.ph-currency-eur:before {
+  content: "\e554";
+}
+.ph.ph-currency-gbp:before {
+  content: "\e556";
+}
+.ph.ph-currency-inr:before {
+  content: "\e558";
+}
+.ph.ph-currency-jpy:before {
+  content: "\e55a";
+}
+.ph.ph-currency-krw:before {
+  content: "\e55c";
+}
+.ph.ph-currency-kzt:before {
+  content: "\ec4c";
+}
+.ph.ph-currency-ngn:before {
+  content: "\eb52";
+}
+.ph.ph-currency-rub:before {
+  content: "\e55e";
+}
+.ph.ph-cursor:before {
+  content: "\e1dc";
+}
+.ph.ph-cursor-click:before {
+  content: "\e7c8";
+}
+.ph.ph-cursor-text:before {
+  content: "\e7d8";
+}
+.ph.ph-cylinder:before {
+  content: "\e8fc";
+}
+.ph.ph-database:before {
+  content: "\e1de";
+}
+.ph.ph-desk:before {
+  content: "\ed16";
+}
+.ph.ph-desktop:before {
+  content: "\e560";
+}
+.ph.ph-desktop-tower:before {
+  content: "\e562";
+}
+.ph.ph-detective:before {
+  content: "\e83e";
+}
+.ph.ph-dev-to-logo:before {
+  content: "\ed0e";
+}
+.ph.ph-device-mobile:before {
+  content: "\e1e0";
+}
+.ph.ph-device-mobile-camera:before {
+  content: "\e1e2";
+}
+.ph.ph-device-mobile-slash:before {
+  content: "\ee46";
+}
+.ph.ph-device-mobile-speaker:before {
+  content: "\e1e4";
+}
+.ph.ph-device-rotate:before {
+  content: "\edf2";
+}
+.ph.ph-device-tablet:before {
+  content: "\e1e6";
+}
+.ph.ph-device-tablet-camera:before {
+  content: "\e1e8";
+}
+.ph.ph-device-tablet-speaker:before {
+  content: "\e1ea";
+}
+.ph.ph-devices:before {
+  content: "\eba4";
+}
+.ph.ph-diamond:before {
+  content: "\e1ec";
+}
+.ph.ph-diamonds-four:before {
+  content: "\e8f4";
+}
+.ph.ph-dice-five:before {
+  content: "\e1ee";
+}
+.ph.ph-dice-four:before {
+  content: "\e1f0";
+}
+.ph.ph-dice-one:before {
+  content: "\e1f2";
+}
+.ph.ph-dice-six:before {
+  content: "\e1f4";
+}
+.ph.ph-dice-three:before {
+  content: "\e1f6";
+}
+.ph.ph-dice-two:before {
+  content: "\e1f8";
+}
+.ph.ph-disc:before {
+  content: "\e564";
+}
+.ph.ph-disco-ball:before {
+  content: "\ed98";
+}
+.ph.ph-discord-logo:before {
+  content: "\e61a";
+}
+.ph.ph-divide:before {
+  content: "\e1fa";
+}
+.ph.ph-dna:before {
+  content: "\e924";
+}
+.ph.ph-dog:before {
+  content: "\e74a";
+}
+.ph.ph-door:before {
+  content: "\e61c";
+}
+.ph.ph-door-open:before {
+  content: "\e7e6";
+}
+.ph.ph-dot:before {
+  content: "\ecde";
+}
+.ph.ph-dot-outline:before {
+  content: "\ece0";
+}
+.ph.ph-dots-nine:before {
+  content: "\e1fc";
+}
+.ph.ph-dots-six:before {
+  content: "\e794";
+}
+.ph.ph-dots-six-vertical:before {
+  content: "\eae2";
+}
+.ph.ph-dots-three:before {
+  content: "\e1fe";
+}
+.ph.ph-dots-three-circle:before {
+  content: "\e200";
+}
+.ph.ph-dots-three-circle-vertical:before {
+  content: "\e202";
+}
+.ph.ph-dots-three-outline:before {
+  content: "\e204";
+}
+.ph.ph-dots-three-outline-vertical:before {
+  content: "\e206";
+}
+.ph.ph-dots-three-vertical:before {
+  content: "\e208";
+}
+.ph.ph-download:before {
+  content: "\e20a";
+}
+.ph.ph-download-simple:before {
+  content: "\e20c";
+}
+.ph.ph-dress:before {
+  content: "\ea7e";
+}
+.ph.ph-dresser:before {
+  content: "\e94e";
+}
+.ph.ph-dribbble-logo:before {
+  content: "\e20e";
+}
+.ph.ph-drone:before {
+  content: "\ed74";
+}
+.ph.ph-drop:before {
+  content: "\e210";
+}
+.ph.ph-drop-half:before {
+  content: "\e566";
+}
+.ph.ph-drop-half-bottom:before {
+  content: "\eb40";
+}
+.ph.ph-drop-simple:before {
+  content: "\ee32";
+}
+.ph.ph-drop-slash:before {
+  content: "\e954";
+}
+.ph.ph-dropbox-logo:before {
+  content: "\e7d0";
+}
+.ph.ph-ear:before {
+  content: "\e70c";
+}
+.ph.ph-ear-slash:before {
+  content: "\e70e";
+}
+.ph.ph-egg:before {
+  content: "\e812";
+}
+.ph.ph-egg-crack:before {
+  content: "\eb64";
+}
+.ph.ph-eject:before {
+  content: "\e212";
+}
+.ph.ph-eject-simple:before {
+  content: "\e6ae";
+}
+.ph.ph-elevator:before {
+  content: "\ecc0";
+}
+.ph.ph-empty:before {
+  content: "\edbc";
+}
+.ph.ph-engine:before {
+  content: "\ea80";
+}
+.ph.ph-envelope:before {
+  content: "\e214";
+}
+.ph.ph-envelope-open:before {
+  content: "\e216";
+}
+.ph.ph-envelope-simple:before {
+  content: "\e218";
+}
+.ph.ph-envelope-simple-open:before {
+  content: "\e21a";
+}
+.ph.ph-equalizer:before {
+  content: "\ebbc";
+}
+.ph.ph-equals:before {
+  content: "\e21c";
+}
+.ph.ph-eraser:before {
+  content: "\e21e";
+}
+.ph.ph-escalator-down:before {
+  content: "\ecba";
+}
+.ph.ph-escalator-up:before {
+  content: "\ecbc";
+}
+.ph.ph-exam:before {
+  content: "\e742";
+}
+.ph.ph-exclamation-mark:before {
+  content: "\ee44";
+}
+.ph.ph-exclude:before {
+  content: "\e882";
+}
+.ph.ph-exclude-square:before {
+  content: "\e880";
+}
+.ph.ph-export:before {
+  content: "\eaf0";
+}
+.ph.ph-eye:before {
+  content: "\e220";
+}
+.ph.ph-eye-closed:before {
+  content: "\e222";
+}
+.ph.ph-eye-slash:before {
+  content: "\e224";
+}
+.ph.ph-eyedropper:before {
+  content: "\e568";
+}
+.ph.ph-eyedropper-sample:before {
+  content: "\eac4";
+}
+.ph.ph-eyeglasses:before {
+  content: "\e7ba";
+}
+.ph.ph-eyes:before {
+  content: "\ee5c";
+}
+.ph.ph-face-mask:before {
+  content: "\e56a";
+}
+.ph.ph-facebook-logo:before {
+  content: "\e226";
+}
+.ph.ph-factory:before {
+  content: "\e760";
+}
+.ph.ph-faders:before {
+  content: "\e228";
+}
+.ph.ph-faders-horizontal:before {
+  content: "\e22a";
+}
+.ph.ph-fallout-shelter:before {
+  content: "\e9de";
+}
+.ph.ph-fan:before {
+  content: "\e9f2";
+}
+.ph.ph-farm:before {
+  content: "\ec70";
+}
+.ph.ph-fast-forward:before {
+  content: "\e6a6";
+}
+.ph.ph-fast-forward-circle:before {
+  content: "\e22c";
+}
+.ph.ph-feather:before {
+  content: "\e9c0";
+}
+.ph.ph-fediverse-logo:before {
+  content: "\ed66";
+}
+.ph.ph-figma-logo:before {
+  content: "\e22e";
+}
+.ph.ph-file:before {
+  content: "\e230";
+}
+.ph.ph-file-archive:before {
+  content: "\eb2a";
+}
+.ph.ph-file-arrow-down:before {
+  content: "\e232";
+}
+.ph.ph-file-arrow-up:before {
+  content: "\e61e";
+}
+.ph.ph-file-audio:before {
+  content: "\ea20";
+}
+.ph.ph-file-c:before {
+  content: "\eb32";
+}
+.ph.ph-file-c-sharp:before {
+  content: "\eb30";
+}
+.ph.ph-file-cloud:before {
+  content: "\e95e";
+}
+.ph.ph-file-code:before {
+  content: "\e914";
+}
+.ph.ph-file-cpp:before {
+  content: "\eb2e";
+}
+.ph.ph-file-css:before {
+  content: "\eb34";
+}
+.ph.ph-file-csv:before {
+  content: "\eb1c";
+}
+.ph.ph-file-dashed:before {
+  content: "\e704";
+}
+.ph.ph-file-dotted:before {
+  content: "\e704";
+}
+.ph.ph-file-doc:before {
+  content: "\eb1e";
+}
+.ph.ph-file-html:before {
+  content: "\eb38";
+}
+.ph.ph-file-image:before {
+  content: "\ea24";
+}
+.ph.ph-file-ini:before {
+  content: "\eb33";
+}
+.ph.ph-file-jpg:before {
+  content: "\eb1a";
+}
+.ph.ph-file-js:before {
+  content: "\eb24";
+}
+.ph.ph-file-jsx:before {
+  content: "\eb3a";
+}
+.ph.ph-file-lock:before {
+  content: "\e95c";
+}
+.ph.ph-file-magnifying-glass:before {
+  content: "\e238";
+}
+.ph.ph-file-search:before {
+  content: "\e238";
+}
+.ph.ph-file-md:before {
+  content: "\ed50";
+}
+.ph.ph-file-minus:before {
+  content: "\e234";
+}
+.ph.ph-file-pdf:before {
+  content: "\e702";
+}
+.ph.ph-file-plus:before {
+  content: "\e236";
+}
+.ph.ph-file-png:before {
+  content: "\eb18";
+}
+.ph.ph-file-ppt:before {
+  content: "\eb20";
+}
+.ph.ph-file-py:before {
+  content: "\eb2c";
+}
+.ph.ph-file-rs:before {
+  content: "\eb28";
+}
+.ph.ph-file-sql:before {
+  content: "\ed4e";
+}
+.ph.ph-file-svg:before {
+  content: "\ed08";
+}
+.ph.ph-file-text:before {
+  content: "\e23a";
+}
+.ph.ph-file-ts:before {
+  content: "\eb26";
+}
+.ph.ph-file-tsx:before {
+  content: "\eb3c";
+}
+.ph.ph-file-txt:before {
+  content: "\eb35";
+}
+.ph.ph-file-video:before {
+  content: "\ea22";
+}
+.ph.ph-file-vue:before {
+  content: "\eb3e";
+}
+.ph.ph-file-x:before {
+  content: "\e23c";
+}
+.ph.ph-file-xls:before {
+  content: "\eb22";
+}
+.ph.ph-file-zip:before {
+  content: "\e958";
+}
+.ph.ph-files:before {
+  content: "\e710";
+}
+.ph.ph-film-reel:before {
+  content: "\e8c0";
+}
+.ph.ph-film-script:before {
+  content: "\eb50";
+}
+.ph.ph-film-slate:before {
+  content: "\e8c2";
+}
+.ph.ph-film-strip:before {
+  content: "\e792";
+}
+.ph.ph-fingerprint:before {
+  content: "\e23e";
+}
+.ph.ph-fingerprint-simple:before {
+  content: "\e240";
+}
+.ph.ph-finn-the-human:before {
+  content: "\e56c";
+}
+.ph.ph-fire:before {
+  content: "\e242";
+}
+.ph.ph-fire-extinguisher:before {
+  content: "\e9e8";
+}
+.ph.ph-fire-simple:before {
+  content: "\e620";
+}
+.ph.ph-fire-truck:before {
+  content: "\e574";
+}
+.ph.ph-first-aid:before {
+  content: "\e56e";
+}
+.ph.ph-first-aid-kit:before {
+  content: "\e570";
+}
+.ph.ph-fish:before {
+  content: "\e728";
+}
+.ph.ph-fish-simple:before {
+  content: "\e72a";
+}
+.ph.ph-flag:before {
+  content: "\e244";
+}
+.ph.ph-flag-banner:before {
+  content: "\e622";
+}
+.ph.ph-flag-banner-fold:before {
+  content: "\ecf2";
+}
+.ph.ph-flag-checkered:before {
+  content: "\ea38";
+}
+.ph.ph-flag-pennant:before {
+  content: "\ecf0";
+}
+.ph.ph-flame:before {
+  content: "\e624";
+}
+.ph.ph-flashlight:before {
+  content: "\e246";
+}
+.ph.ph-flask:before {
+  content: "\e79e";
+}
+.ph.ph-flip-horizontal:before {
+  content: "\ed6a";
+}
+.ph.ph-flip-vertical:before {
+  content: "\ed6c";
+}
+.ph.ph-floppy-disk:before {
+  content: "\e248";
+}
+.ph.ph-floppy-disk-back:before {
+  content: "\eaf4";
+}
+.ph.ph-flow-arrow:before {
+  content: "\e6ec";
+}
+.ph.ph-flower:before {
+  content: "\e75e";
+}
+.ph.ph-flower-lotus:before {
+  content: "\e6cc";
+}
+.ph.ph-flower-tulip:before {
+  content: "\eacc";
+}
+.ph.ph-flying-saucer:before {
+  content: "\eb4a";
+}
+.ph.ph-folder:before {
+  content: "\e24a";
+}
+.ph.ph-folder-notch:before {
+  content: "\e24a";
+}
+.ph.ph-folder-dashed:before {
+  content: "\e8f8";
+}
+.ph.ph-folder-dotted:before {
+  content: "\e8f8";
+}
+.ph.ph-folder-lock:before {
+  content: "\ea3c";
+}
+.ph.ph-folder-minus:before {
+  content: "\e254";
+}
+.ph.ph-folder-notch-minus:before {
+  content: "\e254";
+}
+.ph.ph-folder-open:before {
+  content: "\e256";
+}
+.ph.ph-folder-notch-open:before {
+  content: "\e256";
+}
+.ph.ph-folder-plus:before {
+  content: "\e258";
+}
+.ph.ph-folder-notch-plus:before {
+  content: "\e258";
+}
+.ph.ph-folder-simple:before {
+  content: "\e25a";
+}
+.ph.ph-folder-simple-dashed:before {
+  content: "\ec2a";
+}
+.ph.ph-folder-simple-dotted:before {
+  content: "\ec2a";
+}
+.ph.ph-folder-simple-lock:before {
+  content: "\eb5e";
+}
+.ph.ph-folder-simple-minus:before {
+  content: "\e25c";
+}
+.ph.ph-folder-simple-plus:before {
+  content: "\e25e";
+}
+.ph.ph-folder-simple-star:before {
+  content: "\ec2e";
+}
+.ph.ph-folder-simple-user:before {
+  content: "\eb60";
+}
+.ph.ph-folder-star:before {
+  content: "\ea86";
+}
+.ph.ph-folder-user:before {
+  content: "\eb46";
+}
+.ph.ph-folders:before {
+  content: "\e260";
+}
+.ph.ph-football:before {
+  content: "\e718";
+}
+.ph.ph-football-helmet:before {
+  content: "\ee4c";
+}
+.ph.ph-footprints:before {
+  content: "\ea88";
+}
+.ph.ph-fork-knife:before {
+  content: "\e262";
+}
+.ph.ph-four-k:before {
+  content: "\ea5c";
+}
+.ph.ph-frame-corners:before {
+  content: "\e626";
+}
+.ph.ph-framer-logo:before {
+  content: "\e264";
+}
+.ph.ph-function:before {
+  content: "\ebe4";
+}
+.ph.ph-funnel:before {
+  content: "\e266";
+}
+.ph.ph-funnel-simple:before {
+  content: "\e268";
+}
+.ph.ph-funnel-simple-x:before {
+  content: "\e26a";
+}
+.ph.ph-funnel-x:before {
+  content: "\e26c";
+}
+.ph.ph-game-controller:before {
+  content: "\e26e";
+}
+.ph.ph-garage:before {
+  content: "\ecd6";
+}
+.ph.ph-gas-can:before {
+  content: "\e8ce";
+}
+.ph.ph-gas-pump:before {
+  content: "\e768";
+}
+.ph.ph-gauge:before {
+  content: "\e628";
+}
+.ph.ph-gavel:before {
+  content: "\ea32";
+}
+.ph.ph-gear:before {
+  content: "\e270";
+}
+.ph.ph-gear-fine:before {
+  content: "\e87c";
+}
+.ph.ph-gear-six:before {
+  content: "\e272";
+}
+.ph.ph-gender-female:before {
+  content: "\e6e0";
+}
+.ph.ph-gender-intersex:before {
+  content: "\e6e6";
+}
+.ph.ph-gender-male:before {
+  content: "\e6e2";
+}
+.ph.ph-gender-neuter:before {
+  content: "\e6ea";
+}
+.ph.ph-gender-nonbinary:before {
+  content: "\e6e4";
+}
+.ph.ph-gender-transgender:before {
+  content: "\e6e8";
+}
+.ph.ph-ghost:before {
+  content: "\e62a";
+}
+.ph.ph-gif:before {
+  content: "\e274";
+}
+.ph.ph-gift:before {
+  content: "\e276";
+}
+.ph.ph-git-branch:before {
+  content: "\e278";
+}
+.ph.ph-git-commit:before {
+  content: "\e27a";
+}
+.ph.ph-git-diff:before {
+  content: "\e27c";
+}
+.ph.ph-git-fork:before {
+  content: "\e27e";
+}
+.ph.ph-git-merge:before {
+  content: "\e280";
+}
+.ph.ph-git-pull-request:before {
+  content: "\e282";
+}
+.ph.ph-github-logo:before {
+  content: "\e576";
+}
+.ph.ph-gitlab-logo:before {
+  content: "\e694";
+}
+.ph.ph-gitlab-logo-simple:before {
+  content: "\e696";
+}
+.ph.ph-globe:before {
+  content: "\e288";
+}
+.ph.ph-globe-hemisphere-east:before {
+  content: "\e28a";
+}
+.ph.ph-globe-hemisphere-west:before {
+  content: "\e28c";
+}
+.ph.ph-globe-simple:before {
+  content: "\e28e";
+}
+.ph.ph-globe-simple-x:before {
+  content: "\e284";
+}
+.ph.ph-globe-stand:before {
+  content: "\e290";
+}
+.ph.ph-globe-x:before {
+  content: "\e286";
+}
+.ph.ph-goggles:before {
+  content: "\ecb4";
+}
+.ph.ph-golf:before {
+  content: "\ea3e";
+}
+.ph.ph-goodreads-logo:before {
+  content: "\ed10";
+}
+.ph.ph-google-cardboard-logo:before {
+  content: "\e7b6";
+}
+.ph.ph-google-chrome-logo:before {
+  content: "\e976";
+}
+.ph.ph-google-drive-logo:before {
+  content: "\e8f6";
+}
+.ph.ph-google-logo:before {
+  content: "\e292";
+}
+.ph.ph-google-photos-logo:before {
+  content: "\eb92";
+}
+.ph.ph-google-play-logo:before {
+  content: "\e294";
+}
+.ph.ph-google-podcasts-logo:before {
+  content: "\eb94";
+}
+.ph.ph-gps:before {
+  content: "\edd8";
+}
+.ph.ph-gps-fix:before {
+  content: "\edd6";
+}
+.ph.ph-gps-slash:before {
+  content: "\edd4";
+}
+.ph.ph-gradient:before {
+  content: "\eb42";
+}
+.ph.ph-graduation-cap:before {
+  content: "\e62c";
+}
+.ph.ph-grains:before {
+  content: "\ec68";
+}
+.ph.ph-grains-slash:before {
+  content: "\ec6a";
+}
+.ph.ph-graph:before {
+  content: "\eb58";
+}
+.ph.ph-graphics-card:before {
+  content: "\e612";
+}
+.ph.ph-greater-than:before {
+  content: "\edc4";
+}
+.ph.ph-greater-than-or-equal:before {
+  content: "\eda2";
+}
+.ph.ph-grid-four:before {
+  content: "\e296";
+}
+.ph.ph-grid-nine:before {
+  content: "\ec8c";
+}
+.ph.ph-guitar:before {
+  content: "\ea8a";
+}
+.ph.ph-hair-dryer:before {
+  content: "\ea66";
+}
+.ph.ph-hamburger:before {
+  content: "\e790";
+}
+.ph.ph-hammer:before {
+  content: "\e80e";
+}
+.ph.ph-hand:before {
+  content: "\e298";
+}
+.ph.ph-hand-arrow-down:before {
+  content: "\ea4e";
+}
+.ph.ph-hand-arrow-up:before {
+  content: "\ee5a";
+}
+.ph.ph-hand-coins:before {
+  content: "\ea8c";
+}
+.ph.ph-hand-deposit:before {
+  content: "\ee82";
+}
+.ph.ph-hand-eye:before {
+  content: "\ea4c";
+}
+.ph.ph-hand-fist:before {
+  content: "\e57a";
+}
+.ph.ph-hand-grabbing:before {
+  content: "\e57c";
+}
+.ph.ph-hand-heart:before {
+  content: "\e810";
+}
+.ph.ph-hand-palm:before {
+  content: "\e57e";
+}
+.ph.ph-hand-peace:before {
+  content: "\e7cc";
+}
+.ph.ph-hand-pointing:before {
+  content: "\e29a";
+}
+.ph.ph-hand-soap:before {
+  content: "\e630";
+}
+.ph.ph-hand-swipe-left:before {
+  content: "\ec94";
+}
+.ph.ph-hand-swipe-right:before {
+  content: "\ec92";
+}
+.ph.ph-hand-tap:before {
+  content: "\ec90";
+}
+.ph.ph-hand-waving:before {
+  content: "\e580";
+}
+.ph.ph-hand-withdraw:before {
+  content: "\ee80";
+}
+.ph.ph-handbag:before {
+  content: "\e29c";
+}
+.ph.ph-handbag-simple:before {
+  content: "\e62e";
+}
+.ph.ph-hands-clapping:before {
+  content: "\e6a0";
+}
+.ph.ph-hands-praying:before {
+  content: "\ecc8";
+}
+.ph.ph-handshake:before {
+  content: "\e582";
+}
+.ph.ph-hard-drive:before {
+  content: "\e29e";
+}
+.ph.ph-hard-drives:before {
+  content: "\e2a0";
+}
+.ph.ph-hard-hat:before {
+  content: "\ed46";
+}
+.ph.ph-hash:before {
+  content: "\e2a2";
+}
+.ph.ph-hash-straight:before {
+  content: "\e2a4";
+}
+.ph.ph-head-circuit:before {
+  content: "\e7d4";
+}
+.ph.ph-headlights:before {
+  content: "\e6fe";
+}
+.ph.ph-headphones:before {
+  content: "\e2a6";
+}
+.ph.ph-headset:before {
+  content: "\e584";
+}
+.ph.ph-heart:before {
+  content: "\e2a8";
+}
+.ph.ph-heart-break:before {
+  content: "\ebe8";
+}
+.ph.ph-heart-half:before {
+  content: "\ec48";
+}
+.ph.ph-heart-straight:before {
+  content: "\e2aa";
+}
+.ph.ph-heart-straight-break:before {
+  content: "\eb98";
+}
+.ph.ph-heartbeat:before {
+  content: "\e2ac";
+}
+.ph.ph-hexagon:before {
+  content: "\e2ae";
+}
+.ph.ph-high-definition:before {
+  content: "\ea8e";
+}
+.ph.ph-high-heel:before {
+  content: "\e8e8";
+}
+.ph.ph-highlighter:before {
+  content: "\ec76";
+}
+.ph.ph-highlighter-circle:before {
+  content: "\e632";
+}
+.ph.ph-hockey:before {
+  content: "\ec86";
+}
+.ph.ph-hoodie:before {
+  content: "\ecd0";
+}
+.ph.ph-horse:before {
+  content: "\e2b0";
+}
+.ph.ph-hospital:before {
+  content: "\e844";
+}
+.ph.ph-hourglass:before {
+  content: "\e2b2";
+}
+.ph.ph-hourglass-high:before {
+  content: "\e2b4";
+}
+.ph.ph-hourglass-low:before {
+  content: "\e2b6";
+}
+.ph.ph-hourglass-medium:before {
+  content: "\e2b8";
+}
+.ph.ph-hourglass-simple:before {
+  content: "\e2ba";
+}
+.ph.ph-hourglass-simple-high:before {
+  content: "\e2bc";
+}
+.ph.ph-hourglass-simple-low:before {
+  content: "\e2be";
+}
+.ph.ph-hourglass-simple-medium:before {
+  content: "\e2c0";
+}
+.ph.ph-house:before {
+  content: "\e2c2";
+}
+.ph.ph-house-line:before {
+  content: "\e2c4";
+}
+.ph.ph-house-simple:before {
+  content: "\e2c6";
+}
+.ph.ph-hurricane:before {
+  content: "\e88e";
+}
+.ph.ph-ice-cream:before {
+  content: "\e804";
+}
+.ph.ph-identification-badge:before {
+  content: "\e6f6";
+}
+.ph.ph-identification-card:before {
+  content: "\e2c8";
+}
+.ph.ph-image:before {
+  content: "\e2ca";
+}
+.ph.ph-image-broken:before {
+  content: "\e7a8";
+}
+.ph.ph-image-square:before {
+  content: "\e2cc";
+}
+.ph.ph-images:before {
+  content: "\e836";
+}
+.ph.ph-images-square:before {
+  content: "\e834";
+}
+.ph.ph-infinity:before {
+  content: "\e634";
+}
+.ph.ph-lemniscate:before {
+  content: "\e634";
+}
+.ph.ph-info:before {
+  content: "\e2ce";
+}
+.ph.ph-instagram-logo:before {
+  content: "\e2d0";
+}
+.ph.ph-intersect:before {
+  content: "\e2d2";
+}
+.ph.ph-intersect-square:before {
+  content: "\e87a";
+}
+.ph.ph-intersect-three:before {
+  content: "\ecc4";
+}
+.ph.ph-intersection:before {
+  content: "\edba";
+}
+.ph.ph-invoice:before {
+  content: "\ee42";
+}
+.ph.ph-island:before {
+  content: "\ee06";
+}
+.ph.ph-jar:before {
+  content: "\e7e0";
+}
+.ph.ph-jar-label:before {
+  content: "\e7e1";
+}
+.ph.ph-jeep:before {
+  content: "\e2d4";
+}
+.ph.ph-joystick:before {
+  content: "\ea5e";
+}
+.ph.ph-kanban:before {
+  content: "\eb54";
+}
+.ph.ph-key:before {
+  content: "\e2d6";
+}
+.ph.ph-key-return:before {
+  content: "\e782";
+}
+.ph.ph-keyboard:before {
+  content: "\e2d8";
+}
+.ph.ph-keyhole:before {
+  content: "\ea78";
+}
+.ph.ph-knife:before {
+  content: "\e636";
+}
+.ph.ph-ladder:before {
+  content: "\e9e4";
+}
+.ph.ph-ladder-simple:before {
+  content: "\ec26";
+}
+.ph.ph-lamp:before {
+  content: "\e638";
+}
+.ph.ph-lamp-pendant:before {
+  content: "\ee2e";
+}
+.ph.ph-laptop:before {
+  content: "\e586";
+}
+.ph.ph-lasso:before {
+  content: "\edc6";
+}
+.ph.ph-lastfm-logo:before {
+  content: "\e842";
+}
+.ph.ph-layout:before {
+  content: "\e6d6";
+}
+.ph.ph-leaf:before {
+  content: "\e2da";
+}
+.ph.ph-lectern:before {
+  content: "\e95a";
+}
+.ph.ph-lego:before {
+  content: "\e8c6";
+}
+.ph.ph-lego-smiley:before {
+  content: "\e8c7";
+}
+.ph.ph-less-than:before {
+  content: "\edac";
+}
+.ph.ph-less-than-or-equal:before {
+  content: "\eda4";
+}
+.ph.ph-letter-circle-h:before {
+  content: "\ebf8";
+}
+.ph.ph-letter-circle-p:before {
+  content: "\ec08";
+}
+.ph.ph-letter-circle-v:before {
+  content: "\ec14";
+}
+.ph.ph-lifebuoy:before {
+  content: "\e63a";
+}
+.ph.ph-lightbulb:before {
+  content: "\e2dc";
+}
+.ph.ph-lightbulb-filament:before {
+  content: "\e63c";
+}
+.ph.ph-lighthouse:before {
+  content: "\e9f6";
+}
+.ph.ph-lightning:before {
+  content: "\e2de";
+}
+.ph.ph-lightning-a:before {
+  content: "\ea84";
+}
+.ph.ph-lightning-slash:before {
+  content: "\e2e0";
+}
+.ph.ph-line-segment:before {
+  content: "\e6d2";
+}
+.ph.ph-line-segments:before {
+  content: "\e6d4";
+}
+.ph.ph-line-vertical:before {
+  content: "\ed70";
+}
+.ph.ph-link:before {
+  content: "\e2e2";
+}
+.ph.ph-link-break:before {
+  content: "\e2e4";
+}
+.ph.ph-link-simple:before {
+  content: "\e2e6";
+}
+.ph.ph-link-simple-break:before {
+  content: "\e2e8";
+}
+.ph.ph-link-simple-horizontal:before {
+  content: "\e2ea";
+}
+.ph.ph-link-simple-horizontal-break:before {
+  content: "\e2ec";
+}
+.ph.ph-linkedin-logo:before {
+  content: "\e2ee";
+}
+.ph.ph-linktree-logo:before {
+  content: "\edee";
+}
+.ph.ph-linux-logo:before {
+  content: "\eb02";
+}
+.ph.ph-list:before {
+  content: "\e2f0";
+}
+.ph.ph-list-bullets:before {
+  content: "\e2f2";
+}
+.ph.ph-list-checks:before {
+  content: "\eadc";
+}
+.ph.ph-list-dashes:before {
+  content: "\e2f4";
+}
+.ph.ph-list-heart:before {
+  content: "\ebde";
+}
+.ph.ph-list-magnifying-glass:before {
+  content: "\ebe0";
+}
+.ph.ph-list-numbers:before {
+  content: "\e2f6";
+}
+.ph.ph-list-plus:before {
+  content: "\e2f8";
+}
+.ph.ph-list-star:before {
+  content: "\ebdc";
+}
+.ph.ph-lock:before {
+  content: "\e2fa";
+}
+.ph.ph-lock-key:before {
+  content: "\e2fe";
+}
+.ph.ph-lock-key-open:before {
+  content: "\e300";
+}
+.ph.ph-lock-laminated:before {
+  content: "\e302";
+}
+.ph.ph-lock-laminated-open:before {
+  content: "\e304";
+}
+.ph.ph-lock-open:before {
+  content: "\e306";
+}
+.ph.ph-lock-simple:before {
+  content: "\e308";
+}
+.ph.ph-lock-simple-open:before {
+  content: "\e30a";
+}
+.ph.ph-lockers:before {
+  content: "\ecb8";
+}
+.ph.ph-log:before {
+  content: "\ed82";
+}
+.ph.ph-magic-wand:before {
+  content: "\e6b6";
+}
+.ph.ph-magnet:before {
+  content: "\e680";
+}
+.ph.ph-magnet-straight:before {
+  content: "\e682";
+}
+.ph.ph-magnifying-glass:before {
+  content: "\e30c";
+}
+.ph.ph-magnifying-glass-minus:before {
+  content: "\e30e";
+}
+.ph.ph-magnifying-glass-plus:before {
+  content: "\e310";
+}
+.ph.ph-mailbox:before {
+  content: "\ec1e";
+}
+.ph.ph-map-pin:before {
+  content: "\e316";
+}
+.ph.ph-map-pin-area:before {
+  content: "\ee3a";
+}
+.ph.ph-map-pin-line:before {
+  content: "\e318";
+}
+.ph.ph-map-pin-plus:before {
+  content: "\e314";
+}
+.ph.ph-map-pin-simple:before {
+  content: "\ee3e";
+}
+.ph.ph-map-pin-simple-area:before {
+  content: "\ee3c";
+}
+.ph.ph-map-pin-simple-line:before {
+  content: "\ee38";
+}
+.ph.ph-map-trifold:before {
+  content: "\e31a";
+}
+.ph.ph-markdown-logo:before {
+  content: "\e508";
+}
+.ph.ph-marker-circle:before {
+  content: "\e640";
+}
+.ph.ph-martini:before {
+  content: "\e31c";
+}
+.ph.ph-mask-happy:before {
+  content: "\e9f4";
+}
+.ph.ph-mask-sad:before {
+  content: "\eb9e";
+}
+.ph.ph-mastodon-logo:before {
+  content: "\ed68";
+}
+.ph.ph-math-operations:before {
+  content: "\e31e";
+}
+.ph.ph-matrix-logo:before {
+  content: "\ed64";
+}
+.ph.ph-medal:before {
+  content: "\e320";
+}
+.ph.ph-medal-military:before {
+  content: "\ecfc";
+}
+.ph.ph-medium-logo:before {
+  content: "\e322";
+}
+.ph.ph-megaphone:before {
+  content: "\e324";
+}
+.ph.ph-megaphone-simple:before {
+  content: "\e642";
+}
+.ph.ph-member-of:before {
+  content: "\edc2";
+}
+.ph.ph-memory:before {
+  content: "\e9c4";
+}
+.ph.ph-messenger-logo:before {
+  content: "\e6d8";
+}
+.ph.ph-meta-logo:before {
+  content: "\ed02";
+}
+.ph.ph-meteor:before {
+  content: "\e9ba";
+}
+.ph.ph-metronome:before {
+  content: "\ec8e";
+}
+.ph.ph-microphone:before {
+  content: "\e326";
+}
+.ph.ph-microphone-slash:before {
+  content: "\e328";
+}
+.ph.ph-microphone-stage:before {
+  content: "\e75c";
+}
+.ph.ph-microscope:before {
+  content: "\ec7a";
+}
+.ph.ph-microsoft-excel-logo:before {
+  content: "\eb6c";
+}
+.ph.ph-microsoft-outlook-logo:before {
+  content: "\eb70";
+}
+.ph.ph-microsoft-powerpoint-logo:before {
+  content: "\eace";
+}
+.ph.ph-microsoft-teams-logo:before {
+  content: "\eb66";
+}
+.ph.ph-microsoft-word-logo:before {
+  content: "\eb6a";
+}
+.ph.ph-minus:before {
+  content: "\e32a";
+}
+.ph.ph-minus-circle:before {
+  content: "\e32c";
+}
+.ph.ph-minus-square:before {
+  content: "\ed4c";
+}
+.ph.ph-money:before {
+  content: "\e588";
+}
+.ph.ph-money-wavy:before {
+  content: "\ee68";
+}
+.ph.ph-monitor:before {
+  content: "\e32e";
+}
+.ph.ph-monitor-arrow-up:before {
+  content: "\e58a";
+}
+.ph.ph-monitor-play:before {
+  content: "\e58c";
+}
+.ph.ph-moon:before {
+  content: "\e330";
+}
+.ph.ph-moon-stars:before {
+  content: "\e58e";
+}
+.ph.ph-moped:before {
+  content: "\e824";
+}
+.ph.ph-moped-front:before {
+  content: "\e822";
+}
+.ph.ph-mosque:before {
+  content: "\ecee";
+}
+.ph.ph-motorcycle:before {
+  content: "\e80a";
+}
+.ph.ph-mountains:before {
+  content: "\e7ae";
+}
+.ph.ph-mouse:before {
+  content: "\e33a";
+}
+.ph.ph-mouse-left-click:before {
+  content: "\e334";
+}
+.ph.ph-mouse-middle-click:before {
+  content: "\e338";
+}
+.ph.ph-mouse-right-click:before {
+  content: "\e336";
+}
+.ph.ph-mouse-scroll:before {
+  content: "\e332";
+}
+.ph.ph-mouse-simple:before {
+  content: "\e644";
+}
+.ph.ph-music-note:before {
+  content: "\e33c";
+}
+.ph.ph-music-note-simple:before {
+  content: "\e33e";
+}
+.ph.ph-music-notes:before {
+  content: "\e340";
+}
+.ph.ph-music-notes-minus:before {
+  content: "\ee0c";
+}
+.ph.ph-music-notes-plus:before {
+  content: "\eb7c";
+}
+.ph.ph-music-notes-simple:before {
+  content: "\e342";
+}
+.ph.ph-navigation-arrow:before {
+  content: "\eade";
+}
+.ph.ph-needle:before {
+  content: "\e82e";
+}
+.ph.ph-network:before {
+  content: "\edde";
+}
+.ph.ph-network-slash:before {
+  content: "\eddc";
+}
+.ph.ph-network-x:before {
+  content: "\edda";
+}
+.ph.ph-newspaper:before {
+  content: "\e344";
+}
+.ph.ph-newspaper-clipping:before {
+  content: "\e346";
+}
+.ph.ph-not-equals:before {
+  content: "\eda6";
+}
+.ph.ph-not-member-of:before {
+  content: "\edae";
+}
+.ph.ph-not-subset-of:before {
+  content: "\edb0";
+}
+.ph.ph-not-superset-of:before {
+  content: "\edb2";
+}
+.ph.ph-notches:before {
+  content: "\ed3a";
+}
+.ph.ph-note:before {
+  content: "\e348";
+}
+.ph.ph-note-blank:before {
+  content: "\e34a";
+}
+.ph.ph-note-pencil:before {
+  content: "\e34c";
+}
+.ph.ph-notebook:before {
+  content: "\e34e";
+}
+.ph.ph-notepad:before {
+  content: "\e63e";
+}
+.ph.ph-notification:before {
+  content: "\e6fa";
+}
+.ph.ph-notion-logo:before {
+  content: "\e9a0";
+}
+.ph.ph-nuclear-plant:before {
+  content: "\ed7c";
+}
+.ph.ph-number-circle-eight:before {
+  content: "\e352";
+}
+.ph.ph-number-circle-five:before {
+  content: "\e358";
+}
+.ph.ph-number-circle-four:before {
+  content: "\e35e";
+}
+.ph.ph-number-circle-nine:before {
+  content: "\e364";
+}
+.ph.ph-number-circle-one:before {
+  content: "\e36a";
+}
+.ph.ph-number-circle-seven:before {
+  content: "\e370";
+}
+.ph.ph-number-circle-six:before {
+  content: "\e376";
+}
+.ph.ph-number-circle-three:before {
+  content: "\e37c";
+}
+.ph.ph-number-circle-two:before {
+  content: "\e382";
+}
+.ph.ph-number-circle-zero:before {
+  content: "\e388";
+}
+.ph.ph-number-eight:before {
+  content: "\e350";
+}
+.ph.ph-number-five:before {
+  content: "\e356";
+}
+.ph.ph-number-four:before {
+  content: "\e35c";
+}
+.ph.ph-number-nine:before {
+  content: "\e362";
+}
+.ph.ph-number-one:before {
+  content: "\e368";
+}
+.ph.ph-number-seven:before {
+  content: "\e36e";
+}
+.ph.ph-number-six:before {
+  content: "\e374";
+}
+.ph.ph-number-square-eight:before {
+  content: "\e354";
+}
+.ph.ph-number-square-five:before {
+  content: "\e35a";
+}
+.ph.ph-number-square-four:before {
+  content: "\e360";
+}
+.ph.ph-number-square-nine:before {
+  content: "\e366";
+}
+.ph.ph-number-square-one:before {
+  content: "\e36c";
+}
+.ph.ph-number-square-seven:before {
+  content: "\e372";
+}
+.ph.ph-number-square-six:before {
+  content: "\e378";
+}
+.ph.ph-number-square-three:before {
+  content: "\e37e";
+}
+.ph.ph-number-square-two:before {
+  content: "\e384";
+}
+.ph.ph-number-square-zero:before {
+  content: "\e38a";
+}
+.ph.ph-number-three:before {
+  content: "\e37a";
+}
+.ph.ph-number-two:before {
+  content: "\e380";
+}
+.ph.ph-number-zero:before {
+  content: "\e386";
+}
+.ph.ph-numpad:before {
+  content: "\e3c8";
+}
+.ph.ph-nut:before {
+  content: "\e38c";
+}
+.ph.ph-ny-times-logo:before {
+  content: "\e646";
+}
+.ph.ph-octagon:before {
+  content: "\e38e";
+}
+.ph.ph-office-chair:before {
+  content: "\ea46";
+}
+.ph.ph-onigiri:before {
+  content: "\ee2c";
+}
+.ph.ph-open-ai-logo:before {
+  content: "\e7d2";
+}
+.ph.ph-option:before {
+  content: "\e8a8";
+}
+.ph.ph-orange:before {
+  content: "\ee40";
+}
+.ph.ph-orange-slice:before {
+  content: "\ed36";
+}
+.ph.ph-oven:before {
+  content: "\ed8c";
+}
+.ph.ph-package:before {
+  content: "\e390";
+}
+.ph.ph-paint-brush:before {
+  content: "\e6f0";
+}
+.ph.ph-paint-brush-broad:before {
+  content: "\e590";
+}
+.ph.ph-paint-brush-household:before {
+  content: "\e6f2";
+}
+.ph.ph-paint-bucket:before {
+  content: "\e392";
+}
+.ph.ph-paint-roller:before {
+  content: "\e6f4";
+}
+.ph.ph-palette:before {
+  content: "\e6c8";
+}
+.ph.ph-panorama:before {
+  content: "\eaa2";
+}
+.ph.ph-pants:before {
+  content: "\ec88";
+}
+.ph.ph-paper-plane:before {
+  content: "\e394";
+}
+.ph.ph-paper-plane-right:before {
+  content: "\e396";
+}
+.ph.ph-paper-plane-tilt:before {
+  content: "\e398";
+}
+.ph.ph-paperclip:before {
+  content: "\e39a";
+}
+.ph.ph-paperclip-horizontal:before {
+  content: "\e592";
+}
+.ph.ph-parachute:before {
+  content: "\ea7c";
+}
+.ph.ph-paragraph:before {
+  content: "\e960";
+}
+.ph.ph-parallelogram:before {
+  content: "\ecc6";
+}
+.ph.ph-park:before {
+  content: "\ecb2";
+}
+.ph.ph-password:before {
+  content: "\e752";
+}
+.ph.ph-path:before {
+  content: "\e39c";
+}
+.ph.ph-patreon-logo:before {
+  content: "\e98a";
+}
+.ph.ph-pause:before {
+  content: "\e39e";
+}
+.ph.ph-pause-circle:before {
+  content: "\e3a0";
+}
+.ph.ph-paw-print:before {
+  content: "\e648";
+}
+.ph.ph-paypal-logo:before {
+  content: "\e98c";
+}
+.ph.ph-peace:before {
+  content: "\e3a2";
+}
+.ph.ph-pen:before {
+  content: "\e3aa";
+}
+.ph.ph-pen-nib:before {
+  content: "\e3ac";
+}
+.ph.ph-pen-nib-straight:before {
+  content: "\e64a";
+}
+.ph.ph-pencil:before {
+  content: "\e3ae";
+}
+.ph.ph-pencil-circle:before {
+  content: "\e3b0";
+}
+.ph.ph-pencil-line:before {
+  content: "\e3b2";
+}
+.ph.ph-pencil-ruler:before {
+  content: "\e906";
+}
+.ph.ph-pencil-simple:before {
+  content: "\e3b4";
+}
+.ph.ph-pencil-simple-line:before {
+  content: "\ebc6";
+}
+.ph.ph-pencil-simple-slash:before {
+  content: "\ecf6";
+}
+.ph.ph-pencil-slash:before {
+  content: "\ecf8";
+}
+.ph.ph-pentagon:before {
+  content: "\ec7e";
+}
+.ph.ph-pentagram:before {
+  content: "\ec5c";
+}
+.ph.ph-pepper:before {
+  content: "\e94a";
+}
+.ph.ph-percent:before {
+  content: "\e3b6";
+}
+.ph.ph-person:before {
+  content: "\e3a8";
+}
+.ph.ph-person-arms-spread:before {
+  content: "\ecfe";
+}
+.ph.ph-person-simple:before {
+  content: "\e72e";
+}
+.ph.ph-person-simple-bike:before {
+  content: "\e734";
+}
+.ph.ph-person-simple-circle:before {
+  content: "\ee58";
+}
+.ph.ph-person-simple-hike:before {
+  content: "\ed54";
+}
+.ph.ph-person-simple-run:before {
+  content: "\e730";
+}
+.ph.ph-person-simple-ski:before {
+  content: "\e71c";
+}
+.ph.ph-person-simple-snowboard:before {
+  content: "\e71e";
+}
+.ph.ph-person-simple-swim:before {
+  content: "\e736";
+}
+.ph.ph-person-simple-tai-chi:before {
+  content: "\ed5c";
+}
+.ph.ph-person-simple-throw:before {
+  content: "\e732";
+}
+.ph.ph-person-simple-walk:before {
+  content: "\e73a";
+}
+.ph.ph-perspective:before {
+  content: "\ebe6";
+}
+.ph.ph-phone:before {
+  content: "\e3b8";
+}
+.ph.ph-phone-call:before {
+  content: "\e3ba";
+}
+.ph.ph-phone-disconnect:before {
+  content: "\e3bc";
+}
+.ph.ph-phone-incoming:before {
+  content: "\e3be";
+}
+.ph.ph-phone-list:before {
+  content: "\e3cc";
+}
+.ph.ph-phone-outgoing:before {
+  content: "\e3c0";
+}
+.ph.ph-phone-pause:before {
+  content: "\e3ca";
+}
+.ph.ph-phone-plus:before {
+  content: "\ec56";
+}
+.ph.ph-phone-slash:before {
+  content: "\e3c2";
+}
+.ph.ph-phone-transfer:before {
+  content: "\e3c6";
+}
+.ph.ph-phone-x:before {
+  content: "\e3c4";
+}
+.ph.ph-phosphor-logo:before {
+  content: "\e3ce";
+}
+.ph.ph-pi:before {
+  content: "\ec80";
+}
+.ph.ph-piano-keys:before {
+  content: "\e9c8";
+}
+.ph.ph-picnic-table:before {
+  content: "\ee26";
+}
+.ph.ph-picture-in-picture:before {
+  content: "\e64c";
+}
+.ph.ph-piggy-bank:before {
+  content: "\ea04";
+}
+.ph.ph-pill:before {
+  content: "\e700";
+}
+.ph.ph-ping-pong:before {
+  content: "\ea42";
+}
+.ph.ph-pint-glass:before {
+  content: "\edd0";
+}
+.ph.ph-pinterest-logo:before {
+  content: "\e64e";
+}
+.ph.ph-pinwheel:before {
+  content: "\eb9c";
+}
+.ph.ph-pipe:before {
+  content: "\ed86";
+}
+.ph.ph-pipe-wrench:before {
+  content: "\ed88";
+}
+.ph.ph-pix-logo:before {
+  content: "\ecc2";
+}
+.ph.ph-pizza:before {
+  content: "\e796";
+}
+.ph.ph-placeholder:before {
+  content: "\e650";
+}
+.ph.ph-planet:before {
+  content: "\e652";
+}
+.ph.ph-plant:before {
+  content: "\ebae";
+}
+.ph.ph-play:before {
+  content: "\e3d0";
+}
+.ph.ph-play-circle:before {
+  content: "\e3d2";
+}
+.ph.ph-play-pause:before {
+  content: "\e8be";
+}
+.ph.ph-playlist:before {
+  content: "\e6aa";
+}
+.ph.ph-plug:before {
+  content: "\e946";
+}
+.ph.ph-plug-charging:before {
+  content: "\eb5c";
+}
+.ph.ph-plugs:before {
+  content: "\eb56";
+}
+.ph.ph-plugs-connected:before {
+  content: "\eb5a";
+}
+.ph.ph-plus:before {
+  content: "\e3d4";
+}
+.ph.ph-plus-circle:before {
+  content: "\e3d6";
+}
+.ph.ph-plus-minus:before {
+  content: "\e3d8";
+}
+.ph.ph-plus-square:before {
+  content: "\ed4a";
+}
+.ph.ph-poker-chip:before {
+  content: "\e594";
+}
+.ph.ph-police-car:before {
+  content: "\ec4a";
+}
+.ph.ph-polygon:before {
+  content: "\e6d0";
+}
+.ph.ph-popcorn:before {
+  content: "\eb4e";
+}
+.ph.ph-popsicle:before {
+  content: "\ebbe";
+}
+.ph.ph-potted-plant:before {
+  content: "\ec22";
+}
+.ph.ph-power:before {
+  content: "\e3da";
+}
+.ph.ph-prescription:before {
+  content: "\e7a2";
+}
+.ph.ph-presentation:before {
+  content: "\e654";
+}
+.ph.ph-presentation-chart:before {
+  content: "\e656";
+}
+.ph.ph-printer:before {
+  content: "\e3dc";
+}
+.ph.ph-prohibit:before {
+  content: "\e3de";
+}
+.ph.ph-prohibit-inset:before {
+  content: "\e3e0";
+}
+.ph.ph-projector-screen:before {
+  content: "\e658";
+}
+.ph.ph-projector-screen-chart:before {
+  content: "\e65a";
+}
+.ph.ph-pulse:before {
+  content: "\e000";
+}
+.ph.ph-activity:before {
+  content: "\e000";
+}
+.ph.ph-push-pin:before {
+  content: "\e3e2";
+}
+.ph.ph-push-pin-simple:before {
+  content: "\e65c";
+}
+.ph.ph-push-pin-simple-slash:before {
+  content: "\e65e";
+}
+.ph.ph-push-pin-slash:before {
+  content: "\e3e4";
+}
+.ph.ph-puzzle-piece:before {
+  content: "\e596";
+}
+.ph.ph-qr-code:before {
+  content: "\e3e6";
+}
+.ph.ph-question:before {
+  content: "\e3e8";
+}
+.ph.ph-question-mark:before {
+  content: "\e3e9";
+}
+.ph.ph-queue:before {
+  content: "\e6ac";
+}
+.ph.ph-quotes:before {
+  content: "\e660";
+}
+.ph.ph-rabbit:before {
+  content: "\eac2";
+}
+.ph.ph-racquet:before {
+  content: "\ee02";
+}
+.ph.ph-radical:before {
+  content: "\e3ea";
+}
+.ph.ph-radio:before {
+  content: "\e77e";
+}
+.ph.ph-radio-button:before {
+  content: "\eb08";
+}
+.ph.ph-radioactive:before {
+  content: "\e9dc";
+}
+.ph.ph-rainbow:before {
+  content: "\e598";
+}
+.ph.ph-rainbow-cloud:before {
+  content: "\e59a";
+}
+.ph.ph-ranking:before {
+  content: "\ed62";
+}
+.ph.ph-read-cv-logo:before {
+  content: "\ed0c";
+}
+.ph.ph-receipt:before {
+  content: "\e3ec";
+}
+.ph.ph-receipt-x:before {
+  content: "\ed40";
+}
+.ph.ph-record:before {
+  content: "\e3ee";
+}
+.ph.ph-rectangle:before {
+  content: "\e3f0";
+}
+.ph.ph-rectangle-dashed:before {
+  content: "\e3f2";
+}
+.ph.ph-recycle:before {
+  content: "\e75a";
+}
+.ph.ph-reddit-logo:before {
+  content: "\e59c";
+}
+.ph.ph-repeat:before {
+  content: "\e3f6";
+}
+.ph.ph-repeat-once:before {
+  content: "\e3f8";
+}
+.ph.ph-replit-logo:before {
+  content: "\eb8a";
+}
+.ph.ph-resize:before {
+  content: "\ed6e";
+}
+.ph.ph-rewind:before {
+  content: "\e6a8";
+}
+.ph.ph-rewind-circle:before {
+  content: "\e3fa";
+}
+.ph.ph-road-horizon:before {
+  content: "\e838";
+}
+.ph.ph-robot:before {
+  content: "\e762";
+}
+.ph.ph-rocket:before {
+  content: "\e3fc";
+}
+.ph.ph-rocket-launch:before {
+  content: "\e3fe";
+}
+.ph.ph-rows:before {
+  content: "\e5a2";
+}
+.ph.ph-rows-plus-bottom:before {
+  content: "\e59e";
+}
+.ph.ph-rows-plus-top:before {
+  content: "\e5a0";
+}
+.ph.ph-rss:before {
+  content: "\e400";
+}
+.ph.ph-rss-simple:before {
+  content: "\e402";
+}
+.ph.ph-rug:before {
+  content: "\ea1a";
+}
+.ph.ph-ruler:before {
+  content: "\e6b8";
+}
+.ph.ph-sailboat:before {
+  content: "\e78a";
+}
+.ph.ph-scales:before {
+  content: "\e750";
+}
+.ph.ph-scan:before {
+  content: "\ebb6";
+}
+.ph.ph-scan-smiley:before {
+  content: "\ebb4";
+}
+.ph.ph-scissors:before {
+  content: "\eae0";
+}
+.ph.ph-scooter:before {
+  content: "\e820";
+}
+.ph.ph-screencast:before {
+  content: "\e404";
+}
+.ph.ph-screwdriver:before {
+  content: "\e86e";
+}
+.ph.ph-scribble:before {
+  content: "\e806";
+}
+.ph.ph-scribble-loop:before {
+  content: "\e662";
+}
+.ph.ph-scroll:before {
+  content: "\eb7a";
+}
+.ph.ph-seal:before {
+  content: "\e604";
+}
+.ph.ph-circle-wavy:before {
+  content: "\e604";
+}
+.ph.ph-seal-check:before {
+  content: "\e606";
+}
+.ph.ph-circle-wavy-check:before {
+  content: "\e606";
+}
+.ph.ph-seal-percent:before {
+  content: "\e60a";
+}
+.ph.ph-seal-question:before {
+  content: "\e608";
+}
+.ph.ph-circle-wavy-question:before {
+  content: "\e608";
+}
+.ph.ph-seal-warning:before {
+  content: "\e60c";
+}
+.ph.ph-circle-wavy-warning:before {
+  content: "\e60c";
+}
+.ph.ph-seat:before {
+  content: "\eb8e";
+}
+.ph.ph-seatbelt:before {
+  content: "\edfe";
+}
+.ph.ph-security-camera:before {
+  content: "\eca4";
+}
+.ph.ph-selection:before {
+  content: "\e69a";
+}
+.ph.ph-selection-all:before {
+  content: "\e746";
+}
+.ph.ph-selection-background:before {
+  content: "\eaf8";
+}
+.ph.ph-selection-foreground:before {
+  content: "\eaf6";
+}
+.ph.ph-selection-inverse:before {
+  content: "\e744";
+}
+.ph.ph-selection-plus:before {
+  content: "\e69c";
+}
+.ph.ph-selection-slash:before {
+  content: "\e69e";
+}
+.ph.ph-shapes:before {
+  content: "\ec5e";
+}
+.ph.ph-share:before {
+  content: "\e406";
+}
+.ph.ph-share-fat:before {
+  content: "\ed52";
+}
+.ph.ph-share-network:before {
+  content: "\e408";
+}
+.ph.ph-shield:before {
+  content: "\e40a";
+}
+.ph.ph-shield-check:before {
+  content: "\e40c";
+}
+.ph.ph-shield-checkered:before {
+  content: "\e708";
+}
+.ph.ph-shield-chevron:before {
+  content: "\e40e";
+}
+.ph.ph-shield-plus:before {
+  content: "\e706";
+}
+.ph.ph-shield-slash:before {
+  content: "\e410";
+}
+.ph.ph-shield-star:before {
+  content: "\ec34";
+}
+.ph.ph-shield-warning:before {
+  content: "\e412";
+}
+.ph.ph-shipping-container:before {
+  content: "\e78c";
+}
+.ph.ph-shirt-folded:before {
+  content: "\ea92";
+}
+.ph.ph-shooting-star:before {
+  content: "\ecfa";
+}
+.ph.ph-shopping-bag:before {
+  content: "\e416";
+}
+.ph.ph-shopping-bag-open:before {
+  content: "\e418";
+}
+.ph.ph-shopping-cart:before {
+  content: "\e41e";
+}
+.ph.ph-shopping-cart-simple:before {
+  content: "\e420";
+}
+.ph.ph-shovel:before {
+  content: "\e9e6";
+}
+.ph.ph-shower:before {
+  content: "\e776";
+}
+.ph.ph-shrimp:before {
+  content: "\eab4";
+}
+.ph.ph-shuffle:before {
+  content: "\e422";
+}
+.ph.ph-shuffle-angular:before {
+  content: "\e424";
+}
+.ph.ph-shuffle-simple:before {
+  content: "\e426";
+}
+.ph.ph-sidebar:before {
+  content: "\eab6";
+}
+.ph.ph-sidebar-simple:before {
+  content: "\ec24";
+}
+.ph.ph-sigma:before {
+  content: "\eab8";
+}
+.ph.ph-sign-in:before {
+  content: "\e428";
+}
+.ph.ph-sign-out:before {
+  content: "\e42a";
+}
+.ph.ph-signature:before {
+  content: "\ebac";
+}
+.ph.ph-signpost:before {
+  content: "\e89c";
+}
+.ph.ph-sim-card:before {
+  content: "\e664";
+}
+.ph.ph-siren:before {
+  content: "\e9b8";
+}
+.ph.ph-sketch-logo:before {
+  content: "\e42c";
+}
+.ph.ph-skip-back:before {
+  content: "\e5a4";
+}
+.ph.ph-skip-back-circle:before {
+  content: "\e42e";
+}
+.ph.ph-skip-forward:before {
+  content: "\e5a6";
+}
+.ph.ph-skip-forward-circle:before {
+  content: "\e430";
+}
+.ph.ph-skull:before {
+  content: "\e916";
+}
+.ph.ph-skype-logo:before {
+  content: "\e8dc";
+}
+.ph.ph-slack-logo:before {
+  content: "\e5a8";
+}
+.ph.ph-sliders:before {
+  content: "\e432";
+}
+.ph.ph-sliders-horizontal:before {
+  content: "\e434";
+}
+.ph.ph-slideshow:before {
+  content: "\ed32";
+}
+.ph.ph-smiley:before {
+  content: "\e436";
+}
+.ph.ph-smiley-angry:before {
+  content: "\ec62";
+}
+.ph.ph-smiley-blank:before {
+  content: "\e438";
+}
+.ph.ph-smiley-meh:before {
+  content: "\e43a";
+}
+.ph.ph-smiley-melting:before {
+  content: "\ee56";
+}
+.ph.ph-smiley-nervous:before {
+  content: "\e43c";
+}
+.ph.ph-smiley-sad:before {
+  content: "\e43e";
+}
+.ph.ph-smiley-sticker:before {
+  content: "\e440";
+}
+.ph.ph-smiley-wink:before {
+  content: "\e666";
+}
+.ph.ph-smiley-x-eyes:before {
+  content: "\e442";
+}
+.ph.ph-snapchat-logo:before {
+  content: "\e668";
+}
+.ph.ph-sneaker:before {
+  content: "\e80c";
+}
+.ph.ph-sneaker-move:before {
+  content: "\ed60";
+}
+.ph.ph-snowflake:before {
+  content: "\e5aa";
+}
+.ph.ph-soccer-ball:before {
+  content: "\e716";
+}
+.ph.ph-sock:before {
+  content: "\ecce";
+}
+.ph.ph-solar-panel:before {
+  content: "\ed7a";
+}
+.ph.ph-solar-roof:before {
+  content: "\ed7b";
+}
+.ph.ph-sort-ascending:before {
+  content: "\e444";
+}
+.ph.ph-sort-descending:before {
+  content: "\e446";
+}
+.ph.ph-soundcloud-logo:before {
+  content: "\e8de";
+}
+.ph.ph-spade:before {
+  content: "\e448";
+}
+.ph.ph-sparkle:before {
+  content: "\e6a2";
+}
+.ph.ph-speaker-hifi:before {
+  content: "\ea08";
+}
+.ph.ph-speaker-high:before {
+  content: "\e44a";
+}
+.ph.ph-speaker-low:before {
+  content: "\e44c";
+}
+.ph.ph-speaker-none:before {
+  content: "\e44e";
+}
+.ph.ph-speaker-simple-high:before {
+  content: "\e450";
+}
+.ph.ph-speaker-simple-low:before {
+  content: "\e452";
+}
+.ph.ph-speaker-simple-none:before {
+  content: "\e454";
+}
+.ph.ph-speaker-simple-slash:before {
+  content: "\e456";
+}
+.ph.ph-speaker-simple-x:before {
+  content: "\e458";
+}
+.ph.ph-speaker-slash:before {
+  content: "\e45a";
+}
+.ph.ph-speaker-x:before {
+  content: "\e45c";
+}
+.ph.ph-speedometer:before {
+  content: "\ee74";
+}
+.ph.ph-sphere:before {
+  content: "\ee66";
+}
+.ph.ph-spinner:before {
+  content: "\e66a";
+}
+.ph.ph-spinner-ball:before {
+  content: "\ee28";
+}
+.ph.ph-spinner-gap:before {
+  content: "\e66c";
+}
+.ph.ph-spiral:before {
+  content: "\e9fa";
+}
+.ph.ph-split-horizontal:before {
+  content: "\e872";
+}
+.ph.ph-split-vertical:before {
+  content: "\e876";
+}
+.ph.ph-spotify-logo:before {
+  content: "\e66e";
+}
+.ph.ph-spray-bottle:before {
+  content: "\e7e4";
+}
+.ph.ph-square:before {
+  content: "\e45e";
+}
+.ph.ph-square-half:before {
+  content: "\e462";
+}
+.ph.ph-square-half-bottom:before {
+  content: "\eb16";
+}
+.ph.ph-square-logo:before {
+  content: "\e690";
+}
+.ph.ph-square-split-horizontal:before {
+  content: "\e870";
+}
+.ph.ph-square-split-vertical:before {
+  content: "\e874";
+}
+.ph.ph-squares-four:before {
+  content: "\e464";
+}
+.ph.ph-stack:before {
+  content: "\e466";
+}
+.ph.ph-stack-minus:before {
+  content: "\edf4";
+}
+.ph.ph-stack-overflow-logo:before {
+  content: "\eb78";
+}
+.ph.ph-stack-plus:before {
+  content: "\edf6";
+}
+.ph.ph-stack-simple:before {
+  content: "\e468";
+}
+.ph.ph-stairs:before {
+  content: "\e8ec";
+}
+.ph.ph-stamp:before {
+  content: "\ea48";
+}
+.ph.ph-standard-definition:before {
+  content: "\ea90";
+}
+.ph.ph-star:before {
+  content: "\e46a";
+}
+.ph.ph-star-and-crescent:before {
+  content: "\ecf4";
+}
+.ph.ph-star-four:before {
+  content: "\e6a4";
+}
+.ph.ph-star-half:before {
+  content: "\e70a";
+}
+.ph.ph-star-of-david:before {
+  content: "\e89e";
+}
+.ph.ph-steam-logo:before {
+  content: "\ead4";
+}
+.ph.ph-steering-wheel:before {
+  content: "\e9ac";
+}
+.ph.ph-steps:before {
+  content: "\ecbe";
+}
+.ph.ph-stethoscope:before {
+  content: "\e7ea";
+}
+.ph.ph-sticker:before {
+  content: "\e5ac";
+}
+.ph.ph-stool:before {
+  content: "\ea44";
+}
+.ph.ph-stop:before {
+  content: "\e46c";
+}
+.ph.ph-stop-circle:before {
+  content: "\e46e";
+}
+.ph.ph-storefront:before {
+  content: "\e470";
+}
+.ph.ph-strategy:before {
+  content: "\ea3a";
+}
+.ph.ph-stripe-logo:before {
+  content: "\e698";
+}
+.ph.ph-student:before {
+  content: "\e73e";
+}
+.ph.ph-subset-of:before {
+  content: "\edc0";
+}
+.ph.ph-subset-proper-of:before {
+  content: "\edb6";
+}
+.ph.ph-subtitles:before {
+  content: "\e1a8";
+}
+.ph.ph-subtitles-slash:before {
+  content: "\e1a6";
+}
+.ph.ph-subtract:before {
+  content: "\ebd6";
+}
+.ph.ph-subtract-square:before {
+  content: "\ebd4";
+}
+.ph.ph-subway:before {
+  content: "\e498";
+}
+.ph.ph-suitcase:before {
+  content: "\e5ae";
+}
+.ph.ph-suitcase-rolling:before {
+  content: "\e9b0";
+}
+.ph.ph-suitcase-simple:before {
+  content: "\e5b0";
+}
+.ph.ph-sun:before {
+  content: "\e472";
+}
+.ph.ph-sun-dim:before {
+  content: "\e474";
+}
+.ph.ph-sun-horizon:before {
+  content: "\e5b6";
+}
+.ph.ph-sunglasses:before {
+  content: "\e816";
+}
+.ph.ph-superset-of:before {
+  content: "\edb8";
+}
+.ph.ph-superset-proper-of:before {
+  content: "\edb4";
+}
+.ph.ph-swap:before {
+  content: "\e83c";
+}
+.ph.ph-swatches:before {
+  content: "\e5b8";
+}
+.ph.ph-swimming-pool:before {
+  content: "\ecb6";
+}
+.ph.ph-sword:before {
+  content: "\e5ba";
+}
+.ph.ph-synagogue:before {
+  content: "\ecec";
+}
+.ph.ph-syringe:before {
+  content: "\e968";
+}
+.ph.ph-t-shirt:before {
+  content: "\e670";
+}
+.ph.ph-table:before {
+  content: "\e476";
+}
+.ph.ph-tabs:before {
+  content: "\e778";
+}
+.ph.ph-tag:before {
+  content: "\e478";
+}
+.ph.ph-tag-chevron:before {
+  content: "\e672";
+}
+.ph.ph-tag-simple:before {
+  content: "\e47a";
+}
+.ph.ph-target:before {
+  content: "\e47c";
+}
+.ph.ph-taxi:before {
+  content: "\e902";
+}
+.ph.ph-tea-bag:before {
+  content: "\e8e6";
+}
+.ph.ph-telegram-logo:before {
+  content: "\e5bc";
+}
+.ph.ph-television:before {
+  content: "\e754";
+}
+.ph.ph-television-simple:before {
+  content: "\eae6";
+}
+.ph.ph-tennis-ball:before {
+  content: "\e720";
+}
+.ph.ph-tent:before {
+  content: "\e8ba";
+}
+.ph.ph-terminal:before {
+  content: "\e47e";
+}
+.ph.ph-terminal-window:before {
+  content: "\eae8";
+}
+.ph.ph-test-tube:before {
+  content: "\e7a0";
+}
+.ph.ph-text-a-underline:before {
+  content: "\ed34";
+}
+.ph.ph-text-aa:before {
+  content: "\e6ee";
+}
+.ph.ph-text-align-center:before {
+  content: "\e480";
+}
+.ph.ph-text-align-justify:before {
+  content: "\e482";
+}
+.ph.ph-text-align-left:before {
+  content: "\e484";
+}
+.ph.ph-text-align-right:before {
+  content: "\e486";
+}
+.ph.ph-text-b:before {
+  content: "\e5be";
+}
+.ph.ph-text-bolder:before {
+  content: "\e5be";
+}
+.ph.ph-text-columns:before {
+  content: "\ec96";
+}
+.ph.ph-text-h:before {
+  content: "\e6ba";
+}
+.ph.ph-text-h-five:before {
+  content: "\e6c4";
+}
+.ph.ph-text-h-four:before {
+  content: "\e6c2";
+}
+.ph.ph-text-h-one:before {
+  content: "\e6bc";
+}
+.ph.ph-text-h-six:before {
+  content: "\e6c6";
+}
+.ph.ph-text-h-three:before {
+  content: "\e6c0";
+}
+.ph.ph-text-h-two:before {
+  content: "\e6be";
+}
+.ph.ph-text-indent:before {
+  content: "\ea1e";
+}
+.ph.ph-text-italic:before {
+  content: "\e5c0";
+}
+.ph.ph-text-outdent:before {
+  content: "\ea1c";
+}
+.ph.ph-text-strikethrough:before {
+  content: "\e5c2";
+}
+.ph.ph-text-subscript:before {
+  content: "\ec98";
+}
+.ph.ph-text-superscript:before {
+  content: "\ec9a";
+}
+.ph.ph-text-t:before {
+  content: "\e48a";
+}
+.ph.ph-text-t-slash:before {
+  content: "\e488";
+}
+.ph.ph-text-underline:before {
+  content: "\e5c4";
+}
+.ph.ph-textbox:before {
+  content: "\eb0a";
+}
+.ph.ph-thermometer:before {
+  content: "\e5c6";
+}
+.ph.ph-thermometer-cold:before {
+  content: "\e5c8";
+}
+.ph.ph-thermometer-hot:before {
+  content: "\e5ca";
+}
+.ph.ph-thermometer-simple:before {
+  content: "\e5cc";
+}
+.ph.ph-threads-logo:before {
+  content: "\ed9e";
+}
+.ph.ph-three-d:before {
+  content: "\ea5a";
+}
+.ph.ph-thumbs-down:before {
+  content: "\e48c";
+}
+.ph.ph-thumbs-up:before {
+  content: "\e48e";
+}
+.ph.ph-ticket:before {
+  content: "\e490";
+}
+.ph.ph-tidal-logo:before {
+  content: "\ed1c";
+}
+.ph.ph-tiktok-logo:before {
+  content: "\eaf2";
+}
+.ph.ph-tilde:before {
+  content: "\eda8";
+}
+.ph.ph-timer:before {
+  content: "\e492";
+}
+.ph.ph-tip-jar:before {
+  content: "\e7e2";
+}
+.ph.ph-tipi:before {
+  content: "\ed30";
+}
+.ph.ph-tire:before {
+  content: "\edd2";
+}
+.ph.ph-toggle-left:before {
+  content: "\e674";
+}
+.ph.ph-toggle-right:before {
+  content: "\e676";
+}
+.ph.ph-toilet:before {
+  content: "\e79a";
+}
+.ph.ph-toilet-paper:before {
+  content: "\e79c";
+}
+.ph.ph-toolbox:before {
+  content: "\eca0";
+}
+.ph.ph-tooth:before {
+  content: "\e9cc";
+}
+.ph.ph-tornado:before {
+  content: "\e88c";
+}
+.ph.ph-tote:before {
+  content: "\e494";
+}
+.ph.ph-tote-simple:before {
+  content: "\e678";
+}
+.ph.ph-towel:before {
+  content: "\ede6";
+}
+.ph.ph-tractor:before {
+  content: "\ec6e";
+}
+.ph.ph-trademark:before {
+  content: "\e9f0";
+}
+.ph.ph-trademark-registered:before {
+  content: "\e3f4";
+}
+.ph.ph-traffic-cone:before {
+  content: "\e9a8";
+}
+.ph.ph-traffic-sign:before {
+  content: "\e67a";
+}
+.ph.ph-traffic-signal:before {
+  content: "\e9aa";
+}
+.ph.ph-train:before {
+  content: "\e496";
+}
+.ph.ph-train-regional:before {
+  content: "\e49e";
+}
+.ph.ph-train-simple:before {
+  content: "\e4a0";
+}
+.ph.ph-tram:before {
+  content: "\e9ec";
+}
+.ph.ph-translate:before {
+  content: "\e4a2";
+}
+.ph.ph-trash:before {
+  content: "\e4a6";
+}
+.ph.ph-trash-simple:before {
+  content: "\e4a8";
+}
+.ph.ph-tray:before {
+  content: "\e4aa";
+}
+.ph.ph-tray-arrow-down:before {
+  content: "\e010";
+}
+.ph.ph-archive-tray:before {
+  content: "\e010";
+}
+.ph.ph-tray-arrow-up:before {
+  content: "\ee52";
+}
+.ph.ph-treasure-chest:before {
+  content: "\ede2";
+}
+.ph.ph-tree:before {
+  content: "\e6da";
+}
+.ph.ph-tree-evergreen:before {
+  content: "\e6dc";
+}
+.ph.ph-tree-palm:before {
+  content: "\e91a";
+}
+.ph.ph-tree-structure:before {
+  content: "\e67c";
+}
+.ph.ph-tree-view:before {
+  content: "\ee48";
+}
+.ph.ph-trend-down:before {
+  content: "\e4ac";
+}
+.ph.ph-trend-up:before {
+  content: "\e4ae";
+}
+.ph.ph-triangle:before {
+  content: "\e4b0";
+}
+.ph.ph-triangle-dashed:before {
+  content: "\e4b2";
+}
+.ph.ph-trolley:before {
+  content: "\e5b2";
+}
+.ph.ph-trolley-suitcase:before {
+  content: "\e5b4";
+}
+.ph.ph-trophy:before {
+  content: "\e67e";
+}
+.ph.ph-truck:before {
+  content: "\e4b4";
+}
+.ph.ph-truck-trailer:before {
+  content: "\e4b6";
+}
+.ph.ph-tumblr-logo:before {
+  content: "\e8d4";
+}
+.ph.ph-twitch-logo:before {
+  content: "\e5ce";
+}
+.ph.ph-twitter-logo:before {
+  content: "\e4ba";
+}
+.ph.ph-umbrella:before {
+  content: "\e684";
+}
+.ph.ph-umbrella-simple:before {
+  content: "\e686";
+}
+.ph.ph-union:before {
+  content: "\edbe";
+}
+.ph.ph-unite:before {
+  content: "\e87e";
+}
+.ph.ph-unite-square:before {
+  content: "\e878";
+}
+.ph.ph-upload:before {
+  content: "\e4be";
+}
+.ph.ph-upload-simple:before {
+  content: "\e4c0";
+}
+.ph.ph-usb:before {
+  content: "\e956";
+}
+.ph.ph-user:before {
+  content: "\e4c2";
+}
+.ph.ph-user-check:before {
+  content: "\eafa";
+}
+.ph.ph-user-circle:before {
+  content: "\e4c4";
+}
+.ph.ph-user-circle-check:before {
+  content: "\ec38";
+}
+.ph.ph-user-circle-dashed:before {
+  content: "\ec36";
+}
+.ph.ph-user-circle-gear:before {
+  content: "\e4c6";
+}
+.ph.ph-user-circle-minus:before {
+  content: "\e4c8";
+}
+.ph.ph-user-circle-plus:before {
+  content: "\e4ca";
+}
+.ph.ph-user-focus:before {
+  content: "\e6fc";
+}
+.ph.ph-user-gear:before {
+  content: "\e4cc";
+}
+.ph.ph-user-list:before {
+  content: "\e73c";
+}
+.ph.ph-user-minus:before {
+  content: "\e4ce";
+}
+.ph.ph-user-plus:before {
+  content: "\e4d0";
+}
+.ph.ph-user-rectangle:before {
+  content: "\e4d2";
+}
+.ph.ph-user-sound:before {
+  content: "\eca8";
+}
+.ph.ph-user-square:before {
+  content: "\e4d4";
+}
+.ph.ph-user-switch:before {
+  content: "\e756";
+}
+.ph.ph-users:before {
+  content: "\e4d6";
+}
+.ph.ph-users-four:before {
+  content: "\e68c";
+}
+.ph.ph-users-three:before {
+  content: "\e68e";
+}
+.ph.ph-van:before {
+  content: "\e826";
+}
+.ph.ph-vault:before {
+  content: "\e76e";
+}
+.ph.ph-vector-three:before {
+  content: "\ee62";
+}
+.ph.ph-vector-two:before {
+  content: "\ee64";
+}
+.ph.ph-vibrate:before {
+  content: "\e4d8";
+}
+.ph.ph-video:before {
+  content: "\e740";
+}
+.ph.ph-video-camera:before {
+  content: "\e4da";
+}
+.ph.ph-video-camera-slash:before {
+  content: "\e4dc";
+}
+.ph.ph-video-conference:before {
+  content: "\edce";
+}
+.ph.ph-vignette:before {
+  content: "\eba2";
+}
+.ph.ph-vinyl-record:before {
+  content: "\ecac";
+}
+.ph.ph-virtual-reality:before {
+  content: "\e7b8";
+}
+.ph.ph-virus:before {
+  content: "\e7d6";
+}
+.ph.ph-visor:before {
+  content: "\ee2a";
+}
+.ph.ph-voicemail:before {
+  content: "\e4de";
+}
+.ph.ph-volleyball:before {
+  content: "\e726";
+}
+.ph.ph-wall:before {
+  content: "\e688";
+}
+.ph.ph-wallet:before {
+  content: "\e68a";
+}
+.ph.ph-warehouse:before {
+  content: "\ecd4";
+}
+.ph.ph-warning:before {
+  content: "\e4e0";
+}
+.ph.ph-warning-circle:before {
+  content: "\e4e2";
+}
+.ph.ph-warning-diamond:before {
+  content: "\e7fc";
+}
+.ph.ph-warning-octagon:before {
+  content: "\e4e4";
+}
+.ph.ph-washing-machine:before {
+  content: "\ede8";
+}
+.ph.ph-watch:before {
+  content: "\e4e6";
+}
+.ph.ph-wave-sawtooth:before {
+  content: "\ea9c";
+}
+.ph.ph-wave-sine:before {
+  content: "\ea9a";
+}
+.ph.ph-wave-square:before {
+  content: "\ea9e";
+}
+.ph.ph-wave-triangle:before {
+  content: "\eaa0";
+}
+.ph.ph-waveform:before {
+  content: "\e802";
+}
+.ph.ph-waveform-slash:before {
+  content: "\e800";
+}
+.ph.ph-waves:before {
+  content: "\e6de";
+}
+.ph.ph-webcam:before {
+  content: "\e9b2";
+}
+.ph.ph-webcam-slash:before {
+  content: "\ecdc";
+}
+.ph.ph-webhooks-logo:before {
+  content: "\ecae";
+}
+.ph.ph-wechat-logo:before {
+  content: "\e8d2";
+}
+.ph.ph-whatsapp-logo:before {
+  content: "\e5d0";
+}
+.ph.ph-wheelchair:before {
+  content: "\e4e8";
+}
+.ph.ph-wheelchair-motion:before {
+  content: "\e89a";
+}
+.ph.ph-wifi-high:before {
+  content: "\e4ea";
+}
+.ph.ph-wifi-low:before {
+  content: "\e4ec";
+}
+.ph.ph-wifi-medium:before {
+  content: "\e4ee";
+}
+.ph.ph-wifi-none:before {
+  content: "\e4f0";
+}
+.ph.ph-wifi-slash:before {
+  content: "\e4f2";
+}
+.ph.ph-wifi-x:before {
+  content: "\e4f4";
+}
+.ph.ph-wind:before {
+  content: "\e5d2";
+}
+.ph.ph-windmill:before {
+  content: "\e9f8";
+}
+.ph.ph-windows-logo:before {
+  content: "\e692";
+}
+.ph.ph-wine:before {
+  content: "\e6b2";
+}
+.ph.ph-wrench:before {
+  content: "\e5d4";
+}
+.ph.ph-x:before {
+  content: "\e4f6";
+}
+.ph.ph-x-circle:before {
+  content: "\e4f8";
+}
+.ph.ph-x-logo:before {
+  content: "\e4bc";
+}
+.ph.ph-x-square:before {
+  content: "\e4fa";
+}
+.ph.ph-yarn:before {
+  content: "\ed9a";
+}
+.ph.ph-yin-yang:before {
+  content: "\e92a";
+}
+.ph.ph-youtube-logo:before {
+  content: "\e4fc";
+}
+</style>
+<style>
+  body { margin: 0; background: var(--color-bg); }
+  a { color: var(--color-accent); }
+  a:hover { color: var(--color-accent-300); }
+  @keyframes fgEnter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .fg-screen { animation: fgEnter .28s ease both; }
+  .fg-nav-item:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+  .fg-tile:hover { box-shadow: var(--shadow-md); }
+  input[type=range] { accent-color: var(--color-accent); width: 100%; }
+</style>
+</helmet>
+
+<div style="min-height:100vh;display:grid;grid-template-columns:232px minmax(0,1fr);font-family:var(--font-body);color:var(--color-text);background:var(--color-bg)">
+
+  <aside style="border-right:1px solid var(--color-divider);padding:22.4px 11.2px;display:flex;flex-direction:column;gap:22.4px;position:sticky;top:0;height:100vh">
+    <div style="display:flex;align-items:center;gap:8.4px;padding:0 8.4px">
+      <span style="width:26px;height:26px;border-radius:8px;border:1px solid var(--color-accent);display:grid;place-items:center;color:var(--color-accent);font-size:15px"><i class="ph ph-flask"></i></span>
+      <span>
+        <span style="display:block;font-family:var(--font-heading);font-weight:500;font-size:15px;letter-spacing:.12em">FAGENT</span>
+        <span style="display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)">Portföy Ajanı</span>
+      </span>
+    </div>
+
+    <nav style="display:flex;flex-direction:column;gap:2.8px">
+      <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="8">
+        <button class="fg-nav-item" sc-camel-on-click="{{ item.go }}" style="display:flex;align-items:center;gap:8.4px;width:100%;text-align:left;padding:8.4px 8.4px;border:0;border-radius:8px;cursor:pointer;font:inherit;font-size:13.5px;background:{{ item.bg }};color:{{ item.color }};box-shadow:{{ item.ring }}">
+          <i class="{{ item.icon }}" style="font-size:16px"></i>
+          <span style="flex:1">{{ item.label }}</span>
+          <span style="font-size:10px;color:var(--color-neutral-600)">{{ item.hint }}</span>
+        </button>
+      </sc-for>
+    </nav>
+
+    <div style="margin-top:auto;display:flex;flex-direction:column;gap:8.4px;padding:11.2px 8.4px;border-top:1px solid var(--color-divider)">
+      <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)">Oturum</div>
+      <div style="display:flex;align-items:center;gap:5.6px;font-size:11.5px;color:var(--color-neutral-400)">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--color-accent)"></span> Anahtarsız · yerel veri
+      </div>
+      <div style="font-size:11.5px;color:var(--color-neutral-500)">Açılış varyantı <span style="color:var(--color-accent)">{{ variantLabel }}</span></div>
+      <button class="btn btn-secondary" sc-camel-on-click="{{ reshuffle }}" style="justify-content:flex-start;font-size:12px"><i class="ph ph-shuffle"></i> Yeniden dağıt</button>
+    </div>
+  </aside>
+
+  <main style="min-width:0;display:flex;flex-direction:column">
+    <header style="display:flex;align-items:center;gap:16.8px;padding:16.8px 28px;border-bottom:1px solid var(--color-divider)">
+      <div style="margin-right:auto;min-width:0">
+        <h4 style="margin:0 0 2.8px">{{ screenTitle }}</h4>
+        <div style="font-size:12.5px;color:var(--color-neutral-500)">{{ screenSub }}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)">Toplam değer</div>
+        <div style="font-family:var(--font-heading);font-size:19px;font-variant-numeric:tabular-nums">{{ totalValueStr }}</div>
+      </div>
+      <div style="text-align:right;padding-left:16.8px;border-left:1px solid var(--color-divider)">
+        <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-500)">Kâr / zarar</div>
+        <div style="font-family:var(--font-heading);font-size:19px;font-variant-numeric:tabular-nums;color:{{ pnlColor }}">{{ pnlStr }}</div>
+      </div>
+    </header>
+
+    <div style="padding:22.4px 28px 56px;display:flex;flex-direction:column;gap:16.8px">
+
+      <!-- ÖZET -->
+      <sc-if value="{{ isOzet }}" hint-placeholder-val="{{ true }}">
+        <div class="fg-screen" key="{{ variantKey }}" style="display:flex;flex-direction:column;gap:16.8px">
+
+          <sc-if value="{{ isVariantA }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:16.8px">
+              <section style="display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16.8px;align-items:stretch">
+                <div class="card elev-sm" style="padding:22.4px;gap:11.2px">
+                  <span class="card-kicker">Yönetici özeti</span>
+                  <div style="font-family:var(--font-heading);font-size:clamp(28px,3.4vw,44px);line-height:1;font-variant-numeric:tabular-nums">{{ totalValueStr }}</div>
+                  <div style="font-size:13.5px;color:var(--color-neutral-400)">Maliyet {{ totalCostStr }} · gerçekleşmemiş {{ pnlStr }} ({{ pnlPctStr }})</div>
+                  <div style="height:1px;background:var(--color-divider);margin:5.6px 0"></div>
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:11.2px">
+                    <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+                      <div>
+                        <div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500)">{{ k.label }}</div>
+                        <div style="font-family:var(--font-heading);font-size:clamp(16px,1.6vw,20px);font-variant-numeric:tabular-nums;color:{{ k.color }}">{{ k.value }}</div>
+                        <div style="font-size:11px;color:var(--color-neutral-600)">{{ k.note }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div class="card elev-sm" style="padding:22.4px;gap:11.2px">
+                  <span class="card-kicker">Varlık dağılımı</span>
+                  <sc-for list="{{ allocation }}" as="a" hint-placeholder-count="5">
+                    <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8.4px">
+                      <div style="display:flex;justify-content:space-between;font-size:12.5px">
+                        <span>{{ a.name }} <span style="color:var(--color-neutral-600)">{{ a.typeLabel }}</span></span>
+                        <span style="font-variant-numeric:tabular-nums;color:var(--color-neutral-400)">{{ a.pctStr }} · {{ a.amountStr }}</span>
+                      </div>
+                      <div style="height:6px;border-radius:4px;background:var(--color-neutral-900)">
+                        <div style="height:6px;border-radius:4px;background:{{ a.color }};width:{{ a.pct }}%"></div>
+                      </div>
+                    </div>
+                  </sc-for>
+                  <div style="font-size:11.5px;color:var(--color-neutral-600)">Konsantrasyon (HHI) {{ hhiStr }} — {{ hhiVerdict }}</div>
+                </div>
+              </section>
+
+              <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16.8px">
+                <sc-for list="{{ modelTiles }}" as="m" hint-placeholder-count="3">
+                  <button class="card elev-sm fg-tile" sc-camel-on-click="{{ m.open }}" style="text-align:left;border:0;cursor:pointer;font:inherit;color:inherit;padding:16.8px;gap:8.4px">
+                    <span class="card-kicker">{{ m.kicker }}</span>
+                    <span class="card-title">{{ m.title }}</span>
+                    <span style="font-family:var(--font-heading);font-size:clamp(18px,1.9vw,26px);font-variant-numeric:tabular-nums;color:{{ m.color }}">{{ m.value }}</span>
+                    <span class="card-body">{{ m.body }}</span>
+                    <span class="card-meta"><i class="{{ m.icon }}"></i> {{ m.meta }}</span>
+                  </button>
+                </sc-for>
+              </section>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isVariantB }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 312px;gap:16.8px;align-items:start">
+              <div class="card elev-sm" style="padding:22.4px;gap:11.2px">
+                <span class="card-kicker">Günün brifingi · ajan öncelikli</span>
+                <h3 style="margin:0">{{ briefingHead }}</h3>
+                <sc-for list="{{ briefing }}" as="b" hint-placeholder-count="4">
+                  <div style="display:flex;gap:11.2px;padding:11.2px 0;border-bottom:1px solid var(--color-divider)">
+                    <span style="width:3px;flex:none;border-radius:2px;background:{{ b.color }}"></span>
+                    <span style="min-width:0">
+                      <span style="display:block;font-size:13.5px">{{ b.text }}</span>
+                      <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);margin-top:2.8px">{{ b.basis }}</span>
+                    </span>
+                  </div>
+                </sc-for>
+                <div style="display:flex;gap:8.4px;flex-wrap:wrap;margin-top:5.6px">
+                  <button class="btn btn-primary" sc-camel-on-click="{{ goModeller }}"><i class="ph ph-function"></i> Modelleri aç</button>
+                  <button class="btn btn-secondary" sc-camel-on-click="{{ goSenaryo }}"><i class="ph ph-sliders"></i> Senaryo çalıştır</button>
+                  <button class="btn btn-secondary" sc-camel-on-click="{{ goAjan }}"><i class="ph ph-chat-circle-text"></i> Ajanla konuş</button>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:11.2px">
+                <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+                  <div class="card elev-sm" style="padding:16.8px;gap:2.8px">
+                    <span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500)">{{ k.label }}</span>
+                    <span style="font-family:var(--font-heading);font-size:clamp(17px,1.8vw,24px);font-variant-numeric:tabular-nums;color:{{ k.color }}">{{ k.value }}</span>
+                    <span style="font-size:11.5px;color:var(--color-neutral-600)">{{ k.note }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isVariantC }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:16.8px">
+              <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11.2px">
+                <sc-for list="{{ modelBoard }}" as="m" hint-placeholder-count="6">
+                  <button class="card elev-sm fg-tile" sc-camel-on-click="{{ m.open }}" style="text-align:left;border:0;cursor:pointer;font:inherit;color:inherit;padding:16.8px;gap:5.6px">
+                    <span class="card-kicker">{{ m.kicker }}</span>
+                    <span style="display:flex;align-items:baseline;gap:8.4px">
+                      <span style="font-family:var(--font-heading);font-size:clamp(18px,2vw,27px);font-variant-numeric:tabular-nums;color:{{ m.color }}">{{ m.value }}</span>
+                      <span style="font-size:11.5px;color:var(--color-neutral-500)">{{ m.unit }}</span>
+                    </span>
+                    <span style="display:block;font-size:12.5px">{{ m.title }}</span>
+                    <span style="display:flex;align-items:flex-end;gap:2px;height:34px;margin-top:5.6px">
+                      <sc-for list="{{ m.spark }}" as="s" hint-placeholder-count="12">
+                        <span style="flex:1;border-radius:2px;background:{{ s.color }};height:{{ s.h }}%"></span>
+                      </sc-for>
+                    </span>
+                  </button>
+                </sc-for>
+              </section>
+              <section class="card elev-sm" style="padding:16.8px 0">
+                <div class="card-kicker" style="padding:0 22.4px 8.4px">Varlıklar</div>
+                <sc-raw-table class="table">
+                  <sc-raw-thead><sc-raw-tr><sc-raw-th style="padding-left:22.4px">Varlık</sc-raw-th><sc-raw-th>Tür</sc-raw-th><sc-raw-th style="text-align:right">Değer</sc-raw-th><sc-raw-th style="text-align:right">Maliyet</sc-raw-th><sc-raw-th style="text-align:right">K/Z</sc-raw-th><sc-raw-th style="text-align:right">Ağırlık</sc-raw-th><sc-raw-th style="text-align:right;padding-right:22.4px">Volatilite*</sc-raw-th></sc-raw-tr></sc-raw-thead>
+                  <sc-raw-tbody>
+                    <sc-for list="{{ rows }}" as="r" hint-placeholder-count="5">
+                      <sc-raw-tr>
+                        <sc-raw-td style="padding-left:22.4px">{{ r.name }}</sc-raw-td>
+                        <sc-raw-td><span class="tag tag-neutral">{{ r.typeLabel }}</span></sc-raw-td>
+                        <sc-raw-td style="text-align:right;font-variant-numeric:tabular-nums">{{ r.amountStr }}</sc-raw-td>
+                        <sc-raw-td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--color-neutral-400)">{{ r.costStr }}</sc-raw-td>
+                        <sc-raw-td style="text-align:right;font-variant-numeric:tabular-nums;color:{{ r.pnlColor }}">{{ r.pnlStr }}</sc-raw-td>
+                        <sc-raw-td style="text-align:right;font-variant-numeric:tabular-nums">{{ r.pctStr }}</sc-raw-td>
+                        <sc-raw-td style="text-align:right;font-variant-numeric:tabular-nums;padding-right:22.4px;color:var(--color-neutral-400)">{{ r.volStr }}</sc-raw-td>
+                      </sc-raw-tr>
+                    </sc-for>
+                  </sc-raw-tbody>
+                </sc-raw-table>
+                <div style="padding:11.2px 22.4px 0;font-size:11px;color:var(--color-neutral-600)">* Yıllıklandırılmış volatilite varsayımı — varlık sınıfı bazlı, canlı fiyat kullanılmaz.</div>
+              </section>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- AJAN -->
+      <sc-if value="{{ isAjan }}" hint-placeholder-val="{{ false }}">
+        <div class="fg-screen" style="display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16.8px;align-items:start">
+          <div class="card elev-sm" style="padding:22.4px;gap:11.2px">
+            <span class="card-kicker">Ajan sohbeti · kural tabanlı</span>
+            <div style="display:flex;flex-direction:column;gap:11.2px;min-height:280px;max-height:430px;overflow-y:auto;padding-right:5.6px">
+              <sc-for list="{{ messages }}" as="m" hint-placeholder-count="2">
+                <div style="max-width:86%;align-self:{{ m.align }};padding:11.2px 14px;border-radius:8px;font-size:13.5px;white-space:pre-wrap;background:{{ m.bg }};box-shadow:{{ m.ring }}">{{ m.text }}</div>
+              </sc-for>
+            </div>
+            <div style="display:flex;gap:8.4px;align-items:center">
+              <input class="input" placeholder="Soru sor: “dağılımım nasıl”, “riskim ne durumda”, “reel getirim”…" value="{{ input }}" sc-camel-on-change="{{ onInput }}" sc-camel-on-key-down="{{ onInputKey }}">
+              <button class="btn btn-primary" sc-camel-on-click="{{ send }}"><i class="ph ph-paper-plane-right"></i> Gönder</button>
+            </div>
+            <div style="display:flex;gap:5.6px;flex-wrap:wrap;align-items:center">
+              <span style="font-size:11.5px;color:var(--color-neutral-600)">Hızlı test:</span>
+              <sc-for list="{{ quickTests }}" as="q" hint-placeholder-count="5">
+                <button class="btn btn-secondary" sc-camel-on-click="{{ q.run }}" style="font-size:12px">{{ q.label }}</button>
+              </sc-for>
+            </div>
+            <p style="margin:0;font-size:11px;color:var(--color-neutral-600)">Yanıtlar portföy verisinden hesaplanır; LLM kullanılmaz, veri tarayıcıdan çıkmaz. Yatırım tavsiyesi değildir.</p>
+          </div>
+          <div class="card elev-sm" style="padding:22.4px;gap:11.2px">
+            <span class="card-kicker">Karar denetleyici</span>
+            <div style="display:flex;gap:22.4px;padding-bottom:11.2px;border-bottom:1px solid var(--color-divider)">
+              <div><div style="font-size:11px;color:var(--color-neutral-500)">Anlaşılan</div><div style="font-family:var(--font-heading);font-size:19px;font-variant-numeric:tabular-nums;color:var(--color-accent)">{{ understoodStr }}</div></div>
+              <div><div style="font-size:11px;color:var(--color-neutral-500)">Soru</div><div style="font-family:var(--font-heading);font-size:19px;font-variant-numeric:tabular-nums">{{ traceCount }}</div></div>
+              <div><div style="font-size:11px;color:var(--color-neutral-500)">Fallback</div><div style="font-family:var(--font-heading);font-size:19px;font-variant-numeric:tabular-nums">{{ fallbackCount }}</div></div>
+            </div>
+            <sc-for list="{{ traces }}" as="t" hint-placeholder-count="3">
+              <div style="border-left:2px solid {{ t.color }};padding-left:11.2px;margin-bottom:11.2px">
+                <div style="display:flex;gap:8.4px;align-items:center;flex-wrap:wrap">
+                  <span style="font-size:12.5px;color:{{ t.color }}">{{ t.layer }}</span>
+                  <span style="font-size:11px;color:var(--color-neutral-600)">{{ t.at }} · {{ t.ms }} ms</span>
+                </div>
+                <div style="font-size:12.5px;color:var(--color-neutral-400);margin-top:2.8px">“{{ t.input }}”</div>
+                <div style="margin-top:5.6px"><span class="tag tag-accent">{{ t.tag }}</span></div>
+              </div>
+            </sc-for>
+            <div style="font-size:11.5px;color:var(--color-neutral-600)">Hangi katmanın cevapladığı, niyet etiketi ve süre burada görünür.</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- PORTFÖY -->
+      <sc-if value="{{ isPortfoy }}" hint-placeholder-val="{{ false }}">
+        <div class="fg-screen" style="display:flex;flex-direction:column;gap:16.8px">
+          <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:11.2px">
+            <sc-for list="{{ rows }}" as="r" hint-placeholder-count="5">
+              <div class="card elev-sm" style="padding:16.8px;gap:5.6px">
+                <span style="display:flex;align-items:center;justify-content:space-between">
+                  <span class="card-title">{{ r.name }}</span>
+                  <span class="tag tag-neutral">{{ r.typeLabel }}</span>
+                </span>
+                <span style="font-family:var(--font-heading);font-size:clamp(17px,1.8vw,24px);font-variant-numeric:tabular-nums">{{ r.amountStr }}</span>
+                <span style="font-size:12.5px;font-variant-numeric:tabular-nums;color:{{ r.pnlColor }}">{{ r.pnlStr }} ({{ r.pnlPctStr }})</span>
+                <span style="height:5px;border-radius:3px;background:var(--color-neutral-900);margin-top:5.6px">
+                  <span style="display:block;height:5px;border-radius:3px;background:{{ r.color }};width:{{ r.pct }}%"></span>
+                </span>
+                <span class="card-meta">Ağırlık {{ r.pctStr }} · volatilite varsayımı {{ r.volStr }}</span>
+              </div>
+            </sc-for>
+          </section>
+          <section class="card elev-sm" style="padding:22.4px;gap:11.2px">
+            <span class="card-kicker">Portföy bağlamı</span>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16.8px">
+              <div><div style="font-size:11px;color:var(--color-neutral-500)">Değer</div><div style="font-family:var(--font-heading);font-size:clamp(16px,1.6vw,20px);font-variant-numeric:tabular-nums">{{ totalValueStr }}</div></div>
+              <div><div style="font-size:11px;color:var(--color-neutral-500)">Maliyet</div><div style="font-family:var(--font-heading);font-size:clamp(16px,1.6vw,20px);font-variant-numeric:tabular-nums">{{ totalCostStr }}</div></div>
+              <div><div style="font-size:11px;color:var(--color-neutral-500)">K/Z</div><div style="font-family:var(--font-heading);font-size:clamp(16px,1.6vw,20px);font-variant-numeric:tabular-nums;color:{{ pnlColor }}">{{ pnlStr }}</div></div>
+              <div><div style="font-size:11px;color:var(--color-neutral-500)">Varlık</div><div style="font-family:var(--font-heading);font-size:clamp(16px,1.6vw,20px);font-variant-numeric:tabular-nums">{{ holdingCount }}</div></div>
+            </div>
+            <div style="display:flex;gap:8.4px;flex-wrap:wrap;margin-top:5.6px">
+              <button class="btn btn-secondary" sc-camel-on-click="{{ useMixed }}">Karma senaryo</button>
+              <button class="btn btn-secondary" sc-camel-on-click="{{ useCrypto }}">Kripto senaryo</button>
+              <button class="btn btn-primary" sc-camel-on-click="{{ goModeller }}">Modelleri çalıştır</button>
+            </div>
+          </section>
+        </div>
+      </sc-if>
+
+      <!-- MODELLER -->
+      <sc-if value="{{ isModeller }}" hint-placeholder-val="{{ false }}">
+        <div class="fg-screen" style="display:flex;flex-direction:column;gap:16.8px">
+          <section style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16.8px">
+            <div class="card elev-sm" style="padding:22.4px;gap:11.2px">
+              <span class="card-kicker">Model 1 · Risk ve getiri</span>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11.2px">
+                <div><div style="font-size:11px;color:var(--color-neutral-500)">Volatilite (σ)</div><div style="font-family:var(--font-heading);font-size:clamp(17px,1.7vw,23px);font-variant-numeric:tabular-nums">{{ volStr }}</div></div>
+                <div><div style="font-size:11px;color:var(--color-neutral-500)">Beklenen getiri</div><div style="font-family:var(--font-heading);font-size:clamp(17px,1.7vw,23px);font-variant-numeric:tabular-nums">{{ expReturnStr }}</div></div>
+                <div><div style="font-size:11px;color:var(--color-neutral-500)">Sharpe</div><div style="font-family:var(--font-heading);font-size:clamp(17px,1.7vw,23px);font-variant-numeric:tabular-nums;color:var(--color-accent)">{{ sharpeStr }}</div></div>
+              </div>
+              <div style="font-size:12.5px;color:var(--color-neutral-400)">σ, varlık sınıfı volatilite varsayımları ve {{ rhoStr }} ortalama korelasyon ile hesaplanır. Risksiz oran varsayımı {{ riskFreeStr }}.</div>
+              <div style="height:1px;background:var(--color-divider)"></div>
+              <div style="font-size:12.5px">1 yıllık %95 güven aralığı: <span style="font-variant-numeric:tabular-nums">{{ ciLowStr }} — {{ ciHighStr }}</span></div>
+            </div>
+            <div class="card elev-sm" style="padding:22.4px;gap:11.2px">
+              <span class="card-kicker">Model 2 · Konsantrasyon</span>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11.2px">
+                <div><div style="font-size:11px;color:var(--color-neutral-500)">HHI</div><div style="font-family:var(--font-heading);font-size:clamp(17px,1.7vw,23px);font-variant-numeric:tabular-nums">{{ hhiStr }}</div></div>
+                <div><div style="font-size:11px;color:var(--color-neutral-500)">Etkin varlık</div><div style="font-family:var(--font-heading);font-size:clamp(17px,1.7vw,23px);font-variant-numeric:tabular-nums">{{ effectiveNStr }}</div></div>
+                <div><div style="font-size:11px;color:var(--color-neutral-500)">En büyük ağırlık</div><div style="font-family:var(--font-heading);font-size:clamp(17px,1.7vw,23px);font-variant-numeric:tabular-nums">{{ topWeightStr }}</div></div>
+              </div>
+              <div style="font-size:12.5px;color:var(--color-neutral-400)">{{ hhiVerdict }}</div>
+              <div style="height:1px;background:var(--color-divider)"></div>
+              <sc-for list="{{ typeAlloc }}" as="t" hint-placeholder-count="5">
+                <div style="display:flex;align-items:center;gap:11.2px;font-size:12.5px;margin-bottom:5.6px">
+                  <span style="width:88px;color:var(--color-neutral-400)">{{ t.label }}</span>
+                  <span style="flex:1;height:6px;border-radius:4px;background:var(--color-neutral-900)"><span style="display:block;height:6px;border-radius:4px;background:{{ t.color }};width:{{ t.pct }}%"></span></span>
+                  <span style="width:52px;text-align:right;font-variant-numeric:tabular-nums">{{ t.pctStr }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+
+          <section class="card elev-sm" style="padding:22.4px;gap:11.2px">
+            <span class="card-kicker">Model 3 · Reel getiri (enflasyon düzeltmesi)</span>
+            <div style="display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:22.4px;align-items:center">
+              <div>
+                <div class="field"><label>Enflasyon varsayımı: {{ inflationStr }}</label></div>
+                <input type="range" min="10" max="80" step="1" value="{{ inflation }}" sc-camel-on-change="{{ onInflation }}">
+                <div style="font-size:11.5px;color:var(--color-neutral-600);margin-top:5.6px">Nominal beklenti {{ expReturnStr }} · reel karşılığı aşağıda.</div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16.8px">
+                <div><div style="font-size:11px;color:var(--color-neutral-500)">Reel beklenen getiri</div><div style="font-family:var(--font-heading);font-size:clamp(18px,2vw,27px);font-variant-numeric:tabular-nums;color:{{ realColor }}">{{ realReturnStr }}</div></div>
+                <div><div style="font-size:11px;color:var(--color-neutral-500)">Reel K/Z (mevcut)</div><div style="font-family:var(--font-heading);font-size:clamp(18px,2vw,27px);font-variant-numeric:tabular-nums;color:{{ realPnlColor }}">{{ realPnlStr }}</div></div>
+                <div><div style="font-size:11px;color:var(--color-neutral-500)">Enflasyonu geçen varlık</div><div style="font-family:var(--font-heading);font-size:clamp(18px,2vw,27px);font-variant-numeric:tabular-nums">{{ beatInflationStr }}</div></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="card elev-sm" style="padding:22.4px;gap:11.2px">
+            <span class="card-kicker">Model 4 · Bileşik birikim projeksiyonu</span>
+            <div style="display:grid;grid-template-columns:minmax(0,280px) minmax(0,1fr);gap:22.4px;align-items:center">
+              <div style="display:flex;flex-direction:column;gap:11.2px">
+                <div>
+                  <div class="field"><label>Aylık katkı: {{ monthlyStr }}</label></div>
+                  <input type="range" min="0" max="50000" step="1000" value="{{ monthly }}" sc-camel-on-change="{{ onMonthly }}">
+                </div>
+                <div>
+                  <div class="field"><label>Vade: {{ yearsStr }}</label></div>
+                  <input type="range" min="1" max="20" step="1" value="{{ years }}" sc-camel-on-change="{{ onYears }}">
+                </div>
+                <div style="font-size:12.5px;color:var(--color-neutral-400)">Nominal {{ projReturnStr }} · reel {{ realReturnStr }} varsayımıyla</div>
+              </div>
+              <div>
+                <svg sc-camel-view-box="0 0 600 180" sc-camel-preserve-aspect-ratio="none" style="width:100%;height:180px;display:block">
+                  <path d="{{ projAreaPath }}" fill="color-mix(in srgb, #9184d9 22%, transparent)"></path>
+                  <path d="{{ projPath }}" fill="none" stroke="#9184d9" stroke-width="2"></path>
+                  <path d="{{ realPath }}" fill="none" stroke="#75798c" stroke-width="2" stroke-dasharray="5 5"></path>
+                </svg>
+                <div style="display:flex;gap:16.8px;font-size:11.5px;color:var(--color-neutral-500);margin-top:5.6px">
+                  <span><span style="display:inline-block;width:14px;height:2px;background:#9184d9;vertical-align:middle"></span> Nominal {{ projFinalStr }}</span>
+                  <span><span style="display:inline-block;width:14px;height:2px;background:#75798c;vertical-align:middle"></span> Reel {{ projRealFinalStr }}</span>
+                  <span style="margin-left:auto">Toplam katkı {{ projContribStr }}</span>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </sc-if>
+
+      <!-- SENARYO -->
+      <sc-if value="{{ isSenaryo }}" hint-placeholder-val="{{ false }}">
+        <div class="fg-screen" style="display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:16.8px;align-items:start">
+          <div class="card elev-sm" style="padding:22.4px;gap:16.8px">
+            <span class="card-kicker">Model 5 · Stres testi girdileri</span>
+            <sc-for list="{{ shockControls }}" as="s" hint-placeholder-count="3">
+              <div>
+                <div class="field"><label>{{ s.label }}: {{ s.valueStr }}</label></div>
+                <input type="range" min="-50" max="50" step="1" value="{{ s.value }}" sc-camel-on-change="{{ s.onChange }}">
+                <div style="font-size:11px;color:var(--color-neutral-600);margin-top:2.8px">{{ s.note }}</div>
+              </div>
+            </sc-for>
+            <div style="display:flex;gap:8.4px;flex-wrap:wrap">
+              <sc-for list="{{ presets }}" as="p" hint-placeholder-count="3">
+                <button class="btn btn-secondary" sc-camel-on-click="{{ p.apply }}" style="font-size:12px">{{ p.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:16.8px">
+            <div class="card elev-sm" style="padding:22.4px;gap:11.2px">
+              <span class="card-kicker">Senaryo sonucu</span>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16.8px">
+                <div><div style="font-size:11px;color:var(--color-neutral-500)">Senaryo değeri</div><div style="font-family:var(--font-heading);font-size:clamp(19px,2.1vw,30px);font-variant-numeric:tabular-nums">{{ scenarioValueStr }}</div></div>
+                <div><div style="font-size:11px;color:var(--color-neutral-500)">Değişim</div><div style="font-family:var(--font-heading);font-size:clamp(19px,2.1vw,30px);font-variant-numeric:tabular-nums;color:{{ scenarioColor }};white-space:pre-line;line-height:1.15">{{ scenarioDeltaStr }}</div></div>
+                <div><div style="font-size:11px;color:var(--color-neutral-500)">Maliyete göre</div><div style="font-family:var(--font-heading);font-size:clamp(19px,2.1vw,30px);font-variant-numeric:tabular-nums;color:{{ scenarioPnlColor }}">{{ scenarioPnlStr }}</div></div>
+              </div>
+              <div style="font-size:12.5px;color:var(--color-neutral-400)">{{ scenarioVerdict }}</div>
+            </div>
+            <div class="card elev-sm" style="padding:16.8px 0">
+              <div class="card-kicker" style="padding:0 22.4px 8.4px">Varlık bazında etki</div>
+              <sc-raw-table class="table">
+                <sc-raw-thead><sc-raw-tr><sc-raw-th style="padding-left:22.4px">Varlık</sc-raw-th><sc-raw-th>Tür</sc-raw-th><sc-raw-th style="text-align:right">Mevcut</sc-raw-th><sc-raw-th style="text-align:right">Senaryo</sc-raw-th><sc-raw-th style="text-align:right;padding-right:22.4px">Etki</sc-raw-th></sc-raw-tr></sc-raw-thead>
+                <sc-raw-tbody>
+                  <sc-for list="{{ scenarioRows }}" as="r" hint-placeholder-count="5">
+                    <sc-raw-tr>
+                      <sc-raw-td style="padding-left:22.4px">{{ r.name }}</sc-raw-td>
+                      <sc-raw-td><span class="tag tag-neutral">{{ r.typeLabel }}</span></sc-raw-td>
+                      <sc-raw-td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--color-neutral-400)">{{ r.amountStr }}</sc-raw-td>
+                      <sc-raw-td style="text-align:right;font-variant-numeric:tabular-nums">{{ r.newStr }}</sc-raw-td>
+                      <sc-raw-td style="text-align:right;font-variant-numeric:tabular-nums;padding-right:22.4px;color:{{ r.color }}">{{ r.deltaStr }}</sc-raw-td>
+                    </sc-raw-tr>
+                  </sc-for>
+                </sc-raw-tbody>
+              </sc-raw-table>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- HEDEFLER -->
+      <sc-if value="{{ isHedefler }}" hint-placeholder-val="{{ false }}">
+        <div class="fg-screen" style="display:flex;flex-direction:column;gap:16.8px">
+          <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16.8px">
+            <sc-for list="{{ goals }}" as="g" hint-placeholder-count="3">
+              <button class="card elev-sm fg-tile" sc-camel-on-click="{{ g.select }}" style="text-align:left;border:0;cursor:pointer;font:inherit;color:inherit;padding:16.8px;gap:8.4px;box-shadow:{{ g.ring }}">
+                <span class="card-kicker">{{ g.kicker }}</span>
+                <span class="card-title">{{ g.name }}</span>
+                <span style="font-size:12.5px;color:var(--color-neutral-400)">Hedef {{ g.targetStr }} · {{ g.horizonStr }}</span>
+                <span style="height:6px;border-radius:4px;background:var(--color-neutral-900)"><span style="display:block;height:6px;border-radius:4px;background:{{ g.color }};width:{{ g.pct }}%"></span></span>
+                <span class="card-meta" style="flex-wrap:wrap">{{ g.pctStr }} tamamlandı · {{ g.status }}</span>
+              </button>
+            </sc-for>
+          </section>
+          <section class="card elev-sm" style="padding:22.4px;gap:16.8px">
+            <span class="card-kicker">Hedef bazlı planlama · {{ activeGoalName }}</span>
+            <div style="display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:22.4px;align-items:center">
+              <div style="display:flex;flex-direction:column;gap:11.2px">
+                <div>
+                  <div class="field"><label>Aylık katkı: {{ monthlyStr }}</label></div>
+                  <input type="range" min="0" max="50000" step="1000" value="{{ monthly }}" sc-camel-on-change="{{ onMonthly }}">
+                </div>
+                <div>
+                  <div class="field"><label>Vade: {{ yearsStr }}</label></div>
+                  <input type="range" min="1" max="20" step="1" value="{{ years }}" sc-camel-on-change="{{ onYears }}">
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16.8px">
+                <div><div style="font-size:11px;color:var(--color-neutral-500)">Vade sonu birikim</div><div style="font-family:var(--font-heading);font-size:clamp(18px,1.9vw,26px);font-variant-numeric:tabular-nums">{{ projFinalStr }}</div></div>
+                <div><div style="font-size:11px;color:var(--color-neutral-500)">Hedefe uzaklık</div><div style="font-family:var(--font-heading);font-size:clamp(18px,1.9vw,26px);font-variant-numeric:tabular-nums;color:{{ gapColor }}">{{ goalGapStr }}</div></div>
+                <div><div style="font-size:11px;color:var(--color-neutral-500)">Gereken aylık katkı</div><div style="font-family:var(--font-heading);font-size:clamp(18px,1.9vw,26px);font-variant-numeric:tabular-nums;color:var(--color-accent)">{{ requiredMonthlyStr }}</div></div>
+              </div>
+            </div>
+            <div style="font-size:12.5px;color:var(--color-neutral-400)">{{ goalVerdict }}</div>
+          </section>
+        </div>
+      </sc-if>
+
+      <!-- İŞLEMLER -->
+      <sc-if value="{{ isIslemler }}" hint-placeholder-val="{{ false }}">
+        <div class="fg-screen" style="display:flex;flex-direction:column;gap:16.8px">
+          <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:11.2px">
+            <sc-for list="{{ txnStats }}" as="s" hint-placeholder-count="4">
+              <div class="card elev-sm" style="padding:16.8px;gap:2.8px">
+                <span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-500)">{{ s.label }}</span>
+                <span style="font-family:var(--font-heading);font-size:clamp(17px,1.8vw,24px);font-variant-numeric:tabular-nums;color:{{ s.color }}">{{ s.value }}</span>
+              </div>
+            </sc-for>
+          </section>
+          <section class="card elev-sm" style="padding:16.8px 0">
+            <div class="card-kicker" style="padding:0 22.4px 8.4px">İşlem geçmişi</div>
+            <sc-raw-table class="table">
+              <sc-raw-thead><sc-raw-tr><sc-raw-th style="padding-left:22.4px">Tarih</sc-raw-th><sc-raw-th>Varlık</sc-raw-th><sc-raw-th>Tür</sc-raw-th><sc-raw-th>İşlem</sc-raw-th><sc-raw-th style="text-align:right;padding-right:22.4px">Tutar</sc-raw-th></sc-raw-tr></sc-raw-thead>
+              <sc-raw-tbody>
+                <sc-for list="{{ txns }}" as="t" hint-placeholder-count="4">
+                  <sc-raw-tr>
+                    <sc-raw-td style="padding-left:22.4px;font-variant-numeric:tabular-nums;color:var(--color-neutral-400)">{{ t.dateStr }}</sc-raw-td>
+                    <sc-raw-td>{{ t.holdingName }}</sc-raw-td>
+                    <sc-raw-td><span class="tag tag-neutral">{{ t.typeLabel }}</span></sc-raw-td>
+                    <sc-raw-td><span class="{{ t.tagClass }}">{{ t.kindLabel }}</span></sc-raw-td>
+                    <sc-raw-td style="text-align:right;padding-right:22.4px;font-variant-numeric:tabular-nums;color:{{ t.color }}">{{ t.amountStr }}</sc-raw-td>
+                  </sc-raw-tr>
+                </sc-for>
+              </sc-raw-tbody>
+            </sc-raw-table>
+          </section>
+        </div>
+      </sc-if>
+
+      <!-- ONBOARDING -->
+      <sc-if value="{{ isOnboarding }}" hint-placeholder-val="{{ false }}">
+        <div class="fg-screen" style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16.8px;align-items:start">
+          <div class="card elev-sm" style="padding:22.4px;gap:16.8px">
+            <div style="display:flex;gap:5.6px">
+              <sc-for list="{{ steps }}" as="s" hint-placeholder-count="3">
+                <span style="flex:1;height:3px;border-radius:2px;background:{{ s.color }}"></span>
+              </sc-for>
+            </div>
+            <span class="card-kicker">Adım {{ stepNoStr }} · {{ stepKicker }}</span>
+            <h3 style="margin:0">{{ stepTitle }}</h3>
+            <p style="margin:0;font-size:13.5px;color:var(--color-neutral-400);max-width:60ch">{{ stepBody }}</p>
+            <div style="display:flex;gap:8.4px;flex-wrap:wrap">
+              <sc-for list="{{ stepOptions }}" as="o" hint-placeholder-count="3">
+                <button class="btn btn-secondary" sc-camel-on-click="{{ o.pick }}" style="box-shadow:{{ o.ring }};color:{{ o.color }}">{{ o.label }}</button>
+              </sc-for>
+            </div>
+            <div style="height:1px;background:var(--color-divider)"></div>
+            <div style="display:flex;gap:8.4px">
+              <button class="btn btn-secondary" sc-camel-on-click="{{ prevStep }}"><i class="ph ph-arrow-left"></i> Geri</button>
+              <button class="btn btn-primary" sc-camel-on-click="{{ nextStep }}">{{ nextLabel }} <i class="ph ph-arrow-right"></i></button>
+            </div>
+          </div>
+          <div class="card elev-sm" style="padding:22.4px;gap:11.2px">
+            <span class="card-kicker">Ajan profili</span>
+            <sc-for list="{{ profileRows }}" as="p" hint-placeholder-count="3">
+              <div style="display:flex;justify-content:space-between;font-size:13px;padding:8.4px 0;border-bottom:1px solid var(--color-divider)">
+                <span style="color:var(--color-neutral-400)">{{ p.label }}</span>
+                <span>{{ p.value }}</span>
+              </div>
+            </sc-for>
+            <div style="font-size:11.5px;color:var(--color-neutral-600)">Profil, modellerin varsayımlarını ve açılış ekranının seçimini etkiler.</div>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+  </main>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;startVariant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Rastgele&quot;,&quot;A · Yönetici&quot;,&quot;B · Ajan brifingi&quot;,&quot;C · Model panosu&quot;],&quot;default&quot;:&quot;Rastgele&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Açılış&quot;},&quot;dataSet&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Karma portföy&quot;,&quot;Kripto portföy&quot;],&quot;default&quot;:&quot;Karma portföy&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Veri&quot;},&quot;inflationDefault&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:10,&quot;max&quot;:80,&quot;step&quot;:1,&quot;default&quot;:38,&quot;unit&quot;:&quot;%&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Varsayımlar&quot;},&quot;riskFree&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0,&quot;max&quot;:60,&quot;step&quot;:1,&quot;default&quot;:42,&quot;unit&quot;:&quot;%&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Varsayımlar&quot;}}">
+const TYPE_LABELS = { hisse: "Hisse", fon: "Fon", doviz: "Döviz", altin: "Altın", kripto: "Kripto", mevduat: "Mevduat" };
+const VOL = { hisse: 0.38, fon: 0.22, doviz: 0.12, altin: 0.24, kripto: 0.62, mevduat: 0.01 };
+const EXP = { hisse: 0.55, fon: 0.45, doviz: 0.30, altin: 0.40, kripto: 0.70, mevduat: 0.42 };
+const COLORS = ["#9184d9", "#b5abfc", "#a7a1db", "#7972a9", "#cfd3e5", "#5d5294"];
+const RHO = 0.35;
+const VARIANT_INDEX = { "A · Yönetici": 0, "B · Ajan brifingi": 1, "C · Model panosu": 2 };
+
+const MIXED = [
+  { id: "h1", name: "BIST 30 Fonu", type: "fon", amount: 48500, costBasis: 45000 },
+  { id: "h2", name: "THYAO", type: "hisse", amount: 25200, costBasis: 28000 },
+  { id: "h3", name: "Gram Altın", type: "altin", amount: 23800, costBasis: 22000 },
+  { id: "h4", name: "USD", type: "doviz", amount: 15000, costBasis: 15000 },
+  { id: "h5", name: "Vadeli Mevduat", type: "mevduat", amount: 31200, costBasis: 30000 },
+];
+const CRYPTO = [
+  { id: "c1", name: "Bitcoin", type: "kripto", amount: 42500, costBasis: 35000 },
+  { id: "c2", name: "Ethereum", type: "kripto", amount: 42000, costBasis: 48000 },
+  { id: "c3", name: "Solana", type: "kripto", amount: 50000, costBasis: 40000 },
+  { id: "c4", name: "Tether", type: "kripto", amount: 42000, costBasis: 42000 },
+];
+const TXN_DEFS = [
+  { d: -21, name: "BIST 30 Fonu", type: "fon", kind: "alis", amount: 15000 },
+  { d: -14, name: "THYAO", type: "hisse", kind: "alis", amount: 8000 },
+  { d: -7, name: "Gram Altın", type: "altin", kind: "alis", amount: 6000 },
+  { d: -2, name: "USD", type: "doviz", kind: "satis", amount: 3000 },
+];
+
+const fmtTL = (n) => Math.round(n).toLocaleString("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 0 });
+const fmtSigned = (n) => (n >= 0 ? "+" : "") + fmtTL(n);
+const fmtPct = (p) => (p >= 0 ? "+" : "") + p.toFixed(1) + "%";
+const pctStr = (p) => p.toFixed(1) + "%";
+const POS = "var(--color-accent-300)", NEG = "#e0a5a5", DIM = "var(--color-neutral-400)";
+
+const SCREENS = [
+  { id: "ozet", label: "Özet", icon: "ph ph-squares-four", title: "Portföy özeti", sub: "Açılışta değişen yönetici görünümü" },
+  { id: "ajan", label: "Ajan", icon: "ph ph-chat-circle-text", title: "Ajan sohbeti", sub: "Kural tabanlı yanıt katmanları ve karar denetleyici" },
+  { id: "portfoy", label: "Portföy", icon: "ph ph-wallet", title: "Portföy detayı", sub: "Varlık kartları, ağırlıklar ve bağlam" },
+  { id: "modeller", label: "Modeller", icon: "ph ph-function", title: "Finansal modeller", sub: "Risk/getiri, konsantrasyon, reel getiri, bileşik projeksiyon" },
+  { id: "senaryo", label: "Senaryo", icon: "ph ph-sliders", title: "Senaryo simülatörü", sub: "Borsa, kur ve faiz şoklarının portföye etkisi" },
+  { id: "hedefler", label: "Hedefler", icon: "ph ph-target", title: "Hedefler", sub: "Hedef bazlı planlama ve gereken katkı" },
+  { id: "islemler", label: "İşlemler", icon: "ph ph-list-checks", title: "İşlem geçmişi", sub: "Alış / satış kayıtları" },
+  { id: "onboarding", label: "Onboarding", icon: "ph ph-user-focus", title: "Kurulum", sub: "Risk profili, vade ve ilgi alanları" },
+];
+
+const GOALS = [
+  { id: "g1", name: "Acil durum fonu", kicker: "Kısa vade", target: 120000, horizon: 2 },
+  { id: "g2", name: "Ev peşinatı", kicker: "Orta vade", target: 1500000, horizon: 6 },
+  { id: "g3", name: "Emeklilik köprüsü", kicker: "Uzun vade", target: 6000000, horizon: 15 },
+];
+
+const STEP_DEFS = [
+  { kicker: "Risk profili", title: "Ne kadar dalgalanmaya tahammülün var?", body: "Bu seçim modellerin risksiz oran ve volatilite bantlarını, ajanın uyarı eşiklerini belirler.", key: "risk", options: [["dusuk", "Düşük"], ["orta", "Orta"], ["yuksek", "Yüksek"]] },
+  { kicker: "Vade", title: "Parayı ne kadar süre tutmayı planlıyorsun?", body: "Vade, bileşik projeksiyonun varsayılan ufkunu ve hedef önerilerini belirler.", key: "vade", options: [["kisa", "Kısa (0-2 yıl)"], ["orta", "Orta (2-5 yıl)"], ["uzun", "Uzun (5+ yıl)"]] },
+  { kicker: "İlgi alanları", title: "Hangi varlık sınıflarını takip ediyorsun?", body: "Ajan açılış ekranını ve brifing sıralamasını bu seçime göre kurar.", key: "ilgi", options: [["hisse", "Hisse"], ["fon", "Fon"], ["altin", "Altın"], ["doviz", "Döviz"], ["kripto", "Kripto"]] },
+];
+
+class Component extends DCLogic {
+  state = {
+    screen: "ozet",
+    variant: VARIANT_INDEX[this.props.startVariant] ?? Math.floor(Math.random() * 3),
+    set: this.props.dataSet === "Kripto portföy" ? "crypto" : "mixed",
+    input: "",
+    messages: [{ role: "agent", text: "Portföyün hazır. Dağılım, risk, reel getiri ya da senaryo sorabilirsin — rakamlar portföyünden hesaplanır." }],
+    traces: [],
+    inflation: null,
+    monthly: 10000,
+    years: 6,
+    shocks: { borsa: -20, kur: 10, faiz: 5 },
+    goalId: "g2",
+    step: 0,
+    profile: { risk: "orta", vade: "orta", ilgi: "fon" },
+  };
+
+  get infl() { return this.state.inflation ?? this.props.inflationDefault ?? 38; }
+  get rf() { return (this.props.riskFree ?? 42) / 100; }
+  holdings() { return this.state.set === "crypto" ? CRYPTO : MIXED; }
+
+  metrics() {
+    const hs = this.holdings();
+    const value = hs.reduce((s, h) => s + h.amount, 0);
+    const cost = hs.reduce((s, h) => s + h.costBasis, 0);
+    const w = hs.map((h) => h.amount / value);
+    const hhi = w.reduce((s, x) => s + x * x, 0);
+    let varsum = 0;
+    hs.forEach((a, i) => hs.forEach((b, j) => {
+      const va = VOL[a.type], vb = VOL[b.type];
+      varsum += w[i] * w[j] * va * vb * (i === j ? 1 : RHO);
+    }));
+    const vol = Math.sqrt(varsum);
+    const exp = hs.reduce((s, h, i) => s + w[i] * EXP[h.type], 0);
+    const inflation = this.infl / 100;
+    return {
+      hs, value, cost, w, hhi, vol, exp, inflation,
+      pnl: value - cost,
+      pnlPct: cost ? ((value - cost) / cost) * 100 : 0,
+      sharpe: vol ? (exp - this.rf) / vol : 0,
+      real: ((1 + exp) / (1 + inflation) - 1) * 100,
+    };
+  }
+
+  projection(m) {
+    const r = m.exp, months = this.state.years * 12, rm = Math.pow(1 + r, 1 / 12) - 1;
+    const pts = [];
+    let bal = m.value;
+    for (let i = 0; i <= months; i++) {
+      if (i > 0) bal = bal * (1 + rm) + this.state.monthly;
+      pts.push(bal);
+    }
+    const infM = Math.pow(1 + m.inflation, 1 / 12) - 1;
+    const realPts = pts.map((v, i) => v / Math.pow(1 + infM, i));
+    return { pts, realPts, months, contrib: this.state.monthly * months };
+  }
+
+  path(series, max) {
+    const n = series.length - 1;
+    return series.map((v, i) => `${i === 0 ? "M" : "L"}${((i / n) * 600).toFixed(1)},${(175 - (v / max) * 165).toFixed(1)}`).join(" ");
+  }
+
+  scenario(m) {
+    const { borsa, kur, faiz } = this.state.shocks;
+    const b = borsa / 100, k = kur / 100, f = faiz / 100;
+    const factor = (type) => {
+      if (type === "hisse") return 1 + b;
+      if (type === "fon") return 1 + b * 0.85 - f * 0.25;
+      if (type === "doviz") return 1 + k;
+      if (type === "altin") return 1 + k * 0.8 + b * -0.1;
+      if (type === "kripto") return 1 + b * 1.4 + k * 0.5;
+      return 1 + f * 0.35;
+    };
+    const rows = m.hs.map((h, i) => {
+      const nv = h.amount * factor(h.type);
+      return {
+        name: h.name, typeLabel: TYPE_LABELS[h.type],
+        amountStr: fmtTL(h.amount), newStr: fmtTL(nv),
+        deltaStr: fmtSigned(nv - h.amount),
+        color: nv - h.amount >= 0 ? POS : NEG,
+        _new: nv,
+      };
+    });
+    const total = rows.reduce((s, r) => s + r._new, 0);
+    return { rows, total, delta: total - m.value };
+  }
+
+  reply(text) {
+    const m = this.metrics(), t = text.toLocaleLowerCase("tr-TR");
+    const sorted = [...m.hs].sort((a, b) => (b.amount - b.costBasis) - (a.amount - a.costBasis));
+    if (/dağılım|dagilim|ağırlık/.test(t)) {
+      const top = [...m.hs].sort((a, b) => b.amount - a.amount)[0];
+      return { text: `Toplam ${fmtTL(m.value)}. En büyük kalem ${top.name} — ${pctStr((top.amount / m.value) * 100)}. Etkin varlık sayısı ${(1 / m.hhi).toFixed(1)}, HHI ${m.hhi.toFixed(2)}.`, tag: "intent: dagilim", color: "#9184d9" };
+    }
+    if (/risk|volatil|oynak/.test(t)) {
+      return { text: `Yıllık volatilite varsayımı ${pctStr(m.vol * 100)}, beklenen getiri ${pctStr(m.exp * 100)}, Sharpe ${m.sharpe.toFixed(2)}. %95 bandı ${fmtTL(m.value * (1 + m.exp - 1.96 * m.vol))} — ${fmtTL(m.value * (1 + m.exp + 1.96 * m.vol))}.`, tag: "intent: risk", color: "#b5abfc" };
+    }
+    if (/kazandıran|kazandiran|en iyi|en kötü|kotu/.test(t)) {
+      const best = sorted[0], worst = sorted[sorted.length - 1];
+      return { text: `En iyi: ${best.name} ${fmtSigned(best.amount - best.costBasis)}. En kötü: ${worst.name} ${fmtSigned(worst.amount - worst.costBasis)}.`, tag: "intent: performans", color: "#a7a1db" };
+    }
+    if (/reel|enflasyon/.test(t)) {
+      return { text: `%${this.infl} enflasyon varsayımıyla reel beklenen getiri ${pctStr(m.real)}. Mevcut nominal K/Z ${fmtSigned(m.pnl)} (${fmtPct(m.pnlPct)}).`, tag: "intent: reel getiri", color: "#9184d9" };
+    }
+    if (/senaryo|şok|sok|stres/.test(t)) {
+      const s = this.scenario(m);
+      return { text: `Mevcut şok setinde portföy ${fmtTL(s.total)} olur — ${fmtSigned(s.delta)} (${fmtPct((s.delta / m.value) * 100)}). Detay senaryo ekranında.`, tag: "intent: senaryo", color: "#7972a9" };
+    }
+    if (/hedef/.test(t)) {
+      const g = GOALS.find((x) => x.id === this.state.goalId);
+      return { text: `${g.name} hedefi ${fmtTL(g.target)}. Bugünkü birikim ${fmtTL(m.value)} — tamamlanma ${pctStr(Math.min(100, (m.value / g.target) * 100))}.`, tag: "intent: hedef", color: "#a7a1db" };
+    }
+    return { text: "Bunu anlayamadım. Deneyebilirsin: “dağılımım nasıl”, “riskim ne durumda”, “reel getirim”, “senaryo sonucu”, “hedefime ne kadar kaldı”.", tag: "fallback", color: "#e0a5a5", fallback: true };
+  }
+
+  send = (raw) => {
+    const text = (raw ?? this.state.input).trim();
+    if (!text) return;
+    const start = performance.now();
+    const r = this.reply(text);
+    const ms = Math.max(1, Math.round(performance.now() - start));
+    this.setState((s) => ({
+      input: "",
+      messages: [...s.messages, { role: "user", text }, { role: "agent", text: r.text }],
+      traces: [{ at: new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }), input: text, layer: r.fallback ? "Fallback — anlaşılmadı" : "Model katmanı", color: r.color, tag: r.tag, ms }, ...s.traces].slice(0, 8),
+    }));
+  };
+
+  renderVals() {
+    const st = this.state, m = this.metrics(), proj = this.projection(m), sc = this.scenario(m);
+    const screen = SCREENS.find((s) => s.id === st.screen);
+    const maxProj = Math.max(...proj.pts);
+    const goal = GOALS.find((g) => g.id === st.goalId);
+    const rm = Math.pow(1 + m.exp, 1 / 12) - 1, months = st.years * 12;
+    const growth = Math.pow(1 + rm, months);
+    const needed = Math.max(0, (goal.target - m.value * growth) * rm / (growth - 1));
+    const sortedByPnl = [...m.hs].map((h) => ({ h, p: h.amount - h.costBasis })).sort((a, b) => b.p - a.p);
+    const typeMap = {};
+    m.hs.forEach((h) => { typeMap[h.type] = (typeMap[h.type] || 0) + h.amount; });
+    const stepDef = STEP_DEFS[st.step];
+    const spark = (seed, up) => Array.from({ length: 12 }, (_, i) => {
+      const h = 30 + 55 * Math.abs(Math.sin(seed + i * 0.7));
+      return { h: Math.round(up ? h : 100 - h * 0.7), color: i === 11 ? "#9184d9" : "var(--color-neutral-800)" };
+    });
+
+    const kpis = [
+      { label: "Reel getiri", value: pctStr(m.real), color: m.real >= 0 ? POS : NEG, note: "enflasyon %" + this.infl },
+      { label: "Volatilite", value: pctStr(m.vol * 100), color: "var(--color-text)", note: "yıllık σ varsayımı" },
+      { label: "Sharpe", value: m.sharpe.toFixed(2), color: "var(--color-accent)", note: "risksiz %" + (this.props.riskFree ?? 42) },
+      { label: "Konsantrasyon", value: m.hhi.toFixed(2), color: m.hhi > 0.3 ? NEG : POS, note: (1 / m.hhi).toFixed(1) + " etkin varlık" },
+    ];
+
+    return {
+      navItems: SCREENS.map((s) => ({
+        label: s.label, icon: s.icon, hint: "",
+        bg: s.id === st.screen ? "color-mix(in srgb, var(--color-accent) 14%, transparent)" : "transparent",
+        color: s.id === st.screen ? "var(--color-accent-200)" : "var(--color-neutral-300)",
+        ring: s.id === st.screen ? "inset 0 0 0 1px var(--color-accent)" : "none",
+        go: () => this.setState({ screen: s.id }),
+      })),
+      screenTitle: screen.title, screenSub: screen.sub,
+      variantKey: "v" + st.variant, variantLabel: ["A · Yönetici", "B · Ajan brifingi", "C · Model panosu"][st.variant],
+      reshuffle: () => this.setState((s) => ({ variant: (s.variant + 1 + Math.floor(Math.random() * 2)) % 3, screen: "ozet" })),
+      isOzet: st.screen === "ozet", isAjan: st.screen === "ajan", isPortfoy: st.screen === "portfoy",
+      isModeller: st.screen === "modeller", isSenaryo: st.screen === "senaryo", isHedefler: st.screen === "hedefler",
+      isIslemler: st.screen === "islemler", isOnboarding: st.screen === "onboarding",
+      isVariantA: st.variant === 0, isVariantB: st.variant === 1, isVariantC: st.variant === 2,
+
+      totalValueStr: fmtTL(m.value), totalCostStr: fmtTL(m.cost),
+      pnlStr: fmtSigned(m.pnl), pnlPctStr: fmtPct(m.pnlPct), pnlColor: m.pnl >= 0 ? POS : NEG,
+      holdingCount: m.hs.length, kpis,
+
+      allocation: m.hs.map((h, i) => ({
+        name: h.name, typeLabel: TYPE_LABELS[h.type], color: COLORS[i % COLORS.length],
+        pct: ((h.amount / m.value) * 100).toFixed(1), pctStr: pctStr((h.amount / m.value) * 100), amountStr: fmtTL(h.amount),
+      })),
+      rows: m.hs.map((h, i) => ({
+        name: h.name, typeLabel: TYPE_LABELS[h.type], color: COLORS[i % COLORS.length],
+        amountStr: fmtTL(h.amount), costStr: fmtTL(h.costBasis),
+        pnlStr: fmtSigned(h.amount - h.costBasis), pnlPctStr: fmtPct(((h.amount - h.costBasis) / h.costBasis) * 100),
+        pnlColor: h.amount - h.costBasis >= 0 ? POS : NEG,
+        pct: ((h.amount / m.value) * 100).toFixed(1), pctStr: pctStr((h.amount / m.value) * 100),
+        volStr: pctStr(VOL[h.type] * 100),
+      })),
+      typeAlloc: Object.keys(typeMap).map((k, i) => ({
+        label: TYPE_LABELS[k], color: COLORS[i % COLORS.length],
+        pct: ((typeMap[k] / m.value) * 100).toFixed(1), pctStr: pctStr((typeMap[k] / m.value) * 100),
+      })),
+      hhiStr: m.hhi.toFixed(2), effectiveNStr: (1 / m.hhi).toFixed(1),
+      topWeightStr: pctStr(Math.max(...m.w) * 100),
+      hhiVerdict: m.hhi > 0.3 ? "Yoğunlaşma yüksek — tek kalem portföyü domine ediyor." : "Dağılım makul; tek kalem riski sınırlı.",
+
+      modelTiles: [
+        { kicker: "Model", title: "Risk ve getiri", value: m.sharpe.toFixed(2), color: "var(--color-accent)", body: "Volatilite " + pctStr(m.vol * 100) + ", beklenen getiri " + pctStr(m.exp * 100) + ".", meta: "Sharpe oranı", icon: "ph ph-chart-line-up", open: () => this.setState({ screen: "modeller" }) },
+        { kicker: "Model", title: "Reel getiri", value: pctStr(m.real), color: m.real >= 0 ? POS : NEG, body: "%" + this.infl + " enflasyon varsayımıyla satın alma gücü değişimi.", meta: "Enflasyon düzeltmeli", icon: "ph ph-trend-down", open: () => this.setState({ screen: "modeller" }) },
+        { kicker: "Model", title: "Stres testi", value: fmtPct((sc.delta / m.value) * 100), color: sc.delta >= 0 ? POS : NEG, body: "Borsa " + st.shocks.borsa + "%, kur +" + st.shocks.kur + "%, faiz +" + st.shocks.faiz + "% şokunda.", meta: "Senaryo simülatörü", icon: "ph ph-sliders", open: () => this.setState({ screen: "senaryo" }) },
+      ],
+      modelBoard: [
+        { kicker: "Sharpe", value: m.sharpe.toFixed(2), unit: "oran", title: "Risk düzeltilmiş getiri", color: "var(--color-accent)", spark: spark(1, true), open: () => this.setState({ screen: "modeller" }) },
+        { kicker: "Volatilite", value: pctStr(m.vol * 100), unit: "yıllık σ", title: "Portföy oynaklığı", color: "var(--color-text)", spark: spark(2, false), open: () => this.setState({ screen: "modeller" }) },
+        { kicker: "Reel", value: pctStr(m.real), unit: "yıllık", title: "Enflasyon sonrası getiri", color: m.real >= 0 ? POS : NEG, spark: spark(3, true), open: () => this.setState({ screen: "modeller" }) },
+        { kicker: "HHI", value: m.hhi.toFixed(2), unit: "konsantrasyon", title: "Yoğunlaşma riski", color: m.hhi > 0.3 ? NEG : POS, spark: spark(4, false), open: () => this.setState({ screen: "modeller" }) },
+        { kicker: "Stres", value: fmtPct((sc.delta / m.value) * 100), unit: "senaryo etkisi", title: "Şok altında değer", color: sc.delta >= 0 ? POS : NEG, spark: spark(5, false), open: () => this.setState({ screen: "senaryo" }) },
+        { kicker: "Projeksiyon", value: fmtTL(proj.pts[proj.months]), unit: st.years + " yıl", title: "Bileşik birikim", color: "var(--color-accent)", spark: spark(6, true), open: () => this.setState({ screen: "modeller" }) },
+      ],
+
+      briefingHead: m.pnl >= 0 ? "Portföy maliyetin üzerinde, ama reel tarafta dikkat gerekiyor." : "Portföy maliyetin altında — kalem bazlı bakmak gerekiyor.",
+      briefing: [
+        { text: `Nominal K/Z ${fmtSigned(m.pnl)} (${fmtPct(m.pnlPct)}); %${this.infl} enflasyonla reel beklenti ${pctStr(m.real)}.`, basis: "Model 3 · reel getiri", color: "#9184d9" },
+        { text: `En büyük kalem ${sortedByPnl[0].h.name} tarafında değil: ağırlık liderin ${[...m.hs].sort((a, b) => b.amount - a.amount)[0].name} — ${pctStr(Math.max(...m.w) * 100)}.`, basis: "Model 2 · konsantrasyon", color: "#b5abfc" },
+        { text: `Volatilite ${pctStr(m.vol * 100)}, Sharpe ${m.sharpe.toFixed(2)}. Risksiz orana kıyasla ${m.sharpe > 0 ? "prim üretiyor" : "prim üretmiyor"}.`, basis: "Model 1 · risk/getiri", color: "#a7a1db" },
+        { text: `Mevcut şok setinde portföy ${fmtSigned(sc.delta)} değişir (${fmtPct((sc.delta / m.value) * 100)}).`, basis: "Model 5 · stres testi", color: "#7972a9" },
+      ],
+      goModeller: () => this.setState({ screen: "modeller" }),
+      goSenaryo: () => this.setState({ screen: "senaryo" }),
+      goAjan: () => this.setState({ screen: "ajan" }),
+      useMixed: () => this.setState({ set: "mixed" }),
+      useCrypto: () => this.setState({ set: "crypto" }),
+
+      messages: st.messages.map((x) => ({
+        text: x.text,
+        align: x.role === "agent" ? "flex-start" : "flex-end",
+        bg: x.role === "agent" ? "var(--color-neutral-900)" : "color-mix(in srgb, var(--color-accent) 16%, transparent)",
+        ring: x.role === "agent" ? "inset 0 0 0 1px var(--color-neutral-800)" : "inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 45%, transparent)",
+      })),
+      input: st.input,
+      onInput: (e) => this.setState({ input: e.target.value }),
+      onInputKey: (e) => { if (e.key === "Enter") this.send(); },
+      send: () => this.send(),
+      quickTests: ["dağılımım nasıl", "riskim ne durumda", "reel getirim", "senaryo sonucu", "hedefime ne kadar kaldı"].map((q) => ({ label: q, run: () => this.send(q) })),
+      traces: st.traces,
+      traceCount: st.traces.length,
+      fallbackCount: st.traces.filter((t) => t.tag === "fallback").length,
+      understoodStr: st.traces.length ? "%" + Math.round(((st.traces.length - st.traces.filter((t) => t.tag === "fallback").length) / st.traces.length) * 100) : "—",
+
+      volStr: pctStr(m.vol * 100), expReturnStr: pctStr(m.exp * 100), sharpeStr: m.sharpe.toFixed(2),
+      rhoStr: RHO.toFixed(2), riskFreeStr: pctStr(this.rf * 100),
+      ciLowStr: fmtTL(m.value * (1 + m.exp - 1.96 * m.vol)), ciHighStr: fmtTL(m.value * (1 + m.exp + 1.96 * m.vol)),
+      inflation: this.infl, inflationStr: "%" + this.infl,
+      onInflation: (e) => this.setState({ inflation: Number(e.target.value) }),
+      realReturnStr: pctStr(m.real), realColor: m.real >= 0 ? POS : NEG,
+      realPnlStr: fmtSigned(m.value / (1 + m.inflation) - m.cost), realPnlColor: m.value / (1 + m.inflation) - m.cost >= 0 ? POS : NEG,
+      beatInflationStr: m.hs.filter((h) => EXP[h.type] > m.inflation).length + " / " + m.hs.length,
+
+      monthly: st.monthly, monthlyStr: fmtTL(st.monthly),
+      years: st.years, yearsStr: st.years + " yıl",
+      onMonthly: (e) => this.setState({ monthly: Number(e.target.value) }),
+      onYears: (e) => this.setState({ years: Number(e.target.value) }),
+      projReturnStr: pctStr(m.exp * 100),
+      projPath: this.path(proj.pts, maxProj),
+      realPath: this.path(proj.realPts, maxProj),
+      projAreaPath: this.path(proj.pts, maxProj) + " L600,175 L0,175 Z",
+      projFinalStr: fmtTL(proj.pts[proj.months]),
+      projRealFinalStr: fmtTL(proj.realPts[proj.months]),
+      projContribStr: fmtTL(proj.contrib),
+
+      shockControls: [
+        { label: "Borsa şoku", value: st.shocks.borsa, valueStr: fmtPct(st.shocks.borsa), note: "Hisse tam, fon 0,85 katsayıyla etkilenir", onChange: (e) => this.setState((s) => ({ shocks: { ...s.shocks, borsa: Number(e.target.value) } })) },
+        { label: "Kur şoku", value: st.shocks.kur, valueStr: fmtPct(st.shocks.kur), note: "Döviz tam, altın 0,80 katsayıyla", onChange: (e) => this.setState((s) => ({ shocks: { ...s.shocks, kur: Number(e.target.value) } })) },
+        { label: "Faiz şoku", value: st.shocks.faiz, valueStr: fmtPct(st.shocks.faiz), note: "Mevduat lehine, fon aleyhine", onChange: (e) => this.setState((s) => ({ shocks: { ...s.shocks, faiz: Number(e.target.value) } })) },
+      ],
+      presets: [
+        { label: "Sakin piyasa", apply: () => this.setState({ shocks: { borsa: 5, kur: 3, faiz: 0 } }) },
+        { label: "Borsa satışı", apply: () => this.setState({ shocks: { borsa: -30, kur: 8, faiz: 5 } }) },
+        { label: "Kur şoku", apply: () => this.setState({ shocks: { borsa: -12, kur: 35, faiz: 15 } }) },
+      ],
+      scenarioRows: sc.rows,
+      scenarioValueStr: fmtTL(sc.total),
+      scenarioDeltaStr: fmtSigned(sc.delta) + "\n" + fmtPct((sc.delta / m.value) * 100),
+      scenarioColor: sc.delta >= 0 ? POS : NEG,
+      scenarioPnlStr: fmtSigned(sc.total - m.cost),
+      scenarioPnlColor: sc.total - m.cost >= 0 ? POS : NEG,
+      scenarioVerdict: sc.delta >= 0
+        ? "Bu senaryoda portföy dayanıklı; kur ve faize duyarlı kalemler kaybı telafi ediyor."
+        : `Bu senaryoda kayıp ${fmtTL(Math.abs(sc.delta))}. En kırılgan kalem ${sc.rows.slice().sort((a, b) => (a._new - b._new))[0].name}.`,
+
+      goals: GOALS.map((g) => ({
+        kicker: g.kicker, name: g.name, targetStr: fmtTL(g.target), horizonStr: g.horizon + " yıl",
+        pct: Math.min(100, (m.value / g.target) * 100).toFixed(1),
+        pctStr: pctStr(Math.min(100, (m.value / g.target) * 100)),
+        color: g.id === st.goalId ? "var(--color-accent)" : "var(--color-neutral-600)",
+        ring: g.id === st.goalId ? "inset 0 0 0 1px var(--color-accent)" : "var(--shadow-sm)",
+        status: m.value >= g.target ? "tamamlandı" : "devam ediyor",
+        select: () => this.setState({ goalId: g.id, years: g.horizon }),
+      })),
+      activeGoalName: goal.name,
+      goalGapStr: fmtSigned(proj.pts[proj.months] - goal.target),
+      gapColor: proj.pts[proj.months] - goal.target >= 0 ? POS : NEG,
+      requiredMonthlyStr: fmtTL(needed),
+      goalVerdict: proj.pts[proj.months] >= goal.target
+        ? `Bu katkı ve vade ile hedef aşılıyor; fazla ${fmtTL(proj.pts[proj.months] - goal.target)}.`
+        : `Hedefe ulaşmak için aylık katkının ${fmtTL(needed)} olması gerekir (mevcut ${fmtTL(st.monthly)}).`,
+
+      txns: TXN_DEFS.map((t) => {
+        const d = new Date(); d.setDate(d.getDate() + t.d);
+        return {
+          dateStr: d.toLocaleDateString("tr-TR", { day: "2-digit", month: "short", year: "numeric" }),
+          holdingName: t.name, typeLabel: TYPE_LABELS[t.type],
+          kindLabel: t.kind === "alis" ? "Alış" : "Satış",
+          tagClass: t.kind === "alis" ? "tag tag-accent" : "tag tag-outline",
+          amountStr: (t.kind === "alis" ? "+" : "−") + fmtTL(t.amount).replace("+", ""),
+          color: t.kind === "alis" ? POS : DIM,
+        };
+      }),
+      txnStats: [
+        { label: "İşlem", value: String(TXN_DEFS.length), color: "var(--color-text)" },
+        { label: "Toplam alış", value: fmtTL(TXN_DEFS.filter((t) => t.kind === "alis").reduce((s, t) => s + t.amount, 0)), color: POS },
+        { label: "Toplam satış", value: fmtTL(TXN_DEFS.filter((t) => t.kind === "satis").reduce((s, t) => s + t.amount, 0)), color: DIM },
+        { label: "Net yatırım", value: fmtTL(TXN_DEFS.reduce((s, t) => s + (t.kind === "alis" ? t.amount : -t.amount), 0)), color: "var(--color-accent)" },
+      ],
+
+      steps: STEP_DEFS.map((_, i) => ({ color: i <= st.step ? "var(--color-accent)" : "var(--color-neutral-800)" })),
+      stepNoStr: st.step + 1 + " / " + STEP_DEFS.length,
+      stepKicker: stepDef.kicker, stepTitle: stepDef.title, stepBody: stepDef.body,
+      stepOptions: stepDef.options.map(([v, label]) => {
+        const active = st.profile[stepDef.key] === v;
+        return {
+          label, ring: active ? "inset 0 0 0 1px var(--color-accent)" : "none",
+          color: active ? "var(--color-accent)" : "var(--color-text)",
+          pick: () => this.setState((s) => ({ profile: { ...s.profile, [stepDef.key]: v } })),
+        };
+      }),
+      prevStep: () => this.setState((s) => ({ step: Math.max(0, s.step - 1) })),
+      nextStep: () => this.setState((s) => (s.step >= STEP_DEFS.length - 1 ? { screen: "ozet" } : { step: s.step + 1 })),
+      nextLabel: st.step >= STEP_DEFS.length - 1 ? "Özete geç" : "Devam",
+      profileRows: [
+        { label: "Risk", value: { dusuk: "Düşük", orta: "Orta", yuksek: "Yüksek" }[st.profile.risk] },
+        { label: "Vade", value: { kisa: "Kısa", orta: "Orta", uzun: "Uzun" }[st.profile.vade] },
+        { label: "İlgi", value: TYPE_LABELS[st.profile.ilgi] || "—" },
+      ],
+    };
+  }
+}
+</script>
+
+
+</body></html>
