@@ -39,7 +39,8 @@ Kurallar: `AGENTS.md` (önce onu oku). Karar geçmişi: `docs/karar-gunlugu.md`.
   başında durduruldu; kalemleri sırayla uygula, sonra kapıyı koş.
 - Sonraki işler: `docs/is-kuyrugu.md` (34 iş + G1–G3 görsel).
 - Vercel: `fagent` projesi (takım MYSELF) Vite/`dist` olarak ayarlandı ve yalnızca `urun/birlesik` dalını derler;
-  GitHub reposu henüz bağlı değil (kullanıcı Vercel → Settings → Git'ten bağlayacak). fagent.vercel.app hâlâ eski maket.
+  GitHub'a bağlı; her push önizlemeyi günceller: https://fagent-git-urun-birlesik-myself-40f7.vercel.app
+  (Vercel girişi gerekir). fagent.vercel.app hâlâ eski maket; üretime geçiş kullanıcı onayıyla, 4. adımdan sonra.
 - Tasarım dosyaları: `docs/tasarim/`.
 
 ## Geliştirme ekibi
