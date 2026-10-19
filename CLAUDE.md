@@ -39,7 +39,7 @@ Tahmini bugünkü değer (gelirsiz, doğrulanmamış): ~1–5 bin $; hedef: ücr
 ## NEREDEN DEVAM EDİLİR (2026-10-19 son durum)
 
 - Ürün dalı `urun/birlesik` temiz ve yeşil (adım 1–2 tamam). Yarım kod yok.
-- **Sıradaki iş: A1 araştırması (aşağıda), sonra adım 3.** Ekip planı hazır ve güvenlik/uyum danışmasından geçti: `docs/adim3-ekip-plani.md`
+- **Sıradaki iş: A1 araştırması (yukarıda), sonra adım 3.** Ekip planı hazır ve güvenlik/uyum danışmasından geçti: `docs/adim3-ekip-plani.md`
   (K1 aiAgent'ı çıkar → K2 "deftere kayıt" dili + 9 tavsiye kalıbı → K3 testler). Koşu kredi bittiği için K1'in
   başında durduruldu; kalemleri sırayla uygula, sonra kapıyı koş.
 - Sonraki işler: `docs/is-kuyrugu.md` (34 iş + G1–G3 görsel).
@@ -75,7 +75,7 @@ Env boşken bulut kodu hiç çalışmaz; hesapsız ürün bu maddelerden etkilen
 | 35 | `src/cloud.ts` | Başka sekmeden çıkış, hesaba yüklenmemiş tek yerel kopyayı siler | veri-akışı |
 | 41 | `src/backup.ts` | Geri yükleme yazımı ya-hep-ya-hiç değil; dosya boyutu sınırı yok | veri-akışı |
 | 27 | `src/cloud.ts` | Koşulsuz upsert: iki cihazda son yazan kazanır (koşullu güncelleme ya da açıkça belgeleme) | veri-akışı |
-| 40 | `scripts/build.mjs` | Derleme `sb_secret_`/service_role anahtarını reddetmiyor | veri-akışı |
+| ~~40~~ | `scripts/build.mjs` | ✅ Kapandı: derleme `sb_secret_`/service_role içeren VITE_* değerinde durur | — |
 | 43/16 | barındırma yapılandırması | CSP, frame-ancestors, nosniff, Referrer-Policy yok (adım 4) | veri-akışı |
 | 47 | `src/Account.tsx` | KVKK aydınlatma metni olmadan kayıt açılabiliyor (adım 7) | tasarım |
 | ~~42/39~~ | `scripts/guvenlik-tarama.mjs` | ✅ Kapandı: tarama artık izlenmeyen yeni dosyaları da tarıyor | — |
