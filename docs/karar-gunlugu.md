@@ -354,6 +354,10 @@ inmez ve CORS sorunu hiç doğmaz çünkü isteği sunucu atar. Bedeli bilinçli
 ürün artık tam anlamıyla "sunucusuz" değil; toplantıda söylenecek cümle: *"portföy verisi asla
 çıkmıyor; sunucudan geçen tek şey TCMB'nin kamuya açık serisi."*
 
+> **Güncelleme (hesap katmanı, 2026-10-18):** Bu cümle hesapsız kullanım için geçerlidir. Kullanıcı
+> isteğe bağlı Fagent hesabı açarsa 5 katman yalnızca kendi RLS'li Supabase kaydına eşitlenir
+> (`src/cloud.ts`); alıcıya "veri asla çıkmıyor" denmemeli.
+
 - **Enflasyon DÖRT yerde ayrı ayrı duruyordu** — `ProactiveInsightsCard`, `AfterTaxCard`,
   `Projeksiyon` kendi `useState`'leri + `agent.ts` → `VARSAYILAN_ENFLASYON`. Üçü de "Enflasyon
   varsayımın (%)" etiketli kutu gösteriyordu ama biri değiştirilince diğerleri eski değeri

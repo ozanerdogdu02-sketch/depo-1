@@ -2,9 +2,11 @@
 
    Harici bir otomasyon hattı (ör. bir Python betiği) `fagent-aktarim.json` üretir; bu modül onu okur.
 
-   NEDEN DOSYA, NEDEN AĞ DEĞİL: Fagent'ın ayırt edici tezi "anahtarsız, veri tarayıcıdan
-   çıkmaz". Bir uca bağlanmak o tezi bitirirdi. Dosyayı kullanıcı taşır — Fagent hiçbir
-   istek yapmaz, hiçbir anahtar istemez. Bu bilinçli bir sınırdır, eksik değil.
+   NEDEN DOSYA, NEDEN AĞ DEĞİL: Fagent'ın ayırt edici tezi "anahtarsız; veri varsayılan olarak
+   tarayıcıda kalır" (hesap yalnızca kullanıcı açarsa devreye girer ve yalnızca onun kendi RLS
+   korumalı kaydına eşitler — cloud.ts). Bir otomasyon ucuna bağlanmak o tezi bitirirdi. Dosyayı
+   kullanıcı taşır — bu aktarım için Fagent hiçbir istek yapmaz, hiçbir anahtar istemez. Bu
+   bilinçli bir sınırdır, eksik değil.
 
    ŞEMA SÖZLEŞMESİ (sürüm 1) — üreten taraf bununla birebir uyumlu olmalı (docs/aktarim-semasi.md):
      holdings[].amount    = güncel değer (TL)

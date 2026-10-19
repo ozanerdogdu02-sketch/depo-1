@@ -93,7 +93,7 @@ export class ErrorBoundary extends Component<Props, State> {
               {error.name}: {error.message}
             </pre>
             <p className="hint" style={{ marginTop: 8 }}>
-              Bu bilgi hiçbir yere gönderilmedi — FAGENT'ın sunucusu yok, hata raporu toplamaz.
+              Bu bilgi hiçbir yere gönderilmedi — FAGENT hata raporu toplamaz.
             </p>
           </details>
         </div>

@@ -93,7 +93,58 @@ body {
 }
 .side-reset:hover { color: var(--text); border-color: rgba(148, 180, 200, 0.3); }
 
-button:focus-visible, input:focus-visible, select:focus-visible {
+/* ---- Fagent hesabı (giriş / kayıt / senkron) — yalnızca cloudEnabled iken DOM'a girer ----
+   Renk anlamı korunur: --accent/--red yalnız kazanç/kayıp içindir, burada kullanılmaz.
+   Senkron noktası: --blue = etkin/senkron, --muted = bekliyor, halka = hata ya da karar bekliyor. */
+.side-account {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  margin: -6px 0 16px; padding: 9px 12px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--line); background: transparent; color: var(--muted);
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-align: left;
+  transition: all 0.15s ease;
+}
+.side-account:hover, .side-account-active { color: var(--text); border-color: var(--line-strong); background: var(--surface-2); }
+.side-account-email { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
+.side-account-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+.side-account-dot.ok { background: var(--blue); }
+.side-account-dot.warn { background: transparent; box-shadow: inset 0 0 0 2px var(--text); }
+
+.auth-card { max-width: 480px; margin: 0 auto 16px; }
+.auth-title { display: flex; align-items: center; gap: 8px; }
+.auth-conflict { border-color: var(--line-strong); }
+.auth-tabs { display: flex; gap: 6px; padding: 4px; background: var(--surface-2); border-radius: 12px; }
+.auth-tab {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 9px 10px; border: none; border-radius: 9px; cursor: pointer;
+  background: transparent; color: var(--muted); font-size: 13.5px; font-family: inherit;
+}
+.auth-tab-active { background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--line-strong); }
+.auth-form { display: flex; flex-direction: column; gap: 10px; }
+.auth-consent { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; color: var(--muted); line-height: 1.5; cursor: pointer; }
+.auth-consent input { margin-top: 3px; accent-color: var(--blue); flex-shrink: 0; }
+.auth-legal { font-size: 12.5px; color: var(--faint); line-height: 1.6; }
+.auth-legal summary { cursor: pointer; color: var(--text); }
+.auth-legal p, .auth-legal ul { margin-top: 8px; }
+.auth-list, .auth-facts { padding-left: 18px; }
+.auth-facts { font-size: 12.5px; color: var(--faint); line-height: 1.6; display: flex; flex-direction: column; gap: 6px; }
+.auth-note { margin-top: 12px; font-size: 13px; line-height: 1.5; padding: 10px 12px; border-radius: 10px; color: var(--text); }
+.auth-note-ok { background: var(--surface-2); }
+.auth-note-err { background: var(--surface-2); box-shadow: inset 3px 0 0 var(--line-strong); }
+.auth-links { margin-top: 10px; }
+.auth-backup-hint { margin-top: 14px; }
+.link-btn {
+  display: inline-flex; align-items: center; gap: 5px; background: none; border: none; padding: 0;
+  color: var(--text); text-decoration: underline; text-underline-offset: 3px;
+  font-size: 13px; cursor: pointer; font-family: inherit; text-align: left;
+}
+.link-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.auth-email { font-size: 15px; font-weight: 600; word-break: break-all; }
+.auth-sync { display: inline-flex; align-items: center; gap: 7px; margin: 8px 0 12px; font-size: 13px; color: var(--muted); }
+.auth-sync-err { color: var(--text); }
+.auth-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.btn-danger { background: transparent; color: var(--text); border: 1px solid var(--line-strong); }
+
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible {
   outline: 2px solid var(--blue); outline-offset: 2px;
 }
 
@@ -140,6 +191,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   .side-nav { flex-direction: row; flex-wrap: wrap; margin-top: 0; margin-left: auto; order: 2; }
   .side-divider { display: none; }
   .side-reset { margin-top: 0; order: 3; }
+  .side-account { width: auto; max-width: 100%; margin: 0; }
   .main { padding: 22px 18px 60px; }
 }
 

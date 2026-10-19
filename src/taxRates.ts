@@ -9,6 +9,7 @@
 // kalırdı — burası o sözün karşılığı.
 import { AssetType } from './store';
 import { DEFAULT_TAX_RATES } from './analytics';
+import { notifyUserDataChanged } from './backup';
 
 const KEY = 'fagent.tax.v1';
 
@@ -35,6 +36,7 @@ export function setTaxRate(type: AssetType, pct: number): TaxRates {
   const next = getTaxRates();
   next[type] = Math.min(100, Math.max(0, Number.isFinite(pct) ? pct : 0));
   try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* kota — bellekte kalır */ }
+  notifyUserDataChanged(); // hesaplı kullanıcıda bulut kaydı zamanlansın (cloud.ts)
   return next;
 }
 
@@ -46,4 +48,5 @@ export function isCustomRate(type: AssetType, rates: TaxRates): boolean {
 // SIFIRLA ile birlikte çağrılır (portföy + bellek + öğretilen bilgi ile aynı anda).
 export function resetTaxRates(): void {
   try { localStorage.removeItem(KEY); } catch { /* yok */ }
+  notifyUserDataChanged();
 }

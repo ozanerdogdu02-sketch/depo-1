@@ -578,6 +578,9 @@ type Rule = {
     taxRates?: Record<AssetType, number>,
     targets?: Record<AssetType, number>,
     inflationPct?: number,
+    // Girişli ve bulut senkronu açık mı (App.tsx cloud durumundan geçirir; agent.ts cloud.ts'i
+    // import ETMEZ). Yalnızca gizlilik cümlelerini değiştirir; false/undefined iken metinler aynıdır.
+    cloudSynced?: boolean,
   ) => string;
 };
 
@@ -918,7 +921,7 @@ const CHAT_RULES: Rule[] = [
   {
     id: 'yedek',
     test: /yedek|geri yükle|geri dön(mek|üş)|kaybetme|kaybolur|csv|dışa aktar|içe aktar|aklında tut|not al|kaydet/i,
-    reply: () => [
+    reply: (_s, _t, _tr, _tg, _inf, cloudSynced) => [
       'İki ayrı yol var; hangisini istediğine göre değişir:',
       '',
       'TAM YEDEK (önerilen). Panel\'deki "Veri Yedeği" kartından "Yedek Al" — tek bir JSON dosyası iner ve',
@@ -929,12 +932,14 @@ const CHAT_RULES: Rule[] = [
       'işlem geçmişini indirir; "İçe Aktar" varlık CSV\'sini geri okur (üzerine yazmaz, ekler).',
       'Ama dikkat: CSV yalnızca varlıkları geri getirir — işlem geçmişi ve ayarlar geri gelmez. Taşımak için tam yedeği kullan.',
       '',
-      'Not: verilerin yalnızca bu tarayıcıda tutulur. "SIFIRLA" dersen ya da tarayıcı verisi temizlenirse kalıcı olarak gider.',
+      cloudSynced
+        ? 'Not: hesabınla giriş yaptığın için bu katmanlar bu tarayıcıda tutulur ve Fagent hesabına da eşitlenir. "SIFIRLA" yalnızca bu tarayıcıdaki kopyayı siler; hesabındaki kopya için Hesabım → Hesabımı sil.'
+        : 'Not: verilerin yalnızca bu tarayıcıda tutulur. "SIFIRLA" dersen ya da tarayıcı verisi temizlenirse kalıcı olarak gider.',
     ].join('\n'),
   },
   {
     test: /yardım|ne yapabilirsin|neler yapabilirsin|komutlar|nasıl kullan/i,
-    reply: () => [
+    reply: (_s, _t, _tr, _tg, _inf, cloudSynced) => [
       'Şunları yapabilirim:',
       '• "analiz et" — portföyünün genel değerlendirmesi',
       '• "dağılımım nasıl" — sınıf bazlı ağırlıklar',
@@ -948,7 +953,9 @@ const CHAT_RULES: Rule[] = [
       '• "kripto %50 düşerse ne olur" / "stres testi" — basit şok senaryosu',
       '• "mevduatta tutsaydım ne olurdu" — aynı parayı sabit faizli mevduatta bıraksaydın bugün ne olurdu',
       '• "nasıl yedek alırım" — portföyünü CSV\'ye aktarma ve geri yükleme adımları',
-      '• "beni ne hatırlıyorsun" — zamanla hangi konularla ilgilendiğini öğrenirim (yalnızca tarayıcında saklanır)',
+      cloudSynced
+        ? '• "beni ne hatırlıyorsun" — zamanla hangi konularla ilgilendiğini öğrenirim (bu tarayıcıda saklanır ve Fagent hesabına eşitlenir)'
+        : '• "beni ne hatırlıyorsun" — zamanla hangi konularla ilgilendiğini öğrenirim (yalnızca tarayıcında saklanır)',
       '• "Ajanı Eğit" panelinden bana yeni soru-cevaplar öğretebilirsin — öğrettiğin bilgi her zaman diğer cevaplarımdan önce gelir',
       '• her cevabımı 👍/👎 ile oylayabilirsin — 👎 dersen doğrusunu öğretmen için soru-cevap formu otomatik açılır',
     ].join('\n'),
@@ -1005,11 +1012,13 @@ const CHAT_RULES: Rule[] = [
 ];
 
 // Kullanıcı ajanın kendisi hakkında ne öğrendiğini sorarsa (şeffaflık — KVKK'ya uyumlu:
-// bu bilgi yalnızca tarayıcıda tutulur, açıkça belirtilir).
-function memoryQueryReply(memory: AgentMemoryProfile | undefined, text: string): string | undefined {
+// bu bilgi varsayılan olarak yalnızca tarayıcıda tutulur; hesap açıksa hesaba eşitlendiği açıkça belirtilir).
+function memoryQueryReply(memory: AgentMemoryProfile | undefined, text: string, cloudSynced?: boolean): string | undefined {
   if (!/beni (ne )?hat[ıi]rl|hakkımda ne biliyorsun|profilim(i)?( ne)?|hafızan(da)?/i.test(text)) return undefined;
   if (!memory || memory.totalTurns === 0) {
-    return 'Henüz hakkında bir şey öğrenmedim — birkaç soru sorunca hangi konularla ilgilendiğini fark etmeye başlarım. Bu bilgi yalnızca tarayıcında saklanır, hiçbir yere gönderilmez.';
+    return cloudSynced
+      ? 'Henüz hakkında bir şey öğrenmedim — birkaç soru sorunca hangi konularla ilgilendiğini fark etmeye başlarım. Bu bilgi bu tarayıcıda saklanır ve Fagent hesabına (yalnızca sana açık, RLS korumalı kayıt) eşitlenir.'
+      : 'Henüz hakkında bir şey öğrenmedim — birkaç soru sorunca hangi konularla ilgilendiğini fark etmeye başlarım. Bu bilgi yalnızca tarayıcında saklanır, hiçbir yere gönderilmez.';
   }
   const topic = mostAskedTopic(memory);
   const holding = mostMentionedHolding(memory);
@@ -1027,7 +1036,9 @@ function memoryQueryReply(memory: AgentMemoryProfile | undefined, text: string):
   if (memory.recentQuestions.length) {
     parts.push(`Son sorularından bazıları: ${memory.recentQuestions.slice(0, 3).map(q => `"${q}"`).join(', ')}.`);
   }
-  parts.push('Tüm bunları "Ajan Ne Biliyor?" panelinde görüp düzenleyebilirsin. Bu bilgi yalnızca tarayıcında saklanır, hiçbir sunucuya gönderilmez — "SIFIRLA" ile bunu da silebilirsin.');
+  parts.push(cloudSynced
+    ? 'Tüm bunları "Ajan Ne Biliyor?" panelinde görüp düzenleyebilirsin. Bu bilgi bu tarayıcıda saklanır ve Fagent hesabına (yalnızca sana açık, RLS korumalı kayıt) eşitlenir — "SIFIRLA" bu tarayıcıdaki kopyayı siler; hesabındaki kopya için Hesabım → Hesabımı sil.'
+    : 'Tüm bunları "Ajan Ne Biliyor?" panelinde görüp düzenleyebilirsin. Bu bilgi yalnızca tarayıcında saklanır, hiçbir sunucuya gönderilmez — "SIFIRLA" ile bunu da silebilirsin.');
   return parts.join(' ');
 }
 
@@ -1078,6 +1089,10 @@ export function chatReply(
   // (`{ taxRates, targets, inflationPct }`) çevrilmeli. Şimdi yapılmadı çünkü her kuralın
   // imzasına dokunmak, toplantı öncesi gereksiz bir kırılma riski taşıyor.
   inflationPct?: number,
+  // Girişli ve bulut senkronu açık mı (cloud.ts → isCloudSynced; App.tsx geçirir). agent.ts saf
+  // kalsın diye cloud.ts burada import EDİLMEZ. Yalnızca gizlilik cümlelerini değiştirir
+  // (yedek/yardım/"beni ne hatırlıyorsun"); false/undefined iken tüm metinler bugünküyle aynıdır.
+  cloudSynced?: boolean,
 ): AgentReply {
   const text = userText.trim();
   if (!text) return { text: 'Bir şey yazmadın — bir soru sorabilir ya da "yardım" yazabilirsin.' };
@@ -1090,7 +1105,7 @@ export function chatReply(
   // engeli ajan çıktısıyla geçersiz kılınamaz.
   const tavsiyeRule = CHAT_RULES.find(r => r.id === 'tavsiye');
   if (tavsiyeRule?.test.test(text)) {
-    return { text: tavsiyeRule.reply(s, text, taxRates, targets, inflationPct), intentId: 'tavsiye' };
+    return { text: tavsiyeRule.reply(s, text, taxRates, targets, inflationPct, cloudSynced), intentId: 'tavsiye' };
   }
   // Yazıyla iptal — yalnızca gerçekten bekleyen bir öneri varsa. Alım/satım ayrıştırmasından
   // ÖNCE gelmeli: "satışı iptal et" cümlesi içinde "satış" geçtiği için aksi halde yanlışlıkla
@@ -1117,7 +1132,7 @@ export function chatReply(
   }
 
   // Ajanın kendisi hakkında ne bildiğini soran meta-sorular (uzun süreli bellek şeffaflığı).
-  const memoryReply = memoryQueryReply(memory, text);
+  const memoryReply = memoryQueryReply(memory, text, cloudSynced);
   if (memoryReply) return { text: memoryReply };
 
   // Takip cümlesi ("devam et", "biraz daha anlat"...) — son konuşulan konuyu genişlet.
@@ -1145,7 +1160,7 @@ export function chatReply(
     // yoldan (agent çıktısı dahil) geçersiz kılınamaz — reddi TEKRARLAMAK, sessizce atlamaktan iyidir.
     if (lastIntent) {
       const rule = CHAT_RULES.find(r => r.id === lastIntent);
-      if (rule) return { text: rule.reply(s, text, taxRates, targets, inflationPct), intentId: lastIntent };
+      if (rule) return { text: rule.reply(s, text, taxRates, targets, inflationPct, cloudSynced), intentId: lastIntent };
     }
     return { text: 'Hangi konuda devam edeyim? "analiz", "dağılım", "risk" ya da bir varlık adı yazabilirsin.', isFallback: true };
   }
@@ -1168,7 +1183,7 @@ export function chatReply(
   // Genel niyet kuralları (analiz, dağılım, risk, enflasyon, küçük sohbet...).
   for (const rule of CHAT_RULES) {
     if (rule.test.test(text)) {
-      return { text: rule.reply(s, text, taxRates, targets, inflationPct), intentId: rule.id };
+      return { text: rule.reply(s, text, taxRates, targets, inflationPct, cloudSynced), intentId: rule.id };
     }
   }
 

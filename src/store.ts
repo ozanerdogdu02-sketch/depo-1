@@ -305,6 +305,16 @@ export const actions = {
   },
 };
 
+// React dışı modüller (bulut senkronu, cloud.ts) için anlık durum ve değişiklik aboneliği.
+export function getPortfolio(): PortfolioState {
+  return state;
+}
+
+export function subscribePortfolio(fn: () => void): () => void {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
 export function usePortfolio(): PortfolioState {
   return useSyncExternalStore(
     fn => {

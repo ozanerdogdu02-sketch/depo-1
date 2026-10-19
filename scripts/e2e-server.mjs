@@ -3,7 +3,9 @@ import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 
 const port = Number(process.env.E2E_PORT || 4200);
-const root = join(process.cwd(), 'dist');
+// E2E_ROOT: sunulacak derleme dizini (varsayılan `dist`); E2E_PORT: port. Koşucu iki ayrı
+// derlemeyi (hesapsız `dist`, sahte-Supabase `dist-e2e-cloud`) iki portta servis eder.
+const root = join(process.cwd(), process.env.E2E_ROOT || 'dist');
 const mime = {
   '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',

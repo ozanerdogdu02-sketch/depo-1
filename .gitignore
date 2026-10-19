@@ -2,6 +2,7 @@
 # Bağımlılıklar ve derleme çıktıları
 node_modules/
 dist/
+dist-e2e-cloud/
 
 # Ortam değişkenleri ve yerel sırlar
 .env

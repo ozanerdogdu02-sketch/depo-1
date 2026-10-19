@@ -33,7 +33,7 @@ geliştirildiği sandbox'a özgüdür; başka ortamda büyük olasılıkla yoktu
 
 ## Yapı
 
-- `run-e2e.mjs` — koşucu: Vite'ı port 4200'de başlatır, her testi koşar, özetler, kapatır.
+- `run-e2e.mjs` — koşucu: iki derleme yapar (`dist/` hesapsız, port 4200; `dist-e2e-cloud/` sahte Supabase, port 4201 — yalnızca `fagent-auth-e2e.mjs`), her testi koşar, özetler, kapatır. `E2E_SKIP_BUILD=1` derlemeyi atlar.
 - `e2e/*.mjs` — bağımsız test dosyaları. Her biri dev sunucusuna (`localhost:4200`) bağlanır.
 - `.artifacts/` — ekran görüntüleri buraya yazılır (git'e girmez, `.gitignore`'da).
 

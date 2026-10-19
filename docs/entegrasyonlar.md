@@ -170,7 +170,9 @@ Bunlar `AGENTS.md` ve `CLAUDE.md`'de yazılı ve testlerle korunuyor:
 1. **API anahtarı istemci koduna asla girmez.** İstemci her zaman anahtarsız da çalışır.
 2. **Uydurma veri yok.** Doğrulanamayan bir sayı gösterilmez; "veri yok" demek "yanlış veri"
    demekten iyidir. (Stopajda kripto/altın/döviz %0 bırakılması bunun örneği.)
-3. **Veri tarayıcıdan çıkmaz.** Tek istisna EVDS proxy'si ve o istek portföy içermez.
+3. **Veri varsayılan olarak tarayıcıda kalır.** Kullanıcı hesap açarsa 5 katman yalnızca kendi RLS'li
+   Supabase kaydına eşitlenir (`cloud.ts`; hesapsız modda ağ isteği yoktur). Diğer ağ istisnaları: EVDS
+   proxy'si (istek portföy içermez) ile kur/kripto fiyat uçları.
 4. **`agent.ts` ve `analytics.ts` SAFTIR** — I/O yok, tüm veri parametreyle gelir. Bu hem test
    edilebilirliği hem ileride LLM'e geçişi sağlıyor.
 5. **Commit öncesi iki kez doğrula** — `typecheck` + `build` + `test:e2e` üçü de yeşil olmadan

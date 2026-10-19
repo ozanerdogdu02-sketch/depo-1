@@ -5,6 +5,8 @@
 // skoruna göre bulunup built-in kurallardan ÖNCE kullanılır. Böylece ajanın davranışı
 // gerçekten kullanıcı tarafından şekillendirilebilir — agentMemory.ts'teki (yalnızca
 // kullanım istatistiği tutan, davranışı değiştirmeyen) katmandan farklıdır.
+import { notifyUserDataChanged } from './backup';
+
 const KEY = 'fagent.agent.training.v1';
 
 export interface TrainedFact {
@@ -28,6 +30,7 @@ function load(): TrainedFact[] {
 
 function save(facts: TrainedFact[]): void {
   localStorage.setItem(KEY, JSON.stringify(facts));
+  notifyUserDataChanged(); // hesaplı kullanıcıda bulut kaydı zamanlansın (cloud.ts)
 }
 
 export function getTrainedFacts(): TrainedFact[] {
@@ -71,6 +74,7 @@ export function recordFactUse(id: string): void {
 
 export function resetTraining(): void {
   localStorage.removeItem(KEY);
+  notifyUserDataChanged();
 }
 
 // Basit kelime-örtüşmesi (Jaccard benzerliği) tabanlı eşleştirme — anlamsal değil,
