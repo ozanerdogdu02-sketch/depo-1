@@ -29,12 +29,17 @@ Kurallar: `AGENTS.md` (önce onu oku). Karar geçmişi: `docs/karar-gunlugu.md`.
 5. Gerçek Supabase projesi — migration, Site URL, özel SMTP, canlıda uçtan uca deneme.
 6. Canlı sitenin görünümü — Nocturne görsel dili; Kurulum ve Hedefler ekranları.
 7. Yasal metinler — KVKK aydınlatma, kullanım koşulları, tavsiye değildir.
-8. Devir paketi — kurulum/devir dokümanı, ortam değişkenleri, gizlilik dostu metrik.
+8. **(yeni, 2026-10-19 onaylandı)** Abonelik ve ödeme — ücretsiz + Premium katman, iyzico/PayTR (kart verisi bize gelmez), özellik kilidi, mesafeli satış sözleşmesi. Premium'da da al/sat önerisi ve işlem yürütme yok.
+9. **(yeni)** İlk kullanıcılar — tanıtım sayfası, 2–3 ay gerçek gelir (satış fiyatını belirleyen adım).
+10. Devir paketi (full paket) — kod, alan adı, Supabase/Vercel/ödeme hesaplarının devri, kurulum/devir dokümanı, gelir kanıtı, gizlilik dostu metrik.
+
+**Önce araştırma (cumartesi ilk iş):** `fagent-arastirma` iş akışı, konu `docs/is-kuyrugu.md` → "A1 — SaaS full paket araştırması".
+Tahmini bugünkü değer (gelirsiz, doğrulanmamış): ~1–5 bin $; hedef: ücretli kullanıcıyla 10–50 bin $+.
 
 ## NEREDEN DEVAM EDİLİR (2026-10-19 son durum)
 
 - Ürün dalı `urun/birlesik` temiz ve yeşil (adım 1–2 tamam). Yarım kod yok.
-- **Sıradaki iş: adım 3.** Ekip planı hazır ve güvenlik/uyum danışmasından geçti: `docs/adim3-ekip-plani.md`
+- **Sıradaki iş: A1 araştırması (aşağıda), sonra adım 3.** Ekip planı hazır ve güvenlik/uyum danışmasından geçti: `docs/adim3-ekip-plani.md`
   (K1 aiAgent'ı çıkar → K2 "deftere kayıt" dili + 9 tavsiye kalıbı → K3 testler). Koşu kredi bittiği için K1'in
   başında durduruldu; kalemleri sırayla uygula, sonra kapıyı koş.
 - Sonraki işler: `docs/is-kuyrugu.md` (34 iş + G1–G3 görsel).

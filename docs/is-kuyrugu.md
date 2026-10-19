@@ -120,3 +120,22 @@ Yönetmen tarafından gerekçesiyle reddedildi; yeniden önerilmeden önce gerek
 - **XIRR testlerinde kodun kendi ürettiği değerleri ya da hafızadan alınmış Excel tarihlerini kesin beklenti yapmak** — Döngüsel ya da kaynaksız. Beklenti NPV(r)≈0 ve elle hesaplanabilir vektörlerle yazılır; Excel örneği ancak birincil sayfayla teyit edilince eklenir.
 - **Piksel ekran görüntüsü karşılaştırmasını şimdi kurmak** — Nocturne geçişinde (adım 6) sürekli kırılır; adım 6 bittikten sonra eklenecek.
 - **require-trusted-types-for'u doğrudan zorunlu kipte açmak** — Tarayıcı ve recharts uyumu doğrulanmadı; yalnızca Report-Only ile denenecek.
+
+
+## A1 — SaaS full paket araştırması (öncelik: en yüksek, cumartesi ilk iş)
+
+Çalıştırma: `fagent-arastirma` iş akışı, `args.konu` = aşağıdaki metin. Kod değiştirmez.
+
+> FAGENT'ı Acquire.com'da "full paket" SaaS olarak satmak için araştırma. Sorular:
+> (1) Değerleme: Acquire.com/Flippa/Microns'ta gelirsiz ve düşük gelirli fintech/portföy takip uygulamalarının
+> satış fiyatları ve çarpanları (gerçek ilan/rapor kaynaklı, tarihli). (2) Rakipler ve fiyatları: Türkiye
+> (ör. portföy takip uygulamaları, aracı kurum uygulamaları) ve dünya (Sharesight, Kubera, Delta, Snowball,
+> Getquin, Ghostfolio açık kaynak): hangi özellik ücretli, aylık fiyat. (3) Premium özellik seti ve TL fiyat
+> önerisi (ücretsiz/Premium sınırı). (4) Ödeme: iyzico vs PayTR vs Paddle/Lemon Squeezy (Türkiye'den satıcı,
+> yabancı alıcı devri, abonelik desteği, komisyon). (5) Yasal: SPK yatırım danışmanlığı sınırı, KVKK, mesafeli
+> sözleşmeler yönetmeliği, e-fatura/şirket gereksinimi — satıcı şahıs mı şirket mi olmalı. (6) Devir paketi:
+> alıcıların beklediği belgeler, hesap devri, due diligence kontrol listesi. (7) İlk 100 ücretli kullanıcı
+> için düşük bütçeli kanal önerileri. Kural: al/sat önerisi ve işlem yürütme önerilmez; kaynaksız rakam yazılmaz,
+> doğrulanamayan "ikincil" diye işaretlenir. Çıktı: önceliklendirilmiş öneri + 8/9/10. adımlar için hazır görevler.
+
+Bütçe: mesaja "+800k" eklenmeli. Daha ucuz seçenek: yalnızca yönetmen + güvenlik/uyum rolleriyle (`args.roller`).
