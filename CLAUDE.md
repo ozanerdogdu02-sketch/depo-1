@@ -48,6 +48,46 @@ Tahmini bugünkü değer (gelirsiz, doğrulanmamış): ~1–5 bin $; hedef: ücr
   (Vercel girişi gerekir). fagent.vercel.app hâlâ eski maket; üretime geçiş kullanıcı onayıyla, 4. adımdan sonra.
 - Tasarım dosyaları: `docs/tasarim/`.
 
+## EKİP HAFIZASI — bilinen hatalar (her ajan işe başlamadan okur)
+
+Aynı hatayı tekrar yapma. Yeni bir hata bulunursa buraya tek satır eklenir (tarih + ne + doğrusu).
+
+**Okuma düzeni**
+- Her ajan taze başlar, önceki ajanın okuduğunu bilmez. Son koşuda `App.tsx` 14, `agent.ts` 10 kez baştan okundu.
+  Doğrusu: önce `grep -n` ile yeri bul, sonra yalnızca o satır aralığını oku (`App.tsx` ~2100 satır). Kendi düzenlemenden sonra dosyayı yeniden okuma.
+- Plan/pano mesajındaki satır numaraları kayar. Düzenlemeden önce kodda yeniden doğrula.
+
+**Komutlar**
+- `npm install` çalıştırma (`package-lock.json` değişir ve dal kirlenir). `npm ci` kullan; lock değiştiyse `git checkout -- package-lock.json`.
+- e2e: `CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e`. `playwright install` çalıştırma.
+- `pkill -f` ile genel desen kullanma (kendi kabuğunu öldürür). Süreci PID ile durdur.
+- Workflow çıktısı sarmalayıcı JSON'dur; asıl sonuç `.result` altındadır.
+
+**Test ve doğrulama**
+- Kullanıcıya görünen metni değiştirirsen, aynı kalemde o metni arayan tüm e2e seçicilerini güncelle (`grep -rn` tests/e2e). Kontrol sayısı azalmaz.
+- `tests/e2e/fagent-auth-e2e.mjs` içindeki beyaz liste kontrolleri (satır ~200, 276-278, 359-368) silinmez, gevşetilmez.
+- Supabase testlerde taklittir. Rapor dili: "sahte Supabase ile yeşil", asla "çalışıyor". Dış API'ler (Frankfurter, CoinGecko, EVDS) bu ortamda doğrulanamaz; "doğrulanamadı" yaz.
+- Türkçe regex: `\b` kullanma. Girdiyi `toLocaleLowerCase('tr-TR')` ile normalle; İ/I/ı/i varyantlarını test et. Kalıplar sınırlı olsun (ReDoS).
+
+**Süreç**
+- Ajanlar commit atmaz, push etmez, dal değiştirmez. Çalışma ağacı temiz başlar (inceleyenler `git diff` ile görür).
+- İncelenmemiş/yarım iş git dalına konmaz; yama dosyası olarak `/home/user/FAGENT-Raporlar/02-degisiklikler/` altına yedeklenir (kullanıcı kararı).
+- Hiçbir `.env*` dosyası okunmaz. Gizli anahtar istemciye girmez; `VITE_*` içinde yalnızca publishable/anon anahtar olur.
+- Bütçe koruması yalnızca kullanıcı mesajında "+800k" gibi token hedefi varsa çalışır; yoksa limit bilinmez, işi küçük parçalara böl.
+- Kullanıcı kuralları: kişiye özel al/sat önerisi yok, gerçek işlem yürütme yok, sahte veri yok. Tavsiye dili ("almalısın", "öneri") ajan çıktısında yasak.
+
+## ERTELENEN TEKNOLOJİLER (kullanıcı kararı, 2026-10-23)
+
+Şimdilik KULLANILMAZ (çok maliyetli, büyük mühendislik): zaman serisi analizi (gecikmeli değişkenler / lag),
+rassal yürüyüş (random walk) kuramı, transfer öğrenme, Fourier dönüşümü. Unutulmasın; ürün satıldıktan sonra
+ya da gelirle birlikte yeniden değerlendirilir. Bugünkü ajan ve projeksiyon yapısı kural tabanlı ve anahtarsız kalır.
+
+## BEKLEYEN MİMARİ — kullanıcı "tamam" deyince başlar (BUGÜN BAŞLATMA)
+
+Ekip için "üst kurul + beceri (skill) ekosistemi". Taslak: `docs/ekip-ekosistemi-taslak.md`. Özet: ajanlar yeni teknoloji
+isteyince üst kurula yazar; kurul güvenlik ve yasal uygunluğa bakıp onaylar/reddeder; fazla yüklenen bilgi yerine
+ajanlar kendilerine skill dosyası yazar; yönetmen istemleri tek bir ortak iskeletle üretir ki bölümler karışmasın.
+
 ## Geliştirme ekibi
 
 Altı rollü çok ajanlı ekip `.claude/agents/` altında, iş akışı `.claude/workflows/fagent-ekip.js`.
