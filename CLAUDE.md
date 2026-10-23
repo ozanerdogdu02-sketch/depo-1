@@ -47,6 +47,8 @@ Tahmini bugünkü değer (gelirsiz, doğrulanmamış): ~1–5 bin $; hedef: ücr
   GitHub'a bağlı; her push önizlemeyi günceller: https://fagent-git-urun-birlesik-myself-40f7.vercel.app
   (Vercel girişi gerekir). fagent.vercel.app hâlâ eski maket; üretime geçiş kullanıcı onayıyla, 4. adımdan sonra.
 - Tasarım dosyaları: `docs/tasarim/`.
+- İzleme paneli: https://claude.ai/artifact/Re4RorKLeMADNWMqGDhFu3 — "Olay günlüğü" ve "Bilmen gerekenler" (sözlük) bölümleri var.
+  Her önemli adımdan sonra günlüğe satır ekle; raporda yeni teknik terim geçtiyse sözlüğe ekle (kullanıcı teknik değil).
 
 ## EKİP HAFIZASI — bilinen hatalar (her ajan işe başlamadan okur)
 
