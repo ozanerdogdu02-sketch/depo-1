@@ -139,3 +139,12 @@ Yönetmen tarafından gerekçesiyle reddedildi; yeniden önerilmeden önce gerek
 > doğrulanamayan "ikincil" diye işaretlenir. Çıktı: önceliklendirilmiş öneri + 8/9/10. adımlar için hazır görevler.
 
 Bütçe: mesaja "+800k" eklenmeli. Daha ucuz seçenek: yalnızca yönetmen + güvenlik/uyum rolleriyle (`args.roller`).
+
+
+## A2 — Tasarım derin araştırması (öncelik: yüksek, Faz 2)
+`fagent-arastirma`, `args.roller` = ["tasarim","uyum"] (+ yönetmen). Konu: `docs/fikir-defteri.md` → "Tasarım" bölümü. Çıktı: tasarım sistemi önerisi (jetonlar,
+bileşen listesi), erişilebilirlik kontrol listesi, Türkçe sayı/yüzde biçim kuralı, görsel regresyon test planı, referans karşılaştırma tablosu (kaynaklı).
+
+## A3 — Pazarlama, reklam ve reels araştırması (öncelik: orta, Faz 2)
+Konu: `docs/fikir-defteri.md` → "Pazarlama". Sorular: Meta ve TikTok finansal ürün reklam politikaları ve Türkiye şartları; SPK ve Reklam Kurulu kuralları;
+influencer ifşa; getiri vaadi yasakları; organik içerik formatları ve ilk 100 ücretli kullanıcı için kanal sırası; ölçüm (çerezsiz). Çıktı: yapılabilir/yapılamaz listesi + içerik fabrikası görev listesi.
