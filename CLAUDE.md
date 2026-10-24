@@ -33,7 +33,7 @@ Kurallar: `AGENTS.md` (önce onu oku). Karar geçmişi: `docs/karar-gunlugu.md`.
 9. **(yeni)** İlk kullanıcılar — tanıtım sayfası, 2–3 ay gerçek gelir (satış fiyatını belirleyen adım).
 10. Devir paketi (full paket) — kod, alan adı, Supabase/Vercel/ödeme hesaplarının devri, kurulum/devir dokümanı, gelir kanıtı, gizlilik dostu metrik.
 
-**Araştırma:** A1 1. tur yapıldı (`docs/arastirma/a1-saas-1-tur.md`, hepsi ikincil kaynaklı, doğrulanmalı); A2 tasarım 1. tur yapıldı; A3 pazarlama bekliyor.
+**Araştırma:** A1 1. tur yapıldı (`docs/arastirma/a1-saas-1-tur.md`, hepsi ikincil kaynaklı, doğrulanmalı); A2 tasarım 1. tur yapıldı; A3 pazarlama 1. tur yapıldı (`docs/arastirma/a3-pazarlama-1-tur.md`; öneri: önce organik içerik, ücretli reklam ertelenir). Yasal taslaklar: `docs/yasal/` (avukat onayı şart). Devir kılavuzu: `docs/devir/kurulum-ve-devir.md`.
 Tahmini bugünkü değer (gelirsiz, doğrulanmamış): ~1–5 bin $; hedef: ücretli kullanıcıyla 10–50 bin $+.
 
 ## NEREDEN DEVAM EDİLİR (2026-10-19 son durum)
