@@ -39,7 +39,7 @@ Tahmini bugünkü değer (gelirsiz, doğrulanmamış): ~1–5 bin $; hedef: ücr
 ## NEREDEN DEVAM EDİLİR (2026-10-19 son durum)
 
 - Ürün dalı `urun/birlesik` temiz ve yeşil (adım 1–2 tamam). Yarım kod yok.
-- **Adım 3 (kural uyumu) TAMAM 2026-10-24: K1 (AI çıkarıldı), K2 (deftere kayıt dili, 9 tavsiye kalıbı, değer yargıları betimleyici), K3 (uyum e2e). typecheck/build ✓, tarama 0 kritik, e2e 674/674 (sahte Supabase). Eksik: Opus/max güvenlik incelemesi yapılmadı (insan incelemesi kullanıcıda). Sıradaki: canlı öncesi liste (34+33, 35, 41, 27), sonra adım 4.** Ekip planı hazır ve güvenlik/uyum danışmasından geçti: `docs/adim3-ekip-plani.md`
+- **Adım 3 (kural uyumu) TAMAM 2026-10-24: K1 (AI çıkarıldı), K2 (deftere kayıt dili, 9 tavsiye kalıbı, değer yargıları betimleyici), K3 (uyum e2e). typecheck/build ✓, tarama 0 kritik, e2e 674/674 (sahte Supabase). Eksik: Opus/max güvenlik incelemesi yapılmadı (insan incelemesi kullanıcıda). Sıradaki (veri akışı maddeleri ertelendi): A1 araştırması, yasal metin taslakları, devir paketi belgeleri.** Ekip planı hazır ve güvenlik/uyum danışmasından geçti: `docs/adim3-ekip-plani.md`
   (K1 aiAgent'ı çıkar → K2 "deftere kayıt" dili + 9 tavsiye kalıbı → K3 testler). Koşu kredi bittiği için K1'in
   başında durduruldu; kalemleri sırayla uygula, sonra kapıyı koş.
 - Sonraki işler: `docs/is-kuyrugu.md` (34 iş + G1–G3 görsel).
@@ -114,6 +114,8 @@ Kullanım ve pano protokolü: `docs/ajan-sistemi.md`.
 - Doğrulanamayanlar: gerçek ağdaki dış API'ler, EVDS fonksiyonu (gerçek deploy gerekir), 1440/375px görsel kontrol.
 
 ## Hesap katmanı — CANLI ÖNCESİ ZORUNLU LİSTE (2026-10-19, ekip kararı)
+
+**KULLANICI KARARI (2026-10-24): aşağıdaki veri akışı/bulut senkron maddeleri (34+33, 35, 41, 27) şimdilik YAPILMAZ. Çok zaman alır; önce dikkatli araştırılıp (çakışma çözümü, çoklu cihaz, kısmi geri yükleme örnekleri) sonra uygulamaya eklenecek. Bu liste açıkken `VITE_SUPABASE_*` canlıda tanımlanmaz, hesap özelliği kapalı kalır. Şimdi diğer işler yapılır.**
 
 Bu liste kapanmadan **üretim ortamında `VITE_SUPABASE_*` tanımlanmaz** (5. adımın giriş koşulu).
 Env boşken bulut kodu hiç çalışmaz; hesapsız ürün bu maddelerden etkilenmez.

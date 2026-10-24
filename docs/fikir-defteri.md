@@ -32,6 +32,7 @@ Kullanıcının söylediği her fikir buraya yazılır ve sınıflandırılır. 
 | 20 | Çok kitleye ulaşınca abonelik ve tüm altyapı önem sırasında | 24.10 | 🟡 | Kod bizde; **şirket/ödeme sağlayıcı başvurusu kullanıcıda** (uzun sürebilir) | 5 |
 | 21 | Instagram/TikTok reklam + reels sistemi | 24.10 | 🟡 | Parçalı: içerik fabrikası yapılır, hesap/reklam/video çekimi dışarıda (aşağıda) | 6 |
 | 22 | Bu defter: tüm fikirler sınıflandırılsın, başka ajan sistemiyle çözülsün | 24.10 | ✅ | Bu dosya; her yeni fikir buraya eklenir | → |
+| 23 | Veri akışı/bulut senkron işleri (SIFIRLA onayı, çok sekme çıkış, kısmi geri yükleme, iki cihaz çakışması) önce araştırılsın, sonra eklensin | 24.10 | ⏸ | Çok zaman alır; hesap özelliği bu yüzden canlıda kapalı kalır. Araştırma konusu: Notion/Figma/Linear çakışma çözümü, CRDT/koşullu güncelleme, atomik geri yükleme | 4–5 |
 
 ## Pazarlama (reklam + reels) — ne yapılır, ne yapılamaz
 
