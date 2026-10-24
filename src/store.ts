@@ -367,10 +367,15 @@ export const fmtDec = (n: number, digits = 2) =>
 // Yüzde. Çok küçük ama SIFIR OLMAYAN oranlar tek ondalıkta "0.0%" görünüp "hiç kazanç yok"
 // izlenimi veriyordu (ör. +₺3.700 / ₺30.750.120 = %0,012). Bu durumda iki ondalığa geçilir.
 export const fmtPct = (n: number) => {
-  const sign = n >= 0 ? '+' : '';
-  if (n !== 0 && Math.abs(n) < 0.05) return `${sign}${fmtDec(n, 2)}%`;
-  return `${sign}${fmtDec(n, 1)}%`;
+  // Türkçe yazım: yüzde işareti sayıdan ÖNCE ve bitişik (%17,5); işaret yüzdenin de önünde: +%17,5 / -%22,7.
+  const sign = n < 0 ? '-' : '+';
+  const abs = Math.abs(n);
+  if (n !== 0 && abs < 0.05) return `${sign}%${fmtDec(abs, 2)}`;
+  return `${sign}%${fmtDec(abs, 1)}`;
 };
+
+// İşaretsiz-pozitif yüzde (cümle içi): %17,5; negatifse -%22,7. "%-22,7" biçimi ÜRETİLMEZ.
+export const fmtPctPlain = (n: number, digits = 1) => `${n < 0 ? '-' : ''}%${fmtDec(Math.abs(n), digits)}`;
 
 // Grafik ekseni gibi dar alanlar için kısa sayı. Eski `Math.round(v/1000)+'K'` biçimi HEM
 // büyükte HEM küçükte bozuluyordu: 30.753.820 → "30754K", 400 → "0K", 500 → "1K".

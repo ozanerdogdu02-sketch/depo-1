@@ -46,8 +46,8 @@ const ethChange = page.locator('.list-row', { hasText: 'Ethereum' }).locator('.m
 const btcColor = await btcChange.evaluate(el => getComputedStyle(el).color);
 const ethColor = await ethChange.evaluate(el => getComputedStyle(el).color);
 console.log('  (BTC renk:', btcColor, '| ETH renk:', ethColor, ')');
-check('Pozitif (+2,5%) görünür', await btcChange.locator('text=+2,5%').count() > 0);
-check('Negatif (−1,8%) görünür', await ethChange.locator('text=-1,8%').count() > 0);
+check('Pozitif (+%2,5) görünür', await btcChange.locator('text=+%2,5').count() > 0);
+check('Negatif (-%1,8) görünür', await ethChange.locator('text=-%1,8').count() > 0);
 check('Pozitif ve negatif değişim renkleri farklı', btcColor !== ethColor);
 // Belirteç (fagent-tasarim/belirtecler.json, sürüm 7): artış = kazanc #26a69a, azalış = kayip #ef5350.
 check('Pozitif değişim kazanc renginde (#26a69a)', btcColor === 'rgb(38, 166, 154)');

@@ -48,7 +48,8 @@ check('Katkı vs getiri ayrıştırması yapılıyor', /getiridir|kazançtan|kay
 
 // --- Reel getiri: Fisher denklemi, gerçek hesap (Bloki bunu kullanıcıya bırakıyordu) ---
 const reel = await ask('reel getirim ne');
-check('Reel getiri HESAPLANIYOR (formül anlatıp bırakmıyor)', /REEL getirin %-?\d/.test(reel));
+check('Reel getiri HESAPLANIYOR (formül anlatıp bırakmıyor)', /REEL getirin -?%\d/.test(reel));
+check('Yüzde yazımı tek kural: "%-" biçimi yok (negatifte -%22,7)', !reel.includes('%-'));
 check('Fisher denklemi açıkça belirtiliyor', reel.includes('Fisher'));
 check('Naif "nominal eksi enflasyon" kestirmesiyle farkı gösteriliyor', reel.includes('kestirme'));
 

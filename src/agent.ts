@@ -5,6 +5,7 @@ import {
   PortfolioState, Holding, totalValue, totalCost, fmtTL, fmtPct, fmtSigned, pnlOf, ASSET_LABELS, AssetType,
   investmentHistoryOf,
   fmtDec,
+  fmtPctPlain,
 } from './store';
 import { AgentMemoryProfile, RiskLevel, AgentMode, VadeTercihi, mostAskedTopic, mostMentionedHolding } from './agentMemory';
 import { TrainedFact, findBestMatch } from './agentTraining';
@@ -379,8 +380,8 @@ function readInvestmentChart(s: PortfolioState, inflationPct?: number): string {
     if (x.reliable) {
       const real = realReturnPct(x.annualPct, inflationPct ?? VARSAYILAN_ENFLASYON);
       lines.push(
-        `Para-ağırlıklı yıllık getirin (XIRR) %${fmtDec(x.annualPct, 1)}. ` +
-        `%${fmtDec(inflationPct ?? VARSAYILAN_ENFLASYON, 0)} enflasyon varsayımıyla reel karşılığı %${fmtDec(real, 1)} ` +
+        `Para-ağırlıklı yıllık getirin (XIRR) ${fmtPctPlain(x.annualPct, 1)}. ` +
+        `%${fmtDec(inflationPct ?? VARSAYILAN_ENFLASYON, 0)} enflasyon varsayımıyla reel karşılığı ${fmtPctPlain(real, 1)} ` +
         `(Fisher: (1+nominal)/(1+enflasyon)−1; "nominal eksi enflasyon" kestirmesi burada yanıltır).`,
       );
     } else {
@@ -627,15 +628,15 @@ const CHAT_RULES: Rule[] = [
       const realTotal = realReturnPct(attr.totalReturnPct, inf);
       const lines = [
         `Toplam nominal getirin %${fmtDec(attr.totalReturnPct, 2)} (${fmtSigned(attr.gain)} / maliyet ${fmtTL(attr.invested)}).`,
-        `%${inf} enflasyon varsayımıyla REEL getirin %${fmtDec(realTotal, 2)}.`,
+        `%${inf} enflasyon varsayımıyla REEL getirin ${fmtPctPlain(realTotal, 2)}.`,
         `Hesap Fisher denklemiyle: (1 + nominal) / (1 + enflasyon) − 1. Yaygın "nominal eksi enflasyon" kestirmesi ` +
-        `%${fmtDec((attr.totalReturnPct - inf), 2)} derdi — yüksek enflasyonda bu kestirme sapar, doğrusu yukarıdaki.`,
+        `${fmtPctPlain((attr.totalReturnPct - inf), 2)} derdi — yüksek enflasyonda bu kestirme sapar, doğrusu yukarıdaki.`,
       ];
       const x = xirrOf(s);
       if (x?.reliable) {
         lines.push(
-          `Zamana yayılmış katkıların olduğu için asıl ölçüt para-ağırlıklı yıllık getiri (XIRR): %${fmtDec(x.annualPct, 1)}, ` +
-          `reel karşılığı %${fmtDec(realReturnPct(x.annualPct, inf), 1)}.`,
+          `Zamana yayılmış katkıların olduğu için asıl ölçüt para-ağırlıklı yıllık getiri (XIRR): ${fmtPctPlain(x.annualPct, 1)}, ` +
+          `reel karşılığı ${fmtPctPlain(realReturnPct(x.annualPct, inf), 1)}.`,
         );
       }
       lines.push(`Enflasyon varsayımını değiştirmek istersen "%55 enflasyona göre reel getirim ne" gibi yazabilirsin.`);
@@ -659,7 +660,7 @@ const CHAT_RULES: Rule[] = [
         return (
           `Şu an toplamda kâr yok (${fmtSigned(r.grossGain)}), dolayısıyla hesaplanacak bir stopaj da yok — ` +
           `vergi kazanç üzerinden alınır, anapara üzerinden değil.\n\n` +
-          `%${inf} enflasyon varsayımıyla reel getirin %${fmtDec(r.realGrossReturnPct, 2)}.`
+          `%${inf} enflasyon varsayımıyla reel getirin ${fmtPctPlain(r.realGrossReturnPct, 2)}.`
         );
       }
 
@@ -669,8 +670,8 @@ const CHAT_RULES: Rule[] = [
         // ayrıştırılmıyor. Buraya ** yazma, kullanıcıya yıldız olarak görünür.
         `1) Brüt kazanç: ${fmtSigned(r.grossGain)} → getiri %${fmtDec(r.grossReturnPct, 2)}\n` +
         `2) Varsayılan stopaj: −${fmtTL(r.tax)} → net kazanç ${fmtSigned(r.netGain)}, net getiri %${fmtDec(r.netReturnPct, 2)}\n` +
-        `3) %${inf} enflasyon sonrası REEL net getirin: %${fmtDec(r.realNetReturnPct, 2)}`,
-        `Vergi hiç olmasaydı reel getirin %${fmtDec(r.realGrossReturnPct, 2)} olurdu — aradaki ` +
+        `3) %${inf} enflasyon sonrası REEL net getirin: ${fmtPctPlain(r.realNetReturnPct, 2)}`,
+        `Vergi hiç olmasaydı reel getirin ${fmtPctPlain(r.realGrossReturnPct, 2)} olurdu — aradaki ` +
         `${fmtDec((r.realGrossReturnPct - r.realNetReturnPct), 2)} puan stopajın reel maliyeti.`,
       ];
 
@@ -726,11 +727,11 @@ const CHAT_RULES: Rule[] = [
           `o yüzden sana bir yıllık getiri rakamı vermiyorum. En az bir aylık geçmiş biriktiğinde hesaplarım.`;
       }
       return [
-        `Para-ağırlıklı yıllık getirin (XIRR) %${fmtDec(x.annualPct, 2)}.`,
+        `Para-ağırlıklı yıllık getirin (XIRR) ${fmtPctPlain(x.annualPct, 2)}.`,
         `Bu, basit "son değer / ilk değer" hesabından farklıdır: paranı zaman içinde parça parça koyduğun için ` +
         `her katkının portföyde kaldığı süre ağırlıklandırılır. Teknik olarak nakit akışlarının iç verim oranıdır — ` +
         `Σ CF/(1+r)^(gün/365) = 0 denklemini çözerim.`,
-        `%${fmtDec(inf, 0)} enflasyon varsayımıyla reel karşılığı %${fmtDec(realReturnPct(x.annualPct, inf), 2)}.`,
+        `%${fmtDec(inf, 0)} enflasyon varsayımıyla reel karşılığı ${fmtPctPlain(realReturnPct(x.annualPct, inf), 2)}.`,
       ].join('\n\n');
     },
   },

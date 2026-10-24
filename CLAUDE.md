@@ -43,7 +43,7 @@ Tahmini bugünkü değer (gelirsiz, doğrulanmamış): ~1–5 bin $; hedef: ücr
   (K1 aiAgent'ı çıkar → K2 "deftere kayıt" dili + 9 tavsiye kalıbı → K3 testler). Koşu kredi bittiği için K1'in
   başında durduruldu; kalemleri sırayla uygula, sonra kapıyı koş.
 - Sonraki işler: `docs/is-kuyrugu.md` (34 iş + G1–G3 görsel).
-- Tasarım araştırması 1. tur: `docs/arastirma/a2-tasarim-1-tur.md` (kazanç/kayıp renk körlüğü, yüzde biçimi tutarsızlığı, telefon menüsü vb. → T1–T8).
+- Tasarım araştırması 1. tur: `docs/arastirma/a2-tasarim-1-tur.md` (kazanç/kayıp renk körlüğü, telefon menüsü vb. → T1–T8). T1 yapıldı 24.10: yüzde tek kural `%17,5` / `+%17,5` / `-%22,7` (`fmtPct`, `fmtPctPlain` in store.ts; "%-" üretilmez). Sıradaki: T2 (kazanç/kayıp ikinci işaret).
 - Fikirler ve yapılabilirlik: `docs/fikir-defteri.md` (yeni fikir önce buraya satır olarak eklenir). Faz sırası: `docs/faz-plani.md`.
 - Vercel: `fagent` projesi (takım MYSELF) Vite/`dist` olarak ayarlandı ve yalnızca `urun/birlesik` dalını derler;
   GitHub'a bağlı; her push önizlemeyi günceller: https://fagent-git-urun-birlesik-myself-40f7.vercel.app

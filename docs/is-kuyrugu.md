@@ -53,7 +53,7 @@ iş eklenmez. Ekip bir işi bitirince durumunu **Tamam** yapar ve commit'i yazar
 | 34 | agent.ts için Stryker mutasyon testi | plan dışı | dusuk | buyuk | Bekliyor | araştırma: fagent-test |
 | G1 | Hesap ekranı: 'Şifremi unuttum' ile 'Hesapsız devam et' bitişik | 6 | orta | küçük | ✅ Tamam (index.css) | görsel kontrol |
 | G2 | Telefon (375px): menü ilk ekranı kaplıyor; alt sekme çubuğu + 'Daha fazla' | 6 | yüksek | orta | Bekliyor | görsel kontrol |
-| G3 | Yüzde biçimi: '%-22,69' yerine '-%22,69' | 6 | düşük | küçük | Bekliyor | görsel kontrol |
+| G3 | Yüzde biçimi: '%-22,69' yerine '-%22,69' | 6 | düşük | küçük | ✅ Tamam (T1, 24.10) | görsel kontrol |
 
 ## Ekibe verilecek hazır görev metinleri (yönetmen)
 

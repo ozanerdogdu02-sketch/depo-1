@@ -51,8 +51,8 @@ check('Zincir baştan kuruluyor', vergi.includes('Zinciri baştan sona kuralım'
 check('1) Brüt kazanç veriliyor', /Brüt kazanç:\s*\+₺\s?3\.700/.test(vergi));
 check('2) Stopaj tutarı veriliyor (₺823 ≈ 612,50 + 210)', /Varsayılan stopaj:\s*−₺\s?82[23]/.test(vergi));
 check('2) Net kazanç veriliyor', /net kazanç \+₺\s?2\.87[78]/.test(vergi));
-check('3) REEL net getiri veriliyor', /REEL net getirin: %-?\d+[.,]\d{2}/.test(vergi));
-check('Vergisiz reel getiriyle karşılaştırılıyor', /Vergi hiç olmasaydı reel getirin %-?\d/.test(vergi));
+check('3) REEL net getiri veriliyor', /REEL net getirin: -?%\d+[.,]\d{2}/.test(vergi));
+check('Vergisiz reel getiriyle karşılaştırılıyor', /Vergi hiç olmasaydı reel getirin -?%\d/.test(vergi));
 check('Stopajın reel maliyeti puan olarak veriliyor', /puan stopajın reel maliyeti/.test(vergi));
 
 // --- Vergi KAZANÇ üzerinden alınır: zarardaki kalem dökümde olmamalı ---
