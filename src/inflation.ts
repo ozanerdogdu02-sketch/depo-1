@@ -13,10 +13,11 @@
 import { useSyncExternalStore } from 'react';
 import { fetchInflationPct } from './evds';
 
-// TÜİK Haziran 2026 yıllık TÜFE. Canlı veri gelemezse kullanılan değer budur.
+// TÜİK Eylül 2026 yıllık TÜFE %29,73 (5 Ekim 2026) — haber kaynaklı, birincil kaynakla doğrulanmalı;
+// metinlerde tam sayı kullanıldığı için %30'a yuvarlandı. Canlı veri gelemezse kullanılan değer budur.
 // EVDS entegrasyonu devreye girdiğinde bu yalnızca bir GERİ DÜŞME değeri olarak kalır —
 // ama bayatlamaması için yine de dönemsel olarak elden güncellenmeli.
-export const VARSAYILAN_ENFLASYON_PCT = 32;
+export const VARSAYILAN_ENFLASYON_PCT = 30;
 
 export type InflationSource = 'varsayim' | 'evds' | 'kullanici';
 
@@ -68,7 +69,7 @@ export function useInflation(): InflationState {
 export function inflationSourceLabel(s: InflationState): string {
   if (s.source === 'evds') return `TCMB EVDS${s.periodLabel ? ` · ${s.periodLabel}` : ''}`;
   if (s.source === 'kullanici') return 'senin girdiğin oran';
-  return 'varsayım (TÜİK, elle güncellenir)';
+  return 'varsayım (TÜİK Eylül 2026 yıllık TÜFE ≈ %29,73, haber kaynaklı, doğrulanmadı; elle güncellenir)';
 }
 
 // SIFIRLA ile birlikte çağrılır. Kullanıcının girdiği oran da kullanıcı verisidir — tam

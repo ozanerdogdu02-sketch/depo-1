@@ -17,6 +17,7 @@ Hazırlayan: yönetmen ajanı, 2026-10-24. Dal: `urun/birlesik`. Etiketler: ⚖�
 | 2 | 2.2 | Migration'a `grant ... to authenticated` + Splinter 0029 notu (#6, #30) | guvenlik | yeni migration dosyası, üretime UYGULANMAZ (adım 5 ⚖️) | küçük | yok |
 | 2 | 2.3 | Tedarik zinciri (#27): `uses:` SHA sabitleme, dependabot, SECURITY.md | guvenlik | `ci.yml` her `uses:` 40 karakter SHA; CodeQL ⚖️ | orta | yok |
 | 2 | 2.4 | e2e koşucusunda kararsız test raporu (#31) | test | düşen dosya bir kez yeniden koşulur; "kararsız: X" ayrı satır; ilk hata gizlenmez | küçük | yok |
+| 2 | 2.6 | Uyum (düşük): `agent.ts:~818` "denge bozulmuş sayılır" → "olarak işaretlenir (FAGENT kuralı)"; yalnız not, kod henüz değişmedi | uyum | "sayılır" yok; ilgili e2e seçicisi güncel | küçük | yok |
 | 2 | 2.5 | İlan taslağında iddia ↔ kod eşleme (#28) | uyum | her özellik iddiası `dosya:satır`/test adıyla eşli; kanıtsız olan silinir/“planlanan” | küçük | 1.5 |
 | **3** | 3.1 | "Tavsiye değildir" metni tek kaynak (#24 kalanı) | uyum | tek sabit, 4 yerden bağlı; altbilgi yerleşimi ⚖️ | küçük | 1.3 |
 | 3 | 3.2 | Klavye/ekran okuyucu envanteri (T6) | test | 9 sekmede Tab sırası ve adsız etkileşimli öğe sayısı ölçülür; eksikler listelenir; görsel düzeltme ⚖️ | orta | yok |

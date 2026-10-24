@@ -150,7 +150,7 @@ export function analyzePortfolio(s: PortfolioState, inflationPct: number = VARSA
     );
   }
 
-  notes.push('Not: Bu analiz demo ajan tarafından yerel kurallarla üretildi; yatırım tavsiyesi değildir.');
+  notes.push('Not: Bu analiz yerel kurallarla, anahtarsız üretildi; yatırım tavsiyesi değildir.');
   return notes;
 }
 
@@ -315,7 +315,7 @@ function pnlBarChart(s: PortfolioState): ChartSpec | undefined {
 // App.tsx her çağrıda güncel oranı `inflationPct` parametresiyle geçirir (TCMB EVDS'den canlı,
 // kullanıcının girdiği ya da varsayım). agent.ts SAF kalsın diye buradan okunmaz, geçirilir.
 // Bu sabit yalnızca parametre hiç verilmediğinde (ör. doğrudan çağrılan bir test) devreye girer.
-const VARSAYILAN_ENFLASYON = 32;
+const VARSAYILAN_ENFLASYON = 30; // inflation.ts ile aynı (TÜİK Eylül 2026 %29,73, yuvarlanmış)
 
 // "Mevduatta tutsaydım" karşı-olgusalı için varsayılan yıllık faiz — RiskPanel.tsx'teki
 // DEFAULT_RISK_FREE_PCT ile aynı gerekçe: Türkiye için anahtarsız/resmi bir kaynak yok,
@@ -342,12 +342,13 @@ function readAllocationChart(s: PortfolioState): string {
     `${fmtDec(c.effectiveN, 1)} varlığa denk geliyor.`,
   );
   if (c.level === 'yuksek') {
-    lines.push('Bu yoğun bir dağılım (HHI > 0,25) — tek bir varlıktaki sert hareket portföyün tamamını belirgin biçimde etkiler.');
+    lines.push('FAGENT\'ın gösterim aralığında bu "yoğun" bölgede (HHI > 0,25): tek bir varlıktaki sert hareket portföyün tamamını belirgin biçimde etkiler.');
   } else if (c.level === 'orta') {
-    lines.push('Bu orta düzey bir yoğunlaşma (HHI 0,15–0,25). Dağıtık sayılmak için ağırlıkların daha dengeli olması gerekir.');
+    lines.push('FAGENT\'ın gösterim aralığında bu "orta" bölgede (HHI 0,15–0,25): ağırlıklar daha dengeli olsaydı HHI daha düşük çıkardı.');
   } else {
-    lines.push('Bu dağıtık sayılır (HHI < 0,15) — tek bir varlığa bağımlılığın düşük.');
+    lines.push('FAGENT\'ın gösterim aralığında bu "dağıtık" bölgede (HHI < 0,15): tek bir varlığa bağımlılık düşük görünüyor.');
   }
+  lines.push('Bu eşikler FAGENT\'ın gösterim aralığıdır; resmî bir standart değildir.');
   return lines.join(' ');
 }
 
@@ -765,7 +766,8 @@ const CHAT_RULES: Rule[] = [
         `nominal olarak ${c.nominalN} varlığın var, ama ağırlıklar eşit olmadığı için çeşitlenmen ` +
         `etkin olarak ${fmtDec(c.effectiveN, 1)} varlığa denk.`,
         `En büyük pozisyon ${c.topName} (%${fmtDec(c.topWeightPct, 1)}). Seviye: ` +
-        (c.level === 'yuksek' ? 'yoğun (HHI > 0,25).' : c.level === 'orta' ? 'orta (HHI 0,15–0,25).' : 'dağıtık (HHI < 0,15).'),
+        (c.level === 'yuksek' ? 'yoğun (HHI > 0,25)' : c.level === 'orta' ? 'orta (HHI 0,15–0,25)' : 'dağıtık (HHI < 0,15)') +
+        ' — FAGENT\'ın gösterim aralığına göre; resmî bir standart değildir.',
       ].join('\n\n');
     },
   },
@@ -1058,7 +1060,7 @@ function memoryQueryReply(memory: AgentMemoryProfile | undefined, text: string, 
 // deseninin anahtarsız/yerel karşılığıdır: gözlemle → depola → gelecekte kullan.
 export function buildGreeting(memory?: AgentMemoryProfile): string {
   const base =
-    'Merhaba! Ben FAGENT demo ajanı — anahtar gerektirmeden çalışırım. "Analiz Et" butonuna basabilir, ' +
+    'Merhaba! Ben FAGENT ajanıyım — yerel kurallarla, anahtar gerektirmeden çalışırım. "Analiz Et" butonuna basabilir, ' +
     'portföyün hakkında soru sorabilir ya da "dağılımımı çiz" gibi bir istekle senin için grafik çizmemi isteyebilirsin.';
   if (!memory || memory.totalTurns < 3) {
     return `${base} "yardım" yazarsan neler yapabildiğimi listelerim.`;

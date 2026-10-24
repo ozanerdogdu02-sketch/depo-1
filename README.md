@@ -1,7 +1,7 @@
 # FAGENT — Anahtarsız Yatırımcı Paneli
 
 Kişisel portföy takip uygulaması — dokuz sekme: Panel, Bugün, Hisseler, Fonlar, Kripto Varlıklar,
-**Kripto Piyasa**, İşlemler, Projeksiyon ve bir **Demo Ajan** (sohbet + grafik çizme + hafıza +
+**Kripto Piyasa**, İşlemler, Projeksiyon ve bir **kural tabanlı Ajan** (yerel, anahtarsız; sohbet + grafik çizme + hafıza +
 eğitilebilir bilgi tabanı + proaktif içgörüler).
 
 Portföy takibinin ötesinde **gerçek finansal matematik** yapar: reel getiri (Fisher), XIRR,
@@ -26,8 +26,9 @@ anahtarı olmadan çalışmayı bırakmaz. Portföy verisi **varsayılan olarak*
 o zaman verisi yalnızca kendi hesabına bağlı, RLS korumalı tek bir kayda eşitlenir (bkz.
 "Hesap ve bulut senkronu (opsiyonel)"). Hesap kurulumda kapalıdır ve açılmadıkça hiçbir ağ isteği atılmaz.
 
-**Tek istisna — TCMB EVDS (opsiyonel):** enflasyon oranını resmî kaynaktan çekmek için bir Netlify
-Function proxy'si var (`netlify/functions/evds.mjs`). Anahtar sunucu ortam değişkeninde durur,
+**Tek istisna — TCMB EVDS (opsiyonel):** enflasyon oranını resmî kaynaktan çekmek için bir sunucu
+proxy'si var: Vercel Function `api/evds.mjs` (mantık tek kaynakta, `netlify/functions/evds.mjs`;
+Netlify alternatif olarak kalır). Anahtar sunucu ortam değişkeninde durur,
 istemciye HİÇ inmez ve **portföy verisi bu isteğe dahil edilmez** — sunucudan geçen tek şey TCMB'nin
 kamuya açık serisidir. Anahtar tanımsızsa ya da fonksiyon yoksa uygulama elle girilen varsayımla
 tam çalışmaya devam eder; canlı veri bir bonustur, şart değildir.
@@ -123,8 +124,10 @@ src/
   ErrorBoundary.tsx — render hatasında beyaz ekran yerine veri kurtarma ekranı
   inflation.ts      — enflasyon oranının TEK KAYNAĞI (varsayım / TCMB EVDS / kullanıcı)
   evds.ts           — TCMB EVDS istemcisi; hata FIRLATMAZ, başarısızlıkta varsayıma düşülür
+api/
+  evds.mjs          — Vercel Function: netlify/functions/evds.mjs mantığını Vercel'e bağlar
 netlify/
-  functions/evds.mjs — EVDS proxy'si: API anahtarı YALNIZCA burada (sunucu ortam değişkeni)
+  functions/evds.mjs — EVDS proxy'sinin TEK KAYNAĞI: API anahtarı YALNIZCA burada (sunucu ortam değişkeni)
   analytics.ts      — FİNANSAL MATEMATİK (saf): reel getiri, XIRR, HHI, volatilite,
                       maks. düşüş, Sharpe, korelasyon, kovaryansla çeşitlendirme faydası,
                       vergi sonrası net getiri (DEFAULT_TAX_RATES + afterTaxOf),
@@ -278,14 +281,18 @@ Sidebar'daki **SIFIRLA** üçünü de temizler.
   girdiği oran canlı veriyi de ezer; SIFIRLA bu geçersiz kılmayı temizler.
   Daha önce aynı sayı DÖRT yerde ayrı ayrı duruyordu (iki kart + projeksiyon + `agent.ts` sabiti)
   ve biri değiştirilince diğerleri eski değeri kullanmaya devam ediyordu — birleştirildi.
-- **EVDS şu an KAPALI — `EVDS_API_KEY` tanımlı değil.** Yani ürün bugün enflasyonu canlı
-  ÇEKMİYOR, varsayım modunda çalışıyor. Entegrasyon yazıldı ve testlendi; açılması için tek
-  gereken Netlify ortam değişkenine anahtarı eklemek. Sunum/doküman dilinde bu ayrımı koru:
+- **EVDS şu an KAPALI — `EVDS_API_KEY` tanımlı değil.** Vercel önizlemede (24.10.2026) anahtar
+  tanımsızken 503 `anahtar_yok` gözlendi; gerçek EVDS verisiyle doğrulanmadı (EVDS_API_KEY tanımlanınca ve
+  seri kodu doğrulanınca açılır). Anahtar yokken uygulama elle girilen varsayıma düşer. Yani ürün bugün
+  enflasyonu canlı ÇEKMİYOR, varsayım modunda çalışıyor. Anahtar tanımlanınca canlı enflasyon açılır;
+  açılması için tek gereken Vercel ortam değişkenine anahtarı eklemek. Sunum/doküman dilinde bu ayrımı koru:
   "hazır ve açılmayı bekliyor" doğru, "canlı çekiyoruz" yanlış.
 - **EVDS seri kodu (`evds.ts` → `TUFE_SERIES`) HENÜZ DOĞRULANMADI.** Yanlışsa proxy boş yanıt
   verir, istemci `undefined` döner ve varsayıma düşülür — ekranda yanlış bir sayı ÇIKMAZ.
   Yıllık değişim endeksin kendisinden hesaplandığı için serinin baz yılı sonucu etkilemez.
 - **Netlify Function gerçek deploy dışında koşturulamadı** (ne netlify-cli var ne dış ağ erişimi).
+  Vercel durumu: önizlemede yalnızca anahtarsız 503 `anahtar_yok` yanıtı ve güvenlik başlıkları gözlendi (24.10.2026);
+  gerçek EVDS verisi doğrulanmadı.
   İstemci tarafı `page.route()` taklidiyle test edildi; fonksiyonun kendisi yalnızca canlı
   deploy'da doğrulanabilir — "test edildi" DEĞİLDİR.
 - **Stopaj oranları da elle güncellenen varsayımdır** (`analytics.ts` → `DEFAULT_TAX_RATES`).

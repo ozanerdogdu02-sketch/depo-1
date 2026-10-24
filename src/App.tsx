@@ -139,7 +139,7 @@ function formatFetchedAt(iso: string): string {
 // gibi. Sabit/uydurma bir "canlı" oran gösterilmez; arayüzde "senin varsayımın" olarak etiketlenir.
 //
 // Başlangıç değeri, otomatik çekilemediği için ELLE güncellenen bir varsayımdır: TÜİK yıllık TÜFE,
-// Haziran 2026 → %32,11 (yuvarlanarak 32). agent.ts'teki VARSAYILAN_ENFLASYON ile aynı tutulmalı —
+// Eylül 2026 → %29,73 (yuvarlanarak 30; haber kaynaklı, doğrulanmalı). agent.ts'teki VARSAYILAN_ENFLASYON ile aynı tutulmalı —
 // ikisi ayrışırsa Panel'in kartı ile ajanın metni farklı oran söyler. Güncellerken ikisini birlikte
 // değiştir ve fagent-insight-e2e.mjs'i çalıştır.
 
@@ -1850,7 +1850,7 @@ function Ajan() {
 
       <div className="card">
         <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Bot size={14} /> Demo Ajan — Anahtarsız
+          <Bot size={14} /> Ajan — Yerel Kurallar, Anahtarsız
         </div>
         <div className="chat-box">
           {messages.map((m, i) => (

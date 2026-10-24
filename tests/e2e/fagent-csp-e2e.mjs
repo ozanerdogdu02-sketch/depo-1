@@ -3,7 +3,7 @@
 // Başlık değerinin tek kaynağı vercel.json'dur; test onu okur (kopya yok).
 import { chromium } from 'playwright-core';
 import { createServer } from 'node:http';
-import { readFileSync, existsSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, statSync, readdirSync } from 'node:fs';
 import { join, extname } from 'node:path';
 
 const cfg = JSON.parse(readFileSync('vercel.json', 'utf8'));
@@ -53,6 +53,12 @@ await page.waitForTimeout(500);
 check('Grafik (inline stil/SVG) CSP altında çizildi', (await page.locator('.msg-agent svg').count()) > 0);
 check('Hiçbir CSP ihlali / sayfa hatası yok', sorunlar.length === 0);
 if (sorunlar.length) console.log(sorunlar.join('\n'));
+
+check('dist/cors-test.html yok (test sayfası üretim paketine girmez)', !existsSync(join('dist', 'cors-test.html')));
+
+const IZINLI_KOK = ['index.html', 'favicon.svg', 'assets'];
+const fazla = readdirSync('dist').filter(d => !IZINLI_KOK.includes(d));
+check(`dist/ kökünde yalnız index.html, favicon.svg, assets/ var${fazla.length ? ' (fazla: ' + fazla.join(', ') + ')' : ''}`, fazla.length === 0);
 
 await browser.close(); server.close();
 console.log(failed ? 'FAGENT_CSP_E2E_FAILED' : 'FAGENT_CSP_E2E_OK');

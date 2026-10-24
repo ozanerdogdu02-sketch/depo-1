@@ -61,6 +61,8 @@ check('Metindeki %55 enflasyon oranı dikkate alınıyor', reel55.includes('%55 
 const ces = await ask('ne kadar çeşitlenmişim');
 check('Çeşitlenme HHI ile cevaplanıyor', ces.includes('HHI'));
 check('Etkin varlık sayısı veriliyor', ces.includes('etkin olarak'));
+check('HHI yanıtları hüküm/tavsiye dili içermiyor (gerekir|malısın|öneri|sayılır)', !/gerekir|malısın|melisin|öneri|sayılır|kesin|tavsiye(?! değildir| veremem)/i.test(dag) && !/gerekir|malısın|melisin|öneri|sayılır|kesin|tavsiye(?! değildir| veremem)/i.test(ces));
+check('HHI eşikleri "gösterim aralığı; resmî standart değil" diye etiketli', /gösterim aralığı/.test(dag) && /resmî bir standart değildir/.test(dag) && /gösterim aralığı/.test(ces));
 
 // --- Risk metrikleri: artık HESAPLANIYOR (gerçek tarihsel fiyattan), ama kapsam dürüstçe belirtiliyor ---
 // Not: bu davranış bilinçli olarak değişti — önceden ajan "hesaplayamıyorum" diyordu. CoinGecko
@@ -79,6 +81,32 @@ const sharpe = await ask('sharpe oranım kaç');
 check('Sharpe da aynı akışa yönlendiriliyor', sharpe.includes('Risk Analizi'));
 
 await page.screenshot({ path: `${out}/an2-durust-sinir.png` });
+
+// --- HHI yorumunun 3 dalı ayrı küçük portföylerle (agent.ts readAllocationChart) ---
+// Yasak kalıp listesi .claude/skills/uyum-dili/SKILL.md ile aynı: tavsiye yalnızca "tavsiye değildir/veremem".
+const YASAK_KALIP = /gerekir|malısın|melisin|öneri|sayılır|kesin|tavsiye(?! değildir| veremem)/i;
+const hhiDallari = [
+  { ad: 'yoğun', agirliklar: [100], beklenen: '"yoğun" bölgede' },
+  { ad: 'orta', agirliklar: [30, 25, 20, 15, 10], beklenen: '"orta" bölgede' },   // HHI 0,225
+  { ad: 'dağıtık', agirliklar: Array(8).fill(12.5), beklenen: '"dağıtık" bölgede' }, // HHI 0,125
+];
+for (const d of hhiDallari) {
+  await page.evaluate(ag => {
+    localStorage.setItem('fagent.portfolio.v1', JSON.stringify({
+      onboarded: true, realizedPnl: 0, txns: [],
+      holdings: ag.map((w, i) => ({ id: `hhi${i}`, name: `HHI Varlık ${i + 1}`, type: i % 2 ? 'fon' : 'hisse', amount: w * 1000, costBasis: w * 1000 })),
+    }));
+  }, d.agirliklar);
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForTimeout(300);
+  await page.locator('.side-link', { hasText: 'AJAN' }).click();
+  await page.waitForTimeout(300);
+  const yanit = await ask('dağılımımı çiz');
+  check(`HHI ${d.ad} dalı: ${d.beklenen} yorumu çıkıyor`, yanit.includes(d.beklenen));
+  check(`HHI ${d.ad} dalı: diğer iki dal çıkmıyor`, hhiDallari.filter(x => x !== d).every(x => !yanit.includes(x.beklenen)));
+  check(`HHI ${d.ad} dalı: tavsiye/kesinlik dili yok`, !YASAK_KALIP.test(yanit));
+  check(`HHI ${d.ad} dalı: "resmî bir standart değildir" notu var`, yanit.includes('resmî bir standart değildir'));
+}
 
 await browser.close();
 console.log(failed ? 'FAGENT_ANALYTICS_E2E_FAILED' : 'FAGENT_ANALYTICS_E2E_OK');

@@ -77,6 +77,8 @@ Aynı hatayı tekrar yapma. Yeni bir hata bulunursa buraya tek satır eklenir (t
 
 - 2026-10-24: Dosya silen değişiklikte `git ls-files --cached` silinmiş dosyayı da verir; tarama betikleri `existsSync` ile süzmeli (tarama bu yüzden çöktü, düzeltildi).
 - 2026-10-24: Var olan e2e dosyasına blok eklerken `grep -n "const <ad>"` ile değişken adı çakışmasını ve bloğun zaten ekli olup olmadığını kontrol et (tekrar eklenen blok test dosyasını çökertti).
+- 2026-10-24: `public/` altındaki her dosya üretim paketine girer; test/hata ayıklama sayfası konmaz (cors-test.html böyle sızdı).
+- 2026-10-24: Varsayılan sabit (enflasyon, stopaj, eşik) değişince eski değeri `grep -rn` ile src ve tests/e2e'de ara; testlerde aynı sayı sabit olarak tekrar eder.
 
 **Süreç**
 - **HATA (2026-10-24, kullanıcı düzeltti): işleri ekipsiz, tek başıma yapma.** Kullanıcı geliştirme işlerinin **ajan ekibiyle** (`fagent-ekip` iş akışı; araştırma için `fagent-arastirma`) yürütülmesini ister. "En ucuz yol" ifadesini "ekibi atla" diye yorumladım ve bir gün boyu çoğu işi kendim yaptım; bu kullanıcının söylediğinin dışına çıkmaktır. Kural: kod/test/belge geliştirme işi → önce ekip akışı; ekipsiz çalışma ancak kullanıcı AÇIKÇA "ekipsiz/kendin yap" derse. Kredi tasarrufu gerekçesi benim kararım değildir: ucuzluk istenirse ekibin KÜÇÜK bir koşusu (`maksKalem` düşük, roller kısıtlı) önerilir/yapılır, ekip tamamen atlanmaz. Kullanıcı kendi adıma karar vermemi istemiyor; soru sormaya da gerek yok: varsayılan = ekip.

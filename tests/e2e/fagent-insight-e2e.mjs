@@ -55,7 +55,7 @@ check('Kripto portföyünde konsantrasyon uyarısı var (%100 kripto)', cryptoTe
 check('Kripto portföyünde stablecoin nakit erimesi hesaplanıyor (USDT)', cryptoText.includes('reel değer kaybediyor'));
 // SIFIRLA kullanıcının girdiği enflasyon oranını da temizlemeli — yukarıda 0 girilmişti,
 // sıfırlamadan sonra ayakta kalsaydı nakit erimesi uyarısı hiç çıkmazdı.
-check('SIFIRLA enflasyon geçersiz kılmasını da temizledi', (await page.inputValue('#inflation-input')) === '32');
+check('SIFIRLA enflasyon geçersiz kılmasını da temizledi', (await page.inputValue('#inflation-input')) === '30');
 
 // --- 6. Boş portföyde kart hiç görünmez ---
 page.once('dialog', d => d.accept());

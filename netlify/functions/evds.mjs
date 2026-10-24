@@ -20,6 +20,20 @@ const EVDS_BASE = 'https://evds2.tcmb.gov.tr/service/evds';
 const SERIES_RE = /^[A-Z0-9]+(\.[A-Z0-9]+)+$/;
 const DATE_RE = /^\d{2}-\d{2}-\d{4}$/;
 
+// Beyaz liste: src/evds.ts yalnızca TUFE_SERIES ('TP.FG.J0') ister. Seri kodu birincil kaynakla
+// doğrulanınca güncellenir.
+const IZINLI_SERILER = ['TP.FG.J0'];
+const MAKS_ARALIK_AY = 24;
+
+// GG-AA-YYYY -> gerçek takvim tarihi (UTC ms) ya da null.
+function parseTarih(s) {
+  const [g, a, y] = s.split('-').map(Number);
+  if (y < 2000 || y > 2100 || a < 1 || a > 12 || g < 1 || g > 31) return null;
+  const d = new Date(Date.UTC(y, a - 1, g));
+  if (d.getUTCFullYear() !== y || d.getUTCMonth() !== a - 1 || d.getUTCDate() !== g) return null;
+  return { t: d.getTime(), ay: y * 12 + (a - 1) };
+}
+
 function json(body, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(body), {
     status,
@@ -36,8 +50,16 @@ export default async (req) => {
   if (!SERIES_RE.test(series) || series.length > 64) {
     return json({ error: 'gecersiz_seri', message: 'Seri kodu biçimi geçersiz.' }, 400);
   }
+  if (!IZINLI_SERILER.includes(series)) {
+    return json({ error: 'gecersiz_seri', message: 'Bu seri kodu desteklenmiyor.' }, 400);
+  }
   if (!DATE_RE.test(startDate) || !DATE_RE.test(endDate)) {
     return json({ error: 'gecersiz_tarih', message: 'Tarihler GG-AA-YYYY biçiminde olmalı.' }, 400);
+  }
+  const bas = parseTarih(startDate);
+  const bit = parseTarih(endDate);
+  if (!bas || !bit || bas.t > bit.t || bit.ay - bas.ay > MAKS_ARALIK_AY) {
+    return json({ error: 'gecersiz_tarih', message: 'Tarih aralığı geçersiz (en çok 24 ay, başlangıç ≤ bitiş).' }, 400);
   }
 
   const key = process.env.EVDS_API_KEY;

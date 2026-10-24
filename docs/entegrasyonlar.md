@@ -44,18 +44,18 @@ olabilir" diyor — `market.ts:55-59`'daki yorumda gerekçesi yazılı.
 
 ---
 
-## 2. Netlify Function — TCMB EVDS proxy'si ⚠️ ŞU AN KAPALI
+## 2. Vercel Function (Netlify alternatif) — TCMB EVDS proxy'si ⚠️ ŞU AN KAPALI
 
 Tek sunucu tarafı bileşen. **Var olma sebebi tek başına yeterince önemli:** EVDS bir API
 anahtarı istiyor, anahtar istemciye inemez.
 
 | | |
 |---|---|
-| Dosya | `netlify/functions/evds.mjs` (79 satır) |
-| İstemci | `src/evds.ts` → `/.netlify/functions/evds` |
+| Dosya | `api/evds.mjs` (Vercel Function); mantık tek kaynakta: `netlify/functions/evds.mjs` (79 satır, Netlify alternatifi) |
+| İstemci | `src/evds.ts` → `/api/evds` (Vercel: `api/evds.mjs`; Netlify: `netlify.toml` yönlendirmesi) |
 | Yukarı akış | `https://evds2.tcmb.gov.tr/service/evds` |
-| Anahtar | `EVDS_API_KEY` — **yalnızca Netlify ortam değişkeni**, istemciye hiç inmiyor |
-| Durum | ❌ **Kapalı** — anahtar henüz alınmadı |
+| Anahtar | `EVDS_API_KEY` — **yalnızca sunucu ortam değişkeni** (Vercel; Netlify'da da aynı ad), istemciye hiç inmiyor |
+| Durum | ❌ **Kapalı** — Vercel önizlemede (24.10.2026) anahtar tanımsızken 503 `anahtar_yok` gözlendi; gerçek EVDS verisiyle doğrulanmadı (EVDS_API_KEY tanımlanınca ve seri kodu doğrulanınca açılır) |
 
 **Kapalıyken ne oluyor:** fonksiyon 503 döner → `evds.ts` `undefined` döner → uygulama elle
 girilen enflasyon varsayımına düşer → **kullanıcıya hiçbir hata gösterilmez.** Bu yol 26 e2e
@@ -158,7 +158,7 @@ Dürüstlük gereği ayrı başlık. Bunların hiçbiri "test edildi" diye sunul
 |---|---|
 | **Netlify Function'ın kendisi** | Geliştirme ortamında ne netlify-cli var ne dış ağ erişimi. İstemci tarafı `page.route()` taklidiyle test edildi; fonksiyon yalnızca gerçek deploy'da doğrulanabilir |
 | **EVDS seri kodu** (`TUFE_SERIES = 'TP.FG.J0'`) | EVDS arayüzünden teyit edilmedi. Yanlışsa proxy boş döner → varsayıma düşülür → **ekranda yanlış sayı çıkmaz** (fail-safe) |
-| **BtcTurk / TEFAS / altın CORS** | Geliştirme ortamının çıkış politikası tüm dış hostları engelliyor (403). Test sayfası hazır: `fagentai.netlify.app/cors-test.html` |
+| **BtcTurk / TEFAS / altın CORS** | Geliştirme ortamının çıkış politikası tüm dış hostları engelliyor (403). Test sayfası `scripts/cors-test.html`, üretim paketine girmez |
 | **Gerçek ağ üzerinden canlı fiyat** | Aynı sebep. `page.route()` ile taklit edildi; gerçek doğrulama kullanıcının tarayıcısında yapılmalı |
 
 ---

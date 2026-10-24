@@ -1,7 +1,9 @@
 // TCMB EVDS istemcisi — yıllık TÜFE enflasyonunu resmî kaynaktan çeker.
 //
-// Anahtar burada YOK: istek `netlify/functions/evds.mjs` proxy'sine gider, anahtar orada
-// (sunucu ortam değişkeninde) durur. Bu modül anahtarı ne görür ne saklar.
+// Anahtar burada YOK: istek `/api/evds` proxy'sine gider; Vercel'de `api/evds.mjs`, Netlify'da
+// `netlify.toml` yönlendirmesiyle `netlify/functions/evds.mjs` karşılar (mantık tek kaynakta:
+// `netlify/functions/evds.mjs`). Anahtar orada (sunucu ortam değişkeninde) durur.
+// Bu modül anahtarı ne görür ne saklar.
 //
 // FAIL-SAFE TASARIM — en önemli özellik: bu modül HİÇBİR KOŞULDA hata fırlatmaz ve asla
 // tahmin edilmiş bir sayı döndürmez. Beklenmedik her durumda `undefined` döner, çağıran da
