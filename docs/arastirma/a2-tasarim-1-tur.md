@@ -36,7 +36,7 @@ Sharesight, Getquin…) ekranlarını **incelemedim** (görsel erişim yok) → 
 | T5 | Görsel kontrol: 6 ana ekran × 1440/375 px ekran görüntüsü üreten betik (+ isteğe bağlı karşılaştırıcı, Üst Kurul onayıyla) | orta | |
 | T6 | Erişilebilirlik tarama: klavye ile tüm akış, odak halkası, kaydırıcılar için tuş alternatifi (2.5.7), `prefers-reduced-motion` (var), ekran okuyucu adları (`aria-label` 17 yerde var; eksikleri tara) | orta | |
 | T7 | Boş / yükleniyor / hata durumları: ekran ekran envanter | orta | |
-| T8 | Performans: ana paket ~750 kB; bölme (dinamik import) | orta | çok kitle için |
+| T8 | Performans: ana paket ~740 kB (sıkıştırılmış ~220 kB) | orta | **Ertelendi (24.10):** Panel sekmesi grafik kütüphanesini ilk ekranda kullandığı için bölmenin kazancı küçük; testlerde zamanlama riski. Gerçek kullanıcı ölçümü sonrası yeniden bak |
 
 ## 2. tur gerekirse (daha pahalı)
 Rakip ekran incelemesi (görsel erişimli bir oturum veya sizin ekran görüntüleriniz), TDK yazım kılavuzu kontrolü, resmî Playwright belgesi, WCAG 2.4.13 düzeyi, finans grafik dili için birincil kaynaklar.
