@@ -141,7 +141,7 @@ Yönetmen tarafından gerekçesiyle reddedildi; yeniden önerilmeden önce gerek
 Bütçe: mesaja "+800k" eklenmeli. Daha ucuz seçenek: yalnızca yönetmen + güvenlik/uyum rolleriyle (`args.roller`).
 
 
-## A2 — Tasarım derin araştırması (öncelik: yüksek, Faz 2)
+## A2 — Tasarım derin araştırması (öncelik: yüksek, Faz 2) — 1. TUR TAMAM: docs/arastirma/a2-tasarim-1-tur.md (T1–T8 iş listesi)
 `fagent-arastirma`, `args.roller` = ["tasarim","uyum"] (+ yönetmen). Konu: `docs/fikir-defteri.md` → "Tasarım" bölümü. Çıktı: tasarım sistemi önerisi (jetonlar,
 bileşen listesi), erişilebilirlik kontrol listesi, Türkçe sayı/yüzde biçim kuralı, görsel regresyon test planı, referans karşılaştırma tablosu (kaynaklı).
 

@@ -28,7 +28,7 @@ Kullanıcının söylediği her fikir buraya yazılır ve sınıflandırılır. 
 | 16 | Ekip hafızası: hatalar CLAUDE.md'de, ajanlar okusun | 23.10 | ✅ | Yapıldı; etkisi ölçülmedi | 0 |
 | 17 | Üst kurul (teknoloji onayı) + skill ekosistemi + ortak istem iskeleti | 23.10 | ✅ | Kuruldu; kurul kapısı henüz zorunlu aşama değil (istem kuralı) | 0→2 |
 | 18 | Commit öncesi sistem kontrolü | 24.10 | ✅ | Kapı: typecheck, build, tarama, e2e. K1 bu kapıdan geçti (587/587) | her faz |
-| 19 | Tasarıma fazla önem; detaylar dahil geniş araştırma | 24.10 | ✅ | Araştırma A2 (aşağıda) + tasarım fazı; görsel kontrol 1440/375px, görsel regresyon testi | 2–3 |
+| 19 | Tasarıma fazla önem; detaylar dahil geniş araştırma | 24.10 | ✅ | 1. tur yapıldı (`docs/arastirma/a2-tasarim-1-tur.md`; 6 bulgu, T1–T8 işleri); rakip ekran incelemesi 2. tur. Araştırma A2 (aşağıda) + tasarım fazı; görsel kontrol 1440/375px, görsel regresyon testi | 2–3 |
 | 20 | Çok kitleye ulaşınca abonelik ve tüm altyapı önem sırasında | 24.10 | 🟡 | Kod bizde; **şirket/ödeme sağlayıcı başvurusu kullanıcıda** (uzun sürebilir) | 5 |
 | 21 | Instagram/TikTok reklam + reels sistemi | 24.10 | 🟡 | Parçalı: içerik fabrikası yapılır, hesap/reklam/video çekimi dışarıda (aşağıda) | 6 |
 | 22 | Bu defter: tüm fikirler sınıflandırılsın, başka ajan sistemiyle çözülsün | 24.10 | ✅ | Bu dosya; her yeni fikir buraya eklenir | → |
