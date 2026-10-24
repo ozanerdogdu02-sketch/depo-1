@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAGENT — Tek ana ekran prototipi (örnek veri)</title>
+<style>
+/* ===== Jetonlar (Nocturne mor tonlar; docs/tasarim/hedef-tasarim-canli-site.html paletinden) ===== */
+:root {
+  --bg: #161826;
+  --surface: #1e2133;
+  --surface-2: #282c42;
+  --line: #3f424d;            /* yalnız süs ayırıcı */
+  --line-strong: #7a7f9a;     /* girdi/düğme kenarı */
+  --text: #e9e9ed;
+  --muted: #adb1c6;
+  --accent: #9184d9;          /* dolgu, odak halkası */
+  --accent-text: #b5abfc;     /* metin olarak mor */
+  --on-accent: #12131f;
+  --gain: #3fa9f5;            /* kazanç: mavi + ▲ + işaret */
+  --loss: #ffb07c;            /* kayıp: turuncu + ▼ + işaret */
+  --seg-1: #b5abfc; --seg-2: #7f73c9; --seg-3: #4fb0e8; --seg-4: #8d92aa;
+  --r: 14px;
+  --t-fast: 140ms; --t-med: 220ms; --t-slow: 300ms;   /* üst sınır 300 ms */
+  --ease: cubic-bezier(.22,1,.36,1);
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { color-scheme: dark; }
+body { background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; min-height: 100vh; overflow-x: hidden; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--accent-text); outline-offset: 2px; border-radius: 6px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.gain { color: var(--gain); } .loss { color: var(--loss); }
+
+/* ===== Üst çubuk ===== */
+header.top { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 94%, transparent); border-bottom: 1px solid var(--line); }
+.top-in { max-width: 1280px; margin: 0 auto; padding: 10px 24px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.brand { font-weight: 700; letter-spacing: .14em; color: var(--accent-text); }
+.example-tag { font-size: 13px; padding: 4px 10px; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--text); background: var(--surface); }
+.spacer { flex: 1; }
+.btn { min-height: 44px; min-width: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--surface); transition: background-color var(--t-fast) ease, transform 90ms ease; }
+.btn:hover { background: var(--surface-2); }
+.btn:active { transform: scale(.98); }
+.btn-primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); font-weight: 600; }
+.btn-primary:hover { background: var(--accent-text); }
+
+/* ===== Ana ekran ızgarası ===== */
+main { max-width: 1280px; margin: 0 auto; padding: 20px 24px 40px; }
+h1 { font-size: 13px; font-weight: 600; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; margin-bottom: 12px; }
+.quiet { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); margin-bottom: 16px; flex-wrap: wrap; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-text); display: inline-block; }
+.grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; text-align: left; transition: border-color var(--t-fast) ease, transform var(--t-fast) ease; }
+button.card { width: 100%; display: block; color: inherit; }
+button.card:hover { border-color: var(--accent); transform: translateY(-2px); }
+button.card:active { transform: none; }
+.c-hero { grid-column: span 8; } .c-donut { grid-column: span 4; }
+.c-class { grid-column: span 4; } .c-small { grid-column: span 3; }
+.card h2 { font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: .04em; margin-bottom: 8px; }
+.big { font-size: 40px; font-weight: 600; line-height: 1.1; }
+.mid { font-size: 24px; font-weight: 600; }
+.row { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; }
+.delta { font-weight: 600; white-space: nowrap; }
+.more { display: inline-block; margin-top: 10px; font-size: 13px; color: var(--accent-text); }
+.hero-spark { width: 100%; height: 90px; margin-top: 10px; display: block; }
+.spark-line { fill: none; stroke: var(--accent-text); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; }
+.spark-area { fill: var(--accent); opacity: 0; }
+.ready .spark-line { stroke-dashoffset: 0; transition: stroke-dashoffset var(--t-slow) var(--ease); }
+.ready .spark-area { opacity: .16; transition: opacity var(--t-slow) ease var(--t-fast); }
+
+/* Dağılım halkası */
+.donut-wrap { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.donut { width: 132px; height: 132px; flex: none; transform: rotate(-90deg); }
+.seg { fill: none; stroke-width: 7; stroke-dasharray: 0 100; transition: stroke-dasharray var(--t-slow) var(--ease), opacity var(--t-fast) ease; }
+.ready .seg { stroke-dasharray: var(--len) calc(100 - var(--len)); }
+.donut.dim .seg { opacity: .35; } .donut.dim .seg.on { opacity: 1; }
+.legend { list-style: none; display: grid; gap: 2px; flex: 1; min-width: 150px; }
+.legend button { width: 100%; min-height: 32px; display: flex; align-items: center; gap: 8px; background: none; border: 0; text-align: left; padding: 2px 6px; border-radius: 6px; }
+.legend button:hover { background: var(--surface-2); }
+.sw { width: 12px; height: 12px; border-radius: 3px; flex: none; }
+.legend .pc { margin-left: auto; }
+/* Kart giriş kademesi */
+.rise { opacity: 0; transform: translateY(8px); }
+.ready .rise { opacity: 1; transform: none; transition: opacity var(--t-med) ease, transform var(--t-med) var(--ease); transition-delay: calc(var(--i, 0) * 40ms); }
+
+/* ===== Katman (dialog) ===== */
+dialog { border: 1px solid var(--line-strong); background: var(--surface); color: var(--text); border-radius: 18px; padding: 0; width: min(980px, 94vw); max-height: 88vh; margin: auto; overflow: hidden; }
+dialog::backdrop { background: rgba(10,11,20,.72); }
+dialog[open] { display: flex; flex-direction: column; animation: layer-in var(--t-med) var(--ease); }
+dialog[open]::backdrop { animation: fade-in var(--t-med) ease; }
+@keyframes layer-in { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+dialog.drawer { margin: 0 0 0 auto; height: 100vh; max-height: 100vh; border-radius: 18px 0 0 18px; width: min(460px, 100vw); }
+.l-head { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.l-head h2 { font-size: 18px; flex: 1; }
+.l-tabs { display: flex; gap: 6px; padding: 10px 18px; overflow-x: auto; border-bottom: 1px solid var(--line); scrollbar-width: thin; }
+.l-tabs button { min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid transparent; background: none; white-space: nowrap; color: var(--muted); transition: background-color var(--t-fast) ease, color var(--t-fast) ease; }
+.l-tabs button[aria-selected="true"] { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.l-tabs button:not([aria-selected="true"]):hover { background: var(--surface-2); color: var(--text); }
+.l-body { padding: 18px; overflow-y: auto; flex: 1; }
+.l-body > .pane { animation: pane-in var(--t-med) var(--ease); }
+@keyframes pane-in { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: none; } }
+.l-foot { padding: 10px 18px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 10px 6px; border-bottom: 1px solid var(--line); font-size: 14px; }
+th { color: var(--muted); font-weight: 600; font-size: 13px; }
+td.num, th.num { text-align: right; }
+.tbl-wrap { overflow-x: auto; }
+.pill { display: inline-block; font-size: 12px; padding: 1px 8px; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--muted); }
+.bars { display: grid; gap: 14px; margin-top: 12px; }
+.bar { height: 14px; border-radius: 7px; background: var(--surface-2); overflow: hidden; }
+.bar > i { display: block; height: 100%; width: var(--w); background: var(--accent); border-radius: 7px; transform-origin: left; animation: grow var(--t-slow) var(--ease); }
+@keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.chat { display: grid; gap: 10px; margin-bottom: 14px; }
+.msg { max-width: 88%; padding: 10px 14px; border-radius: 12px; background: var(--surface-2); animation: pane-in var(--t-med) var(--ease); }
+.msg.me { justify-self: end; background: var(--accent); color: var(--on-accent); }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chips .btn { min-height: 44px; }
+label.f { display: grid; gap: 4px; margin: 12px 0; font-size: 14px; }
+input[type=number], select { min-height: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--bg); }
+.tag-assume { font-size: 12px; color: var(--accent-text); border: 1px dashed var(--accent); border-radius: 6px; padding: 0 6px; margin-left: 6px; }
+details { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; margin: 10px 0; }
+summary { min-height: 32px; cursor: pointer; }
+.note { font-size: 13px; color: var(--muted); margin-top: 10px; }
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--surface-2); border: 1px solid var(--line-strong); padding: 10px 16px; border-radius: 10px; z-index: 50; max-width: 92vw; }
+.toast[hidden] { display: none; }
+footer { max-width: 1280px; margin: 0 auto; padding: 0 24px 32px; font-size: 13px; color: var(--muted); }
+
+/* Paylaşılan öğe geçişi (View Transitions API; yoksa yukarıdaki layer-in kullanılır) */
+::view-transition-group(hero-card) { animation-duration: var(--t-slow); animation-timing-function: var(--ease); }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: var(--t-med); }
+
+/* ===== Ekran genişlikleri ===== */
+@media (max-width: 1000px) {
+  .c-hero, .c-donut { grid-column: span 12; } .c-class { grid-column: span 4; } .c-small { grid-column: span 6; }
+}
+@media (max-width: 640px) {
+  main { padding: 14px 14px 32px; } .top-in { padding: 8px 14px; }
+  .grid { gap: 12px; } .c-class { grid-column: span 12; } .c-small { grid-column: span 6; padding: 14px; }
+  .big { font-size: 34px; }
+  dialog:not(.drawer) { width: 100vw; max-width: 100vw; height: 100dvh; max-height: 100dvh; border-radius: 0; border: 0; }
+  dialog.drawer { width: 100vw; border-radius: 0; }
+  .l-head, .l-tabs, .l-body, .l-foot { padding-left: 14px; padding-right: 14px; }
+  .msg { max-width: 96%; }
+  .hide-sm { display: none; }
+}
+/* ===== Hareket azaltma: tüm hareket kapanır ===== */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .rise { opacity: 1; transform: none; }
+  .spark-line { stroke-dashoffset: 0; } .spark-area { opacity: .16; }
+  .seg { stroke-dasharray: var(--len) calc(100 - var(--len)); }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <span class="brand">FAGENT</span>
+    <span class="example-tag" role="note">Örnek veri — yatırım tavsiyesi değildir</span>
+    <span class="spacer"></span>
+    <button class="btn" id="open-agent" aria-label="Ajan sohbetini aç">Ajan</button>
+    <button class="btn btn-primary" id="open-tools" aria-label="Ayarlar ve araçlar çekmecesini aç">Araçlar</button>
+  </div>
+</header>
+
+<main id="main">
+  <h1>Portföy özeti</h1>
+  <p class="quiet" id="status" role="status"><span class="dot" aria-hidden="true"></span>
+    <span>Fiyatlar 14:32'de güncellendi (örnek)</span><span aria-hidden="true">·</span>
+    <span>Son yedek 3 gün önce</span><span aria-hidden="true">·</span>
+    <span>Veriler bu tarayıcıda saklanır</span></p>
+
+  <div class="grid" id="grid">
+    <button class="card c-hero rise" style="--i:0" data-open="bugun" data-vt aria-label="Toplam portföy: 140.000 Türk lirası. Ayrıntıyı aç">
+      <h2>Toplam portföy</h2>
+      <div class="row">
+        <div>
+          <div class="big mono"><span aria-hidden="true" data-count="140000" data-fmt="tl">₺0</span><span class="sr">₺140.000</span></div>
+          <div class="muted" style="font-size:13px">Toplam maliyet ₺119.150</div>
+        </div>
+        <div>
+          <div class="muted" style="font-size:13px">Kâr / zarar (gerçekleşmemiş)</div>
+          <div class="mid mono gain delta">▲ +₺20.850 <span style="font-size:16px">(+%17,5)</span></div>
+        </div>
+      </div>
+      <svg class="hero-spark" viewBox="0 0 400 90" preserveAspectRatio="none" role="img" aria-label="Son 12 ayda net yatırım tutarı geçmişi: genel olarak yükselen örnek çizgi">
+        <path class="spark-area" d="M0 78 L33 70 L66 72 L100 60 L133 62 L166 50 L200 54 L233 40 L266 44 L300 30 L333 34 L366 20 L400 14 L400 90 L0 90 Z"/>
+        <path class="spark-line" pathLength="1" d="M0 78 L33 70 L66 72 L100 60 L133 62 L166 50 L200 54 L233 40 L266 44 L300 30 L333 34 L366 20 L400 14"/>
+      </svg>
+      <span class="more">Bugünkü ayrıntı →</span>
+    </button>
+
+    <section class="card c-donut rise" style="--i:1" aria-labelledby="dn-t">
+      <h2 id="dn-t">Sınıf dağılımı</h2>
+      <div class="donut-wrap">
+        <svg class="donut" id="donut" viewBox="0 0 42 42" role="img" aria-label="Dağılım: hisse yüzde 44,3; fon yüzde 34,3; kripto yüzde 14,3; nakit yüzde 7,1"></svg>
+        <ul class="legend" id="legend"></ul>
+      </div>
+    </section>
+
+    <button class="card c-class rise" style="--i:2" data-open="hisse" data-vt aria-label="Hisseler: ₺62.000, artış yüzde 17,5. Ayrıntıyı aç">
+      <h2>Hisseler</h2><div class="mid mono"><span aria-hidden="true" data-count="62000" data-fmt="tl">₺0</span><span class="sr">₺62.000</span></div>
+      <div class="delta gain">▲ +%17,5 <span class="muted" style="font-weight:400">· 3 varlık</span></div>
+    </button>
+    <button class="card c-class rise" style="--i:3" data-open="fon" data-vt aria-label="Fonlar: ₺48.000, artış yüzde 11,6. Ayrıntıyı aç">
+      <h2>Fonlar</h2><div class="mid mono"><span aria-hidden="true" data-count="48000" data-fmt="tl">₺0</span><span class="sr">₺48.000</span></div>
+      <div class="delta gain">▲ +%11,6 <span class="muted" style="font-weight:400">· 2 varlık</span></div>
+    </button>
+    <button class="card c-class rise" style="--i:4" data-open="kripto" data-vt aria-label="Kripto: ₺20.000, artış yüzde 2,1. Ayrıntıyı aç">
+      <h2>Kripto</h2><div class="mid mono"><span aria-hidden="true" data-count="20000" data-fmt="tl">₺0</span><span class="sr">₺20.000</span></div>
+      <div class="delta gain">▲ +%2,1 <span class="muted" style="font-weight:400">· 1 varlık düşüşte ▼</span></div>
+    </button>
+
+    <button class="card c-small rise" style="--i:5" data-open="bugun" data-vt aria-label="Bugün: portföy değeri ▲ yüzde 0,9. Ayrıntıyı aç">
+      <h2>Bugün</h2><div class="mid mono gain delta">▲ +%0,9</div>
+      <div class="muted" style="font-size:13px">+₺1.240 · 2 kayıt</div>
+    </button>
+    <button class="card c-small rise" style="--i:6" data-open="ajan" data-vt aria-label="Gözlemler: dağılım hedefe göre yüzde 4,3 puan sapıyor. Ajanı aç">
+      <h2>Gözlemler</h2>
+      <p style="font-size:14px">Hisse payı %44,3; belirlediğin hedefe göre +4,3 puan sapma var.</p>
+      <span class="more">Ajana sor →</span>
+    </button>
+    <button class="card c-small rise" style="--i:7" data-open="proj" data-vt aria-label="Projeksiyon: üç örnek varsayım senaryosu. Ayrıntıyı aç">
+      <h2>Projeksiyon <span class="tag-assume">varsayım</span></h2>
+      <p style="font-size:14px">10 yıl, üç örnek senaryo. Tahmin ya da getiri vaadi değildir.</p>
+      <span class="more">Senaryoları gör →</span>
+    </button>
+    <button class="card c-small rise" style="--i:8" data-open="islem" data-vt aria-label="İşlemler: defterde 3 kayıt. Ayrıntıyı aç">
+      <h2>İşlem defteri</h2>
+      <p style="font-size:14px">Son kayıt: Örnek Fon X, 12 Eki 2026</p>
+      <span class="more">Deftere kayıt ekle →</span>
+    </button>
+  </div>
+</main>
+<footer>Bu ekrandaki tüm sayılar ÖRNEK VERİdir. Gerçek işlem yürütülmez; yalnızca defter kaydı tutulur. Geçmiş performans gelecek getiriyi göstermez; bu bir yatırım tavsiyesi değildir.</footer>
+
+<!-- Detay katmanı -->
+<dialog id="layer" aria-labelledby="layer-title">
+  <div class="l-head">
+    <h2 id="layer-title">Ayrıntı</h2>
+    <span class="example-tag hide-sm">Örnek veri</span>
+    <button class="btn" id="layer-close" aria-label="Katmanı kapat ve ana ekrana dön">✕ Kapat</button>
+  </div>
+  <div class="l-tabs" role="tablist" aria-label="Ayrıntı bölümleri" id="tabs"></div>
+  <div class="l-body" id="pane" role="tabpanel" tabindex="0"></div>
+  <div class="l-foot">Örnek veri — yatırım tavsiyesi değildir. Esc ile kapanır.</div>
+</dialog>
+
+<!-- Araçlar çekmecesi -->
+<dialog id="tools" class="drawer" aria-labelledby="tools-title">
+  <div class="l-head"><h2 id="tools-title">Ayarlar ve araçlar</h2>
+    <button class="btn" id="tools-close" aria-label="Çekmeceyi kapat">✕ Kapat</button></div>
+  <div class="l-body">
+    <h3 style="font-size:15px">Varsayımlar</h3>
+    <label class="f">Stopaj oranı (yüzde) <span class="tag-assume" style="width:fit-content">örnek varsayım</span>
+      <input type="number" id="tax" value="15" min="0" max="100" step="0.5"></label>
+    <label class="f">Yıllık enflasyon (yüzde) <span class="tag-assume" style="width:fit-content">örnek varsayım</span>
+      <input type="number" id="infl" value="30" min="0" max="500" step="1"></label>
+    <h3 style="font-size:15px;margin-top:18px">Hedef dağılım</h3>
+    <details open><summary>Hedefleri düzenle (yüzde)</summary>
+      <label class="f">Hisse <input type="number" value="40" min="0" max="100"></label>
+      <label class="f">Fon <input type="number" value="35" min="0" max="100"></label>
+      <label class="f">Kripto <input type="number" value="15" min="0" max="100"></label>
+      <label class="f">Nakit <input type="number" value="10" min="0" max="100"></label>
+    </details>
+    <h3 style="font-size:15px;margin-top:18px">Yedek</h3>
+    <div class="chips"><button class="btn" data-fake="CSV yedeği indirme prototipte kapalı.">CSV yedeği indir</button>
+      <button class="btn" data-fake="İçe aktarma prototipte kapalı.">Yedekten yükle</button></div>
+    <h3 style="font-size:15px;margin-top:18px">Ajanı öğret</h3>
+    <details><summary>Öğretme paneli</summary><p class="note">Ajana soru–yanıt çifti öğretilir; bilgi yalnızca bu tarayıcıda saklanır.</p></details>
+    <h3 style="font-size:15px;margin-top:18px">Arka planda çalışanlar</h3>
+    <ul class="note" style="padding-left:18px;line-height:1.7">
+      <li>Fiyat tazeleme (döviz, kripto) — otomatik, açılışta bir kez</li>
+      <li>Bayat fiyat denetimi — otomatik; yalnızca sorun varsa üstte görünür</li>
+      <li>Yedek hatırlatma — 14 günü aşınca ana ekranda tek satır</li>
+      <li>Hesap eşitleme — hesap açıksa; çakışmada kullanıcıya sorulur</li>
+    </ul>
+  </div>
+  <div class="l-foot">Örnek veri — yatırım tavsiyesi değildir.</div>
+</dialog>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(function () {
+  'use strict';
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+  var tl = function (n) { return '₺' + Math.round(n).toLocaleString('tr-TR'); };
+
+  /* ---- Örnek veri (tamamı kurgusal) ---- */
+  var SEG = [
+    { k: 'hisse', n: 'Hisse', v: 62000, c: 'var(--seg-1)' },
+    { k: 'fon', n: 'Fon', v: 48000, c: 'var(--seg-2)' },
+    { k: 'kripto', n: 'Kripto', v: 20000, c: 'var(--seg-3)' },
+    { k: 'nakit', n: 'Nakit', v: 10000, c: 'var(--seg-4)' }
+  ];
+  var TOTAL = SEG.reduce(function (a, s) { return a + s.v; }, 0);
+  var pc = function (v) { return (v / TOTAL * 100).toFixed(1).replace('.', ','); };
+  function pct(n) { var a = Math.abs(n).toFixed(1).replace('.', ','); return (n >= 0 ? '+%' : '-%') + a; }
+  function dlt(n) { return '<span class="' + (n >= 0 ? 'gain' : 'loss') + ' delta">' + (n >= 0 ? '▲ ' : '▼ ') + pct(n) + '</span>'; }
+
+  var ASSETS = {
+    hisse: [['Örnek Hisse A', 24000, 12.4], ['Örnek Hisse B', 21500, 31.0], ['Örnek Hisse C', 16500, -8.2]],
+    fon: [['Örnek Fon X', 30000, 9.8], ['Örnek Fon Y', 18000, 14.1]],
+    kripto: [['Örnek Coin 1', 12000, 41.0], ['Örnek Coin 2', 8000, -22.7]]
+  };
+  var LEDGER = [['12 Eki 2026', 'Alış kaydı', 'Örnek Fon X', 5000], ['03 Eki 2026', 'Alış kaydı', 'Örnek Hisse B', 7500], ['21 Eyl 2026', 'Satış kaydı', 'Örnek Coin 2', 2000]];
+
+  /* ---- Halka ---- */
+  (function () {
+    var svg = $('#donut'), lg = $('#legend'), off = 0, ns = 'http://www.w3.org/2000/svg';
+    var bg = document.createElementNS(ns, 'circle');
+    bg.setAttribute('cx', 21); bg.setAttribute('cy', 21); bg.setAttribute('r', 15.9155);
+    bg.setAttribute('fill', 'none'); bg.setAttribute('stroke', '#282c42'); bg.setAttribute('stroke-width', 7);
+    svg.appendChild(bg);
+    SEG.forEach(function (s) {
+      var len = s.v / TOTAL * 100, c = document.createElementNS(ns, 'circle');
+      c.setAttribute('cx', 21); c.setAttribute('cy', 21); c.setAttribute('r', 15.9155);
+      c.setAttribute('pathLength', 100); c.setAttribute('class', 'seg'); c.dataset.k = s.k;
+      c.setAttribute('stroke', getComputedStyle(document.documentElement).getPropertyValue(s.c.slice(4, -1)).trim());
+      c.style.setProperty('--len', (len - 0.6).toFixed(2));
+      c.setAttribute('stroke-dashoffset', -off); off += len;
+      svg.appendChild(c);
+      var li = document.createElement('li');
+      li.innerHTML = '<button type="button" data-seg="' + s.k + '" aria-label="' + s.n + ': ' + tl(s.v) + ', yüzde ' + pc(s.v) + '"><span class="sw" style="background:' + s.c + '"></span>' + s.n +
+        '<span class="pc mono">%' + pc(s.v) + '</span></button>';
+      lg.appendChild(li);
+    });
+    function hl(k) { svg.classList.toggle('dim', !!k); $$('.seg', svg).forEach(function (e) { e.classList.toggle('on', e.dataset.k === k); }); }
+    $$('button', lg).forEach(function (b) {
+      b.addEventListener('mouseenter', function () { hl(b.dataset.seg); }); b.addEventListener('mouseleave', function () { hl(null); });
+      b.addEventListener('focus', function () { hl(b.dataset.seg); }); b.addEventListener('blur', function () { hl(null); });
+      b.addEventListener('click', function () { var k = b.dataset.seg; open(k === 'nakit' ? 'bugun' : k, b); });
+    });
+  })();
+
+  /* ---- Sayarak oturma (en çok 300 ms; azaltılmış harekette doğrudan son değer) ---- */
+  function countUp() {
+    $$('[data-count]').forEach(function (el) {
+      var to = +el.dataset.count;
+      if (reduce) { el.textContent = tl(to); return; }
+      var t0 = performance.now(), D = 300;
+      (function step(t) {
+        var p = Math.min(1, (t - t0) / D), e = 1 - Math.pow(1 - p, 3);
+        el.textContent = tl(to * e);
+        if (p < 1) requestAnimationFrame(step); else el.textContent = tl(to);
+      })(t0);
+    });
+  }
+  requestAnimationFrame(function () { requestAnimationFrame(function () { document.body.classList.add('ready'); countUp(); }); });
+
+  /* ---- Katman içerikleri ---- */
+  var TABS = [['bugun', 'Bugün'], ['hisse', 'Hisseler'], ['fon', 'Fonlar'], ['kripto', 'Kripto'], ['islem', 'İşlemler'], ['proj', 'Projeksiyon'], ['ajan', 'Ajan']];
+  function assetTable(k) {
+    var rows = ASSETS[k].map(function (a) { return '<tr><td>' + a[0] + '</td><td class="num mono">' + tl(a[1]) + '</td><td class="num">' + dlt(a[2]) + '</td></tr>'; }).join('');
+    var sum = ASSETS[k].reduce(function (x, a) { return x + a[1]; }, 0);
+    return '<div class="tbl-wrap"><table><caption class="sr">Örnek varlık listesi</caption><thead><tr><th scope="col">Varlık</th><th scope="col" class="num">Değer</th><th scope="col" class="num">Değişim</th></tr></thead><tbody>' + rows +
+      '</tbody></table></div><p class="note">Sınıf toplamı ' + tl(sum) + ' · portföyün %' + pc(sum) + '’i. Hisse ve fon fiyatları elle girilir.</p>';
+  }
+  var VIEW = {
+    bugun: function () { return '<p class="mid mono">' + dlt(0.9) + ' <span class="muted" style="font-size:16px;font-weight:400">+₺1.240</span></p><p class="note">Bugünkü değişim, kayıtlı fiyatlara göredir.</p>' +
+      '<h3 style="font-size:15px;margin-top:16px">Bugünkü kayıtlar</h3><div class="tbl-wrap"><table><tbody><tr><td>Alış kaydı</td><td>Örnek Fon X</td><td class="num mono">₺5.000</td></tr><tr><td>Satış kaydı</td><td>Örnek Coin 2</td><td class="num mono">₺2.000</td></tr></tbody></table></div>'; },
+    hisse: function () { return assetTable('hisse'); },
+    fon: function () { return assetTable('fon'); },
+    kripto: function () {
+      return '<div class="chips" style="margin-bottom:12px"><span class="pill">Varlıklarım</span><span class="pill">Piyasa (örnek)</span></div>' + assetTable('kripto') +
+        '<h3 style="font-size:15px;margin-top:18px">Kripto piyasası <span class="pill">örnek</span></h3><div class="tbl-wrap"><table><thead><tr><th scope="col">Birim</th><th scope="col" class="num">24 sa</th></tr></thead><tbody><tr><td>Örnek Coin 1</td><td class="num">' + dlt(3.2) + '</td></tr><tr><td>Örnek Coin 2</td><td class="num">' + dlt(-4.8) + '</td></tr><tr><td>Örnek Coin 3</td><td class="num">' + dlt(0.4) + '</td></tr></tbody></table></div><p class="note">Canlı piyasa verisi bu prototipte yoktur.</p>';
+    },
+    islem: function () {
+      var rows = LEDGER.map(function (l) { return '<tr><td>' + l[0] + '</td><td>' + l[1] + '</td><td>' + l[2] + '</td><td class="num mono">' + tl(l[3]) + '</td></tr>'; }).join('');
+      return '<div class="tbl-wrap"><table><thead><tr><th scope="col">Tarih</th><th scope="col">Tür</th><th scope="col">Varlık</th><th scope="col" class="num">Tutar</th></tr></thead><tbody id="ledger">' + rows + '</tbody></table></div>' +
+        '<h3 style="font-size:15px;margin-top:18px">Yeni kayıt</h3><label class="f">Tür<select id="l-type"><option>Alış kaydı</option><option>Satış kaydı</option></select></label>' +
+        '<label class="f">Tutar (₺)<input type="number" id="l-amt" value="1000" min="1"></label><button class="btn btn-primary" id="l-add">Deftere ekle</button>' +
+        '<p class="note">Yalnızca defter kaydı tutulur; gerçek bir işlem yürütülmez.</p>';
+    },
+    proj: function () {
+      function fv(rate) { var m = Math.pow(1 + rate, 1 / 12) - 1, v = 140000; for (var i = 0; i < 120; i++) v = v * (1 + m) + 5000; return v; }
+      var sc = [['Düşük örnek varsayım', 0.10], ['Orta örnek varsayım', 0.20], ['Yüksek örnek varsayım', 0.30]], max = fv(0.30);
+      return '<p class="note" style="margin:0 0 6px">Başlangıç ₺140.000, aylık ₺5.000 ekleme, 10 yıl. Oranlar tahmin değil, örnek varsayımdır <span class="tag-assume">varsayım</span></p><div class="bars">' +
+        sc.map(function (s) { var v = fv(s[1]); return '<div><div class="row" style="align-items:baseline"><span>' + s[0] + ' · yıllık %' + Math.round(s[1] * 100) + '</span><span class="mono">' + tl(v) + '</span></div><div class="bar" role="img" aria-label="' + s[0] + ': ' + tl(v) + '"><i style="--w:' + (v / max * 100).toFixed(0) + '%"></i></div></div>'; }).join('') +
+        '</div><p class="note">Tutarlar enflasyondan arındırılmamıştır. Geçmiş performans gelecek getiriyi göstermez.</p>';
+    },
+    ajan: function () {
+      return '<div class="chat" id="chat" aria-live="polite"><div class="msg">Portföyde hisse payı %44,3; belirlediğin hedefe göre +4,3 puan sapma var.</div><div class="msg">Kripto sınıfında bir varlık ▼ -%22,7 değişimde; sınıf toplamı ▲ +%2,1.</div></div>' +
+        '<div class="chips"><button class="btn" data-ask="Dağılımı özetle">Dağılımı özetle</button><button class="btn" data-ask="Vergi varsayımı nedir?">Vergi varsayımı nedir?</button></div>' +
+        '<p class="note">Ajan kural tabanlıdır; betimler, tavsiye vermez.</p>';
+    }
+  };
+  var ASK = {
+    'Dağılımı özetle': 'Hisse %44,3, fon %34,3, kripto %14,3, nakit %7,1. Bu bir betimlemedir; yatırım tavsiyesi değildir.',
+    'Vergi varsayımı nedir?': 'Hesaplarda örnek bir stopaj oranı varsayımı kullanılır; Araçlar çekmecesinde değiştirilebilir ve güncel mevzuat için doğrulanmalıdır.'
+  };
+
+  var layer = $('#layer'), tabs = $('#tabs'), pane = $('#pane'), title = $('#layer-title'), cur = null, opener = null;
+  tabs.innerHTML = TABS.map(function (t) { return '<button type="button" role="tab" id="tab-' + t[0] + '" data-tab="' + t[0] + '" aria-selected="false" tabindex="-1">' + t[1] + '</button>'; }).join('');
+  function show(k, animate) {
+    cur = k;
+    $$('[role=tab]', tabs).forEach(function (b) { var on = b.dataset.tab === k; b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; });
+    pane.setAttribute('aria-labelledby', 'tab-' + k);
+    pane.innerHTML = '<div class="pane">' + VIEW[k]() + '</div>';
+    title.textContent = TABS.filter(function (t) { return t[0] === k; })[0][1];
+  }
+  tabs.addEventListener('click', function (e) { var b = e.target.closest('[role=tab]'); if (b) show(b.dataset.tab); });
+  tabs.addEventListener('keydown', function (e) {
+    var i = TABS.map(function (t) { return t[0]; }).indexOf(cur), n = null;
+    if (e.key === 'ArrowRight') n = (i + 1) % TABS.length; else if (e.key === 'ArrowLeft') n = (i + TABS.length - 1) % TABS.length;
+    else if (e.key === 'Home') n = 0; else if (e.key === 'End') n = TABS.length - 1;
+    if (n !== null) { e.preventDefault(); show(TABS[n][0]); $('#tab-' + TABS[n][0]).focus(); }
+  });
+  pane.addEventListener('click', function (e) {
+    var a = e.target.closest('[data-ask]');
+    if (a) {
+      var ch = $('#chat'); ch.insertAdjacentHTML('beforeend', '<div class="msg me"></div><div class="msg"></div>');
+      var m = ch.querySelectorAll('.msg'); m[m.length - 2].textContent = a.dataset.ask; m[m.length - 1].textContent = ASK[a.dataset.ask];
+    }
+    if (e.target.id === 'l-add') {
+      var amt = +$('#l-amt').value || 0, type = $('#l-type').value;
+      $('#ledger').insertAdjacentHTML('afterbegin', '<tr><td>24 Eki 2026</td><td>' + type + '</td><td>Örnek kayıt</td><td class="num mono">' + tl(amt) + '</td></tr>');
+      toast('Defterine örnek kaydı eklendi; gerçek bir işlem yürütülmedi.');
+    }
+  });
+
+  var vtOn = function () { return !reduce && typeof document.startViewTransition === 'function'; };
+  function open(k, from) {
+    opener = from || null;
+    var go = function () { if (from && from.hasAttribute('data-vt')) from.style.viewTransitionName = 'none'; show(k); if (!layer.open) layer.showModal(); if (vtOn()) layer.style.viewTransitionName = 'hero-card'; };
+    if (vtOn() && from && from.hasAttribute('data-vt')) { from.style.viewTransitionName = 'hero-card'; document.startViewTransition(go); } else go();
+  }
+  function close() {
+    var back = opener, go = function () { layer.style.viewTransitionName = ''; layer.close(); if (back) { back.style.viewTransitionName = ''; } };
+    if (vtOn() && back && back.hasAttribute('data-vt')) { layer.style.viewTransitionName = 'hero-card'; var t = document.startViewTransition(function () { layer.style.viewTransitionName = 'none'; back.style.viewTransitionName = 'hero-card'; layer.close(); }); t.finished.then(function () { back.style.viewTransitionName = ''; layer.style.viewTransitionName = ''; }); }
+    else go();
+  }
+  layer.addEventListener('close', function () { if (opener && opener.focus) opener.focus(); });
+  layer.addEventListener('cancel', function (e) { e.preventDefault(); close(); });
+  $('#layer-close').addEventListener('click', close);
+  layer.addEventListener('click', function (e) { if (e.target === layer) close(); });
+  $$('[data-open]').forEach(function (b) { b.addEventListener('click', function () { open(b.dataset.open, b); }); });
+  $('#open-agent').addEventListener('click', function (e) { open('ajan', e.currentTarget); });
+
+  var tools = $('#tools');
+  $('#open-tools').addEventListener('click', function (e) { opener = e.currentTarget; tools.showModal(); });
+  $('#tools-close').addEventListener('click', function () { tools.close(); });
+  tools.addEventListener('click', function (e) { if (e.target === tools) tools.close(); });
+  tools.addEventListener('close', function () { if (opener && opener.focus) opener.focus(); });
+  $$('[data-fake]', tools).forEach(function (b) { b.addEventListener('click', function () { toast(b.dataset.fake); }); });
+
+  var tt; function toast(msg) { var t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(tt); tt = setTimeout(function () { t.hidden = true; }, 3500); }
+})();
+</script>
+</body>
+</html>
