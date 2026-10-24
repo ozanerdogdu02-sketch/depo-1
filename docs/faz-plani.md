@@ -21,3 +21,8 @@ Fikirler ve yapılabilirlik: `docs/fikir-defteri.md`.
 - Şirket/şahıs şirketi kararı ve ödeme sağlayıcı başvuru koşullarının öğrenilmesi (Faz 5'in gecikmesin diye Faz 2'de).
 - Instagram/TikTok işletme hesapları (organik içerik Faz 6'dan önce ısınsın).
 - Vercel/Supabase/alan adı hesaplarının sizin adınızda olması (devir için).
+
+## Kullanıcıdan beklenen somut işler (güncel)
+- Vercel → fagent → Settings → Environment Variables: `EVDS_API_KEY` (TCMB EVDS'den ücretsiz anahtar; yalnız sunucuda durur, tarayıcıya girmez).
+- Satış biçimi (şahıs/şirket) ve ödeme sağlayıcı başvuru koşullarının öğrenilmesi (Faz 5).
+- Instagram/TikTok işletme hesapları (Faz 6).

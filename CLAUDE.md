@@ -25,7 +25,7 @@ Kurallar: `AGENTS.md` (önce onu oku). Karar geçmişi: `docs/karar-gunlugu.md`.
 1. ✅ Repoyu satışa uygun hale getir — kök dizine taşıma, kişisel dosya/iz temizliği.
 2. ✅ Hesap katmanı — standalone'dan Supabase kayıt/giriş + senkronu tüm katmanları kapsayacak şekilde (kod tamam; canlıya açılması aşağıdaki listeye bağlı).
 3. ✅ Kural uyumu — işlem komutu "deftere kayıt" dili, `aiAgent` katmanını çıkar, gizlilik metnini güncelle.
-4. Vercel'e taşı (güvenlik başlıkları ✅, `api/evds.mjs` yazıldı; Vercel'de EVDS_API_KEY + gerçek deploy doğrulaması KALDI) — EVDS fonksiyonunu Vercel'e uyarla, seri kodunu doğrula, yedek enflasyon değerini güncelle.
+4. Vercel'e taşı (güvenlik başlıkları ✅ önizlemede doğrulandı; `api/evds.mjs` Vercel'de çalışıyor ✅ — anahtarsız 503 `anahtar_yok` döndürüyor; KALDI: kullanıcı Vercel'e `EVDS_API_KEY` eklemeli, sonra seri kodu `TP.FG.J0` gerçek veriyle doğrulanacak) — EVDS fonksiyonunu Vercel'e uyarla, seri kodunu doğrula, yedek enflasyon değerini güncelle.
 5. Gerçek Supabase projesi — migration, Site URL, özel SMTP, canlıda uçtan uca deneme.
 6. Canlı sitenin görünümü — Nocturne görsel dili; Kurulum ve Hedefler ekranları.
 7. Yasal metinler — KVKK aydınlatma, kullanım koşulları, tavsiye değildir.
@@ -125,7 +125,7 @@ Env boşken bulut kodu hiç çalışmaz; hesapsız ürün bu maddelerden etkilen
 | 41 | `src/backup.ts` | Geri yükleme yazımı ya-hep-ya-hiç değil; dosya boyutu sınırı yok | veri-akışı |
 | 27 | `src/cloud.ts` | Koşulsuz upsert: iki cihazda son yazan kazanır (koşullu güncelleme ya da açıkça belgeleme) | veri-akışı |
 | ~~40~~ | `scripts/build.mjs` | ✅ Kapandı: derleme `sb_secret_`/service_role içeren VITE_* değerinde durur | — |
-| ~~43/16~~ | `vercel.json`, `netlify.toml` | ✅ Kapandı (24.10): CSP, frame-ancestors, nosniff, Referrer-Policy, Permissions-Policy; `fagent-csp-e2e.mjs` korur. Vercel önizlemede başlık doğrulaması ayrıca yapılır | — |
+| ~~43/16~~ | `vercel.json`, `netlify.toml` | ✅ Kapandı (24.10): CSP, frame-ancestors, nosniff, Referrer-Policy, Permissions-Policy; `fagent-csp-e2e.mjs` korur. Vercel önizlemede başlıklar DOĞRULANDI (24.10, yanıt başlıklarında görüldü) | — |
 | 47 | `src/Account.tsx` | KVKK aydınlatma metni olmadan kayıt açılabiliyor (adım 7) | tasarım |
 | ~~42/39~~ | `scripts/guvenlik-tarama.mjs` | ✅ Kapandı: tarama artık izlenmeyen yeni dosyaları da tarıyor | — |
 
