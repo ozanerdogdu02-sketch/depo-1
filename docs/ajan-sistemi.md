@@ -151,3 +151,13 @@ yönetmen    tasarım, veri akışı,     yönetmen
 - **Skill'ler:** `.claude/skills/` — app-tsx-haritasi, e2e-kosu, turkce-regex. Tekrar okunan bilgi buraya taşınır.
 - Henüz otomatik olmayanlar: kurul kapısı iş akışında zorunlu bir aşama değil (ajan istemine yazılı kural); skill'lerin
   ölçülmüş etkisi yok. Sonraki koşuda ajan başına dosya-okuma sayısı ölçülür.
+
+## Ajan özerkliği ve yönetmenin yeni görevi (2026-10-24, kullanıcı kararı)
+
+**Ekibe tanınan alan:** Ajanlar kendi aralarında (1) `.claude/skills/<ad>/SKILL.md` yazabilir, (2) `CLAUDE.md` → "EKİP HAFIZASI"na tek satırlık hata/kural ekleyebilir, (3) çalışma düzeni kuralı önerip uygulayabilir. Her özerk değişiklik `docs/ekip-kararlari.md`'ye
+tarih + kim + ne + neden olarak yazılır. **Sınırlar (özerklik burada biter):** `AGENTS.md` §0 kuralları, güvenlik kapısı ve kodla kilitli karar,
+kullanıcı kararları (CLAUDE.md'deki "KULLANICI KARARI" satırları), tasarım ve insan inceleme kararları, yeni bağımlılık (→ Üst Kurul), commit/push (ajan yapmaz).
+
+**Yönetmen artık çalışan bir yönlendiricidir:** işleri fazlara böler, her role hazır görev istemi (`docs/istem-iskeleti.md`) yazar, ekibin kullandığı skill ve
+kuralları düzenli tutar ve **yaratıcı fikir üretir**. Fikirler `docs/fikir-defteri.md`'ye "öneri" olarak girer; kullanıcı onaylamadan işe dönüşmez.
+Öncelik: **küçük/orta, az kodlu işler önce; büyük kod işleri en sona** (`docs/faz-plani-kucuk-orta.md`).
