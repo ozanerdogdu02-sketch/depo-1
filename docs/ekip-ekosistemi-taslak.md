@@ -1,6 +1,6 @@
 # Ekip ekosistemi — taslak (HENÜZ BAŞLATILMADI)
 
-Durum: yalnızca not. Kullanıcı "tamam" deyince uygulanır (2026-10-23 kararı). Bugün kod/iş akışı değiştirilmez.
+Durum: KURULDU 2026-10-24 (kullanıcı "tamam başla" dedi). Ayrıntı: `docs/ajan-sistemi.md` → Ekosistem.
 
 ## İstenenler
 1. **Ortak hafıza:** `CLAUDE.md` → "EKİP HAFIZASI" bölümü. Her ajan işe başlarken okur; hata yapılınca satır eklenir.

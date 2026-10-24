@@ -34,6 +34,7 @@ Her ajanın istemi panonun son mesajlarını taşır; her ajanın çıktısı pa
 | `bulgu` | inceleyen → sahip | "[kritik] src/cloud.ts:80 — …" |
 | `duzeltme` | sahip → ekip | "tur 1: RLS kontrolü eklendi" |
 | `karar` | lider → insan | "BİRLEŞTİRİLEBİLİR — …" |
+| `talep` | herhangi rol → ust-kurul | "TALEP: <kütüphane> — neden, veri akışı, lisans" |
 
 ## Akış (`.claude/workflows/fagent-ekip.js`)
 
@@ -141,3 +142,12 @@ yönetmen    tasarım, veri akışı,     yönetmen
 
 Çalıştırma: `fagent-arastirma workflow'unu şu konuyla çalıştır: "<yapılan iş>"`.
 
+
+## Ekosistem (2026-10-24)
+
+- **Ekip hafızası:** `CLAUDE.md` → "EKİP HAFIZASI". Her ajan işe başlarken okur; yeni hata → tek satır eklenir.
+- **İstem iskeleti:** `docs/istem-iskeleti.md` — yönetmen/lider tüm istemleri aynı altı bölümle yazar.
+- **Üst Kurul:** `docs/ust-kurul.md`, `.claude/agents/fagent-ust-kurul.md`; kararlar `docs/teknoloji-talepleri.md`'de.
+- **Skill'ler:** `.claude/skills/` — app-tsx-haritasi, e2e-kosu, turkce-regex. Tekrar okunan bilgi buraya taşınır.
+- Henüz otomatik olmayanlar: kurul kapısı iş akışında zorunlu bir aşama değil (ajan istemine yazılı kural); skill'lerin
+  ölçülmüş etkisi yok. Sonraki koşuda ajan başına dosya-okuma sayısı ölçülür.

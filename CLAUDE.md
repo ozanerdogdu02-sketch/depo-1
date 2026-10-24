@@ -39,7 +39,7 @@ Tahmini bugünkü değer (gelirsiz, doğrulanmamış): ~1–5 bin $; hedef: ücr
 ## NEREDEN DEVAM EDİLİR (2026-10-19 son durum)
 
 - Ürün dalı `urun/birlesik` temiz ve yeşil (adım 1–2 tamam). Yarım kod yok.
-- **Sıradaki iş: A1 araştırması (yukarıda), sonra adım 3.** Ekip planı hazır ve güvenlik/uyum danışmasından geçti: `docs/adim3-ekip-plani.md`
+- **Sıradaki iş: adım 3 (yama yedeği: FAGENT-Raporlar/02-degisiklikler/adim3-K1-test-edilmedi-*.patch önce test edilir), A1 araştırması da sırada.** Ekip planı hazır ve güvenlik/uyum danışmasından geçti: `docs/adim3-ekip-plani.md`
   (K1 aiAgent'ı çıkar → K2 "deftere kayıt" dili + 9 tavsiye kalıbı → K3 testler). Koşu kredi bittiği için K1'in
   başında durduruldu; kalemleri sırayla uygula, sonra kapıyı koş.
 - Sonraki işler: `docs/is-kuyrugu.md` (34 iş + G1–G3 görsel).
@@ -84,11 +84,13 @@ Aynı hatayı tekrar yapma. Yeni bir hata bulunursa buraya tek satır eklenir (t
 rassal yürüyüş (random walk) kuramı, transfer öğrenme, Fourier dönüşümü. Unutulmasın; ürün satıldıktan sonra
 ya da gelirle birlikte yeniden değerlendirilir. Bugünkü ajan ve projeksiyon yapısı kural tabanlı ve anahtarsız kalır.
 
-## BEKLEYEN MİMARİ — kullanıcı "tamam" deyince başlar (BUGÜN BAŞLATMA)
+## EKİP EKOSİSTEMİ — KURULDU (2026-10-24, kullanıcı "tamam başla" dedi)
 
-Ekip için "üst kurul + beceri (skill) ekosistemi". Taslak: `docs/ekip-ekosistemi-taslak.md`. Özet: ajanlar yeni teknoloji
-isteyince üst kurula yazar; kurul güvenlik ve yasal uygunluğa bakıp onaylar/reddeder; fazla yüklenen bilgi yerine
-ajanlar kendilerine skill dosyası yazar; yönetmen istemleri tek bir ortak iskeletle üretir ki bölümler karışmasın.
+Üst Kurul (`docs/ust-kurul.md`, `.claude/agents/fagent-ust-kurul.md`, kayıt: `docs/teknoloji-talepleri.md`), ortak istem iskeleti
+(`docs/istem-iskeleti.md`) ve skill'ler (`.claude/skills/`: app-tsx-haritasi, e2e-kosu, turkce-regex) var. Ajan istemlerine
+(`fagent-ekip.js` ORTAK) "önce EKİP HAFIZASI + skill, sonra dar okuma, yeni teknoloji = talep" kuralı eklendi.
+Sınırlar: kurul kapısı zorunlu iş akışı aşaması DEĞİL (istem kuralı); henüz bir koşuda denenmedi, etkisi ölçülmedi.
+Yeni tekrar eden bilgi → yeni skill; yeni hata → EKİP HAFIZASI'na satır.
 
 ## Geliştirme ekibi
 

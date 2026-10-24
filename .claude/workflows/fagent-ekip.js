@@ -108,6 +108,8 @@ const ORTAK = [
   'Değişmez kurallar `AGENTS.md` §0 — özellikle: istemcide API anahtarı yok, kişiye özel al/sat önerisi yok, gerçek işlem yürütme yok, sahte veri yok.',
   'Commit atma, push etme, dal değiştirme, `git stash`/`git reset` yapma. Değişiklikler çalışma ağacında kalır; birleştirme kararı insanındır.',
   'Bu ortamın ağı dış API\'leri engeller; dış uçları doğrulayamadıysan bunu açıkça yaz, tahmin etme.',
+  'İşe başlamadan `CLAUDE.md` içindeki "EKİP HAFIZASI" bölümünü oku (bilinen hatalar). Büyük dosyaları baştan okuma: önce `.claude/skills/` altındaki ilgili haritaya (app-tsx-haritasi, e2e-kosu, turkce-regex) bak, `grep -n` ile yeri bul, yalnızca o satır aralığını oku.',
+  'Yeni bir kütüphane/yöntem/servis gerekiyorsa kullanmadan önce panoya tür `talep`, kime `ust-kurul` olarak yaz (biçim: `docs/ust-kurul.md`); onay gelmeden ekleme. Aynı bilgiyi tekrar tekrar okuyorsan kendine `.claude/skills/<ad>/SKILL.md` önerisi yaz (devir mesajıyla).',
 ].join('\n- ')
 
 function rolIstemi(rol, gorevMetni, panoSon) {
