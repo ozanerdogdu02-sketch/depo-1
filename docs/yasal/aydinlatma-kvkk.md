@@ -1,0 +1,18 @@
+# Kişisel Verilerin İşlenmesine İlişkin Aydınlatma Metni — TASLAK (avukat onayı gerekir)
+
+**Veri sorumlusu:** [ÜNVAN], [ADRES], [E-POSTA]. (KVKK m.10 gereği hazırlanmıştır. VERBİS yükümlülüğü ayrıca değerlendirilmelidir.)
+
+**Hesapsız kullanım:** Portföy verileriniz yalnızca tarayıcınızda (yerel depolama) tutulur; bize iletilmez.
+
+**Hesap açarsanız işlenen veriler**
+| Veri | Amaç | Hukuki sebep (avukat doğrulamalı) | Saklama |
+|---|---|---|---|
+| E-posta, şifre (özetlenmiş) | Kimlik doğrulama, hesap güvenliği | Sözleşmenin ifası | Hesap silinene dek |
+| Portföy kayıtları (varlıklar, işlemler, hedefler, vergi/enflasyon tercihleri, ajan hafızası) | Cihazlar arası eşitleme | Sözleşmenin ifası | Hesap silinene dek |
+| Teknik kayıtlar (barındırma sağlayıcısı günlükleri) | Güvenlik, hata ayıklama | Meşru menfaat | [SÜRE — sağlayıcıya bağlı] |
+
+**Aktarım.** Veriler barındırma ve veritabanı hizmet sağlayıcılarında saklanır ([SUPABASE — BÖLGE], [VERCEL]); bu sağlayıcılar yurt dışında olabilir — **yurt dışına aktarım için KVKK m.9 şartları avukatla değerlendirilmelidir.** Portföy verileriniz üçüncü taraf yapay zekâ servislerine gönderilmez. Kur ve kripto fiyatı sorguları yalnızca para birimi kodu / coin kimliği içerir, tutar veya kimlik içermez. Enflasyon verisi için sunucumuzdaki bir ara katman kullanılır.
+
+**Toplama yöntemi:** Kayıt formu ve uygulamayı kullanımınız (otomatik). Çerez/analiz aracı: [VARSA BELİRTİN; şu an kod tabanında analiz aracı ve çerez yoktur].
+
+**Haklarınız (KVKK m.11):** Verilerinize erişme, düzeltme, silme, işlemeye itiraz ve zararın giderilmesini isteme. Başvuru: [E-POSTA]. Hesabınızı "Hesabımı sil" ile kendiniz silebilirsiniz.
