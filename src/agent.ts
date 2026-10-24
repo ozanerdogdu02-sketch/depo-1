@@ -1,6 +1,6 @@
 // Demo Ajan — API anahtarı gerektirmez. Portföyü yerel kurallarla analiz eder ve
 // sohbet eder. Niyet algılama + kısa süreli bağlam hafızası + grafik çizme içerir.
-// Gerçek AI'a geçiş: bu modüldeki fonksiyonları bir sunucu proxy çağrısıyla değiştirmek yeterli.
+// Bu modül saftır (AGENTS.md §0.6): ağ, depolama, DOM ve React erişimi yoktur; veri parametreyle girer.
 import {
   PortfolioState, Holding, totalValue, totalCost, fmtTL, fmtPct, fmtSigned, pnlOf, ASSET_LABELS, AssetType,
   investmentHistoryOf,
@@ -22,7 +22,6 @@ export interface ChartSpec {
 }
 
 export interface AgentMessage {
-  id?: string; // yalnızca AI mesajlarında dolu — yanıt gelince bu id'den bulunup güncellenir
   role: 'agent' | 'user';
   text: string;
   chart?: ChartSpec;
@@ -33,12 +32,6 @@ export interface AgentMessage {
   rated?: 'up' | 'down';
   pendingAction?: PendingAction; // dolu ise Onayla/Vazgeç butonları gösterilir
   actionResolved?: 'confirmed' | 'cancelled';
-  // Gerçek AI katmanı (aiAgent.ts) — yalnızca kullanıcı kendi Worker'ını bağladıysa VE yerel
-  // kurallar soruyu tanımadıysa (fallback) devreye girer. aiPending: yanıt bekleniyor (yükleniyor
-  // göstergesi). aiGenerated: bu metin YEREL KURALLARDAN değil bir dil modelinden geldi — kullanıcı
-  // hangi cevabın "hesaplanmış" hangisinin "sohbet edilmiş" olduğunu ayırt edebilsin diye rozetlenir.
-  aiPending?: boolean;
-  aiGenerated?: boolean;
 }
 
 export interface AgentReply {
@@ -1200,7 +1193,7 @@ export function chatReply(
 function fallbackText(s: PortfolioState): string {
   const example = s.holdings[0]?.name;
   const lines = [
-    'Bunu tam olarak anlayamadım — ama şunları sorabilirsin:',
+    'Bunu yanıtlayamam; şunları sorabilirsin:',
     '• "analiz et" — portföyünün tamamını değerlendiririm',
     '• "reel getirim ne" — enflasyon sonrası gerçek durumun',
     '• "vergiden sonra ne kalıyor" — stopaj sonrası net getirin',

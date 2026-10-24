@@ -76,7 +76,7 @@ function HesapAciklama() {
         (Supabase) tarafından teknik olarak saklanır.
       </p>
       <p>
-        Eşitlenmeyenler: fiyat önbellekleri, bağladığın AI adresi ve bu tarayıcıdaki oturum bilgisi.
+        Eşitlenmeyenler: fiyat önbellekleri ve bu tarayıcıdaki oturum bilgisi.
       </p>
       <p>
         Fagent kişiye özel yatırım tavsiyesi vermez ve senin adına işlem yapmaz. Hesabını ve hesabındaki tüm

@@ -21,7 +21,8 @@ function git(args) {
 // Taranan metin dosyaları: git'in izlediği her şey VE henüz eklenmemiş yeni dosyalar
 // (.gitignore'dakiler hariç). Yeni dosyalar commit edilmeden önce de taranmalı: ekip iş
 // akışında incelenen işin tamamı commit'siz çalışma ağacındadır.
-const izlenen = [...new Set(git(['ls-files', '--cached', '--others', '--exclude-standard']))];
+// Silinmiş (index'te var, diskte yok) dosyalar taranamaz; atla.
+const izlenen = [...new Set(git(['ls-files', '--cached', '--others', '--exclude-standard']))].filter(f => existsSync(f));
 const ikili = /\.(png|jpe?g|gif|ico|webp|woff2?|ttf|zip|pdf)$/i;
 // Bu betik ve kural belgeleri desenleri tarif ettiği için kendileriyle eşleşir; taranmaz.
 const muaf = new Set(['scripts/guvenlik-tarama.mjs']);

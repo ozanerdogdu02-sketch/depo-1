@@ -98,7 +98,7 @@ const reply = (await page.locator('.msg-agent').last().textContent()) ?? '';
 check('Ajan Risk Analizi kartına yönlendiriyor', reply.includes('Risk Analizi'));
 check('Ajan veri kaynaklarını belirtiyor', reply.includes('CoinGecko') && reply.includes('ECB'));
 check('Ajan kapsanabilen varlıkları sayıyor', reply.includes('Bitcoin') || reply.includes('kapsanabiliyor'));
-check('Ajan cevabı fallback DEĞİL', !reply.includes('tam olarak anlayamadım'));
+check('Ajan cevabı fallback DEĞİL', !reply.includes('yanıtlayamam'));
 
 await browser.close();
 console.log(failed ? 'FAGENT_RISK_E2E_FAILED' : 'FAGENT_RISK_E2E_OK');

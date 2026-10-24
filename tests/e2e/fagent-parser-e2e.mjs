@@ -72,7 +72,7 @@ check('P1: "satışı iptal et" yeni bir öneri AÇMADI',
 for (const q of ['hangi hisseyi almalıyım', 'bana yatırım tavsiyesi ver', 'portföyümü optimize et']) {
   await ask(q);
   const t = await lastText();
-  check(`Reg: "${q}" fallback'e DÜŞMÜYOR`, !t.includes('tam olarak anlayamadım'));
+  check(`Reg: "${q}" fallback'e DÜŞMÜYOR`, !t.includes('yanıtlayamam'));
   // "tavsiyesi veremem" — iyelik eki nedeniyle esnek desen (Türkçe ek tuzağı, bkz. CLAUDE.md §1.5)
   check(`Reg: "${q}" tavsiye veremediğini açıkça söylüyor`, /tavsiye(si)? veremem/i.test(t));
   check(`Reg: "${q}" SPK gerekçesini veriyor`, t.includes('SPK'));
@@ -87,7 +87,7 @@ check('Sıralama: "hedef dağılımım nasıl" hâlâ hedef kuralına gidiyor',
 // ── P1: fallback kalitesi ────────────────────────────────────────────────────────
 await ask('xyzqwe anlamsız komut');
 const fb = await lastText();
-check('Fallback: hâlâ anlamadığını söylüyor', fb.includes('tam olarak anlayamadım'));
+check('Fallback: hâlâ anlamadığını söylüyor', fb.includes('yanıtlayamam'));
 check('Fallback: somut örnek veriyor (reel getiri)', fb.includes('reel getirim ne'));
 check('Fallback: somut örnek veriyor (vergi)', fb.includes('vergiden sonra ne kalıyor'));
 check('Fallback: kullanıcının kendi varlığından örnek veriyor', /nasıl gidiyor/.test(fb));

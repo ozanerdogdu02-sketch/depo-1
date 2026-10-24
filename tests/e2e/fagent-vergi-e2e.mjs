@@ -44,7 +44,7 @@ const ask = async (text) => {
 
 const vergi = await ask('vergiden sonra ne kalıyor');
 
-check('Vergi sorusu fallback DEĞİL', !vergi.includes('tam olarak anlayamadım'));
+check('Vergi sorusu fallback DEĞİL', !vergi.includes('yanıtlayamam'));
 check('Zincir baştan kuruluyor', vergi.includes('Zinciri baştan sona kuralım'));
 
 // --- Zincirin dört halkası ---

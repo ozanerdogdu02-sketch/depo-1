@@ -21,7 +21,7 @@ const ask = async (text) => {
 
 // --- Öğretmeden önce: bilinmeyen bir soru fallback'e düşmeli ---
 await ask('temettü nedir');
-check('Öğretilmeden önce fallback mesajı geldi', (await page.locator('.msg-agent').last().textContent())?.includes('anlayamadım') ?? false);
+check('Öğretilmeden önce fallback mesajı geldi', (await page.locator('.msg-agent').last().textContent())?.includes('yanıtlayamam') ?? false);
 
 // --- Panel kapalı görünür, açılır ---
 check('Ajanı Eğit paneli başta kapalı', await page.locator('#teach-q').count() === 0);
@@ -71,7 +71,7 @@ await page.locator('.list-row', { hasText: 'temettü nedir' }).locator('button[a
 await page.waitForTimeout(200);
 check('Silme sonrası satır sayısı azaldı', await page.locator('.list-row', { hasText: 'temettü' }).count() < rowCountBefore);
 await ask('temettü nedir');
-check('Silinen bilgi artık fallback\'e düşüyor', (await page.locator('.msg-agent').last().textContent())?.includes('anlayamadım') ?? false);
+check('Silinen bilgi artık fallback\'e düşüyor', (await page.locator('.msg-agent').last().textContent())?.includes('yanıtlayamam') ?? false);
 
 // --- SIFIRLA öğretilen bilgileri de temizlemeli ---
 await page.locator('.side-link', { hasText: 'PANEL' }).click();

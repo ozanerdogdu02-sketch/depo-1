@@ -39,7 +39,7 @@ Tahmini bugünkü değer (gelirsiz, doğrulanmamış): ~1–5 bin $; hedef: ücr
 ## NEREDEN DEVAM EDİLİR (2026-10-19 son durum)
 
 - Ürün dalı `urun/birlesik` temiz ve yeşil (adım 1–2 tamam). Yarım kod yok.
-- **Sıradaki iş: adım 3 (yama yedeği: FAGENT-Raporlar/02-degisiklikler/adim3-K1-test-edilmedi-*.patch önce test edilir), A1 araştırması da sırada.** Ekip planı hazır ve güvenlik/uyum danışmasından geçti: `docs/adim3-ekip-plani.md`
+- **Sıradaki iş: adım 3 / K2 (deftere kayıt dili + 9 tavsiye kalıbı). K1 (AI bağlantısı çıkarıldı) 2026-10-24'te commit edildi: typecheck/build ✓, tarama 0 kritik, e2e 587/587.** Ekip planı hazır ve güvenlik/uyum danışmasından geçti: `docs/adim3-ekip-plani.md`
   (K1 aiAgent'ı çıkar → K2 "deftere kayıt" dili + 9 tavsiye kalıbı → K3 testler). Koşu kredi bittiği için K1'in
   başında durduruldu; kalemleri sırayla uygula, sonra kapıyı koş.
 - Sonraki işler: `docs/is-kuyrugu.md` (34 iş + G1–G3 görsel).
@@ -70,6 +70,9 @@ Aynı hatayı tekrar yapma. Yeni bir hata bulunursa buraya tek satır eklenir (t
 - `tests/e2e/fagent-auth-e2e.mjs` içindeki beyaz liste kontrolleri (satır ~200, 276-278, 359-368) silinmez, gevşetilmez.
 - Supabase testlerde taklittir. Rapor dili: "sahte Supabase ile yeşil", asla "çalışıyor". Dış API'ler (Frankfurter, CoinGecko, EVDS) bu ortamda doğrulanamaz; "doğrulanamadı" yaz.
 - Türkçe regex: `\b` kullanma. Girdiyi `toLocaleLowerCase('tr-TR')` ile normalle; İ/I/ı/i varyantlarını test et. Kalıplar sınırlı olsun (ReDoS).
+
+- 2026-10-24: Dosya silen değişiklikte `git ls-files --cached` silinmiş dosyayı da verir; tarama betikleri `existsSync` ile süzmeli (tarama bu yüzden çöktü, düzeltildi).
+- 2026-10-24: Var olan e2e dosyasına blok eklerken `grep -n "const <ad>"` ile değişken adı çakışmasını ve bloğun zaten ekli olup olmadığını kontrol et (tekrar eklenen blok test dosyasını çökertti).
 
 **Süreç**
 - Ajanlar commit atmaz, push etmez, dal değiştirmez. Çalışma ağacı temiz başlar (inceleyenler `git diff` ile görür).

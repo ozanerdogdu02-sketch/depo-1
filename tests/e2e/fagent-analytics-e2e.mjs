@@ -68,7 +68,7 @@ const vol = await ask('volatilitem ne kadar');
 check('Volatilite sorusu Risk Analizi kartına yönlendiriyor', vol.includes('Risk Analizi'));
 check('Gerçek veri kaynakları belirtiliyor (CoinGecko / ECB)', vol.includes('CoinGecko') && vol.includes('ECB'));
 check('Geçmiş fiyat serisi gerektiği açıklanıyor', /GEÇMİŞ FİYAT SERİSİ|fiyat serisi/i.test(vol));
-check('Volatilite cevabı fallback DEĞİL', !vol.includes('tam olarak anlayamadım'));
+check('Volatilite cevabı fallback DEĞİL', !vol.includes('yanıtlayamam'));
 
 // Karma örnek portföyde canlı fiyata bağlı varlık YOK — ajan bunu dürüstçe söylemeli.
 check('Kapsanamayan varlıklar için dürüst uyarı veriyor', /kapsanabilen|kapsayamıyorum|YOK/i.test(vol));

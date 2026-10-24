@@ -15,7 +15,6 @@ import { resetTaxRates } from './taxRates';
 import { resetTargets } from './targetAllocation';
 import { resetBackupMeta } from './backup';
 import { resetInflation } from './inflation';
-import { resetAiProxyUrl } from './aiAgent';
 import { clearPriceHistoryCache } from './priceHistory';
 import { clearMarketCache } from './cryptoMarketData';
 
@@ -50,6 +49,16 @@ export function clearCloudOwner(): void {
   } catch { /* yok */ }
 }
 
+// Üründen çıkarılmış özelliklerin eski kullanıcılarda kalmış anahtarları. Yedek, bulut senkronu ve
+// beyaz liste kümelerine GİRMEZ; yalnızca silinir. (Dış AI bağlantısı kaldırıldı — adım 3.)
+export const LEGACY_KEYS = ['fagent.ai.proxyurl.v1'] as const;
+
+export function purgeLegacyKeys(): void {
+  for (const k of LEGACY_KEYS) {
+    try { localStorage.removeItem(k); } catch { /* depolama kapalı olabilir */ }
+  }
+}
+
 // SIFIRLA. App.tsx'teki resetAll yalnızca bunu çağırır.
 export function clearLocalUserData(): void {
   actions.reset();
@@ -59,7 +68,7 @@ export function clearLocalUserData(): void {
   resetTargets();
   resetBackupMeta();
   resetInflation(); // kullanıcının girdiği enflasyon oranı da kullanıcı verisidir
-  resetAiProxyUrl(); // bağlı AI worker adresi de kullanıcıya özel bir bağlantı ayarıdır
+  purgeLegacyKeys();
   clearCloudOwner();
   // Not: actions.reset() onboarded'ı false yapar, Panel unmount olur; bir sonraki
   // onboarding'de yeniden mount olup getTargets()/getTaxRates()'i TAZE okur — bu yüzden

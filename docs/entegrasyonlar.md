@@ -143,7 +143,7 @@ Bu bölüm bilinçli. Ürünün iddiası "uydurma veri göstermemek" olduğu iç
 | **TEFAS fon fiyatı** | TCMB'nin 2026'da açtığı `tefas.gov.tr/api/funds/` uçları anahtarsız, **ama site WAF korumalı ve CORS durumu doğrulanamadı** | Manuel giriş |
 | **Altın fiyatı** | Adaylar (goldprice.dev, freegoldapi) XAU spot veriyor; **Türkiye gram altını yerel prim taşıyor**, birebir eşit değil. Yanlış fiyat göstermektense göstermemek seçildi | Manuel giriş |
 | **BtcTurk genel API** | `api/v2/ticker` ve `api/v2/ohlc` anahtar istemiyor (resmî dokümandan teyitli). **CORS doğrulanmadı.** Bakiye uçları HMAC imza istiyor → tarayıcıda güvenle yapılamaz | Entegre edilebilir |
-| **LLM (Anthropic/OpenAI)** | Ajan bilinçli olarak kural tabanlı: maliyet sıfır, gecikme sıfır, **halüsinasyon sıfır**. Geçiş için altyapı hazır (`server/`), `agent.ts` saf fonksiyonlarda izole | Planlı |
+| **LLM (Anthropic/OpenAI)** | Ajan bilinçli olarak kural tabanlı: maliyet sıfır, gecikme sıfır, **halüsinasyon sıfır**. Dış AI bağlantısı ürün dışıdır (adım 3'te kaldırıldı); `agent.ts` saf kalır | Yok |
 
 **Kapsam şeffaflığı koda gömülü:** Risk raporu portföyün yüzde kaçını kapsadığını
 (`RiskReport.coveragePct`) ve kapsam dışı her varlığın nedenini ekrana yazıyor.

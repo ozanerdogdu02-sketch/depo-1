@@ -66,12 +66,12 @@ await ask('analiz et');
 const analizMsgCountBefore = await page.locator('.msg-agent').count();
 await ask('devam et');
 const followupReply = await page.locator('.msg-agent').last().textContent();
-check('Takip cümlesi analiz konusunu genişletti (rastgele "anlayamadım" değil)', !(followupReply?.includes('anlayamadım') ?? true));
+check('Takip cümlesi analiz konusunu genişletti (rastgele "yanıtlayamam" değil)', !(followupReply?.includes('yanıtlayamam') ?? true));
 check('Takip cümlesi sonrası yeni mesaj eklendi', await page.locator('.msg-agent').count() > analizMsgCountBefore);
 
 // --- Anlaşılmayan girdi için fallback ---
 await ask('asdkjalksjd rastgele metin 12345');
-check('Anlamsız girdi için fallback mesajı geldi', (await page.locator('.msg-agent').last().textContent())?.includes('anlayamadım') ?? false);
+check('Anlamsız girdi için fallback mesajı geldi', (await page.locator('.msg-agent').last().textContent())?.includes('yanıtlayamam') ?? false);
 
 // --- Analiz Et butonu hâlâ çalışıyor mu (regresyon) ---
 await page.getByRole('button', { name: 'Analiz Et' }).click();
@@ -82,12 +82,27 @@ check('Analiz Et butonu hâlâ mesaj üretiyor', (await page.locator('.msg-agent
 // Regresyon: "portföyümü aklında tut, sonra geri döneyim" gibi doğal bir istek fallback'e düşüyordu.
 await ask('şuanki portföyümü aklında tut birazdan işlemleri silicem geri dönmek istiyorum');
 const yedek1 = await page.locator('.msg-agent').last().textContent();
-check('Yedekleme isteği fallback\'e DÜŞMÜYOR', !(yedek1 ?? '').includes('tam olarak anlayamadım'));
+check('Yedekleme isteği fallback\'e DÜŞMÜYOR', !(yedek1 ?? '').includes('yanıtlayamam'));
 check('Cevap CSV yedeğini anlatıyor', (yedek1 ?? '').includes('CSV'));
 check('Cevap "İçe Aktar" ile geri yüklemeyi anlatıyor', (yedek1 ?? '').includes('İçe Aktar'));
 
 await ask('nasıl yedek alırım');
 check('"nasıl yedek alırım" da aynı cevabı veriyor', ((await page.locator('.msg-agent').last().textContent()) ?? '').includes('CSV'));
+
+// --- Dış AI bağlantısı yok (adım 3) ---
+check('Ajan sekmesinde "Gerçek AI" kartı yok', (await page.locator('text=/Gerçek AI|Worker adresi/i').count()) === 0);
+const disIstek = [];
+page.on('request', r => { try { if (new URL(r.url()).origin !== 'http://localhost:4200') disIstek.push(r.url()); } catch { /* data: vb. */ } });
+await ask('kaç lot almalıyım');
+await ask('bugün hava nasıl olacak');
+const sonCevap = (await page.locator('.msg-agent').last().textContent()) ?? '';
+check('Anlaşılmayan soru sabit yanıta düşüyor', sonCevap.includes('yanıtlayamam'));
+check('Sohbet sırasında uygulama dışına istek gitmedi', disIstek.length === 0);
+const anahtarlar = await page.evaluate(() => Object.keys(localStorage));
+check('fagent.ai.proxyurl.v1 anahtarı yok', !anahtarlar.includes('fagent.ai.proxyurl.v1'));
+await page.evaluate(() => localStorage.setItem('fagent.ai.proxyurl.v1', 'https://eski.example/x'));
+await page.reload({ waitUntil: 'networkidle' });
+check('Eski AI adresi ilk açılışta silindi', await page.evaluate(() => localStorage.getItem('fagent.ai.proxyurl.v1')) === null);
 
 await browser.close();
 console.log(failed ? 'FAGENT_AGENT_E2E_FAILED' : 'FAGENT_AGENT_E2E_OK');

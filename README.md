@@ -69,8 +69,7 @@ sonra devreye girer; anonim oturum yok.
 - stopaj oranları (`fagent.tax.v1`)
 - hedef dağılım (`fagent.target.v1`)
 
-**Eşitlenmeyenler:** fiyat önbellekleri (kripto piyasa, fiyat geçmişi), bağlanan AI adresi
-(`fagent.ai.proxyurl.v1`), yedek meta verisi, Supabase oturum bilgisi (`sb-*-auth-token`) ve
+**Eşitlenmeyenler:** fiyat önbellekleri (kripto piyasa, fiyat geçmişi), yedek meta verisi, Supabase oturum bilgisi (`sb-*-auth-token`) ve
 senkronun kendi işaretleri. Enflasyon tercihi tarayıcıda da kalıcı tutulmadığı için eşitlenmez.
 
 Davranış:
@@ -142,8 +141,7 @@ netlify/
 
 `agent.ts` bilinçli olarak **saf** tutuldu: hiçbir I/O (localStorage, ağ) içermez, tüm veri
 (portföy, geçmiş, hafıza, öğretilmiş bilgiler) parametre olarak geçirilir. Bu hem test etmeyi
-kolaylaştırır hem de ileride bu dosyayı bir sunucu/LLM çağrısıyla değiştirmeyi basitleştirir
-(bkz. "Gerçek AI'a geçiş" altında).
+kolaylaştırır. Ürün dışı: dış AI/LLM bağlantısı yoktur (bkz. "Dış AI bağlantısı yok").
 
 ---
 
@@ -247,30 +245,13 @@ aynı kurala göre reddedilir.
 
 ---
 
-## Gerçek AI'a Geçiş (henüz yapılmadı, planlı)
+## Dış AI bağlantısı yok
 
-Şu an ajan tamamen kural tabanlı ve anahtarsız. Gerçek bir LLM'e (Anthropic API) bağlamak istersen:
-
-1. Repo kökündeki `server/` klasörü zaten bir Anthropic proxy içeriyor (`server/ai.js`,
-   `POST /api/ai/chat`) — Aura Finance projesi için yazıldı ama aynı desen FAGENT için de kullanılabilir.
-2. `server/`'ı bir yere deploy et (Render/Railway/Fly.io) ve `ANTHROPIC_API_KEY`'i tanımla.
-3. `agent.ts`'teki `chatReply()` çağrısını `App.tsx`'te bir `fetch('/api/ai/chat', ...)` ile
-   değiştir (ya da `chatReply`'yi async yapıp önce yerel kuralları, bulunamazsa proxy'yi dene).
-   `history`/`memory`/`trainedFacts` parametreleri zaten var — bunları LLM'e prompt bağlamı olarak
-   geçirebilirsin (ör. "kullanıcı en çok X hakkında soruyor" gibi).
-4. **Bu noktadan sonra istemci anahtarsız kalır ama arka planda artık bir sunucu + API maliyeti
-   olur.** Kullanıcıya (sana) bu tradeoff önceden soruldu ve bu oturumda "anahtarsız yerel motor"
-   seçildi — geri dönmek istersen yalnızca yukarıdaki adımlar gerekiyor.
-
-**LangChain / AutoGen gibi çerçeveler** kendi başına "zeka" sağlamaz — bir LLM'i orkestra eden
-kütüphanelerdir, LLM çağrısı olmadan işlevsizdirler. Yani bunları eklemek de 2. maddedeki gerçek
-AI kararına bağlı; anahtarsız bir tarayıcı uygulamasında tek başlarına anlamları yok.
-
-**RAG (Retrieval-Augmented Generation):** Gerçek RAG bir embedding modeli + vektör arama gerektirir
-(API ya da ağır bir client-side model). Şu an `holdingLookupReply` + `agentTraining.findBestMatch`
-zaten "anahtarsız RAG"ın basit karşılığı: anahtar kelime/kümesi tabanlı arama. Gerçek semantik arama
-için ya bir embedding API'si (anahtar gerekir) ya da tarayıcıda çalışan bir embedding modeli
-(transformers.js gibi — mümkün ama ağır ve karmaşık) gerekir.
+Ajan tamamen kural tabanlı ve anahtarsızdır; portföy verisi hiçbir yapay zekâ servisine gönderilmez.
+Eskiden Ajan sekmesinde opsiyonel bir "AI bağlantısı" kartı vardı; gizlilik ve düzenleme gerekçesiyle
+(portföy özetini dışarı gönderiyordu, kişiye özel yorum riski) kaldırıldı. Eski sürümden kalmış bağlantı
+adresi, uygulama ilk açıldığında tarayıcıdan silinir. Anlaşılamayan sorulara ajan sabit bir
+"Bunu yanıtlayamam; şunları sorabilirsin…" cevabı verir.
 
 ---
 

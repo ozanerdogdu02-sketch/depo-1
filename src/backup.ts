@@ -21,7 +21,7 @@ const META_KEY = 'fagent.backup.v1';
 // DİKKAT — BURAYA EKLENEN ANAHTAR BULUTA DA GİDER: bu liste aynı zamanda hesap açan
 // kullanıcının bulut senkronunun (cloud.ts) beyaz listesidir. Yeni bir anahtar eklersen
 // gizlilik metnini (README, Hesap ekranı, ajan metinleri) ve aydınlatma metnini güncelle.
-// Önbellekler, AI bağlantı adresi (fagent.ai.proxyurl.v1), yedek meta verisi ve bulut
+// Önbellekler, yedek meta verisi ve bulut
 // sahiplik işareti BİLEREK bu listede değildir.
 export const BACKED_UP_KEYS = [
   'fagent.portfolio.v1',      // portföy + işlem geçmişi
@@ -144,7 +144,7 @@ export function applyUserData(data: unknown, opts: { mode: ApplyMode }): ApplyRe
 }
 
 // Kullanıcı katmanlarının anlık görüntüsü — buildBackup'ın `data` kısmı ve bulut satırının
-// gövdesi. Yalnızca BACKED_UP_KEYS; önbellekler, AI adresi, meta ve oturum token'ı GİRMEZ.
+// gövdesi. Yalnızca BACKED_UP_KEYS; önbellekler, meta ve oturum token'ı GİRMEZ.
 export function snapshotUserData(): Record<string, string> {
   const data: Record<string, string> = {};
   for (const key of BACKED_UP_KEYS) {
