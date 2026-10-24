@@ -17,9 +17,9 @@ iş eklenmez. Ekip bir işi bitirince durumunu **Tamam** yapar ve commit'i yazar
 
 | # | İş | Plan adımı | Öncelik | Efor | Durum | Kaynak |
 |---|---|---|---|---|---|---|
-| 1 | aiAgent katmanını tümüyle çıkar | 3 | yuksek | orta | Planlandı (bkz. docs/adim3-ekip-plani.md) | araştırma: fagent-uyum, fagent-guvenlik, fagent-veri-akisi |
-| 2 | Ajan işlem komutu: 'deftere kayıt' dili | 3 | yuksek | kucuk | Planlandı (bkz. docs/adim3-ekip-plani.md) | araştırma: fagent-uyum, fagent-tasarim |
-| 3 | Tavsiye reddi regex'ini genişlet ve normatif ajan yorumlarını betimleyici yap | 3 | yuksek | kucuk | Planlandı (bkz. docs/adim3-ekip-plani.md) | araştırma: fagent-uyum |
+| 1 | aiAgent katmanını tümüyle çıkar | 3 | yuksek | orta | ✅ Tamam (24.10) | araştırma: fagent-uyum, fagent-guvenlik, fagent-veri-akisi |
+| 2 | Ajan işlem komutu: 'deftere kayıt' dili | 3 | yuksek | kucuk | ✅ Tamam (24.10) | araştırma: fagent-uyum, fagent-tasarim |
+| 3 | Tavsiye reddi regex'ini genişlet ve normatif ajan yorumlarını betimleyici yap | 3 | yuksek | kucuk | ✅ Tamam (24.10) | araştırma: fagent-uyum |
 | 4 | #40 Derleme kapısı: gizli anahtarı reddet | 4 | yuksek | kucuk | Bekliyor | araştırma: fagent-veri-akisi, fagent-guvenlik, fagent-test |
 | 5 | #43/16 Güvenlik başlıkları (vercel.json) ve cors-test.html'in üretimden çıkarılması | 4 | yuksek | kucuk | Bekliyor | araştırma: fagent-guvenlik, fagent-veri-akisi, fagent-test |
 | 6 | Migration'a authenticated için açık grant ekle | 5 | yuksek | kucuk | Bekliyor | araştırma: fagent-guvenlik |
@@ -61,11 +61,11 @@ Her biri `fagent-ekip` iş akışına görev olarak verilebilir. Görev metninde
 ifadesi yönetmenin önerisidir; uygulanan süreç: kapı yeşil ve güvenlik incelemesi temizse ürün dalına
 commit, değilse rapor klasörüne yedek.
 
-### Görev 1 — **Planlandı — `docs/adim3-ekip-plani.md`; koşu kredi nedeniyle durduruldu**
+### Görev 1 — **✅ Tamam (24.10, commit)**
 
 [fagent-uyum + fagent-veri-akisi] Plan adım 3, sıra 1: `aiAgent` katmanını tümüyle çıkar. Silinecek: src/aiAgent.ts. Temizlenecek: App.tsx:32,1719-1750,1800-1837,1994,2128 (kurala uymayan soru artık sabit bir 'bunu yanıtlayamam; şunları sorabilirsin…' cevabına düşer); localData.ts:18 (fagent.ai.proxyurl.v1); README.md:23-27'deki AI bahsi. Kullanıcıda eski anahtar kaldıysa ilk açılışta silinsin. e2e: `fagent.ai.proxyurl.v1` anahtarı yok ve sohbet sırasında page.on('request') ile src dışındaki hiçbir adrese istek gitmiyor. agent.ts saf kalır (§0.6). typecheck, build ve test:e2e yeşil olmalı. İş `wip/adim3-aiagent-incelenmedi` dalına kaydedilir; ürün dalına commit edilmez.
 
-### Görev 2 — **Planlandı — `docs/adim3-ekip-plani.md`; koşu kredi nedeniyle durduruldu**
+### Görev 2 — **✅ Tamam (24.10, commit)**
 
 [fagent-uyum + fagent-tasarim] Plan adım 3, sıra 2 ve 3: ajan dilini 'deftere kayıt' diline çevir ve tavsiye reddini genişlet. (a) agent.ts:947 → '"THYAO'dan 500 TL sat" yazarsan defterine satış kaydı ekleyebilirim.' agent.ts:1129 → '… için ₺X tutarında satış kaydı ekleyeyim mi? (Yalnızca defterine yazılır.)' App.tsx:1939/1945 düğmeleri 'Deftere ekle' / 'Vazgeç'. App.tsx:1876 → 'Deftere kaydedildi — aracı kurumuna emir gönderilmedi.' App.tsx:1851 → 'Kayıt eklenmedi; defterin değişmedi.' App.tsx:1130 → 'Bugün defterine kayıt eklenmedi.' (b) CHAT_RULES tavsiye kalıbı (agent.ts:600-623) şu 9 cümleyi yakalamalı: 'hangisi daha iyi', 'şimdi girmeli miyim', 'kaç lot almalıyım', 'stop koymalı mıyım', 'altın alayım mı', 'hisse satayım mı', 'THYAO almalı mıyım', 'portföyümü dengele', 'bu hisse alınır mı'. Türkçe regex'te \b kullanılmaz. (c) agent.ts:141,156-157'deki değer yargıları sayı betimlemesine çevrilir (örn. 'Son 10 işlemin 7'si satış, 3'ü alış.'). e2e: 9 cümle için ret mesajı; ajan çıktılarında öneri/uygula/işlendi/emir/-malısın kelimeleri yok; agent-e2e ve action-e2e seçicileri güncellenir. Dal: `wip/adim3-dil-incelenmedi`.
 

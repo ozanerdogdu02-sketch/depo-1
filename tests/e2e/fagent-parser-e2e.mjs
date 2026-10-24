@@ -33,7 +33,7 @@ const t1 = await lastText();
 check('P0: adında rakam olan varlıkta doğru tutar (₺1.000) ayrıştırıldı', t1.includes('₺1.000'));
 check('P0: ad içindeki 30 tutar olarak alınmadı', !t1.includes('₺30 '));
 check('P0: doğru varlık seçildi', t1.includes('BIST 30 Fonu'));
-check('P0: onay akışı açıldı', await lastAgent().getByRole('button', { name: 'Onayla' }).count() === 1);
+check('P0: onay akışı açıldı', await lastAgent().getByRole('button', { name: 'Deftere ekle' }).count() === 1);
 
 // ── P1: yazıyla iptal ────────────────────────────────────────────────────────────
 // DİKKAT: lastAgent() dinamik bir seçici — "vazgeç" yazdıktan sonra iptal mesajını gösterir.
@@ -41,12 +41,12 @@ check('P0: onay akışı açıldı', await lastAgent().getByRole('button', { nam
 const pendingIndex = (await page.locator('.msg-agent').count()) - 1;
 const pendingMsg = page.locator('.msg-agent').nth(pendingIndex);
 await ask('vazgeç');
-check('P1: "vazgeç" iptal cevabı döndürdü', (await lastText()).includes('iptal ettim'));
-check('P1: iptal cevabı veri değişmediğini söylüyor', (await lastText()).includes('Hiçbir veri değişmedi'));
+check('P1: "vazgeç" iptal cevabı döndürdü', (await lastText()).includes('Kayıt eklenmedi'));
+check('P1: iptal cevabı veri değişmediğini söylüyor', (await lastText()).includes('defterin değişmedi'));
 check('P1: bekleyen öneri "Vazgeçildi" durumuna geçti',
   await pendingMsg.getByRole('button', { name: 'Vazgeçildi' }).count() === 1);
-check('P1: iptal sonrası Onayla devre dışı',
-  await pendingMsg.getByRole('button', { name: 'Onayla' }).isDisabled());
+check('P1: iptal sonrası Deftere ekle devre dışı',
+  await pendingMsg.getByRole('button', { name: 'Deftere ekle' }).isDisabled());
 
 // İşlem gerçekten uygulanmamış olmalı — İşlemler sekmesinde BIST 30 Fonu alışı olmamalı.
 await page.locator('.side-link', { hasText: 'İŞLEMLER' }).click();
@@ -58,17 +58,39 @@ await page.waitForTimeout(300);
 
 // Bekleyen işlem YOKKEN "vazgeç" yazmak iptal cevabı vermemeli (normal akışa düşmeli).
 await ask('vazgeç');
-check('P1: bekleyen işlem yokken "vazgeç" iptal cevabı vermiyor', !(await lastText()).includes('iptal ettim'));
+check('P1: bekleyen işlem yokken "vazgeç" iptal cevabı vermiyor', !(await lastText()).includes('Kayıt eklenmedi'));
 
 // "satışı iptal et" varyantı da çalışmalı — ve yanlışlıkla yeni satış komutu sanılmamalı.
 await ask('THYAO\'dan 500 TL sat');
-check('P1: yeni öneri açıldı', await lastAgent().getByRole('button', { name: 'Onayla' }).count() === 1);
+check('P1: yeni öneri açıldı', await lastAgent().getByRole('button', { name: 'Deftere ekle' }).count() === 1);
 await ask('satışı iptal et');
-check('P1: "satışı iptal et" iptal etti', (await lastText()).includes('iptal ettim'));
+check('P1: "satışı iptal et" iptal etti', (await lastText()).includes('Kayıt eklenmedi'));
 check('P1: "satışı iptal et" yeni bir öneri AÇMADI',
-  await lastAgent().getByRole('button', { name: 'Onayla' }).count() === 0);
+  await lastAgent().getByRole('button', { name: 'Deftere ekle' }).count() === 0);
 
 // ── P1: regülasyon cevabı ────────────────────────────────────────────────────────
+// ── K3: 9 tavsiye cümlesi × küçük/BÜYÜK/İ-I varyantları → ret; kayıt komutları reddedilmez ──────────
+const TAVSIYE9 = ['hangisi daha iyi', 'şimdi girmeli miyim', 'kaç lot almalıyım', 'stop koymalı mıyım', 'altın alayım mı',
+  'hisse satayım mı', 'THYAO almalı mıyım', 'portföyümü dengele', 'bu hisse alınır mı'];
+const YASAK = /öneri|uygula|işlendi|emir|malısın|melisin/i;
+for (const q of TAVSIYE9) {
+  for (const v of [q, q.toLocaleUpperCase('tr-TR'), q.toUpperCase()]) {
+    await ask(v);
+    const t = await lastText();
+    check(`Tavsiye reddi: "${v}"`, t.includes('tavsiye veremem') && t.includes('SPK'));
+    check(`Tavsiye reddinde Deftere ekle düğmesi yok: "${v}"`, await lastAgent().getByRole('button', { name: 'Deftere ekle' }).count() === 0);
+    check(`Ret metni yasaklı kelime içermiyor: "${v}"`, !YASAK.test(t.replace('aracı kurumuna emir gönderilmedi', '')));
+  }
+}
+for (const q of ["THYAO'dan 500 TL sat", 'THYAO 1000 TL al']) {
+  await ask(q);
+  check(`Kayıt komutu reddedilmiyor: "${q}"`, !(await lastText()).includes('tavsiye veremem'));
+}
+for (const q of ['dağılımım nasıl', 'hedeften sapmam ne', 'THYAO nasıl gidiyor']) {
+  await ask(q);
+  check(`Betimleyici soru reddedilmiyor: "${q}"`, !(await lastText()).includes('tavsiye veremem'));
+}
+
 for (const q of ['hangi hisseyi almalıyım', 'bana yatırım tavsiyesi ver', 'portföyümü optimize et']) {
   await ask(q);
   const t = await lastText();

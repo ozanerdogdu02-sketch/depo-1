@@ -1126,7 +1126,7 @@ function Bugun() {
 
       <div className="card">
         <div className="card-title">Bugünkü İşlemler</div>
-        {todaysTxns.length === 0 && <p className="sub">Bugün henüz işlem yapılmadı.</p>}
+        {todaysTxns.length === 0 && <p className="sub">Bugün defterine kayıt eklenmedi.</p>}
         {todaysTxns.map(t => (
           <div key={t.id} className="list-row">
             <span>
@@ -1683,7 +1683,7 @@ function AgentMemoryCard({ mem, open, onToggle, onPrefs }: {
             )}
             {mem.recentAdvice.length > 0 && (
               <div className="hint" style={{ margin: 0 }}>
-                Son öneri/uyarılarım: {mem.recentAdvice.slice(0, 3).map(a => `“${a}”`).join(' · ')}
+                Son uyarı/gözlemlerim: {mem.recentAdvice.slice(0, 3).map(a => `“${a}”`).join(' · ')}
               </div>
             )}
           </div>
@@ -1784,7 +1784,7 @@ function Ajan() {
     if (!confirmed) {
       setMessages(m => [
         ...m.map((mm, i) => i === index ? { ...mm, actionResolved: 'cancelled' as const } : mm),
-        { role: 'agent', text: 'Tamam, işlemi iptal ettim.' },
+        { role: 'agent', text: 'Kayıt eklenmedi; defterin değişmedi.' },
       ]);
       return;
     }
@@ -1793,14 +1793,14 @@ function Ajan() {
     if (!holding) {
       setMessages(m => [
         ...m.map((mm, i) => i === index ? { ...mm, actionResolved: 'cancelled' as const } : mm),
-        { role: 'agent', text: `${holdingName} artık portföyünde yok — işlemi uygulayamadım.` },
+        { role: 'agent', text: `${holdingName} artık portföyünde yok — kayıt eklenmedi.` },
       ]);
       return;
     }
     if (kind === 'satis' && amount > holding.amount) {
       setMessages(m => [
         ...m.map((mm, i) => i === index ? { ...mm, actionResolved: 'cancelled' as const } : mm),
-        { role: 'agent', text: `Bakiyeyi aşamaz — ${holdingName} için güncel değer ${fmtTL(holding.amount)}. İşlemi uygulamadım.` },
+        { role: 'agent', text: `Bakiyeyi aşamaz — ${holdingName} için güncel değer ${fmtTL(holding.amount)}. Kayıt eklenmedi.` },
       ]);
       return;
     }
@@ -1809,7 +1809,7 @@ function Ajan() {
     const newAmount = kind === 'alis' ? holding.amount + amount : Math.max(0, holding.amount - amount);
     setMessages(m => [
       ...m.map((mm, i) => i === index ? { ...mm, actionResolved: 'confirmed' as const } : mm),
-      { role: 'agent', text: `Yaptım — ${holdingName} için ${fmtTL(amount)} ${kind === 'alis' ? 'alış' : 'satış'} işlendi. Güncel değer: ${fmtTL(newAmount)}.` },
+      { role: 'agent', text: `Deftere kaydedildi — aracı kurumuna emir gönderilmedi. ${holdingName} güncel değer: ${fmtTL(newAmount)}.` },
     ]);
   };
 
@@ -1863,7 +1863,7 @@ function Ajan() {
                     className="btn btn-primary btn-inline" style={{ padding: '4px 10px', fontSize: 12.5 }}
                     disabled={!!m.actionResolved} onClick={() => resolveAction(i, true)}
                   >
-                    {m.actionResolved === 'confirmed' ? 'Onaylandı ✓' : 'Onayla'}
+                    {m.actionResolved === 'confirmed' ? 'Deftere eklendi ✓' : 'Deftere ekle'}
                   </button>
                   <button
                     className="btn btn-secondary btn-inline" style={{ padding: '4px 10px', fontSize: 12.5 }}

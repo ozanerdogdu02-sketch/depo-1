@@ -132,7 +132,7 @@ export function analyzePortfolio(s: PortfolioState, inflationPct: number = VARSA
     alloc.filter(a => a.type === 'mevduat' || a.type === 'doviz').reduce((s2, a) => s2 + a.pct, 0) + stablePct;
   const cashLabel = stablePct > 0 ? 'mevduat/döviz/stablecoin' : 'mevduat/döviz';
   if (cashLike < 10) {
-    notes.push(`Nakit benzeri (${cashLabel}) oranın %10'un altında — acil durum tamponu için biraz likidite ayırmak rahatlatır.`);
+    notes.push(`Nakit benzeri (${cashLabel}) payı %10'un altında (${fmtPctPlain(cashLike, 1)}).`);
   } else if (cashLike > 60) {
     notes.push(
       `Nakit benzeri ağırlık yüksek (%${fmtDec(cashLike, 0)}). %${fmtDec(inflationPct, 0)} enflasyon varsayımıyla ` +
@@ -146,9 +146,7 @@ export function analyzePortfolio(s: PortfolioState, inflationPct: number = VARSA
   const recentBuys = s.txns.slice(0, 10).filter(t => t.kind === 'alis').length;
   if (recentBuys + recentSells >= 3) {
     notes.push(
-      recentSells > recentBuys
-        ? 'Son işlemlerinde satış ağırlığı var — plan dahilindeyse sorun yok, ama panik satışları uzun vadeli getiriyi en çok aşındıran davranıştır.'
-        : 'Son işlemlerin alım ağırlıklı — düzenli alım (maliyet ortalaması) zamanlama riskini azaltan sağlam bir disiplindir.',
+      `Son ${recentBuys + recentSells} işlemin dağılımı: satış ${recentSells}, alış ${recentBuys}.`,
     );
   }
 
@@ -215,7 +213,7 @@ export function proactiveInsights(
   if ((!top || top.pct <= 50) && alloc.length >= 4) {
     out.push({
       level: 'iyi',
-      text: `${alloc.length} varlık sınıfına yayılmışsın — tek bir şoka bağımlılığın düşük, sağlam bir denge.`,
+      text: `${alloc.length} varlık sınıfına yayılmış durumdasın.`,
     });
   }
 
@@ -578,6 +576,11 @@ type Rule = {
   ) => string;
 };
 
+// Türkçe harfleri sadeleştirir: tr-TR küçük harf, sonra ı→i ş→s ğ→g ü→u ö→o ç→c. ASCII büyük harfle yazılmış
+// ("IYI") ve Türkçe büyük harfli ("İYİ") girdi aynı biçime gelir. Yalnızca eşleştirme içindir; kullanıcıya gösterilmez.
+export const foldTr = (t: string): string =>
+  t.toLocaleLowerCase('tr-TR').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ö/g, 'o').replace(/ç/g, 'c');
+
 const CHAT_RULES: Rule[] = [
   {
     test: /teşekkür|sağ ?ol|eyvallah|süper|harika/i,
@@ -599,10 +602,24 @@ const CHAT_RULES: Rule[] = [
   // et" gibi cümleler onlara takılır.
   {
     id: 'tavsiye',
-    test: /(hangi|ne|neyi)\s*\S*\s*(al(malı|ayım|sam|ır mıyım)|sat(malı|ayım|sam|ar mıyım))|yatırım tavsiye|tavsiye ver|tavsiyen ne|al ?sat tavsiye|ne önerirsin|bana öneri|optimize et|portföyümü optimize/i,
+    // Girdi foldTr() ile sadeleştirilip (küçük harf + ı→i, ş→s, ğ→g, ü→u, ö→o, ç→c) bu kalıba verilir (bkz. chatReply):
+    // "ALMALI MIYIM", "almalı mıyım" ve "ALMALİ MİYİM" hepsi "almali miyim" olur. Kalıp bu yüzden ASCII yazılır.
+    // \b KULLANILMAZ (Türkçe harflerde sözcük sınırı bozuk); tüm nicelikler sınırlı (ReDoS'a kapalı).
+    // "al"/"sat" kökü TEK BAŞINA yakalanmaz: "THYAO'dan 500 TL sat" kayıt komutudur, tavsiye sorusu değil.
+    test: new RegExp([
+      '(hangi|ne|neyi)\\s{0,3}\\S{0,20}\\s{0,3}(al(mali|ayim|sam|ir miyim)|sat(mali|ayim|sam|ar miyim))',
+      'yatirim tavsiye|tavsiye ver|tavsiyen ne|al ?sat tavsiye|ne onerirsin|bana oneri|optimize et|portfoyumu optimize',
+      'hangisi\\s{1,3}(daha\\s{1,3})?(iyi|mantikli|karli|cok kazandirir)',
+      'gir(meli|eyim|sem)\\s{0,3}m[iu]',
+      'kac\\s{1,3}(lot|adet|tane|tl|₺)\\s{0,3}\\S{0,20}\\s{0,3}(al|sat)(mali|ayim|sam|ir miyim)',
+      'stop\\S{0,12}\\s{0,3}\\S{0,12}\\s{0,3}(mali|meli|ayim|eyim|sam|sem)',
+      '\\S{2,20}\\s{1,3}(al|sat)(mali|ayim|sam)\\s{0,3}m[iu]',
+      '(alin|satil)ir\\s{0,3}mi',
+      'portfoy\\S{0,8}\\s{1,3}(yeniden\\s{1,3})?(dengele|duzenle|toparla)|yeniden dengele',
+    ].join('|'), 'u'),
     reply: (s) => {
       const lines = [
-        'Al/sat tavsiyesi veremem — bu, yalnızca SPK lisanslı aracı kurumların yapabileceği bir şey. Bilerek böyle tasarlandı.',
+        'Al/sat konusunda tavsiye veremem — bu, yalnızca SPK lisanslı aracı kurumların yapabileceği bir şey. Bilerek böyle tasarlandı.',
         'Ama sana şunları söyleyebilirim:',
         '• "analiz et" — portföyünün tamamını değerlendiririm',
         '• "riskimi analiz et" — volatilite, yoğunlaşma, çeşitlendirme faydası',
@@ -918,7 +935,7 @@ const CHAT_RULES: Rule[] = [
     reply: (_s, _t, _tr, _tg, _inf, cloudSynced) => [
       'İki ayrı yol var; hangisini istediğine göre değişir:',
       '',
-      'TAM YEDEK (önerilen). Panel\'deki "Veri Yedeği" kartından "Yedek Al" — tek bir JSON dosyası iner ve',
+      'TAM YEDEK (en kapsamlısı). Panel\'deki "Veri Yedeği" kartından "Yedek Al" — tek bir JSON dosyası iner ve',
       'BEŞ katmanı birden taşır: portföy, işlem geçmişi, sana öğrettiklerim, stopaj oranların ve hedef dağılımın.',
       'Aynı karttaki "Geri Yükle" ile o dosyayı okutursun; mevcut verinin ÜZERİNE YAZAR, o yüzden önce sorar.',
       '',
@@ -938,7 +955,7 @@ const CHAT_RULES: Rule[] = [
       '• "analiz et" — portföyünün genel değerlendirmesi',
       '• "dağılımım nasıl" — sınıf bazlı ağırlıklar',
       '• "THYAO nasıl gidiyor" gibi varlık bazlı sorular',
-      '• "THYAO\'dan 500 TL sat" gibi bir komutla gerçek işlem önerebilirim — onaylarsan uygularım',
+      '• "THYAO\'dan 500 TL sat" yazarsan defterine satış kaydı ekleyebilirim (aracı kurumuna emir gönderilmez)',
       '• "en çok kazandıran ne" / "en çok kaybettiren ne" — kıyaslama',
       '• "reel getirim ne" — enflasyondan arındırılmış getiri (Fisher denklemi)',
       '• "vergiden sonra ne kalıyor" — brüt → stopaj → net → reel zincirinin tamamı',
@@ -1098,14 +1115,14 @@ export function chatReply(
   // regülasyon reddini ya da bir işlem iptalini gölgelememeli. Anayasa: bir denetim/güvenlik
   // engeli ajan çıktısıyla geçersiz kılınamaz.
   const tavsiyeRule = CHAT_RULES.find(r => r.id === 'tavsiye');
-  if (tavsiyeRule?.test.test(text)) {
+  if (tavsiyeRule?.test.test(foldTr(text))) {
     return { text: tavsiyeRule.reply(s, text, taxRates, targets, inflationPct, cloudSynced), intentId: 'tavsiye' };
   }
   // Yazıyla iptal — yalnızca gerçekten bekleyen bir öneri varsa. Alım/satım ayrıştırmasından
   // ÖNCE gelmeli: "satışı iptal et" cümlesi içinde "satış" geçtiği için aksi halde yanlışlıkla
   // yeni bir satış komutu gibi değerlendirilebilirdi.
   if (hasUnresolvedAction(history) && CANCEL_PHRASE.test(text)) {
-    return { text: 'Tamam, bekleyen işlemi iptal ettim. Hiçbir veri değişmedi.', cancelPending: true };
+    return { text: 'Kayıt eklenmedi; defterin değişmedi.', cancelPending: true };
   }
 
   // Kullanıcının doğrudan öğrettiği bilgiler — yukarıdaki iki güvenlik kontrolünden SONRA,
@@ -1118,9 +1135,9 @@ export function chatReply(
   // Kullanıcı sohbet balonundaki Onayla/Vazgeç ile onaylamadan actions.addTxn çağrılmaz.
   const pendingAction = detectTradeCommand(s, text);
   if (pendingAction) {
-    const verb = pendingAction.kind === 'alis' ? 'almak' : 'satmak';
+    const kayit = pendingAction.kind === 'alis' ? 'alış' : 'satış';
     return {
-      text: `${pendingAction.holdingName} için ${fmtTL(pendingAction.amount)} ${verb} istediğini anladım. Onaylıyor musun?`,
+      text: `${pendingAction.holdingName} için ${fmtTL(pendingAction.amount)} tutarında ${kayit} kaydı ekleyeyim mi? (Yalnızca defterine yazılır.)`,
       pendingAction,
     };
   }

@@ -87,13 +87,13 @@ check('Solana kârda olduğu doğru raporlandı', solReply?.includes('kârda') ?
 await ask("Bitcoin'den 5000 TL sat");
 const idx = (await page.locator('.msg-agent').count()) - 1;
 const proposal = page.locator('.msg-agent').nth(idx);
-check('İşlem önerisi geldi', (await proposal.textContent())?.includes('satmak istediğini anladım') ?? false);
-check('Onayla butonu var', await proposal.getByRole('button', { name: 'Onayla' }).count() === 1);
+check('İşlem önerisi geldi', (await proposal.textContent())?.includes('satış kaydı ekleyeyim mi') ?? false);
+check('Deftere ekle butonu var', await proposal.getByRole('button', { name: 'Deftere ekle' }).count() === 1);
 await page.screenshot({ path: `${out}/d4-islem-onayi.png` });
 
-await proposal.getByRole('button', { name: 'Onayla' }).click();
+await proposal.getByRole('button', { name: 'Deftere ekle' }).click();
 await page.waitForTimeout(400);
-check('Onay sonrası işlem uygulandı', (await page.locator('.msg-agent').last().textContent())?.includes('Yaptım') ?? false);
+check('Onay sonrası işlem uygulandı', (await page.locator('.msg-agent').last().textContent())?.includes('Deftere kaydedildi') ?? false);
 
 // Gerçekten veriye yazıldı mı
 await page.locator('.side-link', { hasText: 'İŞLEMLER' }).click();

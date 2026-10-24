@@ -25,14 +25,14 @@ const ask = async (text) => {
 await ask('THYAO\'dan 1000 TL sat');
 const proposalIndex = (await page.locator('.msg-agent').count()) - 1;
 const proposalMsg = page.locator('.msg-agent').nth(proposalIndex);
-check('İşlem önerisi metni geldi', (await proposalMsg.textContent())?.includes('satmak istediğini anladım') ?? false);
-check('Onayla/Vazgeç butonları görünür', await proposalMsg.getByRole('button', { name: 'Onayla' }).count() === 1);
+check('İşlem önerisi metni geldi', (await proposalMsg.textContent())?.includes('satış kaydı ekleyeyim mi') ?? false);
+check('Deftere ekle/Vazgeç butonları görünür', await proposalMsg.getByRole('button', { name: 'Deftere ekle' }).count() === 1);
 
-await proposalMsg.getByRole('button', { name: 'Onayla' }).click();
+await proposalMsg.getByRole('button', { name: 'Deftere ekle' }).click();
 await page.waitForTimeout(300);
-check('Onay sonrası "Onaylandı" durumuna geçti', await proposalMsg.getByRole('button', { name: 'Onaylandı ✓' }).count() === 1);
-check('Onaylandıktan sonra buton devre dışı', await proposalMsg.getByRole('button', { name: 'Onaylandı ✓' }).isDisabled());
-check('Yeni bir onay mesajı geldi', (await page.locator('.msg-agent').last().textContent())?.includes('Yaptım') ?? false);
+check('Onay sonrası "Onaylandı" durumuna geçti', await proposalMsg.getByRole('button', { name: 'Deftere eklendi ✓' }).count() === 1);
+check('Onaylandıktan sonra buton devre dışı', await proposalMsg.getByRole('button', { name: 'Deftere eklendi ✓' }).isDisabled());
+check('Yeni bir onay mesajı geldi', (await page.locator('.msg-agent').last().textContent())?.includes('Deftere kaydedildi') ?? false);
 
 // Panel'e geçip gerçekten işlendiğini doğrula
 await page.locator('.side-link', { hasText: 'İŞLEMLER' }).click();
@@ -49,7 +49,7 @@ const proposalIndex2 = (await page.locator('.msg-agent').count()) - 1;
 const proposalMsg2 = page.locator('.msg-agent').nth(proposalIndex2);
 await proposalMsg2.getByRole('button', { name: 'Vazgeç' }).click();
 await page.waitForTimeout(300);
-check('Vazgeçilince onay mesajı gelmedi, iptal mesajı geldi', (await page.locator('.msg-agent').last().textContent())?.includes('iptal ettim') ?? false);
+check('Vazgeçilince onay mesajı gelmedi, iptal mesajı geldi', (await page.locator('.msg-agent').last().textContent())?.includes('Kayıt eklenmedi') ?? false);
 const txnCountAfter = await page.evaluate(() => JSON.parse(localStorage.getItem('fagent.portfolio.v1')).txns.length);
 check('Vazgeçilen işlem gerçek veriye yansımadı', txnCountAfter === txnCountBefore);
 
@@ -57,13 +57,13 @@ check('Vazgeçilen işlem gerçek veriye yansımadı', txnCountAfter === txnCoun
 await ask('THYAO\'dan 999999 TL sat');
 const proposalIndex3 = (await page.locator('.msg-agent').count()) - 1;
 const proposalMsg3 = page.locator('.msg-agent').nth(proposalIndex3);
-await proposalMsg3.getByRole('button', { name: 'Onayla' }).click();
+await proposalMsg3.getByRole('button', { name: 'Deftere ekle' }).click();
 await page.waitForTimeout(300);
 check('Bakiyeyi aşan işlem onaylansa bile reddedildi', (await page.locator('.msg-agent').last().textContent())?.includes('Bakiyeyi aşamaz') ?? false);
 
 // --- Belirsiz komutlar (varlık bulunamayan/birden fazla eşleşen) normal soru-cevaba düşmeli ---
 await ask('nakit sat');
-check('Var olmayan varlık için işlem önerilmedi (normal cevaba düştü)', await page.locator('.msg-agent').last().getByRole('button', { name: 'Onayla' }).count() === 0);
+check('Var olmayan varlık için işlem önerilmedi (normal cevaba düştü)', await page.locator('.msg-agent').last().getByRole('button', { name: 'Deftere ekle' }).count() === 0);
 
 await browser.close();
 console.log(failed ? 'FAGENT_ACTION_E2E_FAILED' : 'FAGENT_ACTION_E2E_OK');
