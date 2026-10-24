@@ -44,6 +44,7 @@ Tahmini bugünkü değer (gelirsiz, doğrulanmamış): ~1–5 bin $; hedef: ücr
   başında durduruldu; kalemleri sırayla uygula, sonra kapıyı koş.
 - Sonraki işler: `docs/is-kuyrugu.md` (34 iş + G1–G3 görsel).
 - Tasarım araştırması 1. tur: `docs/arastirma/a2-tasarim-1-tur.md` (kazanç/kayıp renk körlüğü, telefon menüsü vb. → T1–T8). T1 yapıldı 24.10: yüzde tek kural `%17,5` / `+%17,5` / `-%22,7` (`fmtPct`, `fmtPctPlain` in store.ts; "%-" üretilmez). Sıradaki: T2 (kazanç/kayıp ikinci işaret).
+- **Küçük/orta iş fazları: `docs/faz-plani-kucuk-orta.md` (yönetmen planı; Faz 1 → ekip koşusu, sonra Faz 2–4). Büyük kod en sona.**
 - Fikirler ve yapılabilirlik: `docs/fikir-defteri.md` (yeni fikir önce buraya satır olarak eklenir). Faz sırası: `docs/faz-plani.md`.
 - **Çalışma biçimi: işler AJAN EKİBİYLE yapılır (bkz. EKİP HAFIZASI → Süreç → HATA).**
 - Vercel: `fagent` projesi (takım MYSELF) Vite/`dist` olarak ayarlandı ve yalnızca `urun/birlesik` dalını derler;
