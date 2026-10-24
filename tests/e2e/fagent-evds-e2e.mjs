@@ -40,7 +40,7 @@ async function newPage(handler) {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1200 } });
   page.on('pageerror', err => { console.log('PAGE_ERROR:', err.message); failed = true; });
   let calls = 0;
-  await page.route('**/.netlify/functions/evds*', route => { calls++; return handler(route); });
+  await page.route('**/api/evds*', route => { calls++; return handler(route); });
   await page.goto('http://localhost:4200/', { waitUntil: 'networkidle' });
   await page.getByRole('button', { name: 'Karma örnek portföy' }).click();
   await page.waitForTimeout(600);

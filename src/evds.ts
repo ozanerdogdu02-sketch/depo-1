@@ -9,7 +9,8 @@
 // sonuç üretirdi (reel getiri, vergi sonrası getiri, nakit erimesi — hepsi buna dayanıyor);
 // "veri yok" demek, "yanlış veri" demekten her zaman iyidir.
 
-const FN_URL = '/.netlify/functions/evds';
+// Her iki barındırmada da /api/evds: Vercel → api/evds.mjs, Netlify → netlify.toml yönlendirmesi.
+const FN_URL = '/api/evds';
 const CACHE_KEY = 'fagent.evds.v1';
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 saat — TÜFE ayda bir açıklanır
 
