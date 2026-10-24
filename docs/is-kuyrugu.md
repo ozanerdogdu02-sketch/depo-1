@@ -122,7 +122,7 @@ Yönetmen tarafından gerekçesiyle reddedildi; yeniden önerilmeden önce gerek
 - **require-trusted-types-for'u doğrudan zorunlu kipte açmak** — Tarayıcı ve recharts uyumu doğrulanmadı; yalnızca Report-Only ile denenecek.
 
 
-## A1 — SaaS full paket araştırması (öncelik: en yüksek, cumartesi ilk iş)
+## A1 — SaaS full paket araştırması — 1. TUR TAMAM: docs/arastirma/a1-saas-1-tur.md (2. tur: mesafeli satış, Paddle/LS Türkiye, resmî kaynaklar)
 
 Çalıştırma: `fagent-arastirma` iş akışı, `args.konu` = aşağıdaki metin. Kod değiştirmez.
 
