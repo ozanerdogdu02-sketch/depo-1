@@ -45,6 +45,7 @@ Tahmini bugünkü değer (gelirsiz, doğrulanmamış): ~1–5 bin $; hedef: ücr
 - Sonraki işler: `docs/is-kuyrugu.md` (34 iş + G1–G3 görsel).
 - Tasarım araştırması 1. tur: `docs/arastirma/a2-tasarim-1-tur.md` (kazanç/kayıp renk körlüğü, telefon menüsü vb. → T1–T8). T1 yapıldı 24.10: yüzde tek kural `%17,5` / `+%17,5` / `-%22,7` (`fmtPct`, `fmtPctPlain` in store.ts; "%-" üretilmez). Sıradaki: T2 (kazanç/kayıp ikinci işaret).
 - Fikirler ve yapılabilirlik: `docs/fikir-defteri.md` (yeni fikir önce buraya satır olarak eklenir). Faz sırası: `docs/faz-plani.md`.
+- **Çalışma biçimi: işler AJAN EKİBİYLE yapılır (bkz. EKİP HAFIZASI → Süreç → HATA).**
 - Vercel: `fagent` projesi (takım MYSELF) Vite/`dist` olarak ayarlandı ve yalnızca `urun/birlesik` dalını derler;
   GitHub'a bağlı; her push önizlemeyi günceller: https://fagent-git-urun-birlesik-myself-40f7.vercel.app
   (Vercel girişi gerekir). fagent.vercel.app hâlâ eski maket; üretime geçiş kullanıcı onayıyla, 4. adımdan sonra.
@@ -77,6 +78,8 @@ Aynı hatayı tekrar yapma. Yeni bir hata bulunursa buraya tek satır eklenir (t
 - 2026-10-24: Var olan e2e dosyasına blok eklerken `grep -n "const <ad>"` ile değişken adı çakışmasını ve bloğun zaten ekli olup olmadığını kontrol et (tekrar eklenen blok test dosyasını çökertti).
 
 **Süreç**
+- **HATA (2026-10-24, kullanıcı düzeltti): işleri ekipsiz, tek başıma yapma.** Kullanıcı geliştirme işlerinin **ajan ekibiyle** (`fagent-ekip` iş akışı; araştırma için `fagent-arastirma`) yürütülmesini ister. "En ucuz yol" ifadesini "ekibi atla" diye yorumladım ve bir gün boyu çoğu işi kendim yaptım; bu kullanıcının söylediğinin dışına çıkmaktır. Kural: kod/test/belge geliştirme işi → önce ekip akışı; ekipsiz çalışma ancak kullanıcı AÇIKÇA "ekipsiz/kendin yap" derse. Kredi tasarrufu gerekçesi benim kararım değildir: ucuzluk istenirse ekibin KÜÇÜK bir koşusu (`maksKalem` düşük, roller kısıtlı) önerilir/yapılır, ekip tamamen atlanmaz. Kullanıcı kendi adıma karar vermemi istemiyor; soru sormaya da gerek yok: varsayılan = ekip.
+- Kullanıcı bir komutu yarıda keserse (tool reddi) nedenini soru olarak anla, aynı komutu tekrar deneme; önce durumu sade dille açıkla.
 - Ajanlar commit atmaz, push etmez, dal değiştirmez. Çalışma ağacı temiz başlar (inceleyenler `git diff` ile görür).
 - İncelenmemiş/yarım iş git dalına konmaz; yama dosyası olarak `/home/user/FAGENT-Raporlar/02-degisiklikler/` altına yedeklenir (kullanıcı kararı).
 - Hiçbir `.env*` dosyası okunmaz. Gizli anahtar istemciye girmez; `VITE_*` içinde yalnızca publishable/anon anahtar olur.
