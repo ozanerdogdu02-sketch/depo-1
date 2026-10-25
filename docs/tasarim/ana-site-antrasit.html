@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>FAGENT — Brüt, net, reel</title>
+<!-- Tek dosya, dış kaynak yok (yazı tipi sistemden). Önizleme için satır içi stil/betik; uygulamaya geçerken
+     CSP (script-src 'self') gereği betik ayrı dosyaya taşınır. -->
+<style>
+:root {
+  /* Antrasit ölçeği. Renk yalnız veri anlamı taşıyan iki yerde var: kazanç (mavi) ve kayıp (turuncu). */
+  --bg: #0e0f11; --s1: #17191c; --s2: #202327; --s3: #2a2d32;
+  --ring: #3a3e45; --bd: rgba(232, 233, 235, 0.12); --line-strong: #6e737b;
+  --ink: #e8e9eb; --ink2: #c7cacf; --ink3: #a5a9b0; --muted: #8c9098;
+  --g1: #6f747d; --g2: #9a9fa8; --g3: #eceef1;           /* brüt, net, reel çubukları: açıldıkça kalan değer */
+  --gain: #3fa9f5; --loss: #ffb07c;
+  --hh: 64px;                                             /* üst çubuk yüksekliği */
+  --u: 2px;                                               /* grafikte her ₺1.000 için yükseklik */
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --H: 380;                                               /* sabit sahne bölümünün yüksekliği (vh) */
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-padding-top: calc(var(--hh) + 16px); }
+body { margin: 0; background: var(--bg); color: var(--ink); overflow-x: clip;
+  font: 400 15px/1.55 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-variant-numeric: tabular-nums; }
+h1, h2, h3, p, ol, ul { margin: 0; padding: 0; }
+ol, ul { list-style: none; }
+button { font: inherit; color: inherit; cursor: pointer; }
+a { color: var(--ink); }
+:focus-visible { outline: 3px solid var(--g3); outline-offset: 2px; border-radius: 6px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 40px); }
+.eyebrow { font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.num { font-weight: 500; }
+.gain { color: var(--gain); } .loss { color: var(--loss); }
+.badge { display: inline-block; font-size: 12px; padding: 2px 10px; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--ink2); background: var(--s1); }
+.assume { display: inline-block; font-size: 12px; color: var(--ink2); border: 1px dashed var(--line-strong); border-radius: 6px; padding: 0 8px; }
+.card { background: var(--s1); border: 0.8px solid var(--bd); border-radius: 14px; padding: 24px; }
+
+/* Üst çubuk */
+.top { position: sticky; top: 0; z-index: 20; height: var(--hh); background: rgba(14, 15, 17, 0.92); border-bottom: 1px solid var(--bd); backdrop-filter: blur(8px); }
+.top .wrap { height: 100%; display: flex; align-items: center; gap: 14px; }
+.brand { font-weight: 600; letter-spacing: 0.16em; text-decoration: none; }
+.nav { display: flex; gap: 4px; margin-left: 12px; }
+.nav a { min-height: 44px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 8px; color: var(--ink2); text-decoration: none; font-size: 13.5px; transition: background-color 140ms ease; }
+.nav a:hover { background: var(--s2); color: var(--ink); }
+.sp { flex: 1; }
+.btn { min-height: 44px; padding: 0 18px; border-radius: 8px; border: 0; background: var(--g3); color: var(--bg); font-weight: 500; font-size: 13.5px; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; transition: background-color 140ms ease; }
+.btn:hover { background: #fff; color: var(--bg); }
+.btn.ghost { background: transparent; color: var(--ink2); box-shadow: inset 0 0 0 0.8px var(--line-strong); font-weight: 400; }
+.btn.ghost:hover { background: var(--s2); color: var(--ink); }
+.btn[disabled] { opacity: 0.6; cursor: default; }
+.mt i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.mt[aria-pressed="true"] i { background: var(--g3); }
+
+/* Bölümler */
+.sec { padding: 96px 0; }
+.sec h2 { font-size: clamp(26px, 3.4vw, 40px); line-height: 1.15; font-weight: 500; letter-spacing: -0.01em; margin-top: 10px; max-width: 22ch; }
+.lead { color: var(--ink3); max-width: 56ch; margin-top: 14px; font-size: 16px; }
+
+/* Hero */
+.hero { padding: 72px 0 48px; }
+.hero .wrap { display: flex; flex-wrap: wrap; gap: 48px; align-items: center; }
+.hero-copy { flex: 1 1 420px; min-width: 0; }
+.hero h1 { font-size: clamp(34px, 5vw, 58px); line-height: 1.08; font-weight: 500; letter-spacing: -0.02em; margin-top: 16px; }
+.hero .lead { font-size: 17px; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.hero-card-wrap { flex: 1 1 400px; min-width: 0; }
+.kpi { font-size: clamp(34px, 4.6vw, 52px); font-weight: 500; line-height: 1.1; margin-top: 8px; letter-spacing: -0.01em; }
+.sub { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; font-size: 14px; color: var(--ink3); }
+.sub b { font-weight: 500; }
+.spark-svg { width: 100%; height: 140px; display: block; margin-top: 16px; }
+.spark { fill: none; stroke: var(--g3); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; animation: k-draw 300ms ease-out 100ms backwards; }
+.spark-area { fill: #fff; opacity: 0.07; animation: k-fade 300ms ease-out 200ms backwards; }
+.spark-dot { fill: #fff; }
+.spark-axis { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 6px; }
+@keyframes k-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes k-fade { from { opacity: 0; } }
+
+/* Zincir: brüt → net → reel (köprü grafiği). Boşluğu sahne verir; sabit sahnede ortalama boşluğu zaten sağlar. */
+.sec.story { padding: 0; }
+.stage { padding: 96px 0; }
+.stage-in { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 56px; align-items: center; }
+.steps { display: grid; gap: 12px; margin-top: 28px; }
+.step { background: var(--s1); border: 0.8px solid var(--bd); border-radius: 12px; padding: 14px 18px; display: grid; grid-template-columns: 1fr auto; grid-template-areas: "h v" "p d"; gap: 2px 16px; align-items: baseline; }
+.step h3 { grid-area: h; font-size: 14px; font-weight: 500; color: var(--ink2); }
+.step .v { grid-area: v; font-size: 20px; font-weight: 500; text-align: right; }
+.step p { grid-area: p; font-size: 13px; color: var(--ink3); }
+.step .d { grid-area: d; font-size: 13px; text-align: right; white-space: nowrap; }
+.assume-row { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
+.chart { background: var(--s1); border: 0.8px solid var(--bd); border-radius: 14px; padding: 24px 20px 16px; }
+.plot { position: relative; height: calc(var(--u) * 170); display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.col { position: relative; height: 100%; }
+.bar { position: absolute; left: 14%; right: 14%; bottom: 0; border-radius: 3px 3px 0 0; transform-origin: 50% 100%; }
+.b-gross { height: calc(var(--u) * 148); background: var(--g1); }
+.b-net { height: calc(var(--u) * 140.8); background: var(--g2); }
+.b-real { height: calc(var(--u) * 108.308); background: var(--g3); }
+.bar.delta { border-radius: 3px; background: repeating-linear-gradient(135deg, var(--loss) 0 5px, rgba(255, 176, 124, 0.5) 5px 9px); }
+.b-tax { bottom: calc(var(--u) * 140.8); height: calc(var(--u) * 7.2); }
+.b-infl { bottom: calc(var(--u) * 108.308); height: calc(var(--u) * 32.492); }
+.val { position: absolute; left: -6%; right: -6%; text-align: center; font-size: 13px; font-weight: 500; line-height: 1.25; white-space: nowrap; }
+.v-gross, .v-tax { bottom: calc(var(--u) * 148 + 8px); }
+.v-net, .v-infl { bottom: calc(var(--u) * 140.8 + 8px); }
+.v-real { bottom: calc(var(--u) * 108.308 + 8px); }
+.base { position: absolute; inset: auto 0 calc(var(--u) * 100) 0; border-top: 1.5px dashed var(--line-strong); pointer-events: none; }
+.axis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 8px; border-top: 1px solid var(--ring); padding-top: 8px; }
+.axis span { text-align: center; font-size: 12px; color: var(--ink3); line-height: 1.3; }
+.legend-line { font-size: 12px; color: var(--muted); margin-top: 10px; }
+
+/* Paneller */
+.tabs { display: flex; gap: 6px; overflow-x: auto; margin-top: 32px; padding-bottom: 4px; scrollbar-width: thin; }
+.tab { min-height: 44px; padding: 0 18px; border-radius: 999px; border: 0; background: transparent; color: var(--ink3); white-space: nowrap; box-shadow: inset 0 0 0 0.8px var(--ring); transition: background-color 140ms ease, color 140ms ease; }
+.tab:hover { background: var(--s1); color: var(--ink); }
+.tab[aria-selected="true"] { background: var(--g3); color: var(--bg); box-shadow: none; font-weight: 500; }
+.panes { margin-top: 16px; overflow: hidden; border-radius: 14px; }
+.pane { display: flex; flex-wrap: wrap; gap: 32px; background: var(--s1); border: 0.8px solid var(--bd); border-radius: 14px; padding: 28px; min-height: 340px; }
+.pane[hidden] { display: none; }
+.pane.fwd { animation: k-in-fwd 220ms var(--ease) both; }
+.pane.back { animation: k-in-back 220ms var(--ease) both; }
+.pane-l { flex: 1 1 240px; min-width: 0; }
+.pane-r { flex: 2 1 340px; min-width: 0; }
+.note { font-size: 13px; color: var(--ink3); margin-top: 6px; }
+.rows { display: grid; gap: 4px; }
+.row { display: grid; grid-template-columns: 1fr auto auto; gap: 2px 16px; align-items: baseline; padding: 12px 0; border-bottom: 1px solid var(--ring); }
+.row:last-child { border-bottom: 0; }
+.rbar { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--s3); overflow: hidden; margin-top: 6px; }
+.rbar i { display: block; height: 100%; width: var(--w); background: var(--g2); border-radius: 3px; transform-origin: left; animation: k-scalex 260ms var(--ease) both; animation-delay: calc(var(--i, 0) * 40ms + 60ms); }
+.rd { min-width: 84px; text-align: right; font-size: 14px; }
+.donut-box { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; }
+.donut { width: 168px; height: 168px; transform: rotate(-90deg); flex: none; }
+.donut circle { fill: none; stroke-width: 7; }
+.donut .seg { animation: k-dash 300ms var(--ease) both; }
+.dl { display: grid; gap: 2px; flex: 1 1 200px; }
+.dl li { display: grid; grid-template-columns: 14px 1fr auto auto; gap: 10px; align-items: center; min-height: 36px; font-size: 14px; }
+.sw { width: 12px; height: 12px; border-radius: 3px; }
+.proj { display: flex; align-items: flex-end; gap: 20px; height: 250px; padding-top: 28px; }
+.pcol { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; min-width: 0; }
+.pval { font-size: 14px; font-weight: 500; text-align: center; margin-bottom: 6px; }
+.pbar { background: var(--g3); border-radius: 4px 4px 0 0; transform-origin: 50% 100%; animation: k-scaley 300ms var(--ease) both; animation-delay: calc(var(--i, 0) * 50ms + 60ms); }
+.plab { text-align: center; font-size: 12px; color: var(--ink3); margin-top: 8px; line-height: 1.3; }
+@keyframes k-in-fwd { from { opacity: 0; transform: translateX(28px); } }
+@keyframes k-in-back { from { opacity: 0; transform: translateX(-28px); } }
+@keyframes k-scalex { from { transform: scaleX(0); } }
+@keyframes k-scaley { from { transform: scaleY(0); } }
+@keyframes k-dash { from { stroke-dasharray: 0 100; } }
+
+/* Güven kartları ve alt bilgi (ekran dışındayken çizimi ertelenir) */
+.trust, .foot { content-visibility: auto; contain-intrinsic-size: auto 420px; }
+.trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 40px; }
+.trio h3 { font-size: 17px; font-weight: 500; margin-bottom: 8px; }
+.trio p { color: var(--ink3); font-size: 14px; }
+.foot { border-top: 1px solid var(--bd); padding: 32px 0 56px; color: var(--muted); font-size: 13px; }
+.foot p { max-width: 80ch; }
+
+/* ===== Kaydırmaya bağlı hareket =====
+   Üç kapı: sistem "hareketi azalt" demedi + tarayıcı destekliyor + sayfadaki anahtar açık.
+   Yalnızca opacity ve transform; ana iş parçacığını meşgul etmez.
+   Sabit sahnedeki adımlar --H'den türetilir: kesirler (--f1/--f2) sabit sahne süresinin 0..1 aralığıdır. */
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+  @supports (animation-timeline: view()) {
+    @keyframes k-rise { from { transform: scaleY(0); } }
+    @keyframes k-gross-val { from { opacity: 0; transform: translateY(calc(var(--u) * 148)); } }
+    @keyframes k-drop { from { opacity: 0; transform: translateY(-20px); } }
+    @keyframes k-net { 0% { opacity: 0; transform: scaleY(1.0511); } 25% { opacity: 1; transform: scaleY(1.0511); } }
+    @keyframes k-net-val { 0% { opacity: 0; transform: translateY(calc(var(--u) * -7.2)); } 25% { opacity: 1; transform: translateY(calc(var(--u) * -7.2)); } }
+    @keyframes k-real { 0% { opacity: 0; transform: scaleY(1.3); } 20% { opacity: 1; transform: scaleY(1.3); } }
+    @keyframes k-real-val { 0% { opacity: 0; transform: translateY(calc(var(--u) * -32.492)); } 20% { opacity: 1; transform: translateY(calc(var(--u) * -32.492)); } }
+    @keyframes k-step { from { opacity: 0.4; } }
+    @keyframes k-sink { to { transform: translateY(56px); opacity: 0.45; } }
+    @keyframes k-reveal { from { opacity: 0; transform: translateY(18px); } }
+
+    .site[data-motion="on"] {
+      --pa: calc(100 / (var(--H) + 100) * 100%);          /* sabit sahne başlıyor */
+      --pb: calc(var(--H) / (var(--H) + 100) * 100%);     /* sabit sahne bitiyor */
+    }
+    .site[data-motion="on"] .story { height: calc(var(--H) * 1vh); view-timeline: --story block; }
+    .site[data-motion="on"] .stage { position: sticky; top: var(--hh); height: calc(100vh - var(--hh)); display: flex; align-items: center; padding: 0; }
+    .site[data-motion="on"] .stage .wrap { width: 100%; }
+
+    .site[data-motion="on"] .a {
+      --tl: --story;
+      --r1: cover calc(var(--pa) + (var(--pb) - var(--pa)) * var(--f1));
+      --r2: cover calc(var(--pa) + (var(--pb) - var(--pa)) * var(--f2));
+      animation: var(--k) linear both;
+      animation-timeline: var(--tl);
+      animation-range: var(--r1) var(--r2);
+    }
+    .a-gross { --k: k-rise; --f1: 0.02; --f2: 0.16; --m1: entry 0%; --m2: entry 35%; }
+    .a-gross-val { --k: k-gross-val; --f1: 0.06; --f2: 0.16; --m1: entry 0%; --m2: entry 35%; }
+    .a-tax { --k: k-drop; --f1: 0.21; --f2: 0.30; --m1: entry 30%; --m2: entry 55%; }
+    .a-net { --k: k-net; --f1: 0.30; --f2: 0.46; --m1: entry 45%; --m2: entry 70%; }
+    .a-net-val { --k: k-net-val; --f1: 0.30; --f2: 0.46; --m1: entry 45%; --m2: entry 70%; }
+    .a-infl { --k: k-drop; --f1: 0.50; --f2: 0.59; --m1: entry 60%; --m2: entry 80%; }
+    .a-real { --k: k-real; --f1: 0.59; --f2: 0.80; --m1: entry 70%; --m2: entry 100%; }
+    .a-real-val { --k: k-real-val; --f1: 0.59; --f2: 0.80; --m1: entry 70%; --m2: entry 100%; }
+    .a-s1 { --k: k-step; --f1: 0; --f2: 0.07; }
+    .a-s2 { --k: k-step; --f1: 0.21; --f2: 0.28; }
+    .a-s3 { --k: k-step; --f1: 0.50; --f2: 0.57; }
+
+    /* Hero grafiği: aşağı kaydırınca geride kalıp çöker, yukarı kaydırınca geri yükselir */
+    .site[data-motion="on"] .hero-fall { animation: k-sink linear both; animation-timeline: view(); animation-range: exit 0% exit 100%; }
+    .site[data-motion="on"] .rv-in { animation: k-reveal linear both; animation-timeline: view(); animation-range: entry calc(4% + var(--i, 0) * 8%) entry calc(50% + var(--i, 0) * 8%); }
+
+    /* Dar ekran ya da kısa pencere: sabit sahne yok; grafik görünür alana girerken çalışır */
+    @media (max-width: 900px), (max-height: 640px) {
+      .site[data-motion="on"] .story { height: auto; view-timeline: none; }
+      .site[data-motion="on"] .stage { position: static; height: auto; display: block; padding: 64px 0; }
+      .site[data-motion="on"] .chart { view-timeline: --chart block; }
+      .site[data-motion="on"] .a { --tl: --chart; --r1: var(--m1); --r2: var(--m2); }
+      .site[data-motion="on"] .a-s1, .site[data-motion="on"] .a-s2, .site[data-motion="on"] .a-s3 { animation: none; }
+    }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+.site[data-motion="off"] *, .site[data-motion="off"] *::before, .site[data-motion="off"] *::after { animation: none !important; transition: none !important; }
+
+@media (max-width: 900px) {
+  .stage-in { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  :root { --u: 1.45px; }
+  .trio { grid-template-columns: minmax(0, 1fr); }
+  .sec { padding: 64px 0; }
+  .stage { padding: 64px 0; }
+}
+@media (max-width: 720px) {
+  .nav, .badge.hide-sm { display: none; }
+  .hero { padding: 40px 0 24px; }
+  .pane { padding: 20px; }
+  .proj { height: 220px; gap: 10px; }
+  .chart { padding: 20px 10px 12px; }
+  .val { font-size: 11px; letter-spacing: -0.01em; }
+}
+</style>
+</head>
+<body>
+<div class="site" data-motion="on">
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#ust">FAGENT</a>
+    <span class="badge hide-sm" role="note">Örnek veri</span>
+    <nav class="nav" aria-label="Sayfa bölümleri">
+      <a href="#zincir">Brüt → net → reel</a>
+      <a href="#paneller">Paneller</a>
+      <a href="#gizlilik">Gizlilik</a>
+    </nav>
+    <span class="sp"></span>
+    <button class="btn ghost mt" id="mt" type="button" aria-pressed="true"><i aria-hidden="true"></i><span id="mt-label">Kaydırma hareketi: açık</span></button>
+  </div>
+</header>
+
+<main id="ust">
+
+<section class="hero" aria-labelledby="h1">
+  <div class="wrap">
+    <div class="hero-copy">
+      <p class="eyebrow">Portföy takibi · API anahtarı gerekmez</p>
+      <h1 id="h1">Getirin vergiden ve enflasyondan sonra ne kadar kalıyor?</h1>
+      <p class="lead">FAGENT portföyünü brüt, net ve reel olarak yan yana ölçer. Veriler tarayıcında kalır. Ölçer ve betimler; yatırım tavsiyesi vermez.</p>
+      <div class="cta">
+        <a class="btn" href="#paneller">Örnek portföyü aç</a>
+        <a class="btn ghost" href="#zincir">Brüt, net, reel nedir?</a>
+      </div>
+    </div>
+    <div class="hero-card-wrap">
+      <div class="hero-fall">
+        <div class="card">
+          <p class="eyebrow">Toplam portföy · örnek veri</p>
+          <p class="kpi num">₺140.000</p>
+          <p class="sub"><b class="gain">▲ +₺15.000 (+%12,0)</b><span>Toplam maliyet ₺125.000</span></p>
+          <svg class="spark-svg" viewBox="0 0 480 140" preserveAspectRatio="none" role="img" aria-label="Son 12 ayda örnek portföy değeri: ₺108.000'den ₺140.000'e, ara dönemlerde iki küçük düşüşle">
+            <path class="spark-area" d="M0 110 L44 102 L87 107 L131 94 L175 84 L218 89 L262 76 L305 64 L349 69 L393 51 L436 38 L480 28 L480 140 L0 140 Z"/>
+            <path class="spark" pathLength="1" d="M0 110 L44 102 L87 107 L131 94 L175 84 L218 89 L262 76 L305 64 L349 69 L393 51 L436 38 L480 28"/>
+            <circle class="spark-dot" cx="478" cy="28" r="4"/>
+          </svg>
+          <div class="spark-axis" aria-hidden="true"><span>12 ay önce · ₺108.000</span><span>Bugün · ₺140.000</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec story" id="zincir" aria-labelledby="zincir-t">
+  <div class="stage">
+    <div class="wrap stage-in">
+      <div>
+        <p class="eyebrow">Brüt → net → reel</p>
+        <h2 id="zincir-t">₺100.000’lik örnek bir yatırım, bir yılın sonunda</h2>
+        <ol class="steps">
+          <li class="step a a-s1"><h3>1 · Brüt</h3><span class="v num">₺148.000</span><p>Başlangıç ₺100.000; örnek brüt getiri %48.</p><span class="d gain">▲ +%48,0</span></li>
+          <li class="step a a-s2"><h3>2 · Net (stopaj sonrası)</h3><span class="v num">₺140.800</span><p>₺48.000 kazancın %15’i, ₺7.200, stopaj olarak düşer.</p><span class="d gain">▲ +%40,8</span></li>
+          <li class="step a a-s3"><h3>3 · Reel (enflasyon sonrası)</h3><span class="v num">₺108.308</span><p>%30 enflasyonla bugünün alım gücüyle: (1 + 0,408) ÷ (1 + 0,30) − 1.</p><span class="d gain">▲ +%8,3</span></li>
+        </ol>
+        <p class="assume-row"><span class="assume">varsayım · kaynak doğrulanmadı</span><span>%48 getiri, %15 stopaj ve %30 enflasyon örnek değerlerdir.</span></p>
+      </div>
+
+      <div class="chart">
+        <div class="plot" role="img" aria-label="Köprü grafiği, örnek veri. Brüt değer ₺148.000. Stopaj ₺7.200 düşürür, net değer ₺140.800 olur. Enflasyon ₺32.492 düşürür, reel değer ₺108.308 olur. Anapara ₺100.000.">
+          <div class="base" aria-hidden="true"></div>
+          <div class="col" aria-hidden="true"><div class="bar b-gross a a-gross"></div><div class="val v-gross a a-gross-val">₺148.000</div></div>
+          <div class="col" aria-hidden="true"><div class="bar delta b-tax a a-tax"></div><div class="val v-tax loss a a-tax">▼ −₺7.200</div></div>
+          <div class="col" aria-hidden="true"><div class="bar b-net a a-net"></div><div class="val v-net a a-net-val">₺140.800</div></div>
+          <div class="col" aria-hidden="true"><div class="bar delta b-infl a a-infl"></div><div class="val v-infl loss a a-infl">▼ −₺32.492</div></div>
+          <div class="col" aria-hidden="true"><div class="bar b-real a a-real"></div><div class="val v-real a a-real-val">₺108.308</div></div>
+        </div>
+        <div class="axis" aria-hidden="true"><span>Brüt</span><span>Stopaj</span><span>Net</span><span>Enflasyon</span><span>Reel</span></div>
+        <p class="legend-line">Dolu sütun: değer · Çizgili sütun: düşen tutar (▼) · Kesikli çizgi: anapara, ₺100.000</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="paneller" aria-labelledby="pan-t">
+  <div class="wrap">
+    <p class="eyebrow">Paneller</p>
+    <h2 id="pan-t">Varlık sınıfları arasında geçiş</h2>
+    <p class="lead">Sekme değişince içerik yatay eksende kayar; yön, sekme sırasını izler. Sayılar örnek veridir.</p>
+
+    <div class="tabs" role="tablist" aria-label="Portföy panelleri" id="tabs">
+      <button class="tab" type="button" role="tab" id="tab-0" aria-selected="true" aria-controls="pane-0">Panel</button>
+      <button class="tab" type="button" role="tab" id="tab-1" aria-selected="false" aria-controls="pane-1" tabindex="-1">Hisseler</button>
+      <button class="tab" type="button" role="tab" id="tab-2" aria-selected="false" aria-controls="pane-2" tabindex="-1">Fonlar</button>
+      <button class="tab" type="button" role="tab" id="tab-3" aria-selected="false" aria-controls="pane-3" tabindex="-1">Kripto</button>
+      <button class="tab" type="button" role="tab" id="tab-4" aria-selected="false" aria-controls="pane-4" tabindex="-1">Projeksiyon</button>
+    </div>
+
+    <div class="panes">
+      <div class="pane" id="pane-0" role="tabpanel" aria-labelledby="tab-0" tabindex="0">
+        <div class="pane-l">
+          <p class="eyebrow">Toplam portföy</p>
+          <p class="kpi num">₺140.000</p>
+          <p class="note"><b class="gain">▲ +₺15.000 (+%12,0)</b></p>
+          <p class="note">Toplam maliyet ₺125.000 · fiyatlar elle girilir ya da canlı kaynaktan gelir.</p>
+        </div>
+        <div class="pane-r">
+          <div class="donut-box">
+            <svg class="donut" viewBox="0 0 42 42" role="img" aria-label="Dağılım: hisse yüzde 44,3; fon yüzde 34,3; kripto yüzde 14,3; nakit yüzde 7,1">
+              <circle cx="21" cy="21" r="15.9155" stroke="#2a2d32"/>
+              <circle class="seg" cx="21" cy="21" r="15.9155" pathLength="100" stroke="#eceef1" stroke-dasharray="43.7 56.3" stroke-dashoffset="0"/>
+              <circle class="seg" cx="21" cy="21" r="15.9155" pathLength="100" stroke="#b0b4bb" stroke-dasharray="33.7 66.3" stroke-dashoffset="-44.3"/>
+              <circle class="seg" cx="21" cy="21" r="15.9155" pathLength="100" stroke="#7b8089" stroke-dasharray="13.7 86.3" stroke-dashoffset="-78.6"/>
+              <circle class="seg" cx="21" cy="21" r="15.9155" pathLength="100" stroke="#565a62" stroke-dasharray="6.5 93.5" stroke-dashoffset="-92.9"/>
+            </svg>
+            <ul class="dl">
+              <li><span class="sw" style="background:#eceef1"></span><span>Hisse</span><span class="num">₺62.000</span><span class="num">%44,3</span></li>
+              <li><span class="sw" style="background:#b0b4bb"></span><span>Fon</span><span class="num">₺48.000</span><span class="num">%34,3</span></li>
+              <li><span class="sw" style="background:#7b8089"></span><span>Kripto</span><span class="num">₺20.000</span><span class="num">%14,3</span></li>
+              <li><span class="sw" style="background:#565a62"></span><span>Nakit</span><span class="num">₺10.000</span><span class="num">%7,1</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="pane" id="pane-1" role="tabpanel" aria-labelledby="tab-1" tabindex="0" hidden>
+        <div class="pane-l">
+          <p class="eyebrow">Hisseler</p>
+          <p class="kpi num">₺62.000</p>
+          <p class="note"><b class="gain">▲ +₺8.000 (+%14,8)</b></p>
+          <p class="note">Toplam maliyet ₺54.000 · 3 varlık. Hisse fiyatları elle girilir.</p>
+        </div>
+        <div class="pane-r">
+          <ul class="rows">
+            <li class="row"><span>Örnek Hisse A</span><span class="num">₺24.000</span><span class="rd gain">▲ +%33,3</span><div class="rbar" aria-hidden="true"><i style="--w: 38.7%; --i: 0"></i></div></li>
+            <li class="row"><span>Örnek Hisse B</span><span class="num">₺21.500</span><span class="rd gain">▲ +%26,5</span><div class="rbar" aria-hidden="true"><i style="--w: 34.7%; --i: 1"></i></div></li>
+            <li class="row"><span>Örnek Hisse C</span><span class="num">₺16.500</span><span class="rd loss">▼ −%13,2</span><div class="rbar" aria-hidden="true"><i style="--w: 26.6%; --i: 2"></i></div></li>
+          </ul>
+          <p class="note">Çubuk: varlığın sınıf içindeki payı.</p>
+        </div>
+      </div>
+
+      <div class="pane" id="pane-2" role="tabpanel" aria-labelledby="tab-2" tabindex="0" hidden>
+        <div class="pane-l">
+          <p class="eyebrow">Fonlar</p>
+          <p class="kpi num">₺48.000</p>
+          <p class="note"><b class="gain">▲ +₺6.000 (+%14,3)</b></p>
+          <p class="note">Toplam maliyet ₺42.000 · 2 varlık. Fon fiyatları elle girilir.</p>
+        </div>
+        <div class="pane-r">
+          <ul class="rows">
+            <li class="row"><span>Örnek Fon X</span><span class="num">₺30.000</span><span class="rd gain">▲ +%7,1</span><div class="rbar" aria-hidden="true"><i style="--w: 62.5%; --i: 0"></i></div></li>
+            <li class="row"><span>Örnek Fon Y</span><span class="num">₺18.000</span><span class="rd gain">▲ +%28,6</span><div class="rbar" aria-hidden="true"><i style="--w: 37.5%; --i: 1"></i></div></li>
+          </ul>
+          <p class="note">Çubuk: varlığın sınıf içindeki payı.</p>
+        </div>
+      </div>
+
+      <div class="pane" id="pane-3" role="tabpanel" aria-labelledby="tab-3" tabindex="0" hidden>
+        <div class="pane-l">
+          <p class="eyebrow">Kripto</p>
+          <p class="kpi num">₺20.000</p>
+          <p class="note"><b class="gain">▲ +₺1.000 (+%5,3)</b></p>
+          <p class="note">Toplam maliyet ₺19.000 · 2 varlık. Bir varlık düşüşte (▼).</p>
+        </div>
+        <div class="pane-r">
+          <ul class="rows">
+            <li class="row"><span>Örnek Coin 1</span><span class="num">₺12.000</span><span class="rd gain">▲ +%33,3</span><div class="rbar" aria-hidden="true"><i style="--w: 60%; --i: 0"></i></div></li>
+            <li class="row"><span>Örnek Coin 2</span><span class="num">₺8.000</span><span class="rd loss">▼ −%20,0</span><div class="rbar" aria-hidden="true"><i style="--w: 40%; --i: 1"></i></div></li>
+          </ul>
+          <p class="note">Çubuk: varlığın sınıf içindeki payı.</p>
+        </div>
+      </div>
+
+      <div class="pane" id="pane-4" role="tabpanel" aria-labelledby="tab-4" tabindex="0" hidden>
+        <div class="pane-l">
+          <p class="eyebrow">Projeksiyon · 10 yıl</p>
+          <p class="kpi num">3 senaryo</p>
+          <p class="note">Başlangıç ₺140.000, aylık ₺5.000 ekleme. Nominal tutarlar; enflasyondan arındırılmamıştır.</p>
+          <p class="note"><span class="assume">varsayım · kaynak doğrulanmadı</span></p>
+          <p class="note">Tahmin ya da getiri vaadi değildir.</p>
+        </div>
+        <div class="pane-r">
+          <div class="proj" role="img" aria-label="Üç örnek senaryo, 10 yıl sonu nominal değer: yıllık yüzde 10 için ₺1.362.443; yüzde 20 için ₺2.562.439; yüzde 30 için ₺4.822.163">
+            <div class="pcol"><p class="pval num">₺1.362.443</p><div class="pbar" style="height: 28.3%; opacity: 0.5; --i: 0"></div><p class="plab">Yıllık %10<br>örnek varsayım</p></div>
+            <div class="pcol"><p class="pval num">₺2.562.439</p><div class="pbar" style="height: 53.1%; opacity: 0.75; --i: 1"></div><p class="plab">Yıllık %20<br>örnek varsayım</p></div>
+            <div class="pcol"><p class="pval num">₺4.822.163</p><div class="pbar" style="height: 100%; --i: 2"></div><p class="plab">Yıllık %30<br>örnek varsayım</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec trust" id="gizlilik" aria-labelledby="giz-t">
+  <div class="wrap">
+    <p class="eyebrow">Gizlilik ve sınırlar</p>
+    <h2 id="giz-t">Ölçer ve betimler, yönlendirmez</h2>
+    <div class="trio">
+      <div class="card rv-in" style="--i: 0"><h3>API anahtarı gerekmez</h3><p>Döviz ve kripto fiyatları açık kaynaklardan gelir. Hisse ve fon fiyatları elle girilir; doğrulanmamış fiyat gerçekmiş gibi gösterilmez.</p></div>
+      <div class="card rv-in" style="--i: 1"><h3>Veriler cihazında kalır</h3><p>Portföy verisi bu tarayıcıda saklanır ve üçüncü taraflara gönderilmez.</p></div>
+      <div class="card rv-in" style="--i: 2"><h3>İşlem yürütmez</h3><p>“Deftere ekle” yalnızca kendi işlem defterine kayıt düşer. Aracı kuruma emir gitmez; kişiye özel al/sat önerisi verilmez.</p></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <p>Bu sayfadaki tüm sayılar ÖRNEK VERİdir. Yatırım tavsiyesi değildir. Geçmiş performans gelecek getiriyi göstermez. Brüt getiri, stopaj ve enflasyon oranları kaynağı doğrulanmamış örnek varsayımlardır.</p>
+  </div>
+</footer>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var site = document.querySelector('.site');
+  var btn = document.getElementById('mt');
+  var label = document.getElementById('mt-label');
+  var os = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var wantOn = true;
+  try { if (localStorage.getItem('fagent-hareket') === 'kapali') wantOn = false; } catch (e) {}
+
+  function applyMotion() {
+    var on = wantOn && !os.matches;
+    site.dataset.motion = on ? 'on' : 'off';
+    btn.setAttribute('aria-pressed', String(on));
+    btn.disabled = os.matches;
+    label.textContent = os.matches ? 'Kaydırma hareketi: kapalı (sistem ayarı)' : 'Kaydırma hareketi: ' + (on ? 'açık' : 'kapalı');
+  }
+  btn.addEventListener('click', function () {
+    wantOn = !wantOn;
+    try { localStorage.setItem('fagent-hareket', wantOn ? 'acik' : 'kapali'); } catch (e) {}
+    applyMotion();
+  });
+  if (os.addEventListener) os.addEventListener('change', applyMotion);
+  applyMotion();
+
+  /* Sekmeler: tüm paneller DOM'da, yalnızca biri görünür; yön, sekme sırasını izler */
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('[role=tab]'));
+  var panes = tabs.map(function (t) { return document.getElementById(t.getAttribute('aria-controls')); });
+  var cur = 0;
+  function select(i, focus) {
+    if (i === cur) return;
+    var dir = i > cur ? 'fwd' : 'back';
+    tabs.forEach(function (t, j) { t.setAttribute('aria-selected', String(j === i)); t.tabIndex = j === i ? 0 : -1; });
+    panes.forEach(function (p, j) {
+      p.classList.remove('fwd', 'back');
+      p.hidden = j !== i;
+      if (j === i) p.classList.add(dir);
+    });
+    cur = i;
+    if (focus) tabs[i].focus();
+  }
+  tabs.forEach(function (t, i) { t.addEventListener('click', function () { select(i, false); }); });
+  document.getElementById('tabs').addEventListener('keydown', function (e) {
+    var n = null, L = tabs.length;
+    if (e.key === 'ArrowRight') n = (cur + 1) % L; else if (e.key === 'ArrowLeft') n = (cur + L - 1) % L;
+    else if (e.key === 'Home') n = 0; else if (e.key === 'End') n = L - 1;
+    if (n !== null) { e.preventDefault(); select(n, true); }
+  });
+})();
+</script>
+</body>
+</html>
