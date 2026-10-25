@@ -36,6 +36,14 @@ Kurallar: `AGENTS.md` (önce onu oku). Karar geçmişi: `docs/karar-gunlugu.md`.
 **Araştırma:** A1 1. tur yapıldı (`docs/arastirma/a1-saas-1-tur.md`, hepsi ikincil kaynaklı, doğrulanmalı); A2 tasarım 1. tur yapıldı; A3 pazarlama 1. tur yapıldı (`docs/arastirma/a3-pazarlama-1-tur.md`; öneri: önce organik içerik, ücretli reklam ertelenir). Yasal taslaklar: `docs/yasal/` (avukat onayı şart). Devir kılavuzu: `docs/devir/kurulum-ve-devir.md`.
 Tahmini bugünkü değer (gelirsiz, doğrulanmamış): ~1–5 bin $; hedef: ücretli kullanıcıyla 10–50 bin $+.
 
+## KAPSAM KARARI (kullanıcı, 2026-10-25): YALNIZCA ALTYAPI VE VERİ AKIŞI
+
+Kullanıcı "prompt dizini"ni verdi ve "altyapı ve veri akışı sistemini kuralım; bunun dışında herhangi bir şey yapmayacağız" dedi. Spesifikasyon: `docs/veri-akisi/spec.md`
+(P0 kurallar, P3 yerel veri katmanı, P4 CSV, P5 fiyat/kur hattı, P6 hesap motoru, P8 şifreli ekip senkronu). **Ana karar: kullanıcı verisi sunucuda tutulmaz (local-first);
+sunucu en çok şifreli blob görür.** Bu karar mevcut Supabase portföy senkronuyla (hesap katmanı: `cloud.ts`, `Account.tsx`, migration) ÇELİŞİR; ne yapılacağı plan belgesinde
+(`docs/veri-akisi/mevcut-durum-ve-plan.md`) seçenek olarak sunulur, kullanıcı onaylamadan silinmez. Tasarım, abonelik, yasal metin, pazarlama bu kapsamda YAPILMAZ.
+İşler ajan ekibiyle yapılır; P8 seçeneği kullanıcı onayı bekler (spec'te yazılı).
+
 ## NEREDEN DEVAM EDİLİR (2026-10-19 son durum)
 
 - Ürün dalı `urun/birlesik` temiz ve yeşil (adım 1–2 tamam). Yarım kod yok.
