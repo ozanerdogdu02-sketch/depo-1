@@ -1,0 +1,3 @@
+# İç kullanım tasarım dosyaları (rakip analizi, fiyat hesabı) Vercel'e yüklenmez.
+# Vite yalnızca public/ klasörünü dist/'e kopyalar; bu satır ek güvencedir.
+tasarim/ozel/

@@ -1,0 +1,40 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Artboard-peha.dc.html": {
+      "expand": "fill",
+      "h": 5800,
+      "is_interactive": true,
+      "title": "FAGENT web sitesi",
+      "w": 1440,
+      "x": -192,
+      "y": -539
+    },
+    "Fiyat-Sistemi.dc.html": {
+      "expand": "fill",
+      "h": 4540,
+      "is_interactive": true,
+      "title": "Fiyat sistemi (iç kullanım)",
+      "w": 1440,
+      "x": 1328,
+      "y": -539
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-25T10:00:30.649Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "file": "Artboard-peha.dc.html",
+    "view": "focused"
+  },
+  "notes": {},
+  "order": [
+    "Artboard-peha.dc.html",
+    "Fiyat-Sistemi.dc.html"
+  ],
+  "pages": [],
+  "title": "FAGENT web sitesi"
+}

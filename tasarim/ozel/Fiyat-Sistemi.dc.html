@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>FAGENT — Fiyat sistemi</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body { margin: 0; background: #0e0f11; }
+a { color: #e8e9eb; } a:hover { color: #ffffff; }
+.px {
+  --s0: #0e0f11; --s1: #17191c; --s2: #202327;
+  --ink: #e8e9eb; --ink2: #c7cacf; --ink3: #a5a9b0; --muted: #8c9098;
+  --acc: #9a9fa8; --acc-strong: #eceef1; --acc-text: #ffffff; --acc-wash: rgba(232, 233, 235, 0.08);
+  --bd: rgba(232, 233, 235, 0.12); --ring: #3a3e45; --line-strong: #6e737b;
+  --gain: #3fa9f5; --loss: #ffb07c;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  background: var(--s0); color: var(--ink);
+  font: 400 15px/1.55 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-variant-numeric: tabular-nums; min-height: 100vh;
+}
+.px * { box-sizing: border-box; }
+.px h1, .px h2, .px h3, .px p, .px ul { margin: 0; padding: 0; }
+.px ul { list-style: none; }
+.px button { font: inherit; color: inherit; cursor: pointer; }
+.px :focus-visible { outline: 3px solid var(--acc-strong); outline-offset: 2px; border-radius: 6px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 40px); }
+.eyebrow { font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.badge { display: inline-block; font-size: 12px; padding: 2px 10px; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--ink2); background: var(--s1); }
+.assume { display: inline-block; font-size: 12px; color: var(--acc-strong); border: 1px dashed var(--acc); border-radius: 6px; padding: 0 8px; }
+.gain { color: var(--gain); } .loss { color: var(--loss); }
+.head { padding: 56px 0 24px; }
+.head h1 { font-size: clamp(30px, 4vw, 46px); line-height: 1.1; font-weight: 500; letter-spacing: -0.02em; margin-top: 12px; max-width: 24ch; }
+.lead { color: var(--ink3); max-width: 66ch; margin-top: 14px; font-size: 16px; }
+.sec { padding: 40px 0; }
+.sec h2 { font-size: 24px; font-weight: 500; letter-spacing: -0.01em; margin-top: 8px; }
+.note { font-size: 13px; color: var(--ink3); margin-top: 6px; }
+.card { background: var(--s1); border: 0.8px solid var(--bd); border-radius: 14px; padding: 24px; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 20px; }
+.fld { display: grid; gap: 6px; }
+.fld .row1 { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 14px; color: var(--ink2); }
+.fld output { font-weight: 500; font-size: 17px; color: var(--ink); }
+.fld input[type="number"] { min-height: 44px; padding: 0 14px; border-radius: 10px; border: 0; background: var(--s0); color: var(--ink); font: inherit; box-shadow: inset 0 0 0 0.8px var(--ring); width: 100%; }
+.fld input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 44px; background: transparent; cursor: pointer; margin: 0; }
+.fld input[type="range"]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: var(--s2); }
+.fld input[type="range"]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--s2); }
+.fld input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -8px; border-radius: 50%; background: var(--acc-strong); border: 3px solid var(--s1); box-shadow: 0 0 0 1px var(--line-strong); }
+.fld input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--acc-strong); border: 3px solid var(--s1); }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 999px; box-shadow: inset 0 0 0 0.8px var(--ring); margin-top: 18px; }
+.seg button { min-height: 44px; padding: 0 16px; border: 0; border-radius: 999px; background: transparent; color: var(--ink3); font-size: 13.5px; transition: background-color 160ms ease, color 160ms ease; }
+.seg button:hover { color: var(--ink); background: var(--s2); }
+.seg button[aria-pressed="true"] { background: var(--acc-strong); color: var(--s0); font-weight: 500; }
+.tbl { margin-top: 16px; overflow-x: auto; }
+.tr { display: grid; grid-template-columns: minmax(150px, 1.3fr) minmax(190px, 2fr) repeat(3, minmax(100px, 1fr)) minmax(90px, 0.8fr); gap: 0 12px; align-items: center; min-height: 52px; padding: 8px 0; border-bottom: 1px solid var(--ring); min-width: 780px; font-size: 14px; }
+.tr.hd { font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); min-height: 40px; border-bottom-color: var(--line-strong); }
+.tr .r { text-align: right; }
+.tr small { display: block; color: var(--ink3); font-size: 12px; }
+.tr b { font-weight: 500; }
+.refrow { grid-template-columns: minmax(130px, 1fr) minmax(130px, 1fr) 100px 120px 90px 90px minmax(120px, 1fr); }
+.chip { display: inline-block; font-size: 11.5px; padding: 1px 8px; border-radius: 999px; box-shadow: inset 0 0 0 0.8px var(--line-strong); color: var(--ink2); }
+.chip.hi { color: var(--acc-text); background: var(--acc-wash); }
+.chip.lo { color: var(--loss); box-shadow: inset 0 0 0 0.8px var(--loss); }
+.bars { display: grid; gap: 8px; margin-top: 18px; }
+.bl { display: grid; grid-template-columns: minmax(150px, 1.1fr) minmax(0, 4fr) 96px; gap: 12px; align-items: center; font-size: 13.5px; }
+.bl .tk { height: 12px; border-radius: 6px; background: var(--s0); overflow: hidden; }
+.bl .tk i { display: block; height: 100%; border-radius: 6px; background: #6f747d; transform-origin: left; animation: k-x 700ms var(--ease) both; }
+.bl.me .tk i { background: var(--acc-strong); }
+.bl.me { color: var(--acc-text); font-weight: 500; }
+.bl .v { text-align: right; }
+@keyframes k-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+pre { margin: 16px 0 0; padding: 16px; border-radius: 10px; background: var(--s0); box-shadow: inset 0 0 0 0.8px var(--ring); overflow-x: auto; font: 12.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink2); }
+.warn { margin-top: 16px; display: grid; gap: 8px; }
+.warn li { display: grid; grid-template-columns: 8px 1fr; gap: 12px; font-size: 14px; color: var(--ink2); }
+.warn li::before { content: ""; width: 6px; height: 6px; margin-top: 9px; border-radius: 50%; background: var(--acc); }
+@media (max-width: 800px) { .grid2 { grid-template-columns: minmax(0, 1fr); } .bl { grid-template-columns: minmax(110px, 1fr) minmax(0, 2fr) 80px; } }
+@media (prefers-reduced-motion: reduce) { .px * { animation: none !important; transition: none !important; } }
+</style>
+</helmet>
+
+<div class="px">
+<header class="head">
+  <div class="wrap">
+    <p class="eyebrow">FAGENT · iç kullanım <span class="badge">Rakip analizi · 25.10.2026</span></p>
+    <h1>Gerçek fiyat için rakip temelli fiyat sistemi</h1>
+    <p class="lead">Her plan bir rakip fiyatına bağlanır; fiyat, kur ve konumlandırma ayarlarından hesaplanır. Sayılar bir öneridir, iş kararı değildir: sana ait ayarı değiştir, tabloyu ve JSON’u hemen gör. Site, varsayılan ayardaki sonuçları kullanır.</p>
+  </div>
+</header>
+
+<section class="sec" aria-labelledby="p-t">
+  <div class="wrap">
+    <p class="eyebrow">1 · Ayarlar</p>
+    <h2 id="p-t">Kur ve konumlandırma</h2>
+    <p class="note">Kur: TCMB döviz satış, 25.10.2026 08:22 (USD 49,6540 · EUR 55,5997). Kuru elle değiştirebilirsin.</p>
+    <div class="card" style="margin-top: 20px">
+      <div class="grid2" style="margin-top: 0">
+        <div class="fld"><div class="row1"><label for="f-usd">USD / TRY</label></div><input id="f-usd" type="number" step="0.01" min="1" value="{{pr.usdRaw}}" onChange="{{pr.onUsd}}"></div>
+        <div class="fld"><div class="row1"><label for="f-eur">EUR / TRY</label></div><input id="f-eur" type="number" step="0.01" min="1" value="{{pr.eurRaw}}" onChange="{{pr.onEur}}"></div>
+        <div class="fld"><div class="row1"><label for="f-yer">Yerel çarpan</label><output for="f-yer">{{pr.yer}}</output></div><input id="f-yer" type="range" min="0.5" max="1.5" step="0.05" value="{{pr.yerRaw}}" onChange="{{pr.onYer}}"><p class="note">1,00 = global fiyat × kur. Yerel satın alma gücüne göre düşür.</p></div>
+        <div class="fld"><div class="row1"><label for="f-dis">Yıllık indirim</label><output for="f-dis">{{pr.disc}}</output></div><input id="f-dis" type="range" min="0" max="40" step="1" value="{{pr.discRaw}}" onChange="{{pr.onDisc}}"><p class="note">Rakipler yıllıkta yaklaşık %13–25 indirim veriyor.</p></div>
+        <div class="fld"><div class="row1"><label for="f-p1">Pro konumu (orta kademe yüzdeliği)</label><output for="f-p1">{{pr.p1}}</output></div><input id="f-p1" type="range" min="0" max="100" step="5" value="{{pr.p1Raw}}" onChange="{{pr.onP1}}"><p class="note">0 = en ucuz rakip, 100 = en pahalı.</p></div>
+        <div class="fld"><div class="row1"><label for="f-p2">Pro Plus konumu (üst kademe yüzdeliği)</label><output for="f-p2">{{pr.p2}}</output></div><input id="f-p2" type="range" min="0" max="100" step="5" value="{{pr.p2Raw}}" onChange="{{pr.onP2}}"><p class="note">Üst kademe için aynı ölçek.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" aria-labelledby="o-t">
+  <div class="wrap">
+    <p class="eyebrow">2 · Önerilen fiyatlar</p>
+    <h2 id="o-t">Plan başına fiyat</h2>
+    <div class="seg" role="group" aria-label="Kullanıcı türü">
+      <sc-for list="{{segBtns}}" as="s" hint-placeholder-count="3">
+        <button type="button" aria-pressed="{{s.sel}}" onClick="{{s.pick}}">{{s.label}}</button>
+      </sc-for>
+    </div>
+    <p class="note">{{segNote}}</p>
+    <div class="tbl" role="table" aria-label="Önerilen plan fiyatları">
+      <div class="tr hd" role="row"><span role="columnheader">Plan</span><span role="columnheader">Dayanak</span><span class="r" role="columnheader">Dayanak (USD/ay)</span><span class="r" role="columnheader">Aylık (₺)</span><span class="r" role="columnheader">Yıllıkta ay başı (₺)</span><span class="r" role="columnheader">Güven</span></div>
+      <sc-for list="{{plans}}" as="p" hint-placeholder-count="3">
+        <div class="tr" role="row">
+          <span role="cell"><b>{{p.name}}</b><small>{{p.tag}}</small></span>
+          <span role="cell">{{p.basis}}</span>
+          <span class="r" role="cell">{{p.usd}}</span>
+          <span class="r" role="cell"><b>{{p.m}}</b><small>{{p.mDelta}}</small></span>
+          <span class="r" role="cell"><b>{{p.y}}</b><small>{{p.yTotal}}</small></span>
+          <span class="r" role="cell"><span class="chip {{p.confCls}}">{{p.conf}}</span></span>
+        </div>
+      </sc-for>
+    </div>
+
+    <p class="eyebrow" style="margin-top: 36px">Konum haritası</p>
+    <p class="note">Aylık USD (yıllık faturada, log ölçek). Beyaz çubuklar FAGENT planları, gri çubuklar rakipler.</p>
+    <div class="bars">
+      <sc-for list="{{bars}}" as="b" hint-placeholder-count="8">
+        <div class="bl {{b.cls}}"><span>{{b.label}}</span><div class="tk" aria-hidden="true"><i style="width: {{b.w}}"></i></div><span class="v">{{b.v}}</span></div>
+      </sc-for>
+    </div>
+  </div>
+</section>
+
+<section class="sec" aria-labelledby="r-t">
+  <div class="wrap">
+    <p class="eyebrow">3 · Rakip verisi</p>
+    <h2 id="r-t">Kaynaklı fiyat tablosu</h2>
+    <p class="note">Güven: <b>Yüksek</b> = resmî fiyat sayfası; <b>Orta</b> = üçüncü taraf ya da rakibin kendi karşılaştırması; <b>Düşük</b> = dönem ya da kapsam doğrulanmadı.</p>
+    <div class="tbl" role="table" aria-label="Rakip fiyat tablosu">
+      <div class="tr refrow hd" role="row"><span>Ürün</span><span>Plan</span><span class="r">USD/ay</span><span class="r">₺/ay</span><span class="r">Katman</span><span class="r">Güven</span><span>Kaynak</span></div>
+      <sc-for list="{{refs}}" as="r" hint-placeholder-count="8">
+        <div class="tr refrow" role="row">
+          <span><b>{{r.urun}}</b></span><span>{{r.plan}}<small>{{r.not}}</small></span>
+          <span class="r">{{r.usd}}</span><span class="r">{{r.try}}</span>
+          <span class="r">{{r.tier}}</span>
+          <span class="r"><span class="chip {{r.confCls}}">{{r.conf}}</span></span>
+          <span>{{r.src}}<small>{{r.date}}</small></span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</section>
+
+<section class="sec" aria-labelledby="t-t">
+  <div class="wrap">
+    <p class="eyebrow">4 · Kurumsal teklif</p>
+    <h2 id="t-t">Yönetilen varlığa göre teklif hesaplayıcı</h2>
+    <p class="note">Kurumsal Plus ve Grup planları için. Addepar gibi araçlar yönetilen varlığın yaklaşık 0,8–3 baz puanını yıllık ücret olarak alıyor (üçüncü taraf kaynaklar); taban fiyat altına inilmez.</p>
+    <div class="card" style="margin-top: 20px">
+      <div class="grid2" style="margin-top: 0">
+        <div class="fld"><div class="row1"><label for="f-aum">Yönetilen varlık</label><output for="f-aum">{{q.aum}}</output></div><input id="f-aum" type="range" min="100" max="50000" step="100" value="{{q.aumRaw}}" onChange="{{q.onAum}}"><p class="note">Milyon ₺ cinsinden.</p></div>
+        <div class="fld"><div class="row1"><label for="f-bps">Oran (baz puan)</label><output for="f-bps">{{q.bps}}</output></div><input id="f-bps" type="range" min="0.5" max="3" step="0.1" value="{{q.bpsRaw}}" onChange="{{q.onBps}}"><p class="note">1 baz puan = %0,01.</p></div>
+      </div>
+      <div class="grid2">
+        <div><p class="eyebrow">Hesaplanan yıllık ücret</p><p style="font-size: 32px; font-weight: 500; margin-top: 6px">{{q.fee}}</p><p class="note">≈ {{q.feeUsd}} · ayda {{q.feeM}}</p></div>
+        <div><p class="eyebrow">Uygulanan (taban dahil)</p><p style="font-size: 32px; font-weight: 500; margin-top: 6px">{{q.final}}</p><p class="note">Taban: Kurumsal planın yıllık tutarı ({{q.floor}}).</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" aria-labelledby="j-t">
+  <div class="wrap">
+    <p class="eyebrow">5 · Uygulama için çıktı</p>
+    <h2 id="j-t">Fiyat yapılandırması (JSON)</h2>
+    <p class="note">Gerçek uygulamada fiyatlar koda gömülmez; bu yapılandırmadan okunur. Ayarları değiştirince JSON da değişir.</p>
+    <pre aria-label="Fiyat yapılandırması">{{json}}</pre>
+    <ul class="warn">
+      <li>Küçük şirket katmanı için herkese açık rakip fiyatı çok az: iki sabit nokta (Sharesight Premium, Kubera Black) arasında geometrik basamak kullanıldı. Güven düşük; gerçek müşteri görüşmesiyle doğrulanmalı.</li>
+      <li>Büyük şirket fiyatları üçüncü taraf tahminlere dayanır. Addepar ve benzerleri fiyat yayımlamaz; teklif ile belirlenir.</li>
+      <li>Fintables fiyatları App Store listesinden alındı; aylık/yıllık ayrımı fiyat oranından çıkarıldı, resmî sayfa doğrulanmadı.</li>
+      <li>Rakip fiyatları sık değişir. Aylık kontrol önerilir; kur her güncellemede yenilenmeli.</li>
+    </ul>
+  </div>
+</section>
+</div>
+</x-dc>
+
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":3400}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { seg: 'bireysel', usd: 49.654, eur: 55.5997, yer: 1, disc: 20, p1: 40, p2: 75, aum: 2000, bps: 1.2 };
+    // Rakip verisi. usd = yıllık faturada ay başına, USD. try verilmişse (yerel fiyat) kur değişince USD yeniden hesaplanır.
+    this.REFS = [
+      { id: 'sh_start', urun: 'Sharesight', plan: 'Starter', usd: 7, tier: 'orta', segs: ['bireysel'], conf: 'Yüksek', src: 'sharesight.com/pricing', date: '25.10.2026', not: 'yıllık faturada; aylıkta 9,33' },
+      { id: 'sh_std', urun: 'Sharesight', plan: 'Standard', usd: 18, tier: 'üst', segs: ['bireysel'], conf: 'Yüksek', src: 'sharesight.com/pricing', date: '25.10.2026', not: '4 portföy; aylıkta 24' },
+      { id: 'sh_prem', urun: 'Sharesight', plan: 'Premium', usd: 23.25, tier: 'üst', segs: ['bireysel', 'kucuk'], conf: 'Yüksek', src: 'sharesight.com/pricing', date: '25.10.2026', not: '10 portföy; aylıkta 31' },
+      { id: 'gq_pro', urun: 'getquin', plan: 'Pro', eur: 49.99 / 12, tier: 'orta', segs: ['bireysel'], conf: 'Orta', src: 'freenance.io (inceleme)', date: '2026', not: '€49,99/yıl; aylıkta €4,99' },
+      { id: 'cs_prem', urun: 'CoinStats', plan: 'Premium', usd: 12.18, tier: 'orta', segs: ['bireysel'], conf: 'Orta', src: 'plisio.net (inceleme)', date: '2026', not: 'aylıkta 13,99' },
+      { id: 'kb_ess', urun: 'Kubera', plan: 'Essentials', usd: 250 / 12, tier: 'üst', segs: ['bireysel'], conf: 'Orta', src: 'kubera.com/blog (Kubera’nın kendi yazısı)', date: '08.2026', not: '$250/yıl' },
+      { id: 'ft_pro', urun: 'Fintables', plan: 'Pro', tl: 6999.99 / 12, tier: 'orta', segs: ['bireysel'], conf: 'Düşük', src: 'App Store TR', date: '25.10.2026', not: '₺6.999,99 (yıllık varsayıldı); ₺699,99 aylık gibi' },
+      { id: 'kb_blk', urun: 'Kubera', plan: 'Black', usd: 2500 / 12, tier: 'dayanak', segs: ['kucuk'], conf: 'Orta', src: 'kubera.com/blog', date: '08.2026', not: '$2.500/yıl; çok varlıklı, çok şirketli' },
+      { id: 'kb_vip', urun: 'Kubera', plan: 'VIP', usd: 10000 / 12, tier: 'dayanak', segs: ['buyuk'], conf: 'Orta', src: 'kubera.com/blog', date: '08.2026', not: '$10.000/yıl' },
+      { id: 'ad_ent', urun: 'Addepar', plan: 'Giriş seviyesi', usd: 50000 / 12, tier: 'dayanak', segs: ['buyuk'], conf: 'Düşük', src: 'andsimple.co, Aleta (üçüncü taraf)', date: '2026', not: '≈$50–70 bin/yıl; teklif ile' }
+    ];
+  }
+  renderVals() {
+    const S = this.state;
+    const fm = (n) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    const tl = (n) => '₺' + fm(n);
+    const usdF = (n) => '$' + (n >= 1000 ? fm(n) : n.toFixed(2).replace('.', ','));
+    const dec = (n, d) => n.toFixed(d).replace('.', ',');
+    const pctl = (vals, p) => { const v = vals.slice().sort((a, b) => a - b); const i = (v.length - 1) * p; const lo = Math.floor(i); const hi = Math.min(lo + 1, v.length - 1); return v[lo] + (v[hi] - v[lo]) * (i - lo); };
+    const charm = (x) => x < 1000 ? Math.round(x / 10) * 10 - 1 : (x < 10000 ? Math.round(x / 50) * 50 - 1 : Math.round(x / 500) * 500 - 1);
+    const eurusd = S.eur / S.usd;
+    const refs = this.REFS.map((r) => Object.assign({}, r, { usdv: r.usd != null ? r.usd : (r.eur != null ? r.eur * eurusd : r.tl / S.usd) }));
+    const byId = {}; refs.forEach((r) => { byId[r.id] = r; });
+    const DISC = S.disc / 100;
+    const anchor = (usd) => usd * S.usd * S.yer;
+    const mk = (usd) => { const y0 = anchor(usd); const m = charm(y0 / (1 - DISC)); const y = charm(m * (1 - DISC)); return { m: m, y: y }; };
+    const orta = refs.filter((r) => r.tier === 'orta').map((r) => r.usdv);
+    const ust = refs.filter((r) => r.tier === 'üst' && r.segs.indexOf('bireysel') >= 0).map((r) => r.usdv);
+    const A = { b1: pctl(orta, S.p1 / 100), b2: pctl(ust, S.p2 / 100), k0: byId.sh_prem.usdv, k2: byId.kb_blk.usdv, u0: byId.kb_vip.usdv };
+    A.k1 = Math.sqrt(A.k0 * A.k2);
+    const P = {};
+    Object.keys(A).forEach((k) => { P[k] = mk(A[k]); });
+    const SITE = { b1: { m: 489, y: 389 }, b2: { m: 1349, y: 1099 }, k0: { m: 1449, y: 1149 }, k1: { m: 4299, y: 3449 }, k2: { m: 12999, y: 10499 }, u0: { m: 51499, y: 40999 } };
+    const delta = (k) => { const d = P[k].m - SITE[k].m; return d === 0 ? 'sitedeki ile aynı' : (d > 0 ? '▲ +' : '▼ −') + tl(Math.abs(d)) + ' · siteden'; };
+    const PLANS = {
+      bireysel: [
+        { id: null, name: 'Başlangıç', tag: 'Ücretsiz katman', basis: 'Sharesight, getquin ve CoinStats ücretsiz katmanları', free: true, conf: 'Yüksek' },
+        { id: 'b1', name: 'Pro', tag: 'Orta kademe', basis: 'Orta kademe rakiplerin ' + S.p1 + '. yüzdeliği (Sharesight Starter, getquin, CoinStats, Fintables)', conf: 'Orta' },
+        { id: 'b2', name: 'Pro Plus', tag: 'Üst kademe', basis: 'Üst kademe rakiplerin ' + S.p2 + '. yüzdeliği (Sharesight Standard/Premium, Kubera Essentials)', conf: 'Orta' }
+      ],
+      kucuk: [
+        { id: 'k0', name: 'Ekip Başlangıç', tag: '3 kullanıcıya kadar', basis: 'Sharesight Premium düzeyi', conf: 'Düşük' },
+        { id: 'k1', name: 'Ekip', tag: '10 kullanıcıya kadar', basis: 'Ekip Başlangıç ile Büyüyen arasında geometrik basamak', conf: 'Düşük' },
+        { id: 'k2', name: 'Büyüyen', tag: '25 kullanıcıya kadar', basis: 'Kubera Black düzeyi', conf: 'Düşük' }
+      ],
+      buyuk: [
+        { id: 'u0', name: 'Kurumsal', tag: '100 kullanıcıya kadar', basis: 'Kubera VIP düzeyi; Addepar girişinin altında', conf: 'Düşük' },
+        { id: null, name: 'Kurumsal Plus', tag: 'Teklif ile', basis: 'Yönetilen varlık × baz puan (aşağıdaki hesaplayıcı); taban Kurumsal', custom: true, conf: 'Düşük' },
+        { id: null, name: 'Grup', tag: 'Teklif ile', basis: 'Aynı formül; çoklu şirket konsolidasyonu için pazarlık payı', custom: true, conf: 'Düşük' }
+      ]
+    };
+    const seg = S.seg;
+    const NOTES = { bireysel: 'Rakip ağırlığı yüksek: sekiz ürün, çoğu resmî ya da incelemeyle doğrulanmış fiyat.', kucuk: 'Az veri: yalnızca iki dayanak nokta. Sonuçlar düşük güvenli, müşteri görüşmesiyle doğrulanmalı.', buyuk: 'Fiyatlar teklif ile belirlenir; üçüncü taraf tahmin. Taban fiyat Kurumsal planıdır.' };
+    const plansOut = PLANS[seg].map((p) => {
+      if (p.free) return { name: p.name, tag: p.tag, basis: p.basis, usd: '—', m: '₺0', mDelta: 'süresiz ücretsiz', y: '₺0', yTotal: '', conf: p.conf, confCls: 'hi' };
+      if (p.custom) return { name: p.name, tag: p.tag, basis: p.basis, usd: '—', m: 'Teklif', mDelta: 'ihtiyaca göre', y: 'Teklif', yTotal: '', conf: p.conf, confCls: 'lo' };
+      return { name: p.name, tag: p.tag, basis: p.basis, usd: usdF(A[p.id]), m: tl(P[p.id].m), mDelta: delta(p.id), y: tl(P[p.id].y), yTotal: 'yıllık ' + tl(P[p.id].y * 12), conf: p.conf, confCls: p.conf === 'Yüksek' ? 'hi' : (p.conf === 'Düşük' ? 'lo' : '') };
+    });
+    // konum haritası
+    const mine = [];
+    Object.keys(PLANS).forEach((sg) => { if (sg === seg) PLANS[sg].forEach((p) => { if (p.id) mine.push({ label: 'FAGENT · ' + p.name, v: A[p.id], me: true }); }); });
+    const comp = refs.filter((r) => r.segs.indexOf(seg) >= 0).map((r) => ({ label: r.urun + ' · ' + r.plan, v: r.usdv, me: false }));
+    const all = comp.concat(mine).sort((a, b) => a.v - b.v);
+    const mx = Math.max.apply(null, all.map((x) => x.v));
+    const bars = all.map((x) => ({ label: x.label, v: usdF(x.v), cls: x.me ? 'me' : '', w: Math.max(3, Math.round(Math.log(x.v + 1) / Math.log(mx + 1) * 100)) + '%' }));
+    const refsOut = refs.map((r) => ({
+      urun: r.urun, plan: r.plan, not: r.not, usd: usdF(r.usdv), try: tl(r.usdv * S.usd), tier: r.tier, conf: r.conf,
+      confCls: r.conf === 'Yüksek' ? 'hi' : (r.conf === 'Düşük' ? 'lo' : ''), src: r.src, date: r.date
+    }));
+    // teklif
+    const aumTl = S.aum * 1000000;
+    const fee = aumTl * S.bps / 10000;
+    const floor = P.u0.y * 12;
+    const final = Math.max(fee, floor);
+    const fmShort = (n) => n >= 1e9 ? dec(n / 1e9, 2) + ' milyar ₺' : (n >= 1e6 ? dec(n / 1e6, 1) + ' milyon ₺' : tl(n));
+    // json
+    const cfg = { kur: { usdTry: S.usd, eurTry: S.eur, kaynak: 'TCMB döviz satış, 25.10.2026' }, yerelCarpan: S.yer, yillikIndirim: S.disc / 100, konum: { orta: S.p1, ust: S.p2 }, plans: {
+      bireysel: { baslangic: { aylik: 0, yillik: 0 }, pro: { aylik: P.b1.m, yillikAyBasi: P.b1.y }, proPlus: { aylik: P.b2.m, yillikAyBasi: P.b2.y } },
+      kucuk: { ekipBaslangic: { aylik: P.k0.m, yillikAyBasi: P.k0.y }, ekip: { aylik: P.k1.m, yillikAyBasi: P.k1.y }, buyuyen: { aylik: P.k2.m, yillikAyBasi: P.k2.y } },
+      buyuk: { kurumsal: { aylik: P.u0.m, yillikAyBasi: P.u0.y }, kurumsalPlus: { teklif: true, bazPuan: S.bps, taban: floor }, grup: { teklif: true, bazPuan: S.bps, taban: floor } } }, para: 'TRY' };
+    const set = (key, fn) => (ev) => { const v = parseFloat(String(ev.target.value).replace(',', '.')); if (!isNaN(v)) this.setState({ [key]: fn ? fn(v) : v }); };
+    return {
+      segBtns: [['bireysel', 'Bireysel'], ['kucuk', 'Küçük şirket'], ['buyuk', 'Büyük şirket']].map((s) => ({ label: s[1], sel: seg === s[0] ? 'true' : 'false', pick: () => this.setState({ seg: s[0] }) })),
+      segNote: NOTES[seg],
+      plans: plansOut, bars: bars, refs: refsOut,
+      json: JSON.stringify(cfg, null, 2),
+      pr: {
+        usdRaw: S.usd, eurRaw: S.eur, yerRaw: S.yer, discRaw: S.disc, p1Raw: S.p1, p2Raw: S.p2,
+        yer: dec(S.yer, 2), disc: '%' + S.disc, p1: S.p1 + '. yüzdelik', p2: S.p2 + '. yüzdelik',
+        onUsd: set('usd'), onEur: set('eur'), onYer: set('yer'), onDisc: set('disc'), onP1: set('p1'), onP2: set('p2')
+      },
+      q: {
+        aumRaw: S.aum, bpsRaw: S.bps, aum: fm(S.aum) + ' milyon ₺', bps: dec(S.bps, 1) + ' bps',
+        fee: fmShort(fee), feeUsd: '$' + fm(fee / S.usd), feeM: tl(fee / 12), final: fmShort(final), floor: tl(floor),
+        onAum: set('aum'), onBps: set('bps')
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

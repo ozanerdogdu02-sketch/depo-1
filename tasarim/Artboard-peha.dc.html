@@ -1,0 +1,1652 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>FAGENT — Brüt, net, reel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;display=swap">
+<style>
+body { margin: 0; background: #0e0f11; }
+a { color: #e8e9eb; } a:hover { color: #ffffff; }
+
+/* ===== Jetonlar: siyah / antrasit / gri ===== */
+.site {
+  --s0: #0e0f11; --s1: #17191c; --s2: #202327;
+  --ink: #e8e9eb; --ink2: #c7cacf; --ink3: #a5a9b0; --muted: #8c9098;
+  --acc: #9a9fa8; --acc-soft: #b0b4bb; --acc-strong: #eceef1; --acc-text: #ffffff; --acc-tint: #eceef1;
+  --acc-wash: rgba(232, 233, 235, 0.08);
+  --bd: rgba(232, 233, 235, 0.12); --ring: #3a3e45; --line-strong: #6e737b;
+  --gain: #3fa9f5; --loss: #ffb07c;
+  --seg1: #eceef1; --seg2: #b0b4bb; --seg3: #7b8089; --seg4: #565a62;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --soft: cubic-bezier(0.25, 0.6, 0.3, 1);
+  --spring: cubic-bezier(0.22, 1, 0.36, 1);
+  --t: 1; /* hareket temposu çarpanı: kitle ayarına göre değişir */
+  --u: 2px;
+  background: var(--s0); color: var(--ink);
+  font: 400 15px/1.55 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-variant-numeric: tabular-nums;
+  overflow-x: clip;
+}
+/* Kitle kişilikleri: tempo + yay eğrisi. Renkler değişmez. */
+.site[data-tone="bireysel"] { --t: 1; --spring: cubic-bezier(0.22, 1, 0.36, 1); }
+.site[data-tone="genc"] { --t: 0.9; --spring: cubic-bezier(0.34, 1.56, 0.64, 1); }
+.site[data-tone="kurumsal"] { --t: 0.55; --spring: cubic-bezier(0.4, 0, 0.2, 1); }
+
+.site * { box-sizing: border-box; }
+.site h1, .site h2, .site h3, .site p, .site ol, .site ul { margin: 0; padding: 0; }
+.site ol, .site ul { list-style: none; }
+.site button { font: inherit; color: inherit; cursor: pointer; }
+.site :focus-visible { outline: 3px solid var(--acc-strong); outline-offset: 2px; border-radius: 6px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 40px); }
+.eyebrow { font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.gain { color: var(--gain); } .loss { color: var(--loss); }
+.num { font-weight: 500; }
+.badge { display: inline-block; font-size: 12px; padding: 2px 10px; border: 1px solid var(--line-strong); border-radius: 999px; color: var(--ink2); background: var(--s1); }
+.assume { display: inline-block; font-size: 12px; color: var(--acc-strong); border: 1px dashed var(--acc); border-radius: 6px; padding: 0 8px; }
+
+/* ===== Üst çubuk ===== */
+.top { position: sticky; top: 0; z-index: 20; height: 64px; background: rgba(14, 15, 17, 0.92); border-bottom: 1px solid var(--bd); backdrop-filter: blur(8px); }
+.top .wrap { height: 100%; display: flex; align-items: center; gap: 14px; }
+.brand { font-weight: 600; letter-spacing: 0.16em; color: var(--ink); text-decoration: none; }
+.nav { display: flex; gap: 4px; margin-left: 12px; }
+.nav a { min-height: 44px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 8px; color: var(--ink2); text-decoration: none; font-size: 13.5px; transition: background-color 140ms ease, color 140ms ease; }
+.nav a:hover { background: var(--acc-wash); color: var(--acc-tint); }
+.sp { flex: 1; }
+.btn { min-height: 44px; padding: 0 18px; border-radius: 8px; border: 0; background: var(--acc-strong); color: var(--s0); font-weight: 500; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; font-size: 13.5px; transition: background-color 140ms ease, transform 140ms var(--ease); }
+.btn:hover { background: #ffffff; color: var(--s0); }
+.btn:active { transform: scale(0.97); }
+.site button.btn { color: var(--s0); }
+.site button.btn:hover { color: var(--s0); }
+.site button.btn.ghost { color: var(--ink2); }
+.site button.btn.ghost:hover { color: var(--ink); }
+.btn.ghost { background: transparent; box-shadow: inset 0 0 0 0.8px var(--line-strong); color: var(--ink2); }
+.btn.ghost:hover { background: var(--s1); color: var(--ink); }
+.btn[disabled] { opacity: 0.6; cursor: default; }
+.mt { font-size: 13px; }
+.mt i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; }
+.mt[aria-pressed="true"] i { background: var(--acc-strong); }
+
+/* ===== Bölüm iskeleti ===== */
+.sec { padding: 96px 0; }
+.sec h2 { font-size: clamp(26px, 3.4vw, 40px); line-height: 1.15; font-weight: 500; letter-spacing: -0.01em; margin-top: 10px; max-width: 22ch; }
+.lead { color: var(--ink3); max-width: 56ch; margin-top: 14px; font-size: 16px; }
+.card { background: var(--s1); border: 0.8px solid var(--bd); border-radius: 14px; padding: 24px; transition: border-color 200ms ease, transform 260ms var(--ease); }
+.card:hover { border-color: var(--line-strong); transform: translateY(-2px); }
+
+/* ===== Hero ===== */
+.hero { padding: 72px 0 48px; }
+.hero .wrap { display: flex; flex-wrap: wrap; gap: 48px; align-items: center; }
+.hero-copy { flex: 1 1 420px; min-width: 0; }
+.hero h1 { font-size: clamp(34px, 5vw, 58px); line-height: 1.08; font-weight: 500; letter-spacing: -0.02em; margin-top: 16px; }
+.hero .lead { font-size: 17px; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+.hero-card-wrap { flex: 1 1 400px; min-width: 0; }
+.hero-card .kpi { font-size: clamp(36px, 5vw, 54px); font-weight: 500; line-height: 1.1; margin-top: 8px; letter-spacing: -0.01em; }
+.hero-card .sub { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; font-size: 14px; color: var(--ink3); }
+.hero-card .sub b { font-weight: 500; }
+.hero-chart { position: relative; margin-top: 16px; }
+.spark-svg { width: 100%; height: 140px; display: block; }
+.spark { fill: none; stroke: var(--acc-strong); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.spark-area { fill: var(--acc); opacity: 0.16; }
+.spark-grid { stroke: var(--ring); stroke-width: 1; stroke-dasharray: 3 5; }
+.spark-end { position: absolute; left: 99.17%; top: 20%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--acc-text); }
+.spark-end::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 1.5px solid var(--acc-strong); opacity: 0; }
+.spark-axis { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 6px; }
+@keyframes k-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes k-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes k-pop { from { opacity: 0; transform: scale(0.2); } to { opacity: 1; transform: none; } }
+@keyframes k-ring { 0% { opacity: 0.7; transform: scale(0.5); } 100% { opacity: 0; transform: scale(2.2); } }
+.spark { stroke-dasharray: 1; stroke-dashoffset: 0; animation: k-draw calc(1100ms * var(--t)) var(--soft) 150ms backwards; }
+.spark-area { animation: k-fade calc(700ms * var(--t)) ease-out calc(500ms * var(--t)) backwards; }
+.spark-end { animation: k-pop calc(380ms * var(--t)) var(--spring) calc(1050ms * var(--t)) backwards; }
+.spark-end::after { animation: k-ring 2.4s ease-out calc(1500ms * var(--t)) infinite; }
+
+/* ===== Zincir: brüt → net → reel ===== */
+.story { position: relative; }
+.stage-in { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 56px; align-items: center; }
+.steps { display: grid; gap: 12px; margin-top: 28px; }
+.step { background: var(--s1); border: 0.8px solid var(--bd); border-radius: 12px; padding: 14px 18px; display: grid; grid-template-columns: 1fr auto; grid-template-areas: "h v" "p d"; gap: 2px 16px; align-items: baseline; }
+.step h3 { grid-area: h; font-size: 14px; font-weight: 500; color: var(--ink2); }
+.step .v { grid-area: v; font-size: 20px; font-weight: 500; text-align: right; }
+.step p { grid-area: p; font-size: 13px; color: var(--ink3); }
+.step .d { grid-area: d; font-size: 13px; text-align: right; white-space: nowrap; }
+.assume-row { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
+
+.chart { background: var(--s1); border: 0.8px solid var(--bd); border-radius: 14px; padding: 24px 20px 16px; }
+.plot { position: relative; height: calc(var(--u) * 170); display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.col { position: relative; height: 100%; }
+.bar { position: absolute; left: 14%; right: 14%; bottom: 0; border-radius: 3px 3px 0 0; transform-origin: 50% 100%; }
+.b-gross { height: calc(var(--u) * 148); background: #6f747d; }
+.b-net { height: calc(var(--u) * 140.8); background: #9a9fa8; }
+.b-real { height: calc(var(--u) * 108.308); background: #eceef1; }
+.bar.delta { border-radius: 3px; background: repeating-linear-gradient(135deg, var(--loss) 0 5px, rgba(255, 176, 124, 0.55) 5px 9px); }
+.b-tax { bottom: calc(var(--u) * 140.8); height: calc(var(--u) * 7.2); }
+.b-infl { bottom: calc(var(--u) * 108.308); height: calc(var(--u) * 32.492); }
+.val { position: absolute; left: -6%; right: -6%; text-align: center; font-size: 13px; font-weight: 500; line-height: 1.25; white-space: nowrap; }
+.v-gross { bottom: calc(var(--u) * 148 + 8px); }
+.v-tax { bottom: calc(var(--u) * 148 + 8px); }
+.v-net { bottom: calc(var(--u) * 140.8 + 8px); }
+.v-infl { bottom: calc(var(--u) * 140.8 + 8px); }
+.v-real { bottom: calc(var(--u) * 108.308 + 8px); }
+.base { position: absolute; left: 0; right: 0; bottom: calc(var(--u) * 100); border-top: 1.5px dashed var(--line-strong); pointer-events: none; }
+.axis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 8px; border-top: 1px solid var(--ring); padding-top: 8px; }
+.axis span { text-align: center; font-size: 12px; color: var(--ink3); line-height: 1.3; }
+.legend-line { font-size: 12px; color: var(--muted); margin-top: 10px; }
+
+/* ===== Paneller ===== */
+.tabs { display: flex; gap: 6px; overflow-x: auto; margin-top: 32px; padding-bottom: 4px; scrollbar-width: thin; }
+.tab { min-height: 44px; padding: 0 18px; border-radius: 999px; border: 0; background: transparent; color: var(--ink3); white-space: nowrap; box-shadow: inset 0 0 0 0.8px var(--ring); transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease, transform 200ms var(--ease); }
+.tab:hover { background: var(--s1); color: var(--ink); }
+.tab:active { transform: scale(0.96); }
+.tab[aria-selected="true"] { background: var(--acc-strong); color: var(--s0); box-shadow: none; font-weight: 500; }
+.stagebox { margin-top: 16px; overflow: hidden; border-radius: 14px; }
+.pane { display: flex; flex-wrap: wrap; gap: 32px; background: var(--s1); border: 0.8px solid var(--bd); border-radius: 14px; padding: 28px; min-height: 340px; }
+.pane-l { flex: 1 1 240px; min-width: 0; }
+.pane-r { flex: 2 1 340px; min-width: 0; }
+.pane .kpi { font-size: clamp(32px, 4vw, 44px); font-weight: 500; line-height: 1.1; margin-top: 8px; }
+.pane .note { font-size: 13px; color: var(--ink3); margin-top: 6px; }
+.rows { display: grid; gap: 4px; }
+.row { display: grid; grid-template-columns: 1fr auto auto; gap: 2px 16px; align-items: baseline; padding: 12px 0; border-bottom: 1px solid var(--ring); }
+.row:last-child { border-bottom: 0; }
+.row .rbar { grid-column: 1 / -1; height: 6px; border-radius: 3px; background: var(--s2); overflow: hidden; margin-top: 6px; position: relative; }
+.row .rbar i { display: block; height: 100%; width: var(--w); background: #9a9fa8; border-radius: 3px; transform-origin: left; position: relative; overflow: hidden; }
+.row .rbar i::after { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 40%; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent); transform: translateX(-120%); }
+.row .rd { min-width: 84px; text-align: right; font-size: 14px; }
+.row .rv { font-weight: 500; }
+.donut-box { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; }
+.donut { width: 168px; height: 168px; transform: rotate(-90deg); flex: none; }
+.donut circle { fill: none; stroke-width: 7; }
+.dl { display: grid; gap: 2px; flex: 1 1 200px; }
+.dl li { display: grid; grid-template-columns: 14px 1fr auto auto; gap: 10px; align-items: center; min-height: 36px; font-size: 14px; }
+.dl .sw { width: 12px; height: 12px; border-radius: 3px; }
+.proj { display: flex; align-items: flex-end; gap: 20px; height: 250px; padding-top: 28px; position: relative; }
+.proj::before { content: ""; position: absolute; left: 0; right: 0; top: 28px; bottom: 50px; background: repeating-linear-gradient(to bottom, transparent 0 calc(25% - 1px), var(--ring) calc(25% - 1px) 25%); opacity: 0.6; pointer-events: none; }
+.pcol { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; min-width: 0; position: relative; }
+.pval { font-size: 14px; font-weight: 500; text-align: center; margin-bottom: 6px; }
+.pbar { background: #eceef1; border-radius: 4px 4px 0 0; transform-origin: 50% 100%; }
+.plab { text-align: center; font-size: 12px; color: var(--ink3); margin-top: 8px; line-height: 1.3; }
+
+/* ===== Grafik paneli ===== */
+.seg { display: inline-flex; gap: 4px; padding: 4px; margin-top: 18px; border-radius: 999px; box-shadow: inset 0 0 0 0.8px var(--ring); }
+.seg button { min-height: 44px; min-width: 52px; padding: 0 14px; border: 0; border-radius: 999px; background: transparent; color: var(--ink3); font-size: 13.5px; transition: background-color 160ms ease, color 160ms ease, transform 200ms var(--ease); }
+.seg button:hover { color: var(--ink); background: var(--s2); }
+.seg button:active { transform: scale(0.95); }
+.seg button[aria-pressed="true"] { background: var(--acc-strong); color: var(--s0); font-weight: 500; }
+.gwrap { position: relative; padding-left: 64px; }
+.gplot { position: relative; height: 240px; touch-action: pan-y; cursor: crosshair; }
+.gsvg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: visible; }
+.ggrid { stroke: var(--ring); stroke-width: 1; stroke-dasharray: 3 5; }
+.gline { fill: none; stroke: var(--acc-strong); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 0; }
+.gma { fill: none; stroke: var(--acc); stroke-width: 1.5; stroke-dasharray: 5 5; stroke-linecap: round; }
+.garea { fill: url(#gfade); }
+.ylab { position: absolute; left: -64px; width: 56px; text-align: right; font-size: 11.5px; color: var(--muted); transform: translateY(-50%); pointer-events: none; }
+.gx { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line-strong); pointer-events: none; }
+.gdot { position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--acc-text); border: 2px solid var(--s1); pointer-events: none; }
+.gend { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--acc-text); pointer-events: none; }
+.gend::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 1.5px solid var(--acc-strong); opacity: 0; }
+.gtip { position: absolute; top: 6px; transform: translateX(-50%); background: var(--s2); border: 1px solid var(--line-strong); border-radius: 8px; padding: 8px 12px; font-size: 12.5px; line-height: 1.35; white-space: nowrap; pointer-events: none; z-index: 2; }
+.gtip b { display: block; font-size: 14px; font-weight: 500; }
+.gtip span { color: var(--ink3); }
+.gvol { display: flex; align-items: flex-end; gap: 2px; height: 44px; margin-top: 10px; }
+.gvol i { flex: 1; min-width: 1px; background: var(--seg4); border-radius: 1px 1px 0 0; transform-origin: 50% 100%; }
+.gaxis { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 6px; }
+.glegend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.glegend i { display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--acc-strong); vertical-align: middle; margin-right: 6px; }
+.glegend i.d { border-top: 2px dashed var(--acc); }
+
+/* ===== Panel geçişleri ve her panelin kendi hareketi ===== */
+@keyframes k-in-fwd { from { opacity: 0; transform: translateX(36px); filter: blur(4px); } to { opacity: 1; transform: none; filter: blur(0); } }
+@keyframes k-in-back { from { opacity: 0; transform: translateX(-36px); filter: blur(4px); } to { opacity: 1; transform: none; filter: blur(0); } }
+@keyframes k-scalex { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes k-scaley { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes k-dash { from { stroke-dasharray: 0 100; } }
+@keyframes k-spin { from { transform: rotate(-250deg); opacity: 0; } to { transform: rotate(-90deg); opacity: 1; } }
+@keyframes k-row { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: none; } }
+@keyframes k-rise-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes k-sheen { 0% { transform: translateX(-120%); } 100% { transform: translateX(320%); } }
+@keyframes k-wobble { 0% { transform: scaleX(0); } 55% { transform: scaleX(1.07); } 72% { transform: scaleX(0.96); } 88% { transform: scaleX(1.02); } 100% { transform: scaleX(1); } }
+@keyframes k-flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+@keyframes k-nudge { 0%, 100% { transform: none; } 30% { transform: translateX(-4px); } 60% { transform: translateX(3px); } }
+@keyframes k-draw-a { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes k-draw-b { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes k-vol { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+
+.pane.fwd { animation: k-in-fwd calc(300ms * var(--t)) var(--ease) both; }
+.pane.back { animation: k-in-back calc(300ms * var(--t)) var(--ease) both; }
+
+/* Panel: halka dilimleri sırayla çizilir, halka açılarak yerine döner, liste sırayla gelir */
+.pane .donut { animation: k-spin calc(900ms * var(--t)) var(--spring) both; }
+.pane .donut circle.seg { animation: k-dash calc(700ms * var(--t)) var(--ease) both; }
+.pane .donut circle.seg:nth-child(2) { animation-delay: calc(150ms * var(--t)); }
+.pane .donut circle.seg:nth-child(3) { animation-delay: calc(300ms * var(--t)); }
+.pane .donut circle.seg:nth-child(4) { animation-delay: calc(450ms * var(--t)); }
+.pane .donut circle.seg:nth-child(5) { animation-delay: calc(600ms * var(--t)); }
+.pane .dl li { animation: k-row calc(420ms * var(--t)) var(--ease) both; animation-delay: calc(var(--i, 0) * 90ms * var(--t) + 250ms * var(--t)); }
+
+/* Grafik: çizgi soldan sağa çizilir, alan ve ortalama çizgisi arkasından gelir, hacim çubukları yükselir */
+.pane .gline.draw0 { animation: k-draw-a calc(1300ms * var(--t)) var(--soft) both; }
+.pane .gline.draw1 { animation: k-draw-b calc(1300ms * var(--t)) var(--soft) both; }
+.pane .garea { animation: k-fade calc(800ms * var(--t)) ease-out calc(700ms * var(--t)) both; }
+.pane .gma { animation: k-fade calc(700ms * var(--t)) ease-out calc(1100ms * var(--t)) both; }
+.pane .ggrid { animation: k-fade calc(500ms * var(--t)) ease-out both; }
+.pane .gvol i { animation: k-vol calc(420ms * var(--t)) var(--spring) both; animation-delay: calc(var(--d, 0) * 1ms * var(--t)); }
+.pane .gend { animation: k-pop calc(380ms * var(--t)) var(--spring) calc(1250ms * var(--t)) both; }
+.pane .gend::after { animation: k-ring 2.4s ease-out calc(1700ms * var(--t)) infinite; }
+
+/* Hisseler: satırlar soldan sırayla girer, çubuk dolarken üstünden ışık geçer */
+.pane-stocks .row { animation: k-row calc(420ms * var(--t)) var(--ease) both; animation-delay: calc(var(--i, 0) * 110ms * var(--t)); }
+.pane-stocks .rbar i { animation: k-scalex calc(700ms * var(--t)) var(--ease) both; animation-delay: calc(var(--i, 0) * 110ms * var(--t) + 180ms * var(--t)); }
+.pane-stocks .rbar i::after { animation: k-sheen calc(900ms * var(--t)) var(--ease) both; animation-delay: calc(var(--i, 0) * 110ms * var(--t) + 600ms * var(--t)); }
+
+/* Fonlar: istikrar; yavaş, düzgün dolum, hiç zıplama yok */
+.pane-funds .row { animation: k-rise-up calc(500ms * var(--t)) var(--ease) both; animation-delay: calc(var(--i, 0) * 140ms * var(--t)); }
+.pane-funds .rbar i { animation: k-scalex calc(1500ms * var(--t)) var(--soft) both; animation-delay: calc(var(--i, 0) * 140ms * var(--t) + 200ms * var(--t)); }
+
+/* Kripto: oynaklık; çubuklar gerilip sallanır, düşen varlık bir kez titrer */
+.pane-crypto .row { animation: k-row calc(380ms * var(--t)) var(--ease) both; animation-delay: calc(var(--i, 0) * 90ms * var(--t)); }
+.pane-crypto .rbar i { animation: k-wobble calc(1100ms * var(--t)) var(--ease) both; animation-delay: calc(var(--i, 0) * 90ms * var(--t) + 150ms * var(--t)); }
+.pane-crypto .rd.loss { animation: k-nudge calc(500ms * var(--t)) ease-in-out calc(900ms * var(--t)) both; }
+.pane-crypto .rd { animation: k-flash 3.2s ease-in-out calc(1500ms * var(--t)) infinite; }
+
+/* Projeksiyon: çubuklar yay eğrisiyle yükselir, değerler tepeye oturur */
+.pane-proj .pbar { animation: k-scaley calc(1000ms * var(--t)) var(--spring) both; animation-delay: calc(var(--i, 0) * 160ms * var(--t) + 100ms * var(--t)); }
+.pane-proj .pval { animation: k-rise-up calc(500ms * var(--t)) var(--ease) both; animation-delay: calc(var(--i, 0) * 160ms * var(--t) + 700ms * var(--t)); }
+.pane-proj .plab { animation: k-fade calc(500ms * var(--t)) ease-out both; animation-delay: calc(var(--i, 0) * 160ms * var(--t) + 300ms * var(--t)); }
+
+/* ===== Güven kartları ===== */
+.trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 40px; }
+.trio h3 { font-size: 17px; font-weight: 500; margin-bottom: 8px; }
+.trio p { color: var(--ink3); font-size: 14px; }
+.foot { border-top: 1px solid var(--bd); padding: 32px 0 56px; color: var(--muted); font-size: 13px; }
+.foot p { max-width: 80ch; }
+
+/* ===== Kaydırmaya bağlı hareket ===== */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+
+    @keyframes k-rise { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+    @keyframes k-gross-val { from { opacity: 0; transform: translateY(calc(var(--u) * 148)); } to { opacity: 1; transform: none; } }
+    @keyframes k-drop { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: none; } }
+    @keyframes k-net { 0% { opacity: 0; transform: scaleY(1.0511); } 25% { opacity: 1; transform: scaleY(1.0511); } 100% { opacity: 1; transform: none; } }
+    @keyframes k-net-val { 0% { opacity: 0; transform: translateY(calc(var(--u) * -7.2)); } 25% { opacity: 1; transform: translateY(calc(var(--u) * -7.2)); } 100% { opacity: 1; transform: none; } }
+    @keyframes k-real { 0% { opacity: 0; transform: scaleY(1.3); } 20% { opacity: 1; transform: scaleY(1.3); } 100% { opacity: 1; transform: none; } }
+    @keyframes k-real-val { 0% { opacity: 0; transform: translateY(calc(var(--u) * -32.492)); } 20% { opacity: 1; transform: translateY(calc(var(--u) * -32.492)); } 100% { opacity: 1; transform: none; } }
+    @keyframes k-step { from { opacity: 0.4; } to { opacity: 1; } }
+    @keyframes k-sink { from { transform: none; opacity: 1; } to { transform: translateY(56px); opacity: 0.45; } }
+    @keyframes k-reveal { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+    @keyframes k-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+    .site[data-motion="on"] .story { height: 380vh; view-timeline: --story block; }
+    .site[data-motion="on"] .stage { position: sticky; top: 64px; height: calc(100vh - 64px); display: flex; align-items: center; }
+    .site[data-motion="on"] .stage .wrap { width: 100%; }
+
+    .site[data-motion="on"] .a {
+      --tl: --story; --r1: var(--p1); --r2: var(--p2);
+      animation: var(--k) linear both;
+      animation-timeline: var(--tl);
+      animation-range: var(--r1) var(--r2);
+    }
+    .a-gross { --k: k-rise; --p1: cover 22%; --p2: cover 30%; --m1: entry 0%; --m2: entry 35%; }
+    .a-gross-val { --k: k-gross-val; --p1: cover 24%; --p2: cover 30%; --m1: entry 0%; --m2: entry 35%; }
+    .a-tax { --k: k-drop; --p1: cover 33%; --p2: cover 38%; --m1: entry 30%; --m2: entry 55%; }
+    .a-net { --k: k-net; --p1: cover 38%; --p2: cover 47%; --m1: entry 45%; --m2: entry 70%; }
+    .a-net-val { --k: k-net-val; --p1: cover 38%; --p2: cover 47%; --m1: entry 45%; --m2: entry 70%; }
+    .a-infl { --k: k-drop; --p1: cover 50%; --p2: cover 55%; --m1: entry 60%; --m2: entry 80%; }
+    .a-real { --k: k-real; --p1: cover 55%; --p2: cover 67%; --m1: entry 70%; --m2: entry 100%; }
+    .a-real-val { --k: k-real-val; --p1: cover 55%; --p2: cover 67%; --m1: entry 70%; --m2: entry 100%; }
+    .a-s1 { --k: k-step; --p1: cover 21%; --p2: cover 25%; }
+    .a-s2 { --k: k-step; --p1: cover 33%; --p2: cover 37%; }
+    .a-s3 { --k: k-step; --p1: cover 50%; --p2: cover 54%; }
+
+    .site[data-motion="on"] .hero-fall { animation: k-sink linear both; animation-timeline: view(); animation-range: exit 0% exit 100%; }
+    .site[data-motion="on"] .rv-in { animation: k-reveal linear both; animation-timeline: view(); animation-range: entry calc(4% + var(--i, 0) * 8%) entry calc(50% + var(--i, 0) * 8%); }
+
+    .site[data-motion="on"] .cmp-row:not(.cmp-hd) { animation: k-reveal linear both; animation-timeline: view(); animation-range: entry 0% entry 55%; }
+    /* Sayfa ilerleme çizgisi: üst çubuğun altında, kaydırmayla uzar */
+    .site[data-motion="on"] .top::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--acc-strong); transform-origin: 0 50%; animation: k-progress linear both; animation-timeline: scroll(root); }
+
+    @media (max-width: 900px), (max-height: 640px) {
+      .site[data-motion="on"] .story { height: auto; view-timeline: none; }
+      .site[data-motion="on"] .stage { position: static; height: auto; display: block; }
+      .site[data-motion="on"] .chart { view-timeline: --chart block; }
+      .site[data-motion="on"] .a { --tl: --chart; --r1: var(--m1); --r2: var(--m2); }
+      .site[data-motion="on"] .a-s1, .site[data-motion="on"] .a-s2, .site[data-motion="on"] .a-s3 { animation: none; }
+    }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .site *, .site *::before, .site *::after { animation: none !important; transition: none !important; }
+}
+.site[data-motion="off"] *, .site[data-motion="off"] *::before, .site[data-motion="off"] *::after { animation: none !important; transition: none !important; }
+
+
+
+/* ===== Arka plan sahneleri: her bölümün kendi büyük görseli (gri tonlarında, düşük kontrast) ===== */
+.site main, .site .foot { position: relative; z-index: 1; }
+.amb { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; -webkit-mask-image: radial-gradient(ellipse 90% 80% at 70% 55%, #000 30%, transparent 100%); mask-image: radial-gradient(ellipse 90% 80% at 70% 55%, #000 30%, transparent 100%); }
+.amb svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.scn { opacity: 0; transition: opacity 800ms ease; }
+.scn[data-on="true"] { opacity: 1; }
+.sd { fill: none; stroke: var(--ring); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 0; }
+.sd.hi { stroke: var(--line-strong); stroke-opacity: 0.55; }
+.sg { stroke: var(--ring); stroke-width: 1; stroke-dasharray: 4 8; opacity: 0.7; }
+.sb { fill: rgba(232, 233, 235, 0.045); stroke: var(--ring); stroke-width: 1; transform-box: fill-box; transform-origin: 50% 100%; }
+.sr { fill: none; stroke: var(--ring); stroke-width: 2; transform-box: fill-box; transform-origin: center; }
+.sr.hi { stroke: var(--line-strong); stroke-opacity: 0.5; }
+@keyframes k-spin-s { to { transform: rotate(360deg); } }
+@keyframes k-spin-r { to { transform: rotate(-360deg); } }
+@keyframes k-float { from { transform: translateY(0); } to { transform: translateY(-16px); } }
+.scn[data-on="true"] .sd { animation: k-draw calc(1600ms * var(--t)) var(--soft) calc(var(--i, 0) * 140ms * var(--t)) both; }
+.scn[data-on="true"] .sb { animation: k-scaley calc(900ms * var(--t)) var(--spring) calc(var(--i, 0) * 140ms * var(--t) + 200ms) both; }
+.scn[data-on="true"] .sf { animation: k-float 10s ease-in-out infinite alternate; }
+.scn[data-on="true"] .sr { animation: k-spin-s 90s linear infinite; }
+.scn[data-on="true"] .sr.rev { animation: k-spin-r 70s linear infinite; }
+.scn[data-on="true"] .sr.slow { animation-duration: 140s; }
+.scn[data-on="true"] .sfade { animation: k-fade calc(1400ms * var(--t)) ease-out calc(600ms * var(--t)) both; }
+
+
+/* ===== Abonelik ===== */
+@keyframes k-shimmer { 0% { transform: translateX(-100%); } 60%, 100% { transform: translateX(100%); } }
+@keyframes k-check { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.bill { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-top: 28px; }
+.bill .seg { margin-top: 0; }
+.bill .save { font-size: 12.5px; color: var(--acc-strong); border: 1px solid var(--line-strong); border-radius: 999px; padding: 2px 10px; background: var(--s1); }
+.plans { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 24px; align-items: stretch; }
+.plan { display: flex; flex-direction: column; gap: 14px; position: relative; overflow: hidden; }
+.plan h3 { font-size: 17px; font-weight: 500; }
+.plan .tag { font-size: 13px; color: var(--ink3); margin-top: -8px; }
+.plan.rec { border-color: var(--line-strong); background: linear-gradient(180deg, #1e2125, var(--s1) 60%); }
+.plan.rec::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--acc-text), transparent); animation: k-shimmer 4.8s ease-in-out infinite; }
+.plan[data-sel="true"] { box-shadow: 0 0 0 2px var(--acc-strong); }
+.ribbon { position: absolute; top: 18px; right: 18px; font-size: 11.5px; font-weight: 500; padding: 2px 10px; border-radius: 999px; background: var(--acc-strong); color: var(--s0); }
+.price { font-size: clamp(34px, 3.4vw, 42px); font-weight: 500; line-height: 1.1; letter-spacing: -0.01em; }
+.price small { font-size: 14px; font-weight: 400; color: var(--ink3); letter-spacing: 0; }
+.per { font-size: 13px; color: var(--ink3); margin-top: -6px; min-height: 20px; }
+.feat { display: grid; gap: 10px; flex: 1; padding-top: 14px; border-top: 1px solid var(--ring); }
+.feat li { display: grid; grid-template-columns: 18px 1fr; gap: 10px; align-items: start; font-size: 14px; color: var(--ink2); }
+.feat svg { width: 18px; height: 18px; margin-top: 2px; fill: none; stroke: var(--acc-strong); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.feat path { stroke-dasharray: 1; stroke-dashoffset: 0; }
+.sum { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: center; justify-content: space-between; animation: k-rise-up calc(500ms * var(--t)) var(--ease) both; }
+.sum h3 { font-size: 17px; font-weight: 500; }
+.sum p { font-size: 13.5px; color: var(--ink3); margin-top: 4px; max-width: 60ch; }
+.sum .acts { display: flex; flex-wrap: wrap; gap: 10px; }
+.site[data-motion="on"] [data-on="true"] .plan .feat li { animation: k-row calc(420ms * var(--t)) var(--ease) both; animation-delay: calc(var(--i, 0) * 70ms * var(--t) + 250ms * var(--t)); }
+.site[data-motion="on"] [data-on="true"] .plan .feat path { animation: k-check calc(500ms * var(--t)) var(--ease) both; animation-delay: calc(var(--i, 0) * 70ms * var(--t) + 450ms * var(--t)); }
+@media (max-width: 900px) { .plans { grid-template-columns: minmax(0, 1fr); } }
+
+
+/* ===== Segmentler, planlayıcı, karşılaştırma tablosu, SSS ===== */
+@keyframes k-pa { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes k-pb { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes k-pn0 { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes k-pn1 { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes k-pn2 { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.segs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 32px; }
+.segcard { text-align: left; display: grid; grid-template-columns: 40px 1fr; gap: 2px 14px; align-items: center; min-height: 76px; padding: 14px 18px; border: 0; border-radius: 14px; background: var(--s1); box-shadow: inset 0 0 0 0.8px var(--bd); transition: box-shadow 200ms ease, background-color 200ms ease, transform 260ms var(--ease); }
+.segcard:hover { background: var(--s2); transform: translateY(-2px); }
+.segcard:active { transform: scale(0.98); }
+.segcard svg { grid-row: 1 / span 2; width: 40px; height: 40px; padding: 8px; border-radius: 10px; background: var(--s0); fill: none; stroke: var(--acc); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; transition: stroke 200ms ease, background-color 200ms ease; }
+.segcard b { font-weight: 500; font-size: 15px; align-self: end; }
+.segcard span { font-size: 12.5px; color: var(--ink3); align-self: start; line-height: 1.35; }
+.segcard[aria-pressed="true"] { box-shadow: inset 0 0 0 1.5px var(--acc-strong); background: linear-gradient(180deg, #1e2125, var(--s1)); }
+.segcard[aria-pressed="true"] svg { stroke: var(--acc-text); background: var(--acc-wash); }
+.seg-desc { margin-top: 16px; font-size: 14px; color: var(--ink3); max-width: 70ch; }
+.plans.sk0 .plan, .plans.sk1 .plan { opacity: 1; }
+.site[data-motion="on"] [data-on="true"] .plans.sk0 .plan { animation: k-pa calc(520ms * var(--t)) var(--ease) both; animation-delay: calc(var(--i, 0) * 90ms * var(--t)); }
+.site[data-motion="on"] [data-on="true"] .plans.sk1 .plan { animation: k-pb calc(520ms * var(--t)) var(--ease) both; animation-delay: calc(var(--i, 0) * 90ms * var(--t)); }
+.plan[data-pl="true"] { border-color: var(--acc); }
+.plnote { font-size: 12.5px; color: var(--acc-strong); opacity: 0; transition: opacity 240ms ease; margin-bottom: -4px; }
+.plan[data-pl="true"] .plnote { opacity: 1; }
+
+.planner { margin-top: 24px; display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 32px; align-items: stretch; }
+.planner h3 { font-size: 20px; font-weight: 500; margin-top: 8px; }
+.slide { margin-top: 22px; }
+.slide .top-l { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 14px; color: var(--ink2); }
+.slide output { font-weight: 500; font-size: 18px; color: var(--ink); }
+.slide input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 44px; margin: 4px 0 0; background: transparent; cursor: pointer; }
+.slide input[type="range"]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: var(--s2); }
+.slide input[type="range"]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--s2); }
+.slide input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -8px; border-radius: 50%; background: var(--acc-strong); border: 3px solid var(--s1); box-shadow: 0 0 0 1px var(--line-strong); transition: transform 160ms var(--ease); }
+.slide input[type="range"]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: var(--acc-strong); border: 3px solid var(--s1); box-shadow: 0 0 0 1px var(--line-strong); }
+.slide input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.18); }
+.capbar { height: 4px; border-radius: 2px; background: var(--s0); overflow: hidden; margin-top: -6px; }
+.capbar i { display: block; height: 100%; background: var(--acc); border-radius: 2px; transition: width 220ms var(--ease); }
+.pl-res { background: var(--s0); border: 0.8px solid var(--bd); border-radius: 12px; padding: 22px; display: flex; flex-direction: column; gap: 6px; }
+.pl-name { font-size: 28px; font-weight: 500; line-height: 1.15; margin-top: 4px; }
+.pl-price { font-size: 16px; color: var(--ink2); }
+.pl-res .note { font-size: 13px; color: var(--ink3); flex: 1; }
+.pl-res .btn { align-self: flex-start; margin-top: 10px; }
+.site[data-motion="on"] .pn0 { animation: k-pn0 calc(380ms * var(--t)) var(--ease) both; }
+.site[data-motion="on"] .pn1 { animation: k-pn1 calc(380ms * var(--t)) var(--ease) both; }
+.site[data-motion="on"] .pn2 { animation: k-pn2 calc(380ms * var(--t)) var(--ease) both; }
+
+.cmp { margin-top: 24px; padding: 28px 0 8px; }
+.cmp-head { padding: 0 28px 16px; }
+.cmp-head h3 { font-size: 20px; font-weight: 500; }
+.cmp-head p { font-size: 13.5px; color: var(--ink3); margin-top: 4px; }
+.cmp-scroll { overflow-x: auto; }
+.cmp-t { min-width: 680px; padding: 0 28px; }
+.cmp-row { display: grid; grid-template-columns: minmax(180px, 1.5fr) repeat(3, minmax(0, 1fr)); align-items: center; border-bottom: 1px solid var(--ring); min-height: 48px; transition: background-color 160ms ease; }
+.cmp-row:hover { background: var(--acc-wash); }
+.cmp-row > span { padding: 10px 12px; font-size: 14px; color: var(--ink2); }
+.cmp-row > span:first-child { padding-left: 0; color: var(--ink); }
+.cmp-row .cell { text-align: center; color: var(--ink2); font-size: 13.5px; }
+.cmp-row .cell.rec, .colh.rec { background: rgba(232, 233, 235, 0.05); }
+.cmp-row .cell.pl, .colh.pl { box-shadow: inset 0 0 0 1px var(--acc); }
+.cmp-hd { background: var(--s1); border-bottom: 1px solid var(--line-strong); }
+.cmp-hd:hover { background: var(--s1); }
+.colh { text-align: center; font-weight: 500; }
+.colh small { display: block; font-weight: 400; color: var(--ink3); font-size: 12px; }
+.cmp-grp { padding: 18px 0 6px; font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--ring); }
+.cell svg { width: 18px; height: 18px; fill: none; stroke: var(--acc-strong); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vertical-align: middle; }
+.cell .no { color: var(--muted-x, #6e737b); }
+
+.faq-tools { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; margin-top: 28px; }
+.faq-tools .seg { margin-top: 0; flex-wrap: wrap; border-radius: 22px; }
+.fsearch { flex: 1 1 280px; min-width: 0; }
+.fsearch input { width: 100%; min-height: 44px; padding: 0 16px; border-radius: 999px; border: 0; background: var(--s1); color: var(--ink); font: inherit; font-size: 14px; box-shadow: inset 0 0 0 0.8px var(--ring); transition: box-shadow 160ms ease; }
+.fsearch input::placeholder { color: var(--muted); }
+.fsearch input:focus-visible { outline: 3px solid var(--acc-strong); outline-offset: 2px; }
+.faq { margin-top: 20px; display: grid; gap: 8px; }
+.qa { background: var(--s1); border: 0.8px solid var(--bd); border-radius: 12px; transition: border-color 160ms ease, background-color 160ms ease; }
+.qa:hover { border-color: var(--line-strong); }
+.qa[open] { background: linear-gradient(180deg, #1c1f23, var(--s1)); border-color: var(--line-strong); }
+.qa[hidden] { display: none; }
+.qa summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; padding: 12px 20px; font-size: 15px; font-weight: 500; }
+.qa summary::-webkit-details-marker { display: none; }
+.qa summary::after { content: ""; flex: none; width: 10px; height: 10px; border-right: 2px solid var(--acc); border-bottom: 2px solid var(--acc); transform: rotate(45deg) translateY(-2px); transition: transform 260ms var(--ease); }
+.qa[open] summary::after { transform: rotate(225deg) translateY(-2px); }
+.qa .ans { padding: 0 20px 18px; color: var(--ink3); font-size: 14px; max-width: 78ch; }
+.qa .ans p + p { margin-top: 8px; }
+.qa[open] .ans { animation: k-rise-up calc(380ms * var(--t)) var(--ease) both; }
+.faq[data-cat="genel"] .qa:not([data-cat="genel"]), .faq[data-cat="plan"] .qa:not([data-cat="plan"]), .faq[data-cat="veri"] .qa:not([data-cat="veri"]), .faq[data-cat="sirket"] .qa:not([data-cat="sirket"]), .faq[data-cat="teknik"] .qa:not([data-cat="teknik"]) { display: none; }
+.faq-none { margin-top: 16px; color: var(--ink3); font-size: 14px; }
+.ask { margin-top: 24px; display: grid; gap: 12px; }
+.ask h3 { font-size: 17px; font-weight: 500; }
+.ask p { font-size: 13.5px; color: var(--ink3); }
+.ask textarea { width: 100%; min-height: 96px; resize: vertical; padding: 12px 16px; border-radius: 10px; border: 0; background: var(--s0); color: var(--ink); font: inherit; font-size: 14px; box-shadow: inset 0 0 0 0.8px var(--ring); }
+.ask textarea:focus-visible { outline: 3px solid var(--acc-strong); outline-offset: 2px; }
+.ask .btn { justify-self: start; }
+@media (max-width: 900px) {
+  .segs { grid-template-columns: minmax(0, 1fr); }
+  .planner { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .cmp-head { padding: 0 20px 16px; }
+  .cmp-t { padding: 0 20px; }
+}
+
+/* ===== Bölüm farkındalığı: gezinme, dock, rota göstergesi ===== */
+.nav a[aria-current="true"] { color: var(--acc-text); background: var(--acc-wash); box-shadow: inset 0 -2px 0 var(--acc-strong); }
+.dock { position: fixed; right: 20px; bottom: 20px; z-index: 15; width: 396px; background: rgba(23, 25, 28, 0.92); border: 0.8px solid var(--bd); border-radius: 14px; padding: 12px 14px 4px; backdrop-filter: blur(8px); }
+.dock-vis { height: 84px; border-radius: 10px; background: var(--s0); border: 0.8px solid var(--bd); overflow: hidden; }
+.dock-vis svg { width: 100%; height: 100%; display: block; animation: k-dock-in calc(420ms * var(--t)) var(--ease) both; }
+.dock-title { font-size: 13.5px; font-weight: 500; margin-top: 10px; }
+.dock-sub { font-size: 12px; color: var(--ink3); margin-top: 2px; line-height: 1.4; }
+.dock-rail { margin-left: -8px; margin-right: -8px; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); margin-top: 6px; }
+.dock-rail li { position: relative; }
+.dock-rail li:not(:last-child)::after { content: ""; position: absolute; top: 15px; left: 50%; width: 100%; height: 2px; background: var(--ring); pointer-events: none; transition: background-color 300ms ease; }
+.dock-rail li[data-done="true"]::after { background: var(--acc-strong); }
+.dr { position: relative; z-index: 1; width: 100%; min-height: 44px; padding: 10px 0 0; border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 10.5px; letter-spacing: -0.01em; color: var(--muted); transition: color 200ms ease; }
+.dr i { width: 10px; height: 10px; border-radius: 50%; background: var(--s1); box-shadow: inset 0 0 0 2px var(--ring); transition: background-color 240ms ease, box-shadow 240ms ease, transform 300ms var(--spring); }
+.dr:hover { color: var(--ink); }
+.dr[data-st="past"] { color: var(--ink3); }
+.dr[data-st="past"] i { background: var(--acc); box-shadow: none; }
+.dr[data-st="cur"] { color: var(--acc-text); font-weight: 500; }
+.dr[data-st="cur"] i { background: var(--acc-text); box-shadow: 0 0 0 4px var(--acc-wash); transform: scale(1.25); }
+
+.route { position: fixed; top: 76px; left: 50%; z-index: 19; transform: translate(-50%, -8px); opacity: 0; pointer-events: none; background: rgba(23, 25, 28, 0.94); border: 0.8px solid var(--line-strong); border-radius: 999px; padding: 10px 20px 14px; backdrop-filter: blur(8px); transition: opacity 240ms ease, transform 320ms var(--ease); max-width: calc(100vw - 24px); }
+.route[data-show="true"] { opacity: 1; transform: translate(-50%, 0); }
+.route ol { display: flex; align-items: center; gap: 10px; font-size: 13px; white-space: nowrap; }
+.route li { color: var(--muted); transition: color 200ms ease; }
+.route li:not(:last-child)::after { content: "→"; margin-left: 10px; color: var(--line-strong); }
+.route li[data-st="done"] { color: var(--ink3); }
+.route li[data-st="now"] { color: var(--acc-text); font-weight: 500; }
+.route-bar { position: absolute; left: 20px; right: 20px; bottom: 6px; height: 2px; border-radius: 2px; background: var(--ring); overflow: hidden; }
+.route-bar i { display: block; height: 100%; background: var(--acc-strong); }
+
+@media (max-width: 1400px) { .dock-vis, .dock-sub { display: none; } .dock-title { margin-top: 2px; } }
+/* Dock görselleri: her bölümün kendi küçük sahnesi (sc-if ile her girişte yeniden oynar) */
+.dv-grid { stroke: var(--ring); stroke-width: 1; stroke-dasharray: 3 4; }
+.dv-stroke { fill: none; stroke: var(--acc-strong); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 0; animation: k-draw calc(900ms * var(--t)) var(--soft) 120ms both; }
+.dv-stroke.late { animation-delay: calc(700ms * var(--t)); animation-duration: calc(420ms * var(--t)); }
+.dv-area { fill: var(--acc); opacity: 0.18; animation: k-fade calc(700ms * var(--t)) ease-out calc(500ms * var(--t)) both; }
+.dv-dot { fill: #fff; transform-box: fill-box; transform-origin: center; animation: k-pop calc(360ms * var(--t)) var(--spring) calc(900ms * var(--t)) both; }
+.dv-bar { transform-box: fill-box; transform-origin: 50% 100%; animation: k-scaley calc(560ms * var(--t)) var(--spring) both; animation-delay: calc(var(--i, 0) * 120ms * var(--t) + 100ms); }
+.dv-barx { transform-box: fill-box; transform-origin: 0 50%; animation: k-scalex calc(600ms * var(--t)) var(--ease) both; animation-delay: calc(var(--i, 0) * 120ms * var(--t) + 300ms); }
+.dv-drop { transform-box: fill-box; transform-origin: 50% 0; animation: k-scaley calc(380ms * var(--t)) var(--ease) both; animation-delay: calc(var(--i, 0) * 120ms * var(--t) + 500ms); }
+.dv-ring { fill: none; stroke: var(--acc-strong); stroke-width: 1.5; transform-box: fill-box; transform-origin: center; opacity: 0; animation: k-ring 2.4s ease-out calc(1100ms * var(--t)) infinite; }
+.dv-track { fill: none; stroke: #2a2d32; stroke-width: 8; }
+.dv-seg { fill: none; stroke-width: 8; animation: k-dash calc(700ms * var(--t)) var(--ease) both; animation-delay: calc(var(--i, 0) * 140ms * var(--t)); }
+@keyframes k-dock-in { from { opacity: 0; transform: translateY(8px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes k-eyebrow { from { opacity: 0.25; letter-spacing: 0.34em; } to { opacity: 1; letter-spacing: 0.14em; } }
+@keyframes k-head { from { opacity: 0.3; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+/* Aktif bölümün başlığı girişte kendini belli eder */
+.site[data-motion="on"] .sec[data-on="true"] > .wrap > .eyebrow,
+.site[data-motion="on"] .sec[data-on="true"] .story-copy .eyebrow,
+.site[data-motion="on"] .hero[data-on="true"] .hero-copy .eyebrow { animation: k-eyebrow calc(800ms * var(--t)) var(--ease) both; }
+.site[data-motion="on"] .sec[data-on="true"] h2,
+.site[data-motion="on"] .hero[data-on="true"] h1 { animation: k-head calc(650ms * var(--t)) var(--ease) both; }
+
+/* ===== Ekran genişlikleri ===== */
+@media (max-width: 900px) {
+  .stage-in { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .site { --u: 1.45px; }
+  .trio { grid-template-columns: minmax(0, 1fr); }
+  .sec { padding: 64px 0; }
+}
+@media (max-width: 720px) {
+  .nav { display: none; }
+  .badge.hide-sm { display: none; }
+  .hero { padding: 40px 0 24px; }
+  .pane { padding: 20px; }
+  .proj { height: 220px; gap: 10px; }
+  .chart { padding: 20px 10px 12px; }
+  .val { font-size: 11.5px; }
+  .gwrap { padding-left: 52px; }
+  .ylab { left: -52px; width: 46px; font-size: 10.5px; }
+  .gplot { height: 200px; }
+  .dock { right: 8px; bottom: 8px; width: 330px; padding: 8px 10px 2px; }
+  .dock-vis, .dock-sub { display: none; }
+  .dock-title { margin-top: 2px; }
+  .route { top: 70px; padding: 8px 14px 12px; }
+  .route ol { gap: 6px; font-size: 12px; }
+}
+</style>
+</helmet>
+
+<div class="site" data-motion="{{motionAttr}}" data-tone="{{tone}}">
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#ust" onClick="{{brandGo}}">FAGENT</a>
+    <span class="badge hide-sm" role="note">Örnek veri</span>
+    <nav class="nav" aria-label="Sayfa bölümleri">
+      <sc-for list="{{navItems}}" as="n" hint-placeholder-count="3">
+        <a href="{{n.href}}" aria-current="{{n.cur}}" onClick="{{n.go}}">{{n.label}}</a>
+      </sc-for>
+    </nav>
+    <span class="sp"></span>
+    <button class="btn ghost mt" type="button" aria-pressed="{{motionPressed}}" disabled="{{osReduced}}" onClick="{{toggleMotion}}"><i aria-hidden="true"></i>{{motionLabel}}</button>
+  </div>
+</header>
+
+
+<div class="amb" aria-hidden="true">
+  <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+    <defs><pattern id="dots" width="36" height="36" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.5" fill="#3a3e45"></circle></pattern></defs>
+
+    <g class="scn" data-on="{{on.ust}}">
+      <g class="sf">
+        <line class="sg" x1="0" y1="240" x2="1440" y2="240"></line>
+        <line class="sg" x1="0" y1="420" x2="1440" y2="420"></line>
+        <line class="sg" x1="0" y1="600" x2="1440" y2="600"></line>
+        <path class="sd" style="--i: 0" pathLength="1" d="M0 780 C240 770 420 720 620 680 S1020 510 1440 380"></path>
+        <path class="sd" style="--i: 1" pathLength="1" d="M0 710 C240 700 420 650 620 610 S1020 440 1440 310"></path>
+        <path class="sd hi" style="--i: 2" pathLength="1" d="M0 640 C240 630 420 580 620 540 S1020 370 1440 240"></path>
+        <path class="sd" style="--i: 3" pathLength="1" d="M0 570 C240 560 420 510 620 470 S1020 300 1440 170"></path>
+        <path class="sd" style="--i: 4" pathLength="1" d="M0 500 C240 490 420 440 620 400 S1020 230 1440 100"></path>
+      </g>
+    </g>
+
+    <g class="scn" data-on="{{on.zincir}}">
+      <line class="sg" x1="0" y1="740" x2="1440" y2="740"></line>
+      <rect class="sb" style="--i: 0" x="900" y="250" width="150" height="490"></rect>
+      <rect class="sb" style="--i: 1" x="1070" y="290" width="150" height="450"></rect>
+      <rect class="sb" style="--i: 2" x="1240" y="410" width="150" height="330"></rect>
+      <path class="sd hi" style="--i: 0" pathLength="1" d="M60 220 H300 V300 H540 V420 H780 V560 H1020 V690 H1400"></path>
+      <path class="sd" style="--i: 2" pathLength="1" d="M60 260 H280 V340 H520 V460 H760 V600 H1000 V730 H1400"></path>
+    </g>
+
+    <g class="scn" data-on="{{on.paneller}}">
+      <circle class="sr hi" cx="1080" cy="450" r="130" pathLength="100" stroke-dasharray="34 6 18 12 22 8"></circle>
+      <circle class="sr rev" cx="1080" cy="450" r="210" pathLength="100" stroke-dasharray="20 10 40 6 14 10"></circle>
+      <circle class="sr slow" cx="1080" cy="450" r="290" pathLength="100" stroke-dasharray="46 8 24 22"></circle>
+      <circle class="sr rev hi" cx="1080" cy="450" r="370" pathLength="100" stroke-dasharray="12 8 30 14 26 10"></circle>
+      <circle class="sr slow" cx="1080" cy="450" r="450" pathLength="100" stroke-dasharray="60 40"></circle>
+    </g>
+
+    <g class="scn" data-on="{{on.abonelik}}">
+      <line class="sg" x1="0" y1="760" x2="1440" y2="760"></line>
+      <rect class="sb" style="--i: 0" x="860" y="500" width="150" height="260"></rect>
+      <rect class="sb" style="--i: 1" x="1040" y="300" width="150" height="460"></rect>
+      <rect class="sb" style="--i: 2" x="1220" y="400" width="150" height="360"></rect>
+      <circle class="sr slow hi" cx="1115" cy="520" r="330" pathLength="100" stroke-dasharray="3 3"></circle>
+      <path class="sd hi" style="--i: 1" pathLength="1" d="M860 500 L1040 300 L1190 300 L1370 400"></path>
+    </g>
+
+    <g class="scn" data-on="{{on.sss}}">
+      <rect class="sr hi slow" x="820" y="170" width="440" height="120" rx="40" pathLength="100" stroke-dasharray="100"></rect>
+      <rect class="sr slow" x="900" y="330" width="440" height="120" rx="40" pathLength="100" stroke-dasharray="100"></rect>
+      <rect class="sr hi slow" x="780" y="490" width="440" height="120" rx="40" pathLength="100" stroke-dasharray="100"></rect>
+      <path class="sd hi" style="--i: 1" pathLength="1" d="M1090 690 C1090 640 1140 640 1140 700 C1140 740 1100 740 1100 780"></path>
+      <circle class="sd" style="--i: 3" cx="1100" cy="820" r="6" pathLength="1"></circle>
+    </g>
+
+    <g class="scn" data-on="{{on.gizlilik}}">
+      <rect class="sfade" x="0" y="0" width="1440" height="900" fill="url(#dots)" opacity="0.7"></rect>
+      <path class="sd hi" style="--i: 0" pathLength="1" d="M1080 150 L1300 230 V450 C1300 590 1190 670 1080 730 C970 670 860 590 860 450 V230 Z"></path>
+      <path class="sd" style="--i: 2" pathLength="1" d="M1080 210 L1245 270 V440 C1245 545 1163 605 1080 650 C997 605 915 545 915 440 V270 Z"></path>
+      <path class="sd hi" style="--i: 4" pathLength="1" d="M1000 440 L1058 498 L1170 380"></path>
+    </g>
+  </svg>
+</div>
+
+<main id="ust">
+
+<section class="hero" aria-labelledby="h1" data-on="{{on.ust}}">
+  <div class="wrap">
+    <div class="hero-copy">
+      <p class="eyebrow">Portföy takibi</p>
+      <h1 id="h1">Getirin vergiden ve enflasyondan sonra ne kadar kalıyor?</h1>
+      <p class="lead">FAGENT portföyünü brüt, net ve reel olarak yan yana ölçer. Veriler tarayıcında kalır. Ölçer ve betimler; yatırım tavsiyesi vermez.</p>
+      <div class="cta">
+        <a class="btn" href="#paneller" onClick="{{ctaOpen}}">Örnek portföyü aç</a>
+        <a class="btn ghost" href="#zincir" onClick="{{ctaWhat}}">Brüt, net, reel nedir?</a>
+      </div>
+    </div>
+    <div class="hero-card-wrap">
+      <div class="hero-fall">
+        <div class="card hero-card">
+          <p class="eyebrow">Toplam portföy · örnek veri</p>
+          <p class="kpi num">{{heroKpi}}</p>
+          <p class="sub"><b class="gain">▲ +₺15.000 (+%12,0)</b><span>Toplam maliyet ₺125.000</span></p>
+          <div class="hero-chart">
+            <svg class="spark-svg" viewBox="0 0 480 140" preserveAspectRatio="none" role="img" aria-label="Son 12 ayda örnek portföy değeri: ₺108.000'den ₺140.000'e, ara dönemlerde iki küçük düşüşle">
+              <line class="spark-grid" x1="0" y1="35" x2="480" y2="35"></line>
+              <line class="spark-grid" x1="0" y1="70" x2="480" y2="70"></line>
+              <line class="spark-grid" x1="0" y1="105" x2="480" y2="105"></line>
+              <path class="spark-area" d="M0 110 L44 102 L87 107 L131 94 L175 84 L218 89 L262 76 L305 64 L349 69 L393 51 L436 38 L480 28 L480 140 L0 140 Z"></path>
+              <path class="spark" pathLength="1" d="M0 110 L44 102 L87 107 L131 94 L175 84 L218 89 L262 76 L305 64 L349 69 L393 51 L436 38 L480 28"></path>
+            </svg>
+            <span class="spark-end" aria-hidden="true"></span>
+          </div>
+          <div class="spark-axis" aria-hidden="true"><span>12 ay önce · ₺108.000</span><span>Bugün · ₺140.000</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec story" id="zincir" aria-labelledby="zincir-t" data-on="{{on.zincir}}">
+  <div class="stage">
+    <div class="wrap stage-in">
+      <div class="story-copy">
+        <p class="eyebrow">Brüt → net → reel</p>
+        <h2 id="zincir-t">₺100.000’lik örnek bir yatırım, bir yılın sonunda</h2>
+        <ol class="steps">
+          <li class="step a a-s1">
+            <h3>1 · Brüt</h3><span class="v num">₺148.000</span>
+            <p>Başlangıç ₺100.000; örnek brüt getiri %48.</p><span class="d gain">▲ +%48,0</span>
+          </li>
+          <li class="step a a-s2">
+            <h3>2 · Net (stopaj sonrası)</h3><span class="v num">₺140.800</span>
+            <p>₺48.000 kazancın %15’i, ₺7.200, stopaj olarak düşer.</p><span class="d gain">▲ +%40,8</span>
+          </li>
+          <li class="step a a-s3">
+            <h3>3 · Reel (enflasyon sonrası)</h3><span class="v num">₺108.308</span>
+            <p>%30 enflasyonla bugünün alım gücüyle: (1 + 0,408) ÷ (1 + 0,30) − 1.</p><span class="d gain">▲ +%8,3</span>
+          </li>
+        </ol>
+        
+      </div>
+
+      <div class="chart">
+        <div class="plot" role="img" aria-label="Köprü grafiği, örnek veri. Brüt değer ₺148.000. Stopaj ₺7.200 düşürür, net değer ₺140.800 olur. Enflasyon ₺32.492 düşürür, reel değer ₺108.308 olur. Anapara ₺100.000.">
+          <div class="base" aria-hidden="true"></div>
+          <div class="col" aria-hidden="true">
+            <div class="bar b-gross a a-gross"></div>
+            <div class="val v-gross a a-gross-val">₺148.000</div>
+          </div>
+          <div class="col" aria-hidden="true">
+            <div class="bar delta b-tax a a-tax"></div>
+            <div class="val v-tax loss a a-tax">▼ −₺7.200</div>
+          </div>
+          <div class="col" aria-hidden="true">
+            <div class="bar b-net a a-net"></div>
+            <div class="val v-net a a-net-val">₺140.800</div>
+          </div>
+          <div class="col" aria-hidden="true">
+            <div class="bar delta b-infl a a-infl"></div>
+            <div class="val v-infl loss a a-infl">▼ −₺32.492</div>
+          </div>
+          <div class="col" aria-hidden="true">
+            <div class="bar b-real a a-real"></div>
+            <div class="val v-real a a-real-val">₺108.308</div>
+          </div>
+        </div>
+        <div class="axis" aria-hidden="true"><span>Brüt</span><span>Stopaj</span><span>Net</span><span>Enflasyon</span><span>Reel</span></div>
+        <p class="legend-line">Dolu sütun: değer · Çizgili sütun: düşen tutar (▼) · Kesikli çizgi: anapara, ₺100.000</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="paneller" aria-labelledby="pan-t" data-on="{{on.paneller}}">
+  <div class="wrap">
+    <p class="eyebrow">Paneller</p>
+    <h2 id="pan-t">Varlık sınıfları arasında geçiş</h2>
+    <p class="lead">Sekme değişince içerik yatay eksende kayar; her panel kendi hareketiyle açılır: grafik çizilir, hisseler sırayla girer, fonlar sakin dolar, kripto oynar. Sayılar örnek veridir.</p>
+
+    <div class="tabs" role="tablist" aria-label="Portföy panelleri" onKeyDown="{{onTabKey}}">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="6">
+        <button class="tab" type="button" role="tab" id="tab-{{t.i}}" aria-selected="{{t.sel}}" aria-controls="pane-body" tabindex="{{t.tabIndex}}" onClick="{{t.pick}}">{{t.label}}</button>
+      </sc-for>
+    </div>
+
+    <div class="stagebox" id="pane-body" role="tabpanel" aria-labelledby="tab-{{idx}}">
+
+      <sc-if value="{{isPanel}}" hint-placeholder-val="{{ true }}">
+        <div class="pane pane-panel {{dirClass}}">
+          <div class="pane-l">
+            <p class="eyebrow">Toplam portföy</p>
+            <p class="kpi num">{{kPanel}}</p>
+            <p class="note"><b class="gain">▲ +₺15.000 (+%12,0)</b></p>
+            <p class="note">Toplam maliyet ₺125.000 · fiyatlar elle girilir ya da canlı kaynaktan gelir.</p>
+          </div>
+          <div class="pane-r">
+            <div class="donut-box">
+              <svg class="donut" viewBox="0 0 42 42" role="img" aria-label="Dağılım: hisse yüzde 44,3; fon yüzde 34,3; kripto yüzde 14,3; nakit yüzde 7,1">
+                <circle cx="21" cy="21" r="15.9155" stroke="#2a2d32"></circle>
+                <circle class="seg" cx="21" cy="21" r="15.9155" pathLength="100" stroke="#eceef1" stroke-dasharray="43.7 56.3" stroke-dashoffset="0"></circle>
+                <circle class="seg" cx="21" cy="21" r="15.9155" pathLength="100" stroke="#b0b4bb" stroke-dasharray="33.7 66.3" stroke-dashoffset="-44.3"></circle>
+                <circle class="seg" cx="21" cy="21" r="15.9155" pathLength="100" stroke="#7b8089" stroke-dasharray="13.7 86.3" stroke-dashoffset="-78.6"></circle>
+                <circle class="seg" cx="21" cy="21" r="15.9155" pathLength="100" stroke="#565a62" stroke-dasharray="6.5 93.5" stroke-dashoffset="-92.9"></circle>
+              </svg>
+              <ul class="dl">
+                <li style="--i: 0"><span class="sw" style="background:#eceef1"></span><span>Hisse</span><span class="num">₺62.000</span><span class="num">%44,3</span></li>
+                <li style="--i: 1"><span class="sw" style="background:#b0b4bb"></span><span>Fon</span><span class="num">₺48.000</span><span class="num">%34,3</span></li>
+                <li style="--i: 2"><span class="sw" style="background:#7b8089"></span><span>Kripto</span><span class="num">₺20.000</span><span class="num">%14,3</span></li>
+                <li style="--i: 3"><span class="sw" style="background:#565a62"></span><span>Nakit</span><span class="num">₺10.000</span><span class="num">%7,1</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isChart}}" hint-placeholder-val="{{ false }}">
+        <div class="pane pane-chart {{dirClass}}">
+          <div class="pane-l">
+            <p class="eyebrow">Portföy değeri · {{g.rangeName}}</p>
+            <p class="kpi num">{{g.kpi}}</p>
+            <p class="note"><b class="{{g.chgClass}}">{{g.chg}}</b></p>
+            <p class="note">{{g.hint}}</p>
+            <div class="seg" role="group" aria-label="Zaman aralığı">
+              <sc-for list="{{g.ranges}}" as="r" hint-placeholder-count="3">
+                <button type="button" aria-pressed="{{r.sel}}" onClick="{{r.pick}}">{{r.label}}</button>
+              </sc-for>
+            </div>
+            <p class="note"><span class="assume">örnek veri · gerçek fiyat değildir</span></p>
+          </div>
+          <div class="pane-r">
+            <div class="gwrap">
+              <div class="gplot" role="img" aria-label="{{g.aria}}" onPointerMove="{{g.onMove}}" onPointerLeave="{{g.onLeave}}">
+                <sc-for list="{{g.ylabs}}" as="y" hint-placeholder-count="4">
+                  <span class="ylab" style="top: {{y.top}}">{{y.label}}</span>
+                </sc-for>
+                <svg class="gsvg" viewBox="0 0 600 240" preserveAspectRatio="none" aria-hidden="true">
+                  <defs><linearGradient id="gfade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9a9fa8" stop-opacity="0.32"></stop><stop offset="1" stop-color="#9a9fa8" stop-opacity="0"></stop></linearGradient></defs>
+                  <line class="ggrid" x1="0" y1="48" x2="600" y2="48"></line>
+                  <line class="ggrid" x1="0" y1="96" x2="600" y2="96"></line>
+                  <line class="ggrid" x1="0" y1="144" x2="600" y2="144"></line>
+                  <line class="ggrid" x1="0" y1="192" x2="600" y2="192"></line>
+                  <path class="garea" d="{{g.area}}"></path>
+                  <path class="gma" d="{{g.ma}}"></path>
+                  <path class="gline draw{{g.rk}}" pathLength="1" d="{{g.line}}"></path>
+                </svg>
+                <span class="gend" aria-hidden="true" style="left: 100%; top: {{g.endTop}}"></span>
+                <sc-if value="{{g.hov}}" hint-placeholder-val="{{ false }}">
+                  <span class="gx" aria-hidden="true" style="left: {{g.hx}}"></span>
+                  <span class="gdot" aria-hidden="true" style="left: {{g.hx}}; top: {{g.hy}}"></span>
+                  <div class="gtip" aria-hidden="true" style="left: {{g.tipX}}"><b>{{g.tipVal}}</b><span>{{g.tipSub}}</span></div>
+                </sc-if>
+              </div>
+              <div class="gvol" aria-hidden="true">
+                <sc-for list="{{g.vols}}" as="v" hint-placeholder-count="30">
+                  <i style="height: {{v.h}}; --d: {{v.d}}"></i>
+                </sc-for>
+              </div>
+              <div class="gaxis" aria-hidden="true"><span>{{g.startLab}}</span><span>Bugün</span></div>
+            </div>
+            <div class="glegend"><span><i></i>Portföy değeri</span><span><i class="d"></i>7 noktalı ortalama</span><span>Alt çubuklar: örnek işlem hacmi</span></div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isStocks}}" hint-placeholder-val="{{ false }}">
+        <div class="pane pane-stocks {{dirClass}}">
+          <div class="pane-l">
+            <p class="eyebrow">Hisseler</p>
+            <p class="kpi num">{{kStocks}}</p>
+            <p class="note"><b class="gain">▲ +₺8.000 (+%14,8)</b></p>
+            <p class="note">Toplam maliyet ₺54.000 · 3 varlık. Hisse fiyatları elle girilir.</p>
+          </div>
+          <div class="pane-r">
+            <ul class="rows">
+              <li class="row" style="--i: 0"><span>Örnek Hisse A</span><span class="rv num">₺24.000</span><span class="rd gain">▲ +%33,3</span><div class="rbar" aria-hidden="true"><i style="--w: 38.7%; --i: 0"></i></div></li>
+              <li class="row" style="--i: 1"><span>Örnek Hisse B</span><span class="rv num">₺21.500</span><span class="rd gain">▲ +%26,5</span><div class="rbar" aria-hidden="true"><i style="--w: 34.7%; --i: 1"></i></div></li>
+              <li class="row" style="--i: 2"><span>Örnek Hisse C</span><span class="rv num">₺16.500</span><span class="rd loss">▼ −%13,2</span><div class="rbar" aria-hidden="true"><i style="--w: 26.6%; --i: 2"></i></div></li>
+            </ul>
+            <p class="note">Çubuk: varlığın sınıf içindeki payı.</p>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isFunds}}" hint-placeholder-val="{{ false }}">
+        <div class="pane pane-funds {{dirClass}}">
+          <div class="pane-l">
+            <p class="eyebrow">Fonlar</p>
+            <p class="kpi num">{{kFunds}}</p>
+            <p class="note"><b class="gain">▲ +₺6.000 (+%14,3)</b></p>
+            <p class="note">Toplam maliyet ₺42.000 · 2 varlık. Fon fiyatları elle girilir.</p>
+          </div>
+          <div class="pane-r">
+            <ul class="rows">
+              <li class="row" style="--i: 0"><span>Örnek Fon X</span><span class="rv num">₺30.000</span><span class="rd gain">▲ +%7,1</span><div class="rbar" aria-hidden="true"><i style="--w: 62.5%; --i: 0"></i></div></li>
+              <li class="row" style="--i: 1"><span>Örnek Fon Y</span><span class="rv num">₺18.000</span><span class="rd gain">▲ +%28,6</span><div class="rbar" aria-hidden="true"><i style="--w: 37.5%; --i: 1"></i></div></li>
+            </ul>
+            <p class="note">Çubuk: varlığın sınıf içindeki payı.</p>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isCrypto}}" hint-placeholder-val="{{ false }}">
+        <div class="pane pane-crypto {{dirClass}}">
+          <div class="pane-l">
+            <p class="eyebrow">Kripto</p>
+            <p class="kpi num">{{kCrypto}}</p>
+            <p class="note"><b class="gain">▲ +₺1.000 (+%5,3)</b></p>
+            <p class="note">Toplam maliyet ₺19.000 · 2 varlık. Bir varlık düşüşte (▼).</p>
+          </div>
+          <div class="pane-r">
+            <ul class="rows">
+              <li class="row" style="--i: 0"><span>Örnek Coin 1</span><span class="rv num">₺12.000</span><span class="rd gain">▲ +%33,3</span><div class="rbar" aria-hidden="true"><i style="--w: 60%; --i: 0"></i></div></li>
+              <li class="row" style="--i: 1"><span>Örnek Coin 2</span><span class="rv num">₺8.000</span><span class="rd loss">▼ −%20,0</span><div class="rbar" aria-hidden="true"><i style="--w: 40%; --i: 1"></i></div></li>
+            </ul>
+            <p class="note">Çubuk: varlığın sınıf içindeki payı.</p>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{isProj}}" hint-placeholder-val="{{ false }}">
+        <div class="pane pane-proj {{dirClass}}">
+          <div class="pane-l">
+            <p class="eyebrow">Projeksiyon · 10 yıl</p>
+            <p class="kpi num">3 senaryo</p>
+            <p class="note">Başlangıç ₺140.000, aylık ₺5.000 ekleme. Nominal tutarlar; enflasyondan arındırılmamıştır.</p>
+            <p class="note"><span class="assume">varsayım · kaynak doğrulanmadı</span></p>
+            <p class="note">Tahmin ya da getiri vaadi değildir.</p>
+          </div>
+          <div class="pane-r">
+            <div class="proj" role="img" aria-label="Üç örnek senaryo, 10 yıl sonu nominal değer: yıllık yüzde 10 için ₺1.362.443; yüzde 20 için ₺2.562.439; yüzde 30 için ₺4.822.163">
+              <div class="pcol"><p class="pval num" style="--i: 0">{{pv0}}</p><div class="pbar" style="height: 28.3%; opacity: 0.5; --i: 0"></div><p class="plab" style="--i: 0">Yıllık %10<br>örnek varsayım</p></div>
+              <div class="pcol"><p class="pval num" style="--i: 1">{{pv1}}</p><div class="pbar" style="height: 53.1%; opacity: 0.75; --i: 1"></div><p class="plab" style="--i: 1">Yıllık %20<br>örnek varsayım</p></div>
+              <div class="pcol"><p class="pval num" style="--i: 2">{{pv2}}</p><div class="pbar" style="height: 100%; --i: 2"></div><p class="plab" style="--i: 2">Yıllık %30<br>örnek varsayım</p></div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="abonelik" aria-labelledby="abo-t" data-on="{{on.abonelik}}">
+  <div class="wrap">
+    <p class="eyebrow">Abonelik</p>
+    <h2 id="abo-t">Bireyden büyük şirkete, her ölçek için bir plan</h2>
+    <p class="lead">Önce kim olduğunu seç; planlar, planlama ortamı ve karşılaştırma tablosu ona göre değişir. Kapsamlar örnektir; fiyatlar rakip analizine dayalı bir öneridir.</p>
+
+    <div class="segs" role="group" aria-label="Kullanıcı türü">
+      <sc-for list="{{segs}}" as="g" hint-placeholder-count="3">
+        <button class="segcard" type="button" aria-pressed="{{g.sel}}" onClick="{{g.pick}}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{g.icon}}"></path></svg>
+          <b>{{g.name}}</b>
+          <span>{{g.line}}</span>
+        </button>
+      </sc-for>
+    </div>
+    <p class="seg-desc">{{seg.desc}}</p>
+
+    <div class="bill">
+      <div class="seg" role="group" aria-label="Faturalama dönemi">
+        <sc-for list="{{bills}}" as="b" hint-placeholder-count="2">
+          <button type="button" aria-pressed="{{b.sel}}" onClick="{{b.pick}}">{{b.label}}</button>
+        </sc-for>
+      </div>
+      <span class="save">Yıllıkta %20 tasarruf</span>
+      <span class="assume">rakip analizine dayalı öneri · onay bekliyor</span>
+    </div>
+
+    <div class="plans sk{{seg.sk}}">
+      <sc-for list="{{plans}}" as="p" hint-placeholder-count="3">
+        <div class="card plan {{p.cls}}" data-sel="{{p.sel}}" data-pl="{{p.pl}}" style="--i: {{p.i}}">
+          <sc-if value="{{p.rec}}" hint-placeholder-val="{{ false }}"><span class="ribbon">Önerilen</span></sc-if>
+          <h3>{{p.name}}</h3>
+          <p class="tag">{{p.tag}}</p>
+          <p class="price num">{{p.price}}<small>{{p.unit}}</small></p>
+          <p class="per">{{p.per}}</p>
+          <ul class="feat">
+            <sc-for list="{{p.feats}}" as="f" hint-placeholder-count="4">
+              <li style="--i: {{f.i}}"><svg viewBox="0 0 20 20" aria-hidden="true"><path pathLength="1" d="M4 10.5l4 4 8-9"></path></svg><span>{{f.label}}</span></li>
+            </sc-for>
+          </ul>
+          <p class="plnote">✓ Planlayıcı önerisi</p>
+          <button class="btn {{p.btn}}" type="button" onClick="{{p.pick}}">{{p.cta}}</button>
+        </div>
+      </sc-for>
+    </div>
+
+    <div class="card planner">
+      <div>
+        <p class="eyebrow">Planlama ortamı · {{seg.short}}</p>
+        <h3>İhtiyacını anlat, uygun planı birlikte bulalım</h3>
+        <div class="slide">
+          <div class="top-l"><label for="pl-a">{{pl.aLabel}}</label><output for="pl-a">{{pl.aVal}}</output></div>
+          <input id="pl-a" type="range" min="{{pl.aMin}}" max="{{pl.aMax}}" step="{{pl.aStep}}" value="{{pl.aRaw}}" onChange="{{pl.onA}}">
+          <div class="capbar" aria-hidden="true"><i style="width: {{pl.aPct}}"></i></div>
+        </div>
+        <div class="slide">
+          <div class="top-l"><label for="pl-b">{{pl.bLabel}}</label><output for="pl-b">{{pl.bVal}}</output></div>
+          <input id="pl-b" type="range" min="{{pl.bMin}}" max="{{pl.bMax}}" step="{{pl.bStep}}" value="{{pl.bRaw}}" onChange="{{pl.onB}}">
+          <div class="capbar" aria-hidden="true"><i style="width: {{pl.bPct}}"></i></div>
+        </div>
+      </div>
+      <div class="pl-res" aria-live="polite">
+        <p class="eyebrow">Önerilen plan</p>
+        <p class="pl-name pn{{pl.idx}}">{{pl.name}}</p>
+        <p class="pl-price">{{pl.price}}</p>
+        <p class="note">{{pl.note}}</p>
+        <button class="btn" type="button" onClick="{{pl.pick}}">{{pl.cta}}</button>
+      </div>
+    </div>
+
+    <sc-if value="{{sum.open}}" hint-placeholder-val="{{ false }}">
+      <div class="card sum" role="status">
+        <div>
+          <h3>Seçimin: {{sum.plan}} · {{sum.period}}</h3>
+          <p>{{sum.text}}</p>
+        </div>
+        <div class="acts">
+          <button class="btn ghost" type="button" onClick="{{sum.clear}}">Seçimi değiştir</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <div class="card cmp">
+      <div class="cmp-head">
+        <h3>Planları yan yana karşılaştır</h3>
+        <p>{{seg.short}} planları. Satırların üzerine gelince vurgulanır; planlayıcının önerdiği sütun çerçevelenir.</p>
+      </div>
+      <div class="cmp-scroll">
+        <div class="cmp-t" role="table" aria-label="Plan karşılaştırma tablosu">
+          <div class="cmp-row cmp-hd" role="row">
+            <span role="columnheader">Özellik</span>
+            <sc-for list="{{cmp.heads}}" as="h" hint-placeholder-count="3">
+              <span class="colh {{h.cls}}" role="columnheader">{{h.name}}<small>{{h.price}}</small></span>
+            </sc-for>
+          </div>
+          <sc-for list="{{cmp.rows}}" as="r" hint-placeholder-count="12">
+            <sc-if value="{{r.grp}}" hint-placeholder-val="{{ false }}"><div class="cmp-grp" role="row">{{r.label}}</div></sc-if>
+            <sc-if value="{{r.isRow}}" hint-placeholder-val="{{ true }}">
+              <div class="cmp-row" role="row">
+                <span role="rowheader">{{r.label}}</span>
+                <sc-for list="{{r.cells}}" as="c" hint-placeholder-count="3">
+                  <span class="cell {{c.cls}}" role="cell">
+                    <sc-if value="{{c.yes}}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 20 20" role="img" aria-label="Var"><path d="M4 10.5l4 4 8-9"></path></svg></sc-if>
+                    <sc-if value="{{c.no}}" hint-placeholder-val="{{ false }}"><span class="no" aria-label="Yok">—</span></sc-if>
+                    <sc-if value="{{c.txt}}" hint-placeholder-val="{{ false }}">{{c.text}}</sc-if>
+                  </span>
+                </sc-for>
+              </div>
+            </sc-if>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="sss" aria-labelledby="sss-t" data-on="{{on.sss}}">
+  <div class="wrap">
+    <p class="eyebrow">Sık sorulan sorular</p>
+    <h2 id="sss-t">Aklındaki soruya hızlıca ulaş</h2>
+    <p class="lead">Ara, kategoriye göre süz ya da hepsini aç. Bulamazsan aşağıdan sor. <span class="assume">örnek içerik · ürün kararlarına göre güncellenir</span></p>
+
+    <div class="faq-tools">
+      <div class="fsearch">
+        <label class="sr" for="faq-q">Soru ara</label>
+        <input id="faq-q" type="search" placeholder="Ara: iptal, SSO, veri, fatura, kullanıcı…" autocomplete="off" onInput="{{faq.onSearch}}">
+      </div>
+      <div class="seg" role="group" aria-label="Soru kategorisi">
+        <sc-for list="{{faq.cats}}" as="c" hint-placeholder-count="6">
+          <button type="button" aria-pressed="{{c.sel}}" onClick="{{c.pick}}">{{c.label}}</button>
+        </sc-for>
+      </div>
+      <button class="btn ghost" type="button" onClick="{{faq.toggleAll}}">{{faq.allLabel}}</button>
+    </div>
+
+    <div class="faq" id="faq-list" data-cat="{{faq.cat}}">
+      <details class="qa" data-cat="genel" data-kw="portföy ölçer tavsiye">
+        <summary>FAGENT tam olarak ne yapar?</summary>
+        <div class="ans"><p>Portföyünün değerini brüt, net (stopaj sonrası) ve reel (enflasyon sonrası) olarak yan yana ölçer. Ölçer ve betimler; yatırım tavsiyesi vermez ve aracı kuruma emir iletmez.</p></div>
+      </details>
+      <details class="qa" data-cat="genel" data-kw="kimler bireysel şirket küçük büyük">
+        <summary>Kimler için uygun?</summary>
+        <div class="ans"><p>Bireysel yatırımcılar, küçük şirketler ve büyük şirketler. Her grup için ayrı planlar ve bir planlama ortamı var; kendi ölçeğini seçince önerilen plan buna göre değişir.</p></div>
+      </details>
+      <details class="qa" data-cat="genel" data-kw="brüt net reel fark enflasyon stopaj">
+        <summary>Brüt, net ve reel getiri arasındaki fark nedir?</summary>
+        <div class="ans"><p>Brüt getiri vergi ve enflasyondan önceki getiridir. Net getiri stopaj düşüldükten sonra kalandır. Reel getiri ise net getirinin enflasyondan arındırılmış, bugünün alım gücüyle ifadesidir. Sayfadaki “Brüt → net → reel” bölümü bunu örnek bir yatırımla adım adım gösterir.</p></div>
+      </details>
+      <details class="qa" data-cat="genel" data-kw="tavsiye al sat öneri">
+        <summary>Yatırım tavsiyesi veriyor mu?</summary>
+        <div class="ans"><p>Hayır. Kişiye özel al/sat önerisi verilmez; sayılar geçmiş ve örnek verilere dayanır ve gelecek getiriyi göstermez.</p></div>
+      </details>
+
+      <details class="qa" data-cat="plan" data-kw="ücretsiz başlangıç süresiz">
+        <summary>Ücretsiz plan süresiz mi?</summary>
+        <div class="ans"><p>Örnek planlarda Başlangıç süresiz ücretsizdir; kapsamı bir portföyle sınırlıdır. İhtiyacın büyürse istediğin an üst plana geçebilirsin.</p></div>
+      </details>
+      <details class="qa" data-cat="plan" data-kw="değiştir yükselt düşür iptal">
+        <summary>Planımı istediğim zaman değiştirebilir miyim?</summary>
+        <div class="ans"><p>Evet. Planı yükseltebilir, düşürebilir ya da iptal edebilirsin. Kesin geçiş ve iade kuralları ödeme sağlayıcısı bağlandığında burada netleşecek.</p></div>
+      </details>
+      <details class="qa" data-cat="plan" data-kw="yıllık indirim tasarruf aylık">
+        <summary>Yıllık ödemede indirim var mı?</summary>
+        <div class="ans"><p>Önerilen fiyatlarda yıllık dönem aylığa göre yüzde 20 daha düşüktür. Faturalama dönemini plan kartlarının üstündeki anahtarla değiştirebilirsin.</p></div>
+      </details>
+      <details class="qa" data-cat="plan" data-kw="fatura vergi belge unvan">
+        <summary>Fatura veya vergi belgesi alabilir miyim?</summary>
+        <div class="ans"><p>Şirket planlarında fatura unvanı ve vergi numarasıyla belge düzenlenir. Bireysel planlarda ödeme belgesi e-posta ile iletilir. Ayrıntılar ödeme adımı bağlandığında kesinleşecek.</p></div>
+      </details>
+      <details class="qa" data-cat="plan" data-kw="iptal veriler dışa aktar">
+        <summary>İptal edersem verilerime ne olur?</summary>
+        <div class="ans"><p>Veriler bu tarayıcıda saklandığı için iptal onları silmez. Pro ve üzeri planlarda CSV dışa aktarma ile kopyanı alabilirsin.</p></div>
+      </details>
+
+      <details class="qa" data-cat="veri" data-kw="veri saklama tarayıcı gizlilik">
+        <summary>Verilerim nerede saklanıyor?</summary>
+        <div class="ans"><p>Portföy verisi bu tarayıcıda saklanır ve üçüncü taraflara gönderilmez.</p></div>
+      </details>
+      <details class="qa" data-cat="veri" data-kw="api anahtar fiyat hisse fon döviz kripto">
+        <summary>API anahtarı gerekir mi, fiyatlar nereden geliyor?</summary>
+        <div class="ans"><p>API anahtarı gerekmez. Döviz ve kripto fiyatları açık kaynaklardan gelir; hisse ve fon fiyatları elle girilir. Doğrulanmamış fiyat gerçekmiş gibi gösterilmez.</p></div>
+      </details>
+      <details class="qa" data-cat="veri" data-kw="aracı kurum emir işlem bağlantı">
+        <summary>Aracı kurumuma bağlanır mı, emir gönderir mi?</summary>
+        <div class="ans"><p>Hayır. “Deftere ekle” yalnızca kendi işlem defterine kayıt düşer; aracı kuruma emir gitmez.</p></div>
+      </details>
+
+      <details class="qa" data-cat="sirket" data-kw="küçük şirket kullanıcı ekip rol">
+        <summary>Küçük bir şirket olarak kaç kişi ekleyebiliriz?</summary>
+        <div class="ans"><p>Örnek planlarda Ekip Başlangıç 3, Ekip 10 ve Büyüyen 25 kullanıcıya kadar çıkar. Rolleri (yönetici, editör, görüntüleyici) planına göre belirlersin.</p></div>
+      </details>
+      <details class="qa" data-cat="sirket" data-kw="büyük şirket teklif kurumsal holding">
+        <summary>Büyük şirket için teklif nasıl alınır?</summary>
+        <div class="ans"><p>Planlama ortamında kullanıcı sayısını ve şirket/iş birimi sayısını gir; sana uygun kurumsal plan önerilir. Kurumsal Plus ve Grup planları teklif ile belirlenir.</p></div>
+      </details>
+      <details class="qa" data-cat="sirket" data-kw="sso denetim izi güvenlik yetki">
+        <summary>Tek oturum açma (SSO) ve denetim izi var mı?</summary>
+        <div class="ans"><p>Kurumsal planların üçünde de tek oturum açma, denetim izi ve rol/izin matrisi örnek kapsamdadır. Karşılaştırma tablosunun “Güvenlik ve yönetim” grubunda görebilirsin.</p></div>
+      </details>
+      <details class="qa" data-cat="sirket" data-kw="iştirak konsolidasyon çoklu şirket">
+        <summary>Birden fazla şirketi veya iştiraki tek yerde izleyebilir miyiz?</summary>
+        <div class="ans"><p>Büyüyen, Kurumsal Plus ve Grup planları çoklu şirket/iştirak desteği içerir; konsolidasyon Kurumsal Plus ve Grup’ta vardır.</p></div>
+      </details>
+
+      <details class="qa" data-cat="teknik" data-kw="cihaz tarayıcı mobil">
+        <summary>Hangi cihaz ve tarayıcılarda çalışır?</summary>
+        <div class="ans"><p>Güncel tarayıcılarda ve telefon genişliğinde çalışacak şekilde tasarlandı. Kaydırmaya bağlı hareketler desteklemeyen tarayıcılarda sade, hareketsiz görünüme döner.</p></div>
+      </details>
+      <details class="qa" data-cat="teknik" data-kw="hareket animasyon azalt kapat erişilebilirlik">
+        <summary>Hareketleri kapatabilir miyim?</summary>
+        <div class="ans"><p>Evet. Üst çubuktaki “Kaydırma hareketi” anahtarıyla kapatabilirsin. Sistem ayarlarında “hareketi azalt” açıksa hareketler kendiliğinden kapalı gelir.</p></div>
+      </details>
+      <details class="qa" data-cat="teknik" data-kw="csv dışa aktar excel api">
+        <summary>Verilerimi dışa aktarabilir miyim?</summary>
+        <div class="ans"><p>Pro ve üzeri bireysel planlarda ve tüm şirket planlarında CSV dışa aktarma vardır. API erişimi Büyüyen ve kurumsal planlarda sunulur.</p></div>
+      </details>
+    </div>
+    <sc-if value="{{faq.none}}" hint-placeholder-val="{{ false }}"><p class="faq-none" role="status">Bu aramaya uygun soru yok. Aşağıdan sorabilirsin.</p></sc-if>
+
+    <div class="card ask">
+      <h3>Sorunu bulamadın mı?</h3>
+      <p>Sorunu yaz; yanıtlanan sorular bu listeye eklenir.</p>
+      <label class="sr" for="ask-t">Sorun</label>
+      <textarea id="ask-t" placeholder="Sorunu buraya yaz…"></textarea>
+      <button class="btn" type="button" onClick="{{faq.ask}}">Soruyu gönder</button>
+      <sc-if value="{{faq.asked}}" hint-placeholder-val="{{ false }}"><p role="status"><span class="assume">örnek</span> Sorun alındı olarak gösteriliyor; bu tasarımda gönderim henüz bağlı değil.</p></sc-if>
+    </div>
+  </div>
+</section>
+
+<section class="sec" id="gizlilik" aria-labelledby="giz-t" data-on="{{on.gizlilik}}">
+  <div class="wrap">
+    <p class="eyebrow">Gizlilik ve sınırlar</p>
+    <h2 id="giz-t">Ölçer ve betimler, yönlendirmez</h2>
+    <div class="trio">
+      <div class="card rv-in" style="--i: 0"><h3>API anahtarı gerekmez</h3><p>Döviz ve kripto fiyatları açık kaynaklardan gelir. Hisse ve fon fiyatları elle girilir; doğrulanmamış fiyat gerçekmiş gibi gösterilmez.</p></div>
+      <div class="card rv-in" style="--i: 1"><h3>Veriler cihazında kalır</h3><p>Portföy verisi bu tarayıcıda saklanır ve üçüncü taraflara gönderilmez.</p></div>
+      <div class="card rv-in" style="--i: 2"><h3>İşlem yürütmez</h3><p>“Deftere ekle” yalnızca kendi işlem defterine kayıt düşer. Aracı kuruma emir gitmez; kişiye özel al/sat önerisi verilmez.</p></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <p>Bu sayfadaki tüm sayılar ÖRNEK VERİdir. Yatırım tavsiyesi değildir. Geçmiş performans gelecek getiriyi göstermez. Brüt getiri, stopaj ve enflasyon oranları kaynağı doğrulanmamış örnek varsayımlardır.</p>
+  </div>
+</footer>
+
+<div class="route" data-show="{{route.show}}" aria-hidden="true">
+  <ol>
+    <sc-for list="{{route.steps}}" as="s" hint-placeholder-count="3">
+      <li data-st="{{s.st}}">{{s.label}}</li>
+    </sc-for>
+  </ol>
+  <div class="route-bar"><i style="width: {{route.pct}}"></i></div>
+</div>
+
+<aside class="dock" aria-label="Bölüm göstergesi">
+  <div class="dock-vis" aria-hidden="true">
+    <sc-if value="{{sec.isHero}}" hint-placeholder-val="{{ true }}">
+      <svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid meet">
+        <line class="dv-grid" x1="8" y1="24" x2="152" y2="24"></line>
+        <line class="dv-grid" x1="8" y1="44" x2="152" y2="44"></line>
+        <line class="dv-grid" x1="8" y1="64" x2="152" y2="64"></line>
+        <path class="dv-area" d="M10 66 L34 58 L56 62 L80 46 L104 40 L128 26 L150 16 L150 78 L10 78 Z"></path>
+        <path class="dv-stroke" pathLength="1" d="M10 66 L34 58 L56 62 L80 46 L104 40 L128 26 L150 16"></path>
+        <circle class="dv-dot" cx="150" cy="16" r="3.5"></circle>
+      </svg>
+    </sc-if>
+    <sc-if value="{{sec.isChain}}" hint-placeholder-val="{{ false }}">
+      <svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid meet">
+        <line class="dv-grid" x1="8" y1="78" x2="152" y2="78"></line>
+        <rect class="dv-bar" style="--i: 0" x="22" y="22" width="28" height="56" rx="2" fill="#6f747d"></rect>
+        <rect class="dv-drop" style="--i: 1" x="66" y="22" width="28" height="5" rx="1" fill="#ffb07c"></rect>
+        <rect class="dv-bar" style="--i: 2" x="66" y="27" width="28" height="51" rx="2" fill="#9a9fa8"></rect>
+        <rect class="dv-drop" style="--i: 3" x="110" y="27" width="28" height="13" rx="1" fill="#ffb07c"></rect>
+        <rect class="dv-bar" style="--i: 4" x="110" y="40" width="28" height="38" rx="2" fill="#eceef1"></rect>
+      </svg>
+    </sc-if>
+    <sc-if value="{{sec.isPanels}}" hint-placeholder-val="{{ false }}">
+      <svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid meet">
+        <g transform="rotate(-90 44 42)">
+          <circle class="dv-track" cx="44" cy="42" r="22"></circle>
+          <circle class="dv-seg" style="--i: 0" cx="44" cy="42" r="22" pathLength="100" stroke="#eceef1" stroke-dasharray="44 56" stroke-dashoffset="0"></circle>
+          <circle class="dv-seg" style="--i: 1" cx="44" cy="42" r="22" pathLength="100" stroke="#b0b4bb" stroke-dasharray="34 66" stroke-dashoffset="-45"></circle>
+          <circle class="dv-seg" style="--i: 2" cx="44" cy="42" r="22" pathLength="100" stroke="#7b8089" stroke-dasharray="14 86" stroke-dashoffset="-80"></circle>
+        </g>
+        <rect class="dv-barx" style="--i: 0" x="88" y="26" width="58" height="7" rx="3" fill="#eceef1"></rect>
+        <rect class="dv-barx" style="--i: 1" x="88" y="40" width="42" height="7" rx="3" fill="#b0b4bb"></rect>
+        <rect class="dv-barx" style="--i: 2" x="88" y="54" width="26" height="7" rx="3" fill="#7b8089"></rect>
+      </svg>
+    </sc-if>
+    <sc-if value="{{sec.isPlans}}" hint-placeholder-val="{{ false }}">
+      <svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid meet">
+        <line class="dv-grid" x1="8" y1="78" x2="152" y2="78"></line>
+        <rect class="dv-bar" style="--i: 0" x="18" y="40" width="34" height="38" rx="3" fill="#565a62"></rect>
+        <rect class="dv-bar" style="--i: 1" x="63" y="18" width="34" height="60" rx="3" fill="#eceef1"></rect>
+        <rect class="dv-bar" style="--i: 2" x="108" y="30" width="34" height="48" rx="3" fill="#9a9fa8"></rect>
+        <path class="dv-stroke late" stroke="#0e0f11" pathLength="1" d="M72 46 L79 53 L89 39"></path>
+      </svg>
+    </sc-if>
+    <sc-if value="{{sec.isFaq}}" hint-placeholder-val="{{ false }}">
+      <svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid meet">
+        <rect class="dv-barx" style="--i: 0" x="14" y="12" width="132" height="16" rx="5" fill="#2a2d32"></rect>
+        <rect class="dv-barx" style="--i: 1" x="14" y="34" width="132" height="16" rx="5" fill="#2a2d32"></rect>
+        <rect class="dv-barx" style="--i: 2" x="14" y="56" width="132" height="16" rx="5" fill="#2a2d32"></rect>
+        <rect class="dv-barx" style="--i: 1" x="20" y="19" width="60" height="3" rx="1.5" fill="#eceef1"></rect>
+        <rect class="dv-barx" style="--i: 2" x="20" y="41" width="84" height="3" rx="1.5" fill="#9a9fa8"></rect>
+        <rect class="dv-barx" style="--i: 3" x="20" y="63" width="48" height="3" rx="1.5" fill="#7b8089"></rect>
+        <path class="dv-stroke late" pathLength="1" d="M130 17 L134 21 L138 17"></path>
+      </svg>
+    </sc-if>
+    <sc-if value="{{sec.isPrivacy}}" hint-placeholder-val="{{ false }}">
+      <svg viewBox="0 0 160 84" preserveAspectRatio="xMidYMid meet">
+        <circle class="dv-ring" cx="80" cy="42" r="26"></circle>
+        <path class="dv-stroke" pathLength="1" d="M80 10 L108 20 V42 C108 58 96 68 80 74 C64 68 52 58 52 42 V20 Z"></path>
+        <path class="dv-stroke late" pathLength="1" d="M67 42 L77 52 L95 32"></path>
+      </svg>
+    </sc-if>
+  </div>
+  <p class="dock-title">{{sec.title}}</p>
+  <p class="dock-sub">{{sec.sub}}</p>
+  <ol class="dock-rail">
+    <sc-for list="{{rail}}" as="r" hint-placeholder-count="6">
+      <li data-done="{{r.done}}"><button class="dr" type="button" data-st="{{r.st}}" aria-current="{{r.cur}}" aria-label="{{r.label}} bölümüne git" onClick="{{r.go}}"><i aria-hidden="true"></i>{{r.label}}</button></li>
+    </sc-for>
+  </ol>
+</aside>
+
+</div>
+</x-dc>
+
+<script type="text/x-dc" data-dc-script data-props='{"motion":{"editor":"boolean","default":true,"section":"Hareket"},"kitle":{"editor":"enum","default":"bireysel","options":["bireysel","genc","kurumsal"],"section":"Hareket"},"hedefKitle":{"editor":"enum","default":"bireysel","options":["bireysel","kucuk","buyuk"],"section":"Abonelik"},"$preview":{"width":1440,"height":5800}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { idx: 0, dir: 'fwd', motion: true, osReduced: false, prog: 1, hp: 1, rng: 0, rk: 0, hov: null, sec: 'ust', route: null, billing: 'yearly', bfrom: 'yearly', pp: 1, plan: null, seg: null, sk: 0, pv: { bireysel: [3, 25], kucuk: [6, 12], buyuk: [150, 4] }, fcat: 'all', faqN: -1, asked: false };
+    this.raf = {};
+    this.auto = false;
+    this.SECS = [
+      { id: 'ust', label: 'Giriş', navLabel: 'Giriş', title: 'Giriş', sub: 'Portföyün tek bakışta özeti.' },
+      { id: 'zincir', label: 'Zincir', navLabel: 'Brüt → net → reel', title: 'Brüt → net → reel', sub: 'Getiri vergi ve enflasyonla adım adım erir.' },
+      { id: 'paneller', label: 'Paneller', navLabel: 'Paneller', title: 'Paneller', sub: 'Varlık sınıfları tek yerde, sekmeyle geçiş.' },
+      { id: 'abonelik', label: 'Abonelik', navLabel: 'Abonelik', title: 'Abonelik', sub: 'Planını seç, istediğin an değiştir.' },
+      { id: 'sss', label: 'SSS', navLabel: 'SSS', title: 'Sık sorulan sorular', sub: 'Aklındaki soruya hızlıca ulaş.' },
+      { id: 'gizlilik', label: 'Gizlilik', navLabel: 'Gizlilik', title: 'Gizlilik', sub: 'Veriler cihazında kalır, emir gitmez.' }
+    ];
+    // ----- Abonelik verisi (örnek; gerçek plan ve fiyat değildir). Buradan düzenlenir. -----
+    this.SEGS = {
+      bireysel: {
+        name: 'Bireysel yatırımcı', short: 'Bireysel', line: 'Kendi portföyünü ölçmek isteyenler',
+        icon: 'M12 12a4 4 0 100-8 4 4 0 000 8zM5 21c0-4 3-7 7-7s7 3 7 7',
+        desc: 'Kendi portföyünü brüt, net ve reel ölç; fiyatları elle gir ya da canlı kaynaktan al.',
+        plans: [
+          { id: 'b0', name: 'Başlangıç', tag: 'Portföyünü tanımak için', m: 0, y: 0, feats: ['1 portföy', 'Brüt, net ve reel ölçer', 'Elle fiyat girişi', 'Temel grafik'] },
+          { id: 'b1', name: 'Pro', tag: 'Düzenli takip edenler için', m: 489, y: 389, rec: true, feats: ['Sınırsız portföy', 'Canlı döviz ve kripto fiyatları', 'Grafikte zaman aralığı ve ortalama', 'CSV dışa aktarma', 'Projeksiyon senaryoları'] },
+          { id: 'b2', name: 'Pro Plus', tag: 'Çok hesaplı takipçiler için', m: 1349, y: 1099, feats: ["Pro'daki her şey", 'Çoklu para birimi', 'Vergi ve stopaj senaryoları', 'Öncelikli destek'] }
+        ],
+        planner: { a: { label: 'Portföy sayısı', min: 1, max: 10, step: 1, unit: '' }, b: { label: 'Takip edilen varlık', min: 1, max: 100, step: 1, unit: '' }, pick: (a, b) => (a <= 1 && b <= 10) ? 0 : ((a <= 5 && b <= 40) ? 1 : 2) },
+        rows: [
+          { g: 'Portföy ve veri', r: [['Portföy sayısı', ['1', 'Sınırsız', 'Sınırsız']], ['Takip edilen varlık', ['10', 'Sınırsız', 'Sınırsız']], ['Fiyat girişi', ['Elle', 'Elle + canlı', 'Elle + canlı']], ['Çoklu para birimi', [false, false, true]]] },
+          { g: 'Analiz ve grafik', r: [['Brüt, net ve reel ölçer', [true, true, true]], ['Grafikte zaman aralığı ve ortalama', [false, true, true]], ['Projeksiyon senaryoları', [false, true, true]], ['Vergi ve stopaj senaryoları', [false, false, true]]] },
+          { g: 'Dışa aktarma ve destek', r: [['CSV dışa aktarma', [false, true, true]], ['Destek', ['Yardım merkezi', 'E-posta', 'Öncelikli']]] }
+        ]
+      },
+      kucuk: {
+        name: 'Küçük şirket', short: 'Küçük şirket', line: 'Birkaç kişilik ekipler ve KOBİ’ler',
+        icon: 'M5 21V9l7-4 7 4v12M9 21v-6h6v6',
+        desc: 'Ortak portföy, roller ve onay akışıyla ekibinle birlikte takip et; nakit akışını ve maliyet merkezlerini ayrı gör.',
+        plans: [
+          { id: 'k0', name: 'Ekip Başlangıç', tag: '3 kullanıcıya kadar', m: 1449, y: 1149, feats: ['Ortak portföy', 'Yönetici ve görüntüleyici rolü', 'CSV dışa aktarma', 'E-posta desteği'] },
+          { id: 'k1', name: 'Ekip', tag: '10 kullanıcıya kadar', m: 4299, y: 3449, rec: true, feats: ['Ekip Başlangıç’taki her şey', 'Editör rolü ve onay akışı', 'Maliyet merkezi etiketleri', 'Nakit akış projeksiyonu', 'E-posta ve sohbet desteği'] },
+          { id: 'k2', name: 'Büyüyen', tag: '25 kullanıcıya kadar', m: 12999, y: 10499, feats: ['Ekip’teki her şey', 'Çoklu şirket ve iştirak', 'Özel roller', 'API erişimi', 'Öncelikli destek'] }
+        ],
+        planner: { a: { label: 'Kullanıcı sayısı', min: 1, max: 25, step: 1, unit: '' }, b: { label: 'Portföy / hesap sayısı', min: 1, max: 50, step: 1, unit: '' }, pick: (a, b) => (a <= 3 && b <= 8) ? 0 : ((a <= 10 && b <= 25) ? 1 : 2) },
+        rows: [
+          { g: 'Ekip ve erişim', r: [['Kullanıcı', ['3', '10', '25']], ['Roller', ['Yönetici, görüntüleyici', 'Yönetici, editör, görüntüleyici', 'Özel roller']], ['Onay akışı', [false, true, true]]] },
+          { g: 'Portföy ve veri', r: [['Ortak portföy', [true, true, true]], ['Maliyet merkezi etiketleri', [false, true, true]], ['Çoklu şirket ve iştirak', [false, false, true]], ['Nakit akış projeksiyonu', [false, true, true]]] },
+          { g: 'Entegrasyon ve destek', r: [['CSV dışa aktarma', [true, true, true]], ['API erişimi', [false, false, true]], ['Destek', ['E-posta', 'E-posta + sohbet', 'Öncelikli']]] }
+        ]
+      },
+      buyuk: {
+        name: 'Büyük şirket', short: 'Büyük şirket', line: 'Çok birimli kurumlar ve holdingler',
+        icon: 'M3 21V7h8v14M13 21V3h8v18M6 11h2M6 15h2M16 7h2M16 11h2M16 15h2',
+        desc: 'Birçok iş birimini tek çatıda topla: güvenlik, denetim izi ve özel entegrasyonlarla; fiyat ihtiyacına göre teklifle belirlenir.',
+        plans: [
+          { id: 'u0', name: 'Kurumsal', tag: '100 kullanıcıya kadar', m: 51499, y: 40999, rec: true, feats: ['Tek oturum açma (SSO)', 'Denetim izi', 'Rol ve izin matrisi', 'API erişimi', 'Hizmet seviyesi sözleşmesi'] },
+          { id: 'u1', name: 'Kurumsal Plus', tag: 'Sınırsız kullanıcı', custom: true, feats: ['Kurumsal’daki her şey', 'Konsolidasyon', 'Özel entegrasyon', 'Hesap yöneticisi', 'Eğitim ve devreye alma'] },
+          { id: 'u2', name: 'Grup', tag: 'Holding ve şirket grupları', custom: true, feats: ['Kurumsal Plus’taki her şey', 'Sınırsız şirket ve iş birimi', 'Özel rol ve onay zinciri', 'Grup düzeyinde raporlama'] }
+        ],
+        planner: { a: { label: 'Kullanıcı sayısı', min: 25, max: 1000, step: 25, unit: '' }, b: { label: 'Şirket / iş birimi sayısı', min: 1, max: 50, step: 1, unit: '' }, pick: (a, b) => (a <= 100 && b <= 5) ? 0 : ((a <= 500 && b <= 25) ? 1 : 2) },
+        rows: [
+          { g: 'Ölçek', r: [['Kullanıcı', ['100', 'Sınırsız', 'Sınırsız']], ['Şirket / iş birimi', ['5', '25', 'Sınırsız']], ['Konsolidasyon', [false, true, true]]] },
+          { g: 'Güvenlik ve yönetim', r: [['Tek oturum açma (SSO)', [true, true, true]], ['Denetim izi', [true, true, true]], ['Rol ve izin matrisi', ['Standart', 'Özel', 'Özel + onay zinciri']]] },
+          { g: 'Entegrasyon ve hizmet', r: [['API erişimi', [true, true, true]], ['Özel entegrasyon', [false, true, true]], ['Hizmet seviyesi sözleşmesi', [true, true, true]], ['Hesap yöneticisi', [false, true, true]], ['Eğitim ve devreye alma', [false, true, true]]] }
+        ]
+      }
+    };
+    this.applyFaq = (q, cat) => {
+      const list = document.getElementById('faq-list');
+      if (!list) return;
+      let n = 0;
+      list.querySelectorAll('.qa').forEach((el) => {
+        const hay = ((el.textContent || '') + ' ' + (el.getAttribute('data-kw') || '')).toLocaleLowerCase('tr');
+        const okQ = !q || hay.indexOf(q) >= 0;
+        const okC = cat === 'all' || el.getAttribute('data-cat') === cat;
+        el.hidden = !okQ;
+        if (q && okQ && okC) el.open = true;
+        if (okQ && okC) n++;
+      });
+      this.setState({ faqN: n });
+    };
+    this.fq = '';
+    this.onScroll = () => {
+      let cur = 'ust';
+      const line = window.innerHeight * 0.4;
+      for (let i = 1; i < this.SECS.length; i++) {
+        const el = document.getElementById(this.SECS[i].id);
+        if (el && el.getBoundingClientRect().top <= line) cur = this.SECS[i].id;
+      }
+      const de = document.documentElement;
+      if (window.scrollY + window.innerHeight >= de.scrollHeight - 2 && window.scrollY > 0) cur = 'gizlilik';
+      if (cur !== this.state.sec) this.setState({ sec: cur });
+    };
+    this.onUser = () => { if (this.auto) this.stopAuto(); };
+    // Örnek fiyat serisi: sabit tohumlu, her açılışta aynı. Gerçek veri değildir.
+    let s = 7;
+    const rnd = () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; };
+    let v = 1; const raw = []; const vol = [];
+    for (let i = 0; i < 120; i++) {
+      v *= 1 + (rnd() - 0.45) * 0.03 + 0.0032;
+      raw.push(v);
+      vol.push(0.25 + rnd() * 0.75);
+    }
+    const k = 140000 / raw[raw.length - 1];
+    this.series = raw.map((x) => x * k);
+    this.vols = vol;
+  }
+  motionOn() { return this.state.motion && this.props.motion !== false && !this.state.osReduced; }
+  tone() { const t = this.props.kitle; return (t === 'genc' || t === 'kurumsal') ? t : 'bireysel'; }
+  run(key, ms) {
+    if (this.raf[key]) cancelAnimationFrame(this.raf[key]);
+    const dur = ms || { bireysel: 1000, genc: 1200, kurumsal: 450 }[this.tone()];
+    const t0 = performance.now();
+    const step = (now) => {
+      const p = Math.min(1, (now - t0) / dur);
+      this.setState({ [key]: p });
+      if (p < 1) this.raf[key] = requestAnimationFrame(step);
+    };
+    this.setState({ [key]: 0 });
+    this.raf[key] = requestAnimationFrame(step);
+  }
+  stopAuto() {
+    if (this.raf.route) cancelAnimationFrame(this.raf.route);
+    this.auto = false;
+    this.setState({ route: null });
+  }
+  goTo(id) {
+    const ids = this.SECS.map((x) => x.id);
+    const from = ids.indexOf(this.state.sec), to = ids.indexOf(id);
+    if (to < 0) return;
+    const el = id === 'ust' ? null : document.getElementById(id);
+    const y0 = window.scrollY;
+    const y1 = el ? Math.max(0, el.getBoundingClientRect().top + y0 - 64) : 0;
+    if (!this.motionOn() || from === to || Math.abs(y1 - y0) < 4) { window.scrollTo(0, y1); return; }
+    const path = from < to ? ids.slice(from, to + 1) : ids.slice(to, from + 1).reverse();
+    const k = { bireysel: 1, genc: 0.9, kurumsal: 0.6 }[this.tone()];
+    const dur = Math.min(2400, Math.max(800, 700 + Math.abs(y1 - y0) * 0.28)) * k;
+    const t0 = performance.now();
+    if (this.raf.route) cancelAnimationFrame(this.raf.route);
+    this.auto = true;
+    this.setState({ route: { path: path, p: 0 } });
+    const step = (now) => {
+      if (!this.auto) return;
+      const p = Math.min(1, (now - t0) / dur);
+      const e = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+      window.scrollTo(0, y0 + (y1 - y0) * e);
+      this.setState({ route: { path: path, p: p } });
+      if (p < 1) { this.raf.route = requestAnimationFrame(step); return; }
+      this.auto = false;
+      setTimeout(() => { if (!this.auto) this.setState({ route: null }); }, 650);
+    };
+    this.raf.route = requestAnimationFrame(step);
+  }
+  componentDidMount() {
+    window.addEventListener('scroll', this.onScroll, { passive: true });
+    ['wheel', 'touchstart', 'mousedown', 'keydown'].forEach((ev) => window.addEventListener(ev, this.onUser, { passive: true }));
+    this.onScroll();
+    this.applyFaq('', 'all');
+    let reduced = false;
+    try { reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) {}
+    if (reduced) { this.setState({ osReduced: true, motion: false }); return; }
+    this.run('hp');
+    this.run('prog');
+  }
+  componentWillUnmount() {
+    Object.keys(this.raf).forEach((k) => cancelAnimationFrame(this.raf[k]));
+    window.removeEventListener('scroll', this.onScroll);
+    ['wheel', 'touchstart', 'mousedown', 'keydown'].forEach((ev) => window.removeEventListener(ev, this.onUser));
+  }
+  renderVals() {
+    const labels = ['Panel', 'Grafik', 'Hisseler', 'Fonlar', 'Kripto', 'Projeksiyon'];
+    const idx = this.state.idx;
+    const motionOn = this.motionOn();
+    const go = (i) => {
+      if (i === idx) return;
+      this.setState({ idx: i, dir: i >= idx ? 'fwd' : 'back', hov: null });
+      if (this.motionOn()) this.run('prog'); else this.setState({ prog: 1 });
+    };
+    const ease = (p) => 1 - Math.pow(1 - p, 3);
+    const e = motionOn ? ease(this.state.prog) : 1;
+    const he = motionOn ? ease(this.state.hp) : 1;
+    const fmt = (n) => '₺' + String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    const pct = (x) => '%' + Math.abs(x).toFixed(1).replace('.', ',');
+
+    // ----- Grafik paneli -----
+    const rng = this.state.rng;
+    const N = [30, 60, 120][rng];
+    const days = [30, 90, 365][rng];
+    const rangeName = ['son 1 ay', 'son 3 ay', 'son 1 yıl'][rng];
+    const ser = this.series.slice(-N);
+    const vols = this.vols.slice(-N);
+    const W = 600, H = 240;
+    let mn = Math.min.apply(null, ser), mx = Math.max.apply(null, ser);
+    const lo = mn - (mx - mn) * 0.1, hi = mx + (mx - mn) * 0.1;
+    const X = (i) => (i / (N - 1)) * W;
+    const Y = (val) => H - ((val - lo) / (hi - lo)) * H;
+    const f1 = (x) => x.toFixed(1);
+    const line = ser.map((val, i) => (i ? 'L' : 'M') + f1(X(i)) + ' ' + f1(Y(val))).join(' ');
+    const area = line + ' L' + W + ' ' + H + ' L0 ' + H + ' Z';
+    const ma = ser.map((val, i) => {
+      const a = Math.max(0, i - 6); let sum = 0;
+      for (let j = a; j <= i; j++) sum += ser[j];
+      return (i ? 'L' : 'M') + f1(X(i)) + ' ' + f1(Y(sum / (i - a + 1)));
+    }).join(' ');
+    const hv = (this.state.hov !== null && this.state.hov < N) ? this.state.hov : null;
+    const first = ser[0], last = ser[N - 1];
+    const ref = hv !== null ? ser[hv] : last;
+    const chg = ref - first;
+    const chgText = (chg >= 0 ? '▲ +' : '▼ −') + fmt(Math.abs(chg)) + ' (' + (chg >= 0 ? '+' : '−') + pct(chg / first * 100) + ')';
+    const ago = hv !== null ? Math.round((N - 1 - hv) * days / (N - 1)) : 0;
+    const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+    const g = {
+      rangeName: rangeName,
+      kpi: fmt(hv !== null ? ser[hv] : last * e),
+      chg: chgText,
+      chgClass: chg >= 0 ? 'gain' : 'loss',
+      hint: hv !== null ? (ago === 0 ? 'Bugün' : ago + ' gün önce') + ' · aralığın başına göre' : 'Grafiğin üzerinde gezin; seçili noktanın değerini görün.',
+      rk: this.state.rk,
+      line: line, area: area, ma: ma,
+      aria: 'Örnek portföy değeri, ' + rangeName + ': ' + fmt(first) + ' değerinden ' + fmt(last) + ' değerine. Fare ile gezilebilir.',
+      endTop: f1(Y(last) / H * 100) + '%',
+      ylabs: [0.2, 0.4, 0.6, 0.8].map((fr) => ({ top: (fr * 100) + '%', label: fmt(hi - (hi - lo) * fr) })),
+      vols: vols.map((x, i) => ({ h: Math.round(x * 100) + '%', d: Math.round(i * (700 / N)) })),
+      startLab: rangeName.replace('son ', '') + ' önce',
+      hov: hv !== null,
+      hx: hv !== null ? (hv / (N - 1) * 100).toFixed(2) + '%' : '0%',
+      hy: hv !== null ? f1(Y(ser[hv]) / H * 100) + '%' : '0%',
+      tipX: hv !== null ? clamp(hv / (N - 1) * 100, 14, 86).toFixed(2) + '%' : '50%',
+      tipVal: hv !== null ? fmt(ser[hv]) : '',
+      tipSub: hv !== null ? (ago === 0 ? 'Bugün' : ago + ' gün önce') : '',
+      ranges: ['1A', '3A', '1Y'].map((label, i) => ({
+        label: label, sel: i === rng ? 'true' : 'false',
+        pick: () => this.setState({ rng: i, rk: i === rng ? this.state.rk : 1 - this.state.rk, hov: null })
+      })),
+      onMove: (ev) => {
+        const r = ev.currentTarget.getBoundingClientRect();
+        if (!r.width) return;
+        const n = clamp(Math.round((ev.clientX - r.left) / r.width * (N - 1)), 0, N - 1);
+        if (n !== this.state.hov) this.setState({ hov: n });
+      },
+      onLeave: () => { if (this.state.hov !== null) this.setState({ hov: null }); }
+    };
+
+    // ----- Abonelik: segment, planlayıcı, tablo, SSS -----
+    const hedef = ['bireysel', 'kucuk', 'buyuk'].indexOf(this.props.hedefKitle) >= 0 ? this.props.hedefKitle : 'bireysel';
+    const segId = this.state.seg || hedef;
+    const SG = this.SEGS[segId];
+    const billing = this.state.billing;
+    const pe = motionOn ? ease(this.state.pp) : 1;
+    const selPlan = this.state.plan;
+    const pvs = this.state.pv[segId];
+    const rci = SG.planner.pick(pvs[0], pvs[1]);
+    const priceOf = (pl, b) => (pl.custom ? null : pl[b === 'yearly' ? 'y' : 'm']);
+    const bills = [{ id: 'monthly', label: 'Aylık' }, { id: 'yearly', label: 'Yıllık' }].map((b) => ({
+      label: b.label, sel: billing === b.id ? 'true' : 'false',
+      pick: () => {
+        if (b.id === this.state.billing) return;
+        this.setState({ bfrom: this.state.billing, billing: b.id });
+        if (this.motionOn()) this.run('pp', 700); else this.setState({ pp: 1 });
+      }
+    }));
+    const segOrder = [hedef].concat(['bireysel', 'kucuk', 'buyuk'].filter((x) => x !== hedef));
+    const segs = segOrder.map((id) => ({
+      name: this.SEGS[id].name, line: this.SEGS[id].line, icon: this.SEGS[id].icon,
+      sel: id === segId ? 'true' : 'false',
+      pick: () => { if (id !== segId) this.setState({ seg: id, plan: null, sk: 1 - this.state.sk }); }
+    }));
+    const plansOut = SG.plans.map((pl, i) => {
+      const custom = !!pl.custom;
+      const a0 = custom ? 0 : priceOf(pl, this.state.bfrom), z0 = custom ? 0 : priceOf(pl, billing);
+      const shown = a0 + (z0 - a0) * pe;
+      const free = !custom && pl.m === 0;
+      return {
+        i: i, name: pl.name, tag: pl.tag, rec: !!pl.rec, cls: pl.rec ? 'rec' : '',
+        sel: selPlan === pl.id ? 'true' : 'false',
+        pl: i === rci ? 'true' : 'false',
+        price: custom ? 'Özel' : fmt(shown), unit: (custom || free) ? '' : ' / ay',
+        per: custom ? 'Teklif ile, ihtiyaca göre' : (free ? 'Süresiz ücretsiz' : (billing === 'yearly' ? 'Yıllık ' + fmt(pl.y * 12) + ' faturalanır' : 'Aylık faturalanır')),
+        feats: pl.feats.map((label, j) => ({ label: label, i: j })),
+        btn: pl.rec ? '' : 'ghost',
+        cta: selPlan === pl.id ? 'Seçildi' : (custom ? 'Teklif iste' : (free ? 'Ücretsiz başla' : 'Planı seç')),
+        pick: () => this.setState({ plan: pl.id })
+      };
+    });
+    const rp = SG.plans[rci];
+    const PL = SG.planner;
+    const setPv = (k) => (ev) => {
+      const v = Number(ev.target.value);
+      const cur = this.state.pv[segId].slice(); cur[k] = v;
+      const pv = {}; Object.keys(this.state.pv).forEach((key) => { pv[key] = this.state.pv[key]; });
+      pv[segId] = cur;
+      this.setState({ pv: pv });
+    };
+    const pctW = (v, c) => Math.round((v - c.min) / (c.max - c.min) * 100) + '%';
+    const rpPrice = rp.custom ? 'Teklif ile belirlenir' : (rp.m === 0 ? 'Ücretsiz' : fmt(priceOf(rp, billing)) + ' / ay · ' + (billing === 'yearly' ? 'yıllık' : 'aylık') + ' faturalanır');
+    const planner = {
+      aLabel: PL.a.label, bLabel: PL.b.label,
+      aMin: PL.a.min, aMax: PL.a.max, aStep: PL.a.step, bMin: PL.b.min, bMax: PL.b.max, bStep: PL.b.step,
+      aRaw: pvs[0], bRaw: pvs[1], aVal: String(pvs[0]), bVal: String(pvs[1]),
+      aPct: pctW(pvs[0], PL.a), bPct: pctW(pvs[1], PL.b),
+      onA: setPv(0), onB: setPv(1),
+      idx: rci, name: rp.name, price: rpPrice, note: rp.tag + '. ' + (rp.custom ? 'Fiyat ihtiyacına göre teklifle belirlenir.' : 'Slayt değerlerine göre en uygun örnek plan.'),
+      cta: rp.custom ? 'Bu plan için teklif iste' : 'Bu planı seç',
+      pick: () => this.setState({ plan: rp.id })
+    };
+    const sp = selPlan ? SG.plans.find((x) => x.id === selPlan) : null;
+    const sumVals = {
+      open: !!sp,
+      plan: sp ? sp.name : '',
+      period: billing === 'yearly' ? 'Yıllık' : 'Aylık',
+      text: sp ? (sp.custom ? 'Bu plan için fiyat ihtiyaca göre teklifle belirlenir. Teklif talebi adımı bağlandığında burada açılır; bu tasarımda form gönderilmez.' : (sp.m === 0 ? 'Ücretsiz plan: ödeme gerekmez. Hesap oluşturma adımı bağlandığında burada açılır.' : (billing === 'yearly' ? fmt(sp.y * 12) + ' yıllık, ayda ' + fmt(sp.y) + '. ' : fmt(sp.m) + ' aylık. ') + 'Ödeme adımı, ödeme sağlayıcısı bağlandığında burada açılır; bu tasarımda kart bilgisi alınmaz.')) : '',
+      clear: () => this.setState({ plan: null })
+    };
+    const heads = SG.plans.map((pl, i) => ({
+      name: pl.name,
+      price: pl.custom ? 'Özel' : (pl.m === 0 ? '₺0' : fmt(priceOf(pl, billing)) + ' / ay'),
+      cls: (pl.rec ? 'rec ' : '') + (i === rci ? 'pl' : '')
+    }));
+    const cmpRows = [];
+    SG.rows.forEach((grp) => {
+      cmpRows.push({ grp: true, isRow: false, label: grp.g, cells: [] });
+      grp.r.forEach((row) => {
+        cmpRows.push({
+          grp: false, isRow: true, label: row[0],
+          cells: row[1].map((x, j) => ({
+            yes: x === true, no: x === false, txt: typeof x === 'string', text: typeof x === 'string' ? x : '',
+            cls: (SG.plans[j].rec ? 'rec ' : '') + (j === rci ? 'pl' : '')
+          }))
+        });
+      });
+    });
+    const FC = [['all', 'Hepsi'], ['genel', 'Genel'], ['plan', 'Planlar ve ödeme'], ['veri', 'Veri ve güvenlik'], ['sirket', 'Şirketler'], ['teknik', 'Teknik']];
+    const fcat = this.state.fcat;
+    const faq = {
+      cat: fcat,
+      cats: FC.map((c) => ({ label: c[1], sel: fcat === c[0] ? 'true' : 'false', pick: () => { this.setState({ fcat: c[0] }); this.applyFaq(this.fq, c[0]); } })),
+      onSearch: (ev) => { this.fq = String(ev.target.value || '').trim().toLocaleLowerCase('tr'); this.applyFaq(this.fq, this.state.fcat); },
+      allLabel: 'Hepsini aç / kapat',
+      toggleAll: () => {
+        const list = document.getElementById('faq-list');
+        if (!list) return;
+        const items = Array.prototype.filter.call(list.querySelectorAll('.qa'), (el) => !el.hidden && getComputedStyle(el).display !== 'none');
+        const anyClosed = items.some((el) => !el.open);
+        items.forEach((el) => { el.open = anyClosed; });
+      },
+      none: this.state.faqN === 0,
+      asked: this.state.asked,
+      ask: () => {
+        const t = document.getElementById('ask-t');
+        if (!t || !String(t.value).trim()) return;
+        t.value = '';
+        this.setState({ asked: true });
+      }
+    };
+
+    // ----- Bölüm farkındalığı -----
+    const SECS = this.SECS;
+    const curSec = this.state.sec;
+    const ci = SECS.findIndex((x) => x.id === curSec);
+    const nav = (id) => (ev) => { if (ev && ev.preventDefault) ev.preventDefault(); this.goTo(id); };
+    const rt = this.state.route;
+    const pci = rt ? rt.path.indexOf(curSec) : -1;
+    const labelOf = (id) => SECS.find((x) => x.id === id).label;
+    const secVals = {
+      isHero: curSec === 'ust', isChain: curSec === 'zincir', isPanels: curSec === 'paneller', isPlans: curSec === 'abonelik', isFaq: curSec === 'sss', isPrivacy: curSec === 'gizlilik',
+      title: SECS[ci].title, sub: SECS[ci].sub
+    };
+    const routeVals = {
+      show: rt ? 'true' : 'false',
+      pct: rt ? (rt.p * 100).toFixed(1) + '%' : '0%',
+      steps: rt ? rt.path.map((id, k) => ({ label: labelOf(id), st: k < pci ? 'done' : (k === pci ? 'now' : 'next') })) : []
+    };
+
+    return {
+      idx: idx,
+      tone: this.tone(),
+      sec: secVals,
+      seg: { desc: SG.desc, short: SG.short, sk: this.state.sk },
+      bills: bills, plans: plansOut, sum: sumVals, segs: segs, pl: planner, cmp: { heads: heads, rows: cmpRows }, faq: faq,
+      route: routeVals,
+      on: { ust: curSec === 'ust' ? 'true' : 'false', zincir: curSec === 'zincir' ? 'true' : 'false', paneller: curSec === 'paneller' ? 'true' : 'false', abonelik: curSec === 'abonelik' ? 'true' : 'false', sss: curSec === 'sss' ? 'true' : 'false', gizlilik: curSec === 'gizlilik' ? 'true' : 'false' },
+      brandGo: nav('ust'), ctaOpen: nav('paneller'), ctaWhat: nav('zincir'),
+      navItems: SECS.slice(1).map((x) => ({ label: x.navLabel, href: '#' + x.id, cur: x.id === curSec ? 'true' : 'false', go: nav(x.id) })),
+      rail: SECS.map((x, i) => ({ label: x.label, cur: i === ci ? 'true' : 'false', st: i < ci ? 'past' : (i === ci ? 'cur' : 'future'), done: i < ci ? 'true' : 'false', go: nav(x.id) })),
+      motionAttr: motionOn ? 'on' : 'off',
+      motionPressed: motionOn ? 'true' : 'false',
+      motionLabel: this.state.osReduced ? 'Kaydırma hareketi: kapalı (sistem ayarı)' : (motionOn ? 'Kaydırma hareketi: açık' : 'Kaydırma hareketi: kapalı'),
+      osReduced: this.state.osReduced,
+      toggleMotion: () => {
+        const next = !this.state.motion;
+        this.setState({ motion: next, prog: 1, hp: 1 });
+      },
+      dirClass: this.state.dir,
+      heroKpi: fmt(140000 * he),
+      kPanel: fmt(140000 * e), kStocks: fmt(62000 * e), kFunds: fmt(48000 * e), kCrypto: fmt(20000 * e),
+      pv0: fmt(1362443 * e), pv1: fmt(2562439 * e), pv2: fmt(4822163 * e),
+      g: g,
+      tabs: labels.map((label, i) => ({
+        i: i, label: label,
+        sel: i === idx ? 'true' : 'false',
+        tabIndex: i === idx ? 0 : -1,
+        pick: () => go(i)
+      })),
+      onTabKey: (ev) => {
+        let n = null;
+        if (ev.key === 'ArrowRight') n = (idx + 1) % labels.length;
+        else if (ev.key === 'ArrowLeft') n = (idx + labels.length - 1) % labels.length;
+        else if (ev.key === 'Home') n = 0;
+        else if (ev.key === 'End') n = labels.length - 1;
+        if (n === null) return;
+        ev.preventDefault();
+        go(n);
+        setTimeout(() => { const el = document.getElementById('tab-' + n); if (el) el.focus(); }, 0);
+      },
+      isPanel: idx === 0, isChart: idx === 1, isStocks: idx === 2, isFunds: idx === 3, isCrypto: idx === 4, isProj: idx === 5
+    };
+  }
+}
+</script>
+</body>
+</html>
