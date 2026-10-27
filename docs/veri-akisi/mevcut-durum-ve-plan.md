@@ -168,6 +168,8 @@ Spec sırası P3, P4, P5, P6 ve "öncekinin kabulü olmadan başlamaz" der. 1. v
 | Devir/satış | Devralan için daha sade ve "veri bizde yok" iddiası net; fakat Supabase hesabı devri kalmaz | Alıcıya iki yol bırakır; ancak belgelerde "kapalı, düz metin" açıkça yazılmalı | En güçlü satış hikâyesi ("sunucu veri göremez") ama doğrulanmamış kriptografi iddiası sorumluluk yaratır; güvenlik incelemesi ve avukat metni şart |
 | Efor | küçük | küçük | büyük |
 
+**KARAR (2026-10-27, kullanıcı): kod açık kalır; B'nin sert kilidi uygulanmaz, A da yapılmaz. Supabase kodu isteğe bağlı katman olarak durur.**
+
 Öneri (karar sizin): BUGÜN B (askıya al + sert kilit), çünkü hiçbir şeyi silmez, kural 1 ile fiilen çelişen yolu kapatır, 96 kontrol yerinde kalır. Sonraki karar P8 seçimine bağlıdır: P8'de "şifreli röle" seçilirse C doğal devamdır; "kullanıcının kendi depolaması" ya da "WebRTC" seçilirse A anlamlıdır. Hangisi seçilirse seçilsin, `docs/` altındaki gizlilik/yasal iddiaları (`belge-kod-tutarliligi` skill'indeki grep'ler) aynı kalemde güncellenir.
 
 ## 5. Açık kararlar ve TODO adayları

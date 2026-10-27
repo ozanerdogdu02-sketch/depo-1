@@ -36,6 +36,14 @@ Kurallar: `AGENTS.md` (önce onu oku). Karar geçmişi: `docs/karar-gunlugu.md`.
 **Araştırma:** A1 1. tur yapıldı (`docs/arastirma/a1-saas-1-tur.md`, hepsi ikincil kaynaklı, doğrulanmalı); A2 tasarım 1. tur yapıldı; A3 pazarlama 1. tur yapıldı (`docs/arastirma/a3-pazarlama-1-tur.md`; öneri: önce organik içerik, ücretli reklam ertelenir). Yasal taslaklar: `docs/yasal/` (avukat onayı şart). Devir kılavuzu: `docs/devir/kurulum-ve-devir.md`.
 Tahmini bugünkü değer (gelirsiz, doğrulanmamış): ~1–5 bin $; hedef: ücretli kullanıcıyla 10–50 bin $+.
 
+## KARAR (kullanıcı, 2026-10-27): SUPABASE KODU AÇIK KALIR
+
+Kullanıcı: "Supabase açık olmalı, kod yapılarını görmem için; başlangıç bir veritabanı sistemi, orayı açık bırakmak gerekiyor."
+Sonuç: `cloud.ts`, `Account.tsx`, migration ve auth testi repoda KALIR; silinmez, sert kilitle devre dışı bırakılmaz
+(plan belgesindeki B "sert kilit" önerisi reddedildi). Env boşken bulut kodu zaten çalışmaz; bu varsayılan kalır.
+Canlıda `VITE_SUPABASE_*` tanımlama kararı ayrıdır: canlı-öncesi zorunlu liste (34+33, 35, 41, 27) kapanana kadar tanımlanmaz.
+Local-first ilkesiyle uzlaşma: Supabase isteğe bağlı katman olarak durur, varsayılan akış yerel veridir.
+
 ## KAPSAM KARARI (kullanıcı, 2026-10-25): YALNIZCA ALTYAPI VE VERİ AKIŞI
 
 Kullanıcı "prompt dizini"ni verdi ve "altyapı ve veri akışı sistemini kuralım; bunun dışında herhangi bir şey yapmayacağız" dedi. Spesifikasyon: `docs/veri-akisi/spec.md`
