@@ -29,6 +29,12 @@ export interface Txn {
   kind: 'alis' | 'satis' | 'gelir';
   amount: number; // TL — işlem tutarı (komisyon HARİÇ)
   commission?: number; // TL — bu işlemde ödenen komisyon/işlem ücreti (opsiyonel; yoksa 0 kabul edilir)
+  // EKLEME (P3, geriye dönük uyumlu): aşağıdakiler İSTEĞE BAĞLIDIR; eski kayıtlarda yoktur ve
+  // yokluğu geçerlidir. Hesaplar bu alanları OKUMAZ — TL `amount` esastır. Çoklu para birimli
+  // hesap tasarımı P6'ya aittir; burada yalnızca giriş verisi saklanır.
+  quantity?: number;  // adet (birim sayısı)
+  unitPrice?: number; // birim fiyat, `currency` cinsinden
+  currency?: string;  // ISO 4217 kodu (ör. 'TRY'); yoksa TRY kabul edilir
 }
 
 export interface PortfolioState {

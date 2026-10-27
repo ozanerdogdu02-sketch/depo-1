@@ -256,3 +256,14 @@ Spec sırası P3, P4, P5, P6 ve "öncekinin kabulü olmadan başlamaz" der. 1. v
 - [ ] Üye çıkarılınca eski anahtar çalışmaz (anahtar dönüşü testi).
 - [ ] Rol zorlaması: görüntüleyici yazamaz, imzasız işlem reddedilir.
 - [ ] Anahtar kaybı ve kurtarma senaryosu yazılı ve denenmiş.
+
+## P3 bağlama adımı — GİRİŞ KOŞULLARI (güvenlik 2. tur, 2026-10-27)
+
+`src/storage/` yazıldı ve onaylandı ama uygulamaya BAĞLI DEĞİL. Bağlamadan önce kapanacaklar:
+
+- **Y1 (orta):** `resilient.ts` — IndexedDB geçici `io`/`quota` hatasında yeni değer yalnızca yedeğe yazılıyor, sonraki okuma eski değeri getirebilir. `version`/`blocked` hatasında yazma yedeğe düşmemeli; yedeğe yazılan anahtar "kirli" işaretlenip okumada önce o kullanılmalı. Test ekle.
+- **Y2:** `schema > CURRENT` kayıtta `set` `fail('version')` dönmeli, `fromRecord` okumayı reddetmeli.
+- **Y3:** `db.onclose` işlenmeli; InvalidStateError'da bağlantı önbelleği sıfırlanmalı.
+- **Y4:** `lastDegraded()` asıl depo başarılı olunca temizlenmeli (ya da "son hata" diye belgelenmeli).
+- **Y5:** `migrate.ts` geri alma (`deleteIfEquals`) sonucu rapora yansımalı.
+- **Ayrıca:** SIFIRLA ve çıkış IndexedDB'yi de silmeli; `load()` bozuk kayıtta boş duruma düşüp ilk kayıtta ezmemeli (`corrupt` ayrı ele alınmalı); yedek ve bulut için tek gerçek kaynak yazılı belirlenmeli; gerçek tarayıcıda (Playwright) IndexedDB e2e testi yazılmalı. Birim testler yalnızca sahte IndexedDB ile yeşil.
