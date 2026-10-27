@@ -58,6 +58,10 @@ Local-first ilkesiyle uzlaşma: Supabase isteğe bağlı katman olarak durur, va
 Bitiş sırası: uygulama son aşamaya gelir → kullanıcı altyapıyı kendisi test eder → alan adı alınır → yayına geçilir (fagent.vercel.app üretime geçişi ve `VITE_SUPABASE_*` kararı da o zaman ele alınır).
 Her adım sonunda kapı (typecheck, build, güvenlik taraması, birim, e2e) + güvenlik + uyum incelemesi; yeşil olmadan commit yok.
 
+## YAPAY ZEKÂ YORUMU (2026-10-28): ÜST KURUL KOŞULLU ONAY, DENEME BEKLİYOR
+
+Kullanıcı portföy + piyasa verisi üzerinden LLM yorumu ve açık kaynak model istedi. Üst Kurul (`docs/teknoloji-talepleri.md`): yalnızca CİHAZDA çalışan açık kaynak model (A) koşullu onay, uygulanabilirlik denemesi olarak; sunucuda model (B) ve ticari API (C) RED (portföy verisi sunucuya gidemez). Ajan sekmesi kural tabanlı kalır. "Yorum bizi sorumlu tutmaz" varsayımı DOĞRULANMADI: SPK açısından avukat görüşü canlı öncesi zorunlu. Deneme başlamadan önce kullanıcının açık "başla" onayı beklenir (kapsam kararının deneme için kaldırılması).
+
 ## KAPSAM KARARI (kullanıcı, 2026-10-25): YALNIZCA ALTYAPI VE VERİ AKIŞI
 
 Kullanıcı "prompt dizini"ni verdi ve "altyapı ve veri akışı sistemini kuralım; bunun dışında herhangi bir şey yapmayacağız" dedi. Spesifikasyon: `docs/veri-akisi/spec.md`
