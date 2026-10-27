@@ -33,6 +33,7 @@ Kullanıcının söylediği her fikir buraya yazılır ve sınıflandırılır. 
 | 21 | Instagram/TikTok reklam + reels sistemi | 24.10 | 🟡 | Parçalı: içerik fabrikası yapılır, hesap/reklam/video çekimi dışarıda (aşağıda) | 6 |
 | 22 | Bu defter: tüm fikirler sınıflandırılsın, başka ajan sistemiyle çözülsün | 24.10 | ✅ | Bu dosya; her yeni fikir buraya eklenir | → |
 | 23 | Veri akışı/bulut senkron işleri (SIFIRLA onayı, çok sekme çıkış, kısmi geri yükleme, iki cihaz çakışması) önce araştırılsın, sonra eklensin | 24.10 | ⏸ | Çok zaman alır; hesap özelliği bu yüzden canlıda kapalı kalır. Araştırma konusu: Notion/Figma/Linear çakışma çözümü, CRDT/koşullu güncelleme, atomik geri yükleme | 4–5 |
+| 24 | Projeksiyon daha gelişmiş/"eğitilmiş" bir modele taşınsın (tasarımda yalnız projeksiyon ele alınsın) | 27.10 | 🟡 | ML modeli ⏸ (ertelenen liste: zaman serisi, transfer öğrenme; veri lisansı yok). Uygun yol: A) stopaj+reel+hedef+duyarlılık (rastgelesiz) şimdi; B) tohumlu Monte Carlo "senaryo dağılımı" %10/50/90 — rassal yürüyüş yasağı nedeniyle kullanıcı kararı. Plan: `docs/projeksiyon/gelismis-model-plani.md` | → |
 
 ## Pazarlama (reklam + reels) — ne yapılır, ne yapılamaz
 
