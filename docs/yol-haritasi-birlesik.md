@@ -182,7 +182,7 @@ Genel bağlam: `src/storage/` (idb.ts, resilient.ts, migrate.ts, schema.ts, loca
 - **Neden bu sırada:** Tek ekran Projeksiyon olacağı için bütün motorların hedefi bu modül. Önce bu modülün girdi sözleşmesi belli olmalı ki diğer motorlar ona göre çıktı versin.
 - **Bugünkü durum:** Hesap `src/App.tsx` içinde: `projectFinalValue` (`:1285`), `SCENARIOS` (`:1294` civarı), `Projeksiyon()` (`:1301`). Stopaj düşülmüyor. Oranlar `src/config/varsayilanlar.ts:58` (`SCENARIO_DEFAULT_RATES_PCT`, kaynaksız). e2e: `tests/e2e/fagent-projection-e2e.mjs` (12 `check(` çağrısı; plan belgesi 13 diyor, sayım farkı doğrulanmalı).
 - **Yapılacaklar:**
-  1. `src/projeksiyon.ts` (saf, `import type` + `.ts` uzantılı içe aktarma): `projeksiyonYollari(girdi)` aylık bileşik yol, `sonDeger`, `reelDeger(nominal, enflasyon, yil)`.
+  1. `src/projection.ts` (saf, `import type` + `.ts` uzantılı içe aktarma): `projeksiyonYollari(girdi)` aylık bileşik yol, `sonDeger`, `reelDeger(nominal, enflasyon, yil)`.
   2. `stopajSonrasi(girdi, oranlar)`: yalnız kazanç kısmına, varlık türü ağırlığıyla (`analytics.ts:527` `afterTaxOf` mantığı yeniden kullanılır). `UNVERIFIED_TAX` türleri `dogrulanmadi: true` döner.
   3. `etiketler`: her girdi için `'resmi' | 'varsayim' | 'kullanici'` (enflasyon `inflation.ts:20` `InflationSource` ile eşlenir).
   4. `hedefKarsilastirma(sonuc, hedef?)`: hedef yoksa `undefined`. Varsayılan hedef yok.
@@ -197,9 +197,11 @@ Genel bağlam: `src/storage/` (idb.ts, resilient.ts, migrate.ts, schema.ts, loca
 - **Geri alma:** `Projeksiyon()` eski satır içi hesaba döner; modül kalabilir.
 - **Elle denetim:**
   - [ ] Projeksiyon sekmesini aç: sayılar adım öncesindeki ekran görüntüsüyle aynı (ekip öncesi/sonrası görüntü ekler).
-  - [ ] Raporda `src/projeksiyon.ts` fonksiyon listesi ve her biri için test adı var.
+  - [ ] Raporda `src/projection.ts` fonksiyon listesi ve her biri için test adı var.
   - [ ] Raporda yasak kelime taramasının (`uyum-dili`) temiz çıktısı var.
 - **Doğrulanamayanlar:** Stopaj oranlarının doğruluğu (muhasebeci). Senaryo getirilerinin kaynağı (yok, varsayım).
+- **Yapıldı (Aşama A motoru, 2026-10-28):** `src/projection.ts` (saf; React/DOM/localStorage yok). Dosya adı kullanıcı talimatıyla `projection.ts` (plan `projeksiyon.ts` diyordu). `App.tsx` `Projeksiyon()` artık `sonDeger`, `reelDeger`, `projeksiyonYollari` çağırıyor; eski `projectFinalValue` ve satır içi döngüler silindi, ekrandaki sayı/metin değişmedi (eşdeğerlik `tests/unit/projeksiyon.test.ts` içinde taşıma öncesi formül kopyasıyla `Object.is` düzeyinde kanıtlı). Yeni sabit: `SIRA_RISKI_SAPMA_PP = 15` (`varsayilanlar.ts`, kaynaksız ürün varsayımı; vergi/mevzuat iddiası yok, muhasebe doğrulaması gerekmez). Arayüze bağlanmayan: `senaryoSonucu`, `stopajSonrasiDeger`, `turAgirliklari`, `hedefeUlasmaSuresi`, `getiriEnflasyonTablosu`, `siraRiski`, `birlestirKaynak`, `enflasyonEtiketi`.
+- **Kalan işler (YH-2):** (1) e2e `fagent-projection-e2e` koşusu (test ajanı); (2) yeni sonuçların arayüze bağlanması + etiket metinleri (tasarım oturumu, `uyum-dili`); (3) "hedefin %N'i" cümlesi için betimleyici oran fonksiyonu (arayüz kararı gelince); (4) stopaj oranlarının muhasebe doğrulaması (sıra riski sapması ürün varsayımıdır, bu kapsamda değil); (5) Aşama B (Monte Carlo) ayrı onaya bağlı, YAPILMADI; (6) enflasyon kaynağı etiketi `enflasyonEtiketi(inf.source)` ile bağlanacak.
 
 ---
 
@@ -433,16 +435,41 @@ Görünüm kullanıcıda. Tasarımın kullanabileceği veri yuvaları (ad öneri
 | Yuva | Kaynak motor | İçerik |
 |---|---|---|
 | Başlangıç değeri, maliyet, K/Z | `motor/degerleme` | TL, `fmtTL` biçimi |
-| Senaryo yolları (3 çizgi) | `projeksiyon.ts` | yıl başına nominal değer |
-| Nominal → stopaj sonrası → reel | `projeksiyon.ts` + `motor/vergi` + `motor/enflasyon` | üç sayı + `dogrulanmadi` işareti |
-| Varsayım etiketleri | `projeksiyon.ts` | `resmi` / `varsayim` / `kullanici` |
-| Hedef karşılaştırma | `projeksiyon.ts` | hedef boşsa yok; "hedefin %N'i" |
-| 3×3 duyarlılık, sıra riski | `projeksiyon.ts` | 9 hücre; iki sıra sonucu |
+| Senaryo yolları (3 çizgi) | `projection.ts` | yıl başına nominal değer |
+| Nominal → stopaj sonrası → reel | `projection.ts` + `motor/vergi` + `motor/enflasyon` | üç sayı + `dogrulanmadi` işareti |
+| Varsayım etiketleri | `projection.ts` | `resmi` / `varsayim` / `kullanici` |
+| Hedef karşılaştırma | `projection.ts` | hedef boşsa yok; "hedefin %N'i" |
+| 3×3 duyarlılık, sıra riski | `projection.ts` | 9 hücre; iki sıra sonucu |
 | Kaynak durum satırı | `src/kaynaklar` | 5 durum metni, kaynak + tarih |
 | İçgörü satırları | `motor/icgoru` | `Insight[]` |
 | Olaylar | `motor/olaylar` | işlem + KAP bildirimi (yorumsuz) |
 | Giriş çekmecesi eylemleri | `store.ts` `actions.*` | ekle/düzenle/sil/işlem/CSV/yedek/SIFIRLA |
 | Zorunlu metin | — | "Yatırım tavsiyesi değildir" |
+
+### `src/projection.ts` sözleşmesi (tasarım oturumu için)
+
+Tipler: `KaynakEtiketi = 'resmi' | 'varsayim' | 'kullanici'`; `EtiketliSayi = { deger: number; kaynak: KaynakEtiketi }`.
+Türetilmiş sayının etiketi girdilerinin en zayıfıdır (`birlestirKaynak`: biri `varsayim` ise `varsayim`, yoksa biri `kullanici` ise `kullanici`, hepsi `resmi` ise `resmi`).
+Ortak girdi alanları: `baslangic` (TL), `aylikKatki` (TL), `yil`, `getiriPct`, `enflasyonPct`; isteğe bağlı `kaynaklar?: Partial<{baslangic, aylikKatki, getiri, enflasyon}>` (varsayılan: başlangıç/katkı `kullanici`, getiri/enflasyon `varsayim`). EVDS enflasyonu için `enflasyonEtiketi(inf.source)` (`evds` → `resmi`).
+
+| Fonksiyon | İmza (özet) | Çıktı |
+|---|---|---|
+| `sonDeger` | `(baslangic, aylikKatki, yillikPct, yil)` | `number` (ekranda kullanılıyor) |
+| `reelDeger` | `(nominal, enflasyonPct, yil)` | `number`: nominal / (1+e)^yıl (ekranda kullanılıyor) |
+| `projeksiyonYollari` | `({baslangic, aylikKatki, getiriPct:{dusuk,orta,yuksek}, yil})` | `{yil, dusuk, orta, yuksek}[]` yuvarlanmış (ekranda kullanılıyor) |
+| `senaryoSonucu` | `ProjeksiyonGirdisi` | `{yatirilan, nominal, reel}`: hepsi `EtiketliSayi` |
+| `stopajSonrasiDeger` | `ProjeksiyonGirdisi & {agirliklar: Partial<Record<AssetType,number>>, oranlar?, oranKaynagi?}` | `{brut, kazanc, vergi, net, agirlikliOranPct: EtiketliSayi, dogrulanmadi: boolean}` |
+| `turAgirliklari` | `({type, amount}[])` | tür → tutar toplamı |
+| `hedefeUlasmaSuresi` | `({baslangic, aylikKatki, getiriPct, hedef?, enflasyonPct?, azamiYil?})` | hedef boş: `null`; aksi `{ay: EtiketliSayi \| null, ulasilabilir}` (`ay` null = 100 yılda ulaşılamaz; `enflasyonPct` verilirse reel karşılaştırma) |
+| `getiriEnflasyonTablosu` | `({baslangic, aylikKatki, yil, getiriPct:{dusuk,orta,yuksek}, enflasyonPct})` | 3 satır × 3 hücre: `{enflasyonPct (−10/0/+10 puan, alt sınır 0), reel: EtiketliSayi}` |
+| `siraRiski` | `({baslangic, aylikKatki, yil, ortalamaPct, sapmaPP?})` | `{kotuYillarBasta[], kotuYillarSonda[], sapmaPP, basta, sonda, fark}`; deterministik, aynı aritmetik ortalama |
+
+Örnek (elle doğrulanabilir): `stopajSonrasiDeger({baslangic:100000, aylikKatki:0, yil:1, getiriPct:20, enflasyonPct:30, agirliklar:{fon:1}})` → brüt 120.000, kazanç 20.000, vergi 3.500 (%17,5), net 116.500, `dogrulanmadi:false`, etiket `varsayim`.
+`hedefeUlasmaSuresi({baslangic:1000, aylikKatki:100, getiriPct:0, hedef:2000})` → `ay.deger = 10`.
+Sıra riski notu: aylık katkı varken "kötü yıllar sonda" sonucu genelde "başta"dan düşük çıkar (`fark` genelde < 0). Nedeni betimleyicidir: bakiye büyüdükçe sonraki, yüksek getirili yıllar toplam sonuçta daha çok ağırlık alır. Katkısızken fark 0'dır. Çerçeve: iki dizi de aynı aritmetik ortalamaya sahiptir; ±15 puan sapma varsayımsal bir örnektir (varsayım etiketli, `SIRA_RISKI_SAPMA_PP`); sonuç olasılık ya da öngörü değildir. Ekran metni "Yatırım tavsiyesi değildir" ile birlikte verilir ve hüküm içermez.
+Tasarım notları: (D1) kullanıcı kendi stopaj oranını verse bile `UNVERIFIED_TAX` türleri için `dogrulanmadi` kalır; bu durumun metni tasarımda düşünülmelidir. (D3) `HEDEF_AZAMI_YIL = 100` ve `TABLO_ENFLASYON_ADIMI_PP = 10` ekrana yansırsa ürün varsayımı olarak etiketlenmelidir.
+Girdi sınırları (güvenli varsayılan, `projection.ts`): yıl ve `azamiYil` sonlu değilse 0, aksi halde 0..100 tam sayı (kesir atılır); getiri/enflasyon/ortalama oranı sonlu değilse 0, aksi halde −99..1000 aralığına kısılır; tutarlar ve ağırlıklar sonlu değilse 0 sayılır. Ekranın aralığında (1–30 yıl, 0–200 oran) hiçbir değer değişmez.
+Dil: sonuç adları ve metinlerde "tahmin", "beklenen getiri", "hedefe ulaşmak için" geçmez (`uyum-dili`).
 
 Not: `docs/tasarim/YENI-OTURUM-DEVIR-NOTU.md` ve `ana-ekran-konsepti.md` "Ana ekran" fikrini anlatıyor. Kullanıcı kararıyla ana ekran artık Projeksiyon; "araçlar çekmecesi" giriş çekmecesine dönüşüyor.
 

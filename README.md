@@ -135,6 +135,9 @@ netlify/
                       maks. düşüş, Sharpe, korelasyon, kovaryansla çeşitlendirme faydası,
                       vergi sonrası net getiri (DEFAULT_TAX_RATES + afterTaxOf),
                       hedef dağılım sapması / %5-%25 bandı (driftOf)
+  projection.ts     — PROJEKSİYON HESABI (saf): aylık bileşik büyüme, reel değer, stopaj sonrası,
+                      hedefe ulaşma süresi, getiri×enflasyon tablosu, sıra riski; sayılar kaynak
+                      etiketli (resmi / varsayim / kullanici). Ekrana yalnız ilk üçü bağlı
   priceHistory.ts   — tarihsel fiyat serisi (CoinGecko market_chart + Frankfurter/ECB)
                       + risk raporu; KAPSAM ORANINI (coveragePct) açıkça döner
   cryptoMarketData.ts — Kripto Piyasa sekmesinin veri katmanı (CoinGecko, önbellekli)
@@ -142,7 +145,8 @@ netlify/
   CryptoMarket.tsx  — Kripto Piyasa sekmesi (canlı liste + 7 günlük mini grafikler)
 ```
 
-`analytics.ts` de `agent.ts` gibi **saftır** — I/O içermez, doğrudan test edilebilir.
+`analytics.ts` ve `projection.ts` de `agent.ts` gibi **saftır** — I/O içermez, doğrudan test edilebilir.
+`projection.ts` modül sayılarını etiketli döndürür (resmi/varsayim/kullanici); ekranda etiket gösterimi henüz yok (tasarım).
 `priceHistory.ts` ağ erişimi içerir ve bu ayrımı bilinçli olarak tek başına taşır.
 
 `agent.ts` bilinçli olarak **saf** tutuldu: hiçbir I/O (localStorage, ağ) içermez, tüm veri

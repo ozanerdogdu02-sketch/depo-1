@@ -57,6 +57,13 @@ export const DEFAULT_RISK_FREE_PCT = 45;    // RiskPanel: risksiz faiz varsayım
 // TODO(muhasebe): senaryo getirileri kaynaksız varsayımdır; belgelenmeli.
 export const SCENARIO_DEFAULT_RATES_PCT = { dusuk: 20, orta: 35, yuksek: 50 } as const;
 
+/* ───────────── Sıra riski sapması (yüzde puan) ─────────────
+   "Kötü yıllar başta" senaryosunda yıllık getiri ortalama ∓ bu değerdir (src/projection.ts siraRiski).
+   Kaynak: yok; örnek amaçlı kaynaksız varsayım, tahmin değil. Tarih: doğrulanmadı. */
+// ÜRÜN VARSAYIMI: kaynaksızdır, ama vergi/mevzuat iddiası taşımaz; hukuk/muhasebe doğrulaması gerekmez (TODO(muhasebe) değil).
+// Arayüzde gösterilirse 'varsayım' etiketiyle gösterilir.
+export const SIRA_RISKI_SAPMA_PP = 15;
+
 /* ───────────── Hedef sapma eşikleri ─────────────
    bant = min(DRIFT_ABSOLUTE_BAND_PP, hedef × DRIFT_RELATIVE_BAND) puan (gerekçe: analytics.ts driftBandOf).
    Kaynak: ürün tasarım kararı (bir hukuki/vergisel kaynak yok). */

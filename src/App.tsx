@@ -16,6 +16,7 @@ import {
 import { getTrainedFacts, teach, deleteFact, recordFactUse, TrainedFact } from './agentTraining';
 import { afterTaxOf, UNVERIFIED_TAX, driftOf } from './analytics';
 import { SCENARIO_DEFAULT_RATES_PCT } from './config/varsayilanlar';
+import { sonDeger, reelDeger, projeksiyonYollari } from './projection';
 import { getTaxRates, setTaxRate, isCustomRate, TaxRates } from './taxRates';
 import { getTargets, setTarget, hasTargets, TargetAllocation } from './targetAllocation';
 import { downloadBackup, restoreBackup, getBackupMeta, shouldNudge, dismissNudge, STALE_AFTER_DAYS } from './backup';
@@ -1281,14 +1282,6 @@ function Islemler({ query }: { query: string }) {
   );
 }
 
-// Tek bir yıllık getiri oranıyla, aylık bileşik + aylık katkı yaparak süre sonu değeri üretir.
-function projectFinalValue(start: number, monthly: number, annualPct: number, years: number): number {
-  const monthlyRate = Math.pow(1 + annualPct / 100, 1 / 12) - 1;
-  let value = start;
-  for (let m = 1; m <= years * 12; m++) value = value * (1 + monthlyRate) + monthly;
-  return value;
-}
-
 // Üç senaryo — düşük / orta / yüksek getiri. Kullanıcının geri bildirimi: tek bir "beklenen getiri"
 // yerine bir aralık göstermek + enflasyonun (reel getiri) etkisini vurgulamak daha dürüst.
 // TODO(muhasebe): senaryo getirileri kaynaksız varsayımdır (değerler src/config/varsayilanlar.ts).
@@ -1307,33 +1300,19 @@ function Projeksiyon() {
   const inflation = inf.pct;
 
   const start = totalValue(s);
-  const inflationFactor = Math.pow(1 + inflation / 100, years); // süre sonu fiyat seviyesi (bugüne indirgeme böleni)
 
-  const data = useMemo(() => {
-    const monthlyRates = {
-      dusuk: Math.pow(1 + rates.dusuk / 100, 1 / 12) - 1,
-      orta: Math.pow(1 + rates.orta / 100, 1 / 12) - 1,
-      yuksek: Math.pow(1 + rates.yuksek / 100, 1 / 12) - 1,
-    };
-    const points: { yil: string; dusuk: number; orta: number; yuksek: number }[] = [];
-    let vLow = start, vMid = start, vHigh = start;
-    for (let m = 0; m <= years * 12; m++) {
-      if (m > 0) {
-        vLow = vLow * (1 + monthlyRates.dusuk) + monthly;
-        vMid = vMid * (1 + monthlyRates.orta) + monthly;
-        vHigh = vHigh * (1 + monthlyRates.yuksek) + monthly;
-      }
-      if (m % 12 === 0) points.push({ yil: `${m / 12}. yıl`, dusuk: Math.round(vLow), orta: Math.round(vMid), yuksek: Math.round(vHigh) });
-    }
-    return points;
-  }, [start, monthly, rates, years]);
+  const data = useMemo(
+    () => projeksiyonYollari({ baslangic: start, aylikKatki: monthly, getiriPct: rates, yil: years })
+      .map(p => ({ ...p, yil: `${p.yil}. yıl` })),
+    [start, monthly, rates, years],
+  );
 
   const invested = start + monthly * 12 * years;
 
   // Her senaryo için: nominal süre sonu değeri + reel (bugünkü alım gücüyle) değeri.
   const results = SCENARIOS.map(sc => {
-    const nominal = projectFinalValue(start, monthly, rates[sc.key], years);
-    const real = nominal / inflationFactor;
+    const nominal = sonDeger(start, monthly, rates[sc.key], years);
+    const real = reelDeger(nominal, inflation, years);
     return { ...sc, nominal, real };
   });
 

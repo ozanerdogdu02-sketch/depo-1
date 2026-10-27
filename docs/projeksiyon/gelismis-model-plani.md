@@ -47,7 +47,7 @@ Not: Repoda "eğitilmiş" sözcüğünün tek karşılığı `src/agentTraining.
 Adlandırma: arayüzde **"Senaryo dağılımı"**, asla "tahmin", "beklenen getiri", "olasılıkla kazanırsın". Her sayı yanında varsayım etiketi.
 
 **Aşama A — rastgelelik yok (Y3)**
-- A1. Hesabı saf modüle taşı: `src/projeksiyon.ts` (React/window yok; AGENTS §0.6 ile aynı saflık), `projectFinalValue` buraya.
+- A1. Hesabı saf modüle taşı: `src/projection.ts` (React/window yok; AGENTS §0.6 ile aynı saflık), `projectFinalValue` buraya.
 - A2. Stopaj sonrası: kazanç kısmına varlık türüne göre oran (`DEFAULT_TAX_RATES` / kullanıcının `fagent.tax.v1` oranları). Doğrulanmamış oranlar
   (`UNVERIFIED_TAX`) "doğrulanmadı, 0 alındı" diye gösterilir.
 - A3. Üç değer yan yana: nominal → stopaj sonrası → reel (bugünkü alım gücü). Sıra P6 hesap motoruyla aynı ("brüt / net / reel").
@@ -91,7 +91,7 @@ Ağ: projeksiyon **hiç yeni dış istek yapmaz**; portföy verisi tarayıcıdan
 
 | # | İş | Sahip rol | Kabul ölçütü | Test | Uyum riski | Efor |
 |---|---|---|---|---|---|---|
-| 1 | Hesabı saf `src/projeksiyon.ts`'e taşı, davranış aynı | veri-akışı | Ekran sayıları birebir aynı; modülde React/window yok | Birim: bilinen girdi → sabit sonuç (aylık bileşik, 0 katkı, 1 yıl, %0 getiri). e2e: mevcut 13 kontrol değişmeden yeşil | Düşük | S |
+| 1 | Hesabı saf `src/projection.ts`'e taşı, davranış aynı | veri-akışı | Ekran sayıları birebir aynı; modülde React/window yok | Birim: bilinen girdi → sabit sonuç (aylık bileşik, 0 katkı, 1 yıl, %0 getiri). e2e: mevcut 13 kontrol değişmeden yeşil | Düşük | S |
 | 2 | Varsayım etiketleri (resmî/varsayım/senin girdin) | tasarım + uyum | Her girdinin yanında etiket; EVDS yoksa enflasyon "varsayım" | e2e: etiket metinleri; EVDS taklidiyle "resmî" | Düşük (metin `uyum-dili`ne uymalı) | S |
 | 3 | Stopaj sonrası değer (nominal → net → reel) | veri-akışı (+ muhasebe TODO) | Kazanç yoksa vergi 0; doğrulanmamış oran "doğrulanmadı" yazar | Birim: kazanç/zarar/0 sınırları, tür karışımı. e2e: "Stopaj sonrası" görünür | Orta: oranlar doğrulanmadı → etiket şart | S–M |
 | 4 | Hedef tutar karşılaştırması (alan boş başlar) | tasarım + uyum | Hedef girilmezse hiçbir şey gösterilmez; cümle betimleyici | e2e: boşken yok, girilince "%N'i" metni; yasak kelime taraması | Orta: "hedefe ulaşmak için şunu yap" dili yasak | S |
