@@ -44,6 +44,14 @@ Sonuç: `cloud.ts`, `Account.tsx`, migration ve auth testi repoda KALIR; silinme
 Canlıda `VITE_SUPABASE_*` tanımlama kararı ayrıdır: canlı-öncesi zorunlu liste (34+33, 35, 41, 27) kapanana kadar tanımlanmaz.
 Local-first ilkesiyle uzlaşma: Supabase isteğe bağlı katman olarak durur, varsayılan akış yerel veridir.
 
+## KARARLAR (kullanıcı, 2026-10-27/28): VERİ KAYNAKLARI + TEK EKRAN PROJEKSİYON
+
+- Öneriler kabul: TCMB ve EVDS tek kaynak ("TCMB (EVDS üzerinden)"); kur TCMB'den, Frankfurter otomatik yedek OLMAZ; projeksiyon Aşama A önce (Monte Carlo/Aşama B için ayrı onay, rassal yürüyüş ertelemesiyle çelişki notu planda).
+- Kullanıcı KAP ve BİST verisini kazıyarak (scraping) çekmeyi açıkça istedi; "kullanacağımız verilerin hepsini sormadan çekebilmelisin". Uygulama: her kaynak ayrı bağdaştırıcı (`docs/veri-akisi/cok-kaynakli-veri-plani.md`), sunucu tarafı geçiş fonksiyonu, kibar hız sınırı + önbellek, kaynak/tarih etiketi, `TODO(hukuk)` işareti. Kullanıcı verisi bu yollardan GİTMEZ. Kazıma hukuki riski ürün satışında alıcıya açıklanır.
+- Büyük veri grupları ayrı veri depolarında tutulabilir (yalnızca herkese açık piyasa verisi, kullanıcı verisi değil; ör. Supabase'de paylaşılan önbellek tablosu). Kullanıcı portföy verisi yerel kalır.
+- TASARIM: ekranda yalnızca PROJEKSİYON paneli kalır; diğer panellerin (Panel, Bugün, Hisseler, Fonlar, Kripto, Kripto Piyasası, İşlemler, Ajan) görevleri arka planda motor olarak çalışır ve projeksiyonu besler. Kapsam: altyapı + veri akışı + projeksiyon ekranı.
+- EVDS anahtarı: Vercel `fagent` projesinde ortam değişkeni YOK (27.10 kontrol, hiç değişken yok). Kullanıcı eski sürümde kullandığını söyledi; eski Netlify/başka projede olabilir. Kullanıcı eklemeli.
+
 ## KAPSAM KARARI (kullanıcı, 2026-10-25): YALNIZCA ALTYAPI VE VERİ AKIŞI
 
 Kullanıcı "prompt dizini"ni verdi ve "altyapı ve veri akışı sistemini kuralım; bunun dışında herhangi bir şey yapmayacağız" dedi. Spesifikasyon: `docs/veri-akisi/spec.md`
