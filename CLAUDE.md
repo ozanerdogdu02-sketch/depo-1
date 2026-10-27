@@ -62,6 +62,10 @@ Her adım sonunda kapı (typecheck, build, güvenlik taraması, birim, e2e) + g�
 
 Kullanıcı portföy + piyasa verisi üzerinden LLM yorumu ve açık kaynak model istedi. Üst Kurul (`docs/teknoloji-talepleri.md`): yalnızca CİHAZDA çalışan açık kaynak model (A) koşullu onay, uygulanabilirlik denemesi olarak; sunucuda model (B) ve ticari API (C) RED (portföy verisi sunucuya gidemez). Ajan sekmesi kural tabanlı kalır. "Yorum bizi sorumlu tutmaz" varsayımı DOĞRULANMADI: SPK açısından avukat görüşü canlı öncesi zorunlu. Deneme başlamadan önce kullanıcının açık "başla" onayı beklenir (kapsam kararının deneme için kaldırılması).
 
+## KARAR (kullanıcı, 2026-10-28): HUKUK/UYUM YÜKÜ ALICIYA DEVİR + AÇIKLAMA
+
+Odak: sistemi ve işleyişi kurmak; KVKK/SPK/ETBİS vb. yükümlülükler satış sonrası alıcıda. Çerçeve: (1) satıştan önce canlıda hesap, ödeme, kazıma ve yapay zekâ yorumu KAPALI kalır (kullanıcı verisi toplayan özellik açılırsa veri sorumlusu satıcı olur); (2) "yükümlülükler sağlandı" diye beyan edilmez, devir paketine "Uyumluluk durumu ve açık maddeler" sayfası eklenir (`docs/devir/`; kaynaklar: `TODO(hukuk)/TODO(muhasebe)` işaretleri, `docs/yasal/*`, `docs/teknoloji-talepleri.md`); (3) avukat görüşü alıcıya devredilen açık madde olarak yazılır, istenirse satıştan önce alınır.
+
 ## KAPSAM KARARI (kullanıcı, 2026-10-25): YALNIZCA ALTYAPI VE VERİ AKIŞI
 
 Kullanıcı "prompt dizini"ni verdi ve "altyapı ve veri akışı sistemini kuralım; bunun dışında herhangi bir şey yapmayacağız" dedi. Spesifikasyon: `docs/veri-akisi/spec.md`
