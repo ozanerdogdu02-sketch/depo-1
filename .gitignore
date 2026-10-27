@@ -20,3 +20,6 @@ Thumbs.db
 .idea/
 .vite/
 *.local
+
+# Yol değişkeni tanımsız çalışan e2e dosyalarının kazara ürettiği klasör
+undefined/

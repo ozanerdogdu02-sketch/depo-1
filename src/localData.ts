@@ -17,6 +17,8 @@ import { resetBackupMeta } from './backup';
 import { resetInflation } from './inflation';
 import { clearPriceHistoryCache } from './priceHistory';
 import { clearMarketCache } from './cryptoMarketData';
+import { clearRecoveryKeys } from './recovery';
+import { clearMirrorForReset } from './mirror';
 
 // Bu tarayıcıdaki kullanıcı verisinin hangi hesaba (Supabase user id) ait olduğu.
 // SENKRONLANMAZ ve BACKED_UP_KEYS'te YOKTUR. Amaç hesaplar arası sızıntıyı önlemek:
@@ -70,6 +72,8 @@ export function clearLocalUserData(): void {
   resetInflation(); // kullanıcının girdiği enflasyon oranı da kullanıcı verisidir
   purgeLegacyKeys();
   clearCloudOwner();
+  clearRecoveryKeys();   // bozuk-kayıt kurtarma kopyaları da kullanıcı verisidir
+  clearMirrorForReset(); // IndexedDB aynası: silinmezse açılışta veri geri gelirdi
   // Not: actions.reset() onboarded'ı false yapar, Panel unmount olur; bir sonraki
   // onboarding'de yeniden mount olup getTargets()/getTaxRates()'i TAZE okur — bu yüzden
   // kart state'lerini ayrıca sıfırlamak gerekmiyor.

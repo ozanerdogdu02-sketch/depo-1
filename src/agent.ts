@@ -948,7 +948,7 @@ const CHAT_RULES: Rule[] = [
       '',
       cloudSynced
         ? 'Not: hesabınla giriş yaptığın için bu katmanlar bu tarayıcıda tutulur ve Fagent hesabına da eşitlenir. "SIFIRLA" yalnızca bu tarayıcıdaki kopyayı siler; hesabındaki kopya için Hesabım → Hesabımı sil.'
-        : 'Not: verilerin yalnızca bu tarayıcıda tutulur. "SIFIRLA" dersen ya da tarayıcı verisi temizlenirse kalıcı olarak gider.',
+        : 'Not: verilerin yalnızca bu tarayıcıda tutulur. "SIFIRLA" dersen silinir; tarayıcının site verisi tamamen temizlenirse de geri getirilemez.',
     ].join('\n'),
   },
   {

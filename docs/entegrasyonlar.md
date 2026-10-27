@@ -73,9 +73,9 @@ kontrolüyle doğrulandı.
 
 ---
 
-## 3. Depolama — tarayıcı `localStorage`
+## 3. Depolama — tarayıcı `localStorage` (esas) + IndexedDB aynası
 
-Sunucu olmadığı için tüm veri kullanıcının tarayıcısında. **Yedi ayrı katman:**
+Sunucu olmadığı için tüm veri kullanıcının tarayıcısında. **Beş kalıcı kullanıcı katmanı** (yedeğe ve hesaplıysa buluta giden, `BACKED_UP_KEYS`) **ile yardımcı yerel anahtarlar.** Tek gerçek kaynak `localStorage`'dır; aynı beş katman tarayıcının IndexedDB'sine (`fagent` veritabanı, `kv` deposu) doğrulanmış ayna olarak da yazılır (`src/mirror.ts`, `src/storage/mirror.ts`). Ayna aynı tarayıcıdadır, ağa gitmez:
 
 | Anahtar | İçerik | Yedeğe dahil? | SIFIRLA siler? |
 |---|---|---|---|
@@ -88,6 +88,12 @@ Sunucu olmadığı için tüm veri kullanıcının tarayıcısında. **Yedi ayr�
 | `fagent.evds.v1` | Enflasyon önbelleği (12 sa) | ❌ (yeniden üretilebilir) | — |
 | `fagent.cryptomarket.cache.v2` | Kripto piyasa önbelleği | ❌ (yeniden üretilebilir) | — |
 | `fagent.pricehistory.v1.*` | Fiyat serisi önbelleği | ❌ (yeniden üretilebilir) | — |
+| `fagent.mirror.cleared.v1` | SIFIRLA/çıkışta konan silme işareti (IndexedDB aynası silinene dek) | ❌ | kendiliğinden kalkar |
+| `fagent.recovery.corrupt.<anahtar>[.2-.5][.not]` | Bozuk kayıt açılışında ham değerin kopyası (256 KB üstü için localStorage'da yalnız uzunluk notu `.not`; ham değer IndexedDB kurtarma kaydında) | ❌ | ✅ |
+| IndexedDB `fagent`/`kv`: beş katmanın aynası | localStorage'ın doğrulanmış kopyası | ❌ (yedek `localStorage`'dan alınır) | ✅ (+ silme işareti) |
+| IndexedDB `fagent.recovery.idb.<anahtar>[.zaman]` | İki kopya farklıysa/yerelde eksikse IndexedDB değerinin kurtarma kaydı (anahtar başına en çok 3) | ❌ | ✅ |
+
+IndexedDB silmesi mantıksaldır (kayıt silinir; disk üzerindeki kalıntının fiziksel olarak hemen yok edilmesi garanti edilmez). Aynadaki silme başarısız olursa işaret kalır ve sonraki açılışta yeniden denenir; veri geri yüklenmez.
 
 **Yedekleme:** `backup.ts` beş kalıcı katmanı tek JSON'da dışa/geri alıyor. Geri yüklemede
 **beyaz liste** var — dosya dışarıdan gelebilir, tanınmayan anahtar yazılmıyor. Ayrıca
@@ -170,7 +176,7 @@ Bunlar `AGENTS.md` ve `CLAUDE.md`'de yazılı ve testlerle korunuyor:
 1. **API anahtarı istemci koduna asla girmez.** İstemci her zaman anahtarsız da çalışır.
 2. **Uydurma veri yok.** Doğrulanamayan bir sayı gösterilmez; "veri yok" demek "yanlış veri"
    demekten iyidir. (Stopajda kripto/altın/döviz %0 bırakılması bunun örneği.)
-3. **Veri varsayılan olarak tarayıcıda kalır.** Kullanıcı hesap açarsa 5 katman yalnızca kendi RLS'li
+3. **Veri varsayılan olarak tarayıcıda kalır** (`localStorage` esas, aynı tarayıcıdaki IndexedDB aynası; ikisi de cihaz dışına çıkmaz). Kullanıcı hesap açarsa 5 katman yalnızca kendi RLS'li
    Supabase kaydına eşitlenir (`cloud.ts`; hesapsız modda ağ isteği yoktur). Diğer ağ istisnaları: EVDS
    proxy'si (istek portföy içermez) ile kur/kripto fiyat uçları.
 4. **`agent.ts` ve `analytics.ts` SAFTIR** — I/O yok, tüm veri parametreyle gelir. Bu hem test

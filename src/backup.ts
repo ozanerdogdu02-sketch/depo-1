@@ -3,7 +3,7 @@
 // NEDEN VAR: FAGENT'ın verisi varsayılan olarak yalnızca tarayıcının localStorage'ında durur
 // (hesap açılırsa ayrıca kullanıcının kendi RLS korumalı bulut satırına eşitlenir — bkz.
 // cloud.ts; hesap opsiyoneldir). Bu bilinçli bir tasarım (gizlilik) ama tek bir yan etkisi var:
-// tarayıcı verisi temizlenirse, gizli sekmede çalışılırsa ya da cihaz değişirse HER ŞEY gider.
+// tarayıcının site verisi tamamen temizlenirse, gizli sekmede çalışılırsa ya da cihaz değişirse HER ŞEY gider.
 // Mevcut CSV dışa aktarma yalnızca VARLIKLARI kurtarıyordu; işlem geçmişi, öğretilen bilgiler,
 // stopaj oranları ve hedef dağılım kapsam dışıydı (CSV'nin içe aktarması da yalnızca varlık
 // alıyor). Bu modül beş katmanın tamamını tek dosyada taşır ve geri yükleyebilir.
@@ -138,8 +138,11 @@ export function applyUserData(data: unknown, opts: { mode: ApplyMode }): ApplyRe
     }
     for (const [key, v] of toWrite) localStorage.setItem(key, v);
   } catch {
+    // Yarım kalan yazımda ayna TETİKLENMEZ: eksik kalmış bir 'replace' aynadaki sağlam kopyayı silemesin.
+    // Ayna bir sonraki başarılı yazımda ya da açılışta localStorage ile eşitlenir.
     return { ok: false, reason: 'yazilamadi' };
   }
+  fireWrites();
   return { ok: true, written: toWrite.length };
 }
 
@@ -164,7 +167,23 @@ export function snapshotUserData(): Record<string, string> {
 // aboneliğini (subscribePortfolio) kullanır.
 const userDataListeners = new Set<() => void>();
 
+// Depolama yazma dinleyicileri (IndexedDB aynası, src/mirror.ts): kullanıcı katmanı localStorage'a
+// yazıldığında (katman kaydı, geri yükleme, bulut çekme) tetiklenir. İçerik taşımaz.
+const writeListeners = new Set<() => void>();
+
+export function subscribeUserDataWrites(fn: () => void): () => void {
+  writeListeners.add(fn);
+  return () => writeListeners.delete(fn);
+}
+
+function fireWrites(): void {
+  writeListeners.forEach(fn => {
+    try { fn(); } catch { /* dinleyici hatası yazma noktasını bozmasın */ }
+  });
+}
+
 export function notifyUserDataChanged(): void {
+  fireWrites();
   userDataListeners.forEach(fn => {
     try { fn(); } catch { /* dinleyici hatası yazma noktasını bozmasın */ }
   });

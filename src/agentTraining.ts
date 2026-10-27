@@ -6,6 +6,7 @@
 // gerçekten kullanıcı tarafından şekillendirilebilir — agentMemory.ts'teki (yalnızca
 // kullanım istatistiği tutan, davranışı değiştirmeyen) katmandan farklıdır.
 import { notifyUserDataChanged } from './backup';
+import { preserveCorruptRaw } from './recovery';
 
 const KEY = 'fagent.agent.training.v1';
 
@@ -18,12 +19,15 @@ export interface TrainedFact {
 }
 
 function load(): TrainedFact[] {
+  let raw: string | null = null;
   try {
-    const raw = localStorage.getItem(KEY);
+    raw = localStorage.getItem(KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) { preserveCorruptRaw(KEY, raw); return []; }
+    return parsed;
   } catch {
+    if (raw) preserveCorruptRaw(KEY, raw);
     return [];
   }
 }

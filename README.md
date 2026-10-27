@@ -22,7 +22,7 @@ Yaygın uygulamalar brütte durur; bir kısmı reeli hesaplar. Vergi halkasını
 
 **Temel ilke: API anahtarı gerektirmez.** Hiçbir özellik, istemci tarafında bir Anthropic/OpenAI
 anahtarı olmadan çalışmayı bırakmaz. Portföy verisi **varsayılan olarak** yalnızca tarayıcıda
-(`localStorage`) tutulur — veri toplama yok. Kullanıcı isterse opsiyonel bir **Fagent hesabı** açabilir;
+(`localStorage`; aynı tarayıcıdaki IndexedDB'de doğrulanmış bir ayna kopyasıyla) tutulur — veri toplama yok. Kullanıcı isterse opsiyonel bir **Fagent hesabı** açabilir;
 o zaman verisi yalnızca kendi hesabına bağlı, RLS korumalı tek bir kayda eşitlenir (bkz.
 "Hesap ve bulut senkronu (opsiyonel)"). Hesap kurulumda kapalıdır ve açılmadıkça hiçbir ağ isteği atılmaz.
 
@@ -109,6 +109,9 @@ Davranış:
 src/
   App.tsx           — tüm UI (sekmeler, formlar, grafikler, Ajan sohbet arayüzü)
   store.ts          — portföy veri modeli + actions (localStorage: fagent.portfolio.v1)
+  mirror.ts         — IndexedDB aynası: açılış (bootStorage), write-through, SIFIRLA silmesi; localStorage esas
+  recovery.ts       — bozuk kayıt ham değerinin kurtarma kopyası (fagent.recovery.corrupt.*)
+  storage/          — ince IndexedDB katmanı (idb, localStorage, yedekli depo, göç, ayna kuralları); bağımlılık yok
   market.ts         — döviz/kripto canlı fiyat (Frankfurter.dev, CoinGecko — anahtarsız)
   csv.ts            — varlık/işlem CSV dışa-içe aktarma
   agent.ts          — Ajan'ın YANIT MANTIĞI (saf fonksiyonlar, localStorage'a dokunmaz)
@@ -155,8 +158,8 @@ Ajanın davranışı üç ayrı katmandan oluşuyor. Her biri farklı bir soruya
 | Katman | Dosya | Soru | Kalıcı mı? |
 |---|---|---|---|
 | **Kısa süreli bağlam** | `App.tsx` (messages state) + `agent.ts` (intentId) | "Az önce ne konuştuk?" | Hayır — sekme/sayfa kapanınca sıfırlanır |
-| **Uzun süreli bellek** | `agentMemory.ts` | "Bu kullanıcı genelde neyle ilgileniyor?" | Evet — `localStorage`, davranışı değiştirmez, yalnızca kişiselleştirir |
-| **Eğitilebilir bilgi** | `agentTraining.ts` | "Kullanıcı bana ne öğretti?" | Evet — `localStorage`, davranışı DOĞRUDAN değiştirir |
+| **Uzun süreli bellek** | `agentMemory.ts` | "Bu kullanıcı genelde neyle ilgileniyor?" | Evet — `localStorage` (+ IndexedDB aynası), davranışı değiştirmez, yalnızca kişiselleştirir |
+| **Eğitilebilir bilgi** | `agentTraining.ts` | "Kullanıcı bana ne öğretti?" | Evet — `localStorage` (+ IndexedDB aynası), davranışı DOĞRUDAN değiştirir |
 
 ### 1. `chatReply()` — Yanıt Önceliği (agent.ts)
 

@@ -16,5 +16,7 @@ README.md, docs/entegrasyonlar.md, docs/yasal/*, docs/devir/* (kurulum-ve-devir.
 - Veri toplama/ağ iddiası (yasal, ilan): src/cloud.ts, src/evds.ts, canlı fiyat kaynakları ile karşılaştır.
 - Durum cümleleri ("çalışıyor", "kapalı"): kanıt ya da "doğrulanamadı". Dış API ve Supabase için "sahte Supabase ile yeşil".
 
+- Depolama (localStorage/IndexedDB aynası, kurtarma anahtarları, SIFIRLA yolu): `grep -rn -i "localStorage\|IndexedDB\|fagent.recovery\|fagent.mirror" README.md docs/entegrasyonlar.md docs/yasal docs/devir` (kaynak: src/mirror.ts, src/storage/mirror.ts, src/recovery.ts, src/localData.ts, src/backup.ts BACKED_UP_KEYS). Kullanıcıya görünen "veri silinirse" cümleleri (src/agent.ts, src/App.tsx) ve e2e seçicileri de aynı kalemde.
+
 ## Kural
 Belgeyi düzelten kalem, teslim notuna her iddia için `dosya:satır` kanıtı koyar.

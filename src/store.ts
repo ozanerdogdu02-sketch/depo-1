@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { preserveCorruptRaw } from './recovery.ts';
 
 // tahvil/bes/gayrimenkul 2026-09-04'te eklendi. Üçü de altın/mevduat ile AYNI mantıkta:
 // manuel girişli, canlı/tarihsel fiyat kaynağı yok, stopaj oranı doğrulanamadı (bkz. analytics.ts
@@ -129,11 +130,13 @@ let state: PortfolioState = load();
 const listeners = new Set<() => void>();
 
 function load(): PortfolioState {
+  let raw: string | null = null;
   try {
-    const raw = localStorage.getItem(KEY);
+    raw = localStorage.getItem(KEY);
     if (!raw) return EMPTY;
     const parsed = JSON.parse(raw) as PortfolioState;
-    if (!Array.isArray(parsed.holdings) || !Array.isArray(parsed.txns)) return EMPTY;
+    // Bozuk/beklenmeyen biçim: boş açılır AMA ham değer önce kurtarma anahtarına kopyalanır; ilk kayıt onu ezemez.
+    if (!parsed || !Array.isArray(parsed.holdings) || !Array.isArray(parsed.txns)) { preserveCorruptRaw(KEY, raw); return EMPTY; }
     // Eski sürümden gelen veride costBasis yoksa, kâr/zarar sıfır kabul edilir (amount'a eşitlenir).
     const holdings = parsed.holdings.map(h => ({
       ...h,
@@ -153,6 +156,7 @@ function load(): PortfolioState {
     const realizedPnl = typeof parsed.realizedPnl === 'number' ? parsed.realizedPnl : 0;
     return { ...parsed, holdings, txns, realizedPnl };
   } catch {
+    if (raw) preserveCorruptRaw(KEY, raw);
     return EMPTY;
   }
 }

@@ -3,7 +3,10 @@
 // Sürüm göçü: onupgradeneeded → UPGRADE_STEPS (schema.ts, SAF adımlar).
 import { ok, fail, DB_NAME, STORE_NAME, SCHEMA_VERSION } from './types.ts';
 import type { KvStore, Result, StorageErrorCode } from './types.ts';
-import { UPGRADE_STEPS, mergeRecord, toRecord, fromRecord } from './schema.ts';
+import { UPGRADE_STEPS, toRecord, fromRecord, isNewerSchema } from './schema.ts';
+
+// get() içinde 'daha yeni şema' ayrımı için iç işaret.
+const NEWER = Symbol('newer');
 
 function mapErr(e: unknown, what: string): Result<never> {
   const name = (e as { name?: string } | null)?.name ?? '';
@@ -48,6 +51,8 @@ export function openDb(factory: IDBFactory | undefined | null, name = DB_NAME, o
       const db = r.result;
       if (settled) { try { db.close(); } catch { /* yok */ } return; } // blocked sonrası geç gelen açılış: sızdırma
       db.onversionchange = () => { try { db.close(); } catch { /* yok */ } onClose(); };
+      // Tarayıcı bağlantıyı beklenmedik kapattığında (depolama silindi, disk hatası) önbellek sıfırlanır.
+      db.onclose = () => onClose();
       settle(ok(db));
     };
     r.onerror = () => {
@@ -64,12 +69,21 @@ export function createIdbStore(factory: IDBFactory | undefined | null, name = DB
   let dbP: Promise<Result<IDBDatabase>> | undefined;
   const db = () => (dbP ??= openDb(factory, name, () => { dbP = undefined; }));
 
-  async function run<T>(mode: IDBTransactionMode, what: string, fn: (s: IDBObjectStore) => Promise<T> | T): Promise<Result<T>> {
+  async function run<T>(mode: IDBTransactionMode, what: string, fn: (s: IDBObjectStore) => Promise<T> | T, retried = false): Promise<Result<T>> {
     const d = await db();
     if (!d.ok) { dbP = undefined; return d; }
     let tx: IDBTransaction | undefined;
     try {
-      tx = d.value.transaction(STORE_NAME, mode);
+      try {
+        tx = d.value.transaction(STORE_NAME, mode);
+      } catch (e) {
+        // Bağlantı kapanmış (InvalidStateError): önbelleği sıfırla; işlem hiç başlamadığı için bir kez yeniden dene.
+        if ((e as { name?: string } | null)?.name === 'InvalidStateError') {
+          dbP = undefined;
+          if (!retried) return run(mode, what, fn, true);
+        }
+        throw e;
+      }
       const done = txDone(tx);
       done.catch(() => {}); // fn önce hata verirse işlenmemiş reddedilme olmasın; hata aşağıda ele alınır
       const out = await fn(tx.objectStore(STORE_NAME));
@@ -86,16 +100,24 @@ export function createIdbStore(factory: IDBFactory | undefined | null, name = DB
     async get(key) {
       const r = await run('readonly', 'okuma', async s => {
         const rec: unknown = await req(s.get(key));
+        if (rec !== undefined && isNewerSchema(rec)) return NEWER;
         return rec === undefined ? undefined : fromRecord(rec);
       });
+      if (r.ok && r.value === NEWER) return fail('version', `Kayıt daha yeni bir şema sürümünde; okunmadı: ${key}`);
       if (r.ok && r.value === null) return fail('corrupt', `Kayıt biçimi bozuk: ${key}`);
       return r as Result<string | undefined>;
     },
-    set: (key, value) => run('readwrite', 'yazma', async s => {
-      // Aynı işlemde mevcut kaydı oku: daha yeni şemalı kaydın alanları düşürülmesin.
-      const existing: unknown = await req(s.get(key));
-      await req(s.put(mergeRecord(existing, key, value, Date.now())));
-    }),
+    async set(key, value) {
+      const r = await run('readwrite', 'yazma', async s => {
+        // Aynı işlemde mevcut kaydı oku: daha yeni şemalı kayıt ASLA üzerine yazılmaz (alanları düşerdi).
+        const existing: unknown = await req(s.get(key));
+        if (isNewerSchema(existing)) return false;
+        await req(s.put(toRecord(key, value, Date.now())));
+        return true;
+      });
+      if (r.ok && !r.value) return fail('version', `Kayıt daha yeni bir şema sürümünde; yazılmadı: ${key}`);
+      return r as Result<void>;
+    },
     // Tek readwrite işleminde add: kayıt varsa ConstraintError -> false (DEĞİŞTİRİLMEZ).
     addIfAbsent: (key, value) => run('readwrite', 'yazma', s => new Promise<boolean>((resolve, reject) => {
       const r = s.add(toRecord(key, value, Date.now()));

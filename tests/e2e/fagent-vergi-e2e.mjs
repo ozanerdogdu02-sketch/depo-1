@@ -13,7 +13,7 @@
 import { chromium } from 'playwright-core';
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium' });
-const out = process.env.TEST_ARTIFACTS;
+const out = process.env.TEST_ARTIFACTS || '/tmp';
 let failed = false;
 const check = (label, ok) => { console.log(`${ok ? '✓' : '✗'} ${label}`); if (!ok) failed = true; };
 

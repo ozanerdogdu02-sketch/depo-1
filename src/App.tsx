@@ -419,7 +419,7 @@ function TargetAllocationCard({ targets, onChange }: { targets: TargetAllocation
 //
 // FAGENT'ın verisi varsayılan olarak yalnızca tarayıcıda durur (hesap açılırsa ayrıca kullanıcının
 // kendi RLS korumalı bulut kaydına eşitlenir — cloud.ts) — bu bilinçli bir gizlilik tercihi, ama tek
-// yan etkisi şu: tarayıcı verisi temizlenirse ya da cihaz değişirse her şey gider. Mevcut CSV
+// yan etkisi şu: tarayıcının site verisi tamamen temizlenirse ya da cihaz değişirse her şey gider. Mevcut CSV
 // dışa aktarma yalnızca VARLIKLARI kurtarıyordu; işlem geçmişi, öğretilen bilgiler, stopaj
 // oranları ve hedef dağılım kapsam dışıydı. Bu kart beş katmanın tamamını taşır.
 //
@@ -481,7 +481,7 @@ function BackupCard() {
             {synced
               ? 'Verilerin bu tarayıcıda saklanıyor ve Fagent hesabına eşitleniyor; yedek dosyası yine de ' +
                 'senin elinde duran ikinci bir kopyadır. '
-              : 'Verilerin yalnızca bu tarayıcıda saklanıyor — tarayıcı verisi temizlenirse ya da cihaz ' +
+              : 'Verilerin yalnızca bu tarayıcıda saklanıyor — tarayıcının site verisi tamamen temizlenirse ya da cihaz ' +
                 'değişirse geri getirilemez. '}
             Yedek portföyü, işlem geçmişini, öğretilen bilgileri, stopaj
             oranlarını ve hedef dağılımı birlikte taşır.

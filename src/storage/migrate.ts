@@ -11,7 +11,12 @@ import type { KvStore, StorageError } from './types.ts';
 
 export type MigrateStatus = 'kopyalandi' | 'zaten' | 'kaynakta-yok' | 'cakisma' | 'hata';
 
-export interface MigrateEntry { key: string; status: MigrateStatus; error?: StorageError }
+// rollback: doğrulama başarısızken kendi yazdığımız kopyanın geri alınma sonucu.
+//   'geri-alindi' = silindi; 'degisti' = hedefteki değer artık bizimki değil, DOKUNULMADI;
+//   'basarisiz' = geri alma işlemi hata verdi (yarım kopya hedefte kalmış olabilir; rollbackError'a bak);
+//   'yapilmadi' = geri alma denenmedi (değer okundu ama eşleşmedi: hedefte ne olduğu belirsiz, dokunulmadı).
+export type RollbackResult = 'geri-alindi' | 'degisti' | 'basarisiz' | 'yapilmadi';
+export interface MigrateEntry { key: string; status: MigrateStatus; error?: StorageError; rollback?: RollbackResult; rollbackError?: StorageError }
 export interface MigrateReport { entries: MigrateEntry[]; ok: boolean; error?: StorageError }
 
 export async function migrateKeys(source: KvStore, target: KvStore, keys: readonly string[]): Promise<MigrateReport> {
@@ -39,8 +44,13 @@ export async function migrateKeys(source: KvStore, target: KvStore, keys: readon
     // karşılaştır+sil): okuma geçici hata verdiyse yarım kopya temizlenir; hedefte BAŞKA bir değer
     // varsa (bozulma ya da başka sekmenin yazısı) ona dokunulmaz, hata raporlanır. Kaynak zaten
     // dokunulmamış; sonraki koşuda o anahtar 'cakisma' olarak görünür.
-    if (!back.ok) await target.deleteIfEquals(key, src.value);
-    entries.push({ key, status: 'hata', error: back.ok
+    let rollback: RollbackResult = 'yapilmadi';
+    let rollbackError: StorageError | undefined;
+    if (!back.ok) {
+      const rb = await target.deleteIfEquals(key, src.value);
+      if (!rb.ok) { rollback = 'basarisiz'; rollbackError = rb.error; } else rollback = rb.value ? 'geri-alindi' : 'degisti';
+    }
+    entries.push({ key, status: 'hata', rollback, ...(rollbackError ? { rollbackError } : {}), error: back.ok
       ? { code: 'verify', message: 'Yazılan değer geri okununca eşleşmedi' }
       : back.error });
   }

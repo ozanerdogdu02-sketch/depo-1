@@ -8,6 +8,7 @@
 // tamamen yerel/kuralsal biçimde uygulanır.
 import { AssetType } from './store';
 import { notifyUserDataChanged } from './backup';
+import { preserveCorruptRaw } from './recovery';
 
 const KEY = 'fagent.agent.memory.v1';
 
@@ -52,8 +53,9 @@ function empty(): AgentMemoryProfile {
 }
 
 function load(): AgentMemoryProfile {
+  let raw: string | null = null;
   try {
-    const raw = localStorage.getItem(KEY);
+    raw = localStorage.getItem(KEY);
     if (!raw) return empty();
     const parsed = JSON.parse(raw) as Partial<AgentMemoryProfile>;
     const dp = defaultPrefs();
@@ -76,6 +78,7 @@ function load(): AgentMemoryProfile {
       lastAnalysisAt: parsed.lastAnalysisAt ?? '',
     };
   } catch {
+    if (raw) preserveCorruptRaw(KEY, raw);
     return empty();
   }
 }

@@ -6,7 +6,7 @@ Her satır numarası bu belgenin yazıldığı gün kodda doğrulandı; kayabili
 
 ## 1. Mevcut veri akışı envanteri
 
-### 1.1 Kalıcı depolama (yalnız localStorage; IndexedDB/OPFS kullanımı yok: `grep -rn indexedDB src` boş)
+### 1.1 Kalıcı depolama (25.10 durumu: yalnız localStorage, `grep -rn indexedDB src` boştu; 27.10'da IndexedDB aynası eklendi, bkz. "P3 bağlama — yapılan")
 
 | Anahtar | Ne | Yazan / okuyan | Yedek+bulut listesinde |
 |---|---|---|---|
@@ -66,7 +66,7 @@ Tarayıcıdan üçüncü tarafa gidenler: kullanıcının IP adresi, tarayıcı 
 
 | # | Kural | Durum | Fark / kanıt |
 |---|---|---|---|
-| 1 | Kullanıcı verisi sunucuya gitmez; yalnız ekip verisi uçtan uca şifreli | KISMEN ✗ | (a) Hesapsız varsayılan derleme: sunucuya veri gitmiyor (✓, `dist/` Supabase'siz derleniyor, `tests/run-e2e.mjs`). Env doluysa 5 katman düz metin jsonb olarak sunucuda (`src/cloud.ts:285-306`, migration `data jsonb`): ÇELİŞKİ. Ek: e-posta kimliktir. Ayrıca sembol/kimlik üçüncü tarafa gidiyor (§1.2). (b) Yerel depolama IndexedDB/OPFS değil localStorage: kural metni "IndexedDB/OPFS" der, fark var. (c) Log/analitik: bu depoda analitik yok (`grep -rniE "gtag|sentry|plausible|mixpanel|posthog" src index.html` boş; harici betik taraması `npm run guvenlik` ile ayrıca doğrulanmalı). |
+| 1 | Kullanıcı verisi sunucuya gitmez; yalnız ekip verisi uçtan uca şifreli | KISMEN ✗ | (a) Hesapsız varsayılan derleme: sunucuya veri gitmiyor (✓, `dist/` Supabase'siz derleniyor, `tests/run-e2e.mjs`). Env doluysa 5 katman düz metin jsonb olarak sunucuda (`src/cloud.ts:285-306`, migration `data jsonb`): ÇELİŞKİ. Ek: e-posta kimliktir. Ayrıca sembol/kimlik üçüncü tarafa gidiyor (§1.2). (b) Yerel depolama (25.10 durumu; 27.10'da IndexedDB aynası eklendi, bkz. P3 bağlama): esas localStorage, IndexedDB yalnız ayna; kural metni "IndexedDB/OPFS" der, asıl okuma geçişi yapılmadı, fark sürüyor. (c) Log/analitik: bu depoda analitik yok (`grep -rniE "gtag|sentry|plausible|mixpanel|posthog" src index.html` boş; harici betik taraması `npm run guvenlik` ile ayrıca doğrulanmalı). |
 | 2 | Tavsiye dili yok; her hesap ekranında bilgilendirme uyarısı | KISMEN ✓ | Adım 3'te tavsiye kalıpları temizlendi. "Yatırım tavsiyesi değildir" ifadesi yalnız bazı ekranlarda (`src/App.tsx:410,1695,1921`); "her hesap ekranında" şartı doğrulanmadı, ekran envanteri yapılmadı. Tasarım kapsamı dışında, burada yalnız not. |
 | 3 | Palet siyah/antrasit/gri, yeni renk yok | İNCELENMEDİ | Kapsam kararı tasarımı kapsamıyor. Not: `src/index.css:7` `--bg:#131722` (mavimsi koyu); spec ile uyumu tasarım işidir. |
 | 4 | Hareket: data-motion, reduced-motion, animation-timeline | KISMEN | `prefers-reduced-motion` var (`src/index.css:264,285,310`); `data-motion` yok (grep boş). Kapsam dışı. |
@@ -267,3 +267,30 @@ Spec sırası P3, P4, P5, P6 ve "öncekinin kabulü olmadan başlamaz" der. 1. v
 - **Y4:** `lastDegraded()` asıl depo başarılı olunca temizlenmeli (ya da "son hata" diye belgelenmeli).
 - **Y5:** `migrate.ts` geri alma (`deleteIfEquals`) sonucu rapora yansımalı.
 - **Ayrıca:** SIFIRLA ve çıkış IndexedDB'yi de silmeli; `load()` bozuk kayıtta boş duruma düşüp ilk kayıtta ezmemeli (`corrupt` ayrı ele alınmalı); yedek ve bulut için tek gerçek kaynak yazılı belirlenmeli; gerçek tarayıcıda (Playwright) IndexedDB e2e testi yazılmalı. Birim testler yalnızca sahte IndexedDB ile yeşil.
+
+
+## P3 bağlama — yapılan (2026-10-27)
+
+**TEK GERÇEK KAYNAK (bu adım): localStorage ESAS, IndexedDB DOĞRULANMIŞ AYNA.** `store.ts load()` ve diğer katmanlar localStorage'ı senkron okur; yedek (`backup.ts`) ve bulut (`cloud.ts`) localStorage'ı görmeye devam eder. IndexedDB'ye yazılan her değer geri okunup doğrulanır; kopyalar arasında sessiz seçim yapılmaz.
+
+Giriş koşulları: Y1 (`resilient.ts`: version/blocked'da yazma yedeğe düşmez, io/quota'da yazılan anahtar kirli işaretlenir ve okumada önce yedek kullanılır), Y2 (daha yeni şemalı kayda set `version` döner, `fromRecord` reddeder, get `version` döner), Y3 (`db.onclose` + InvalidStateError'da bağlantı sıfırlanıp bir kez yeniden denenir), Y4 (`lastDegraded` başarıda temizlenir; kirli anahtar varken kalır), Y5 (göç raporunda `rollback`: geri-alindi / degisti / basarisiz / yapilmadi) KAPANDI; her biri birim testli (`tests/unit/depolama.test.ts`, sahte IndexedDB).
+
+Karar kuralları (açılış, `bootStorage()` React ve store'dan ÖNCE; 2,5 sn zaman aşımı):
+
+| localStorage (l) | IndexedDB (i) | Sonuç |
+|---|---|---|
+| yok | yok | yapılacak bir şey yok |
+| var | yok | i'ye kopyalanır |
+| var | var, aynı | yapılacak bir şey yok |
+| var | var, FARKLI | hiçbiri ezilmez; l esas; i'nin değeri IndexedDB'de `fagent.recovery.idb.<anahtar>` kaydına alınır, konsola yalnız anahtar adı yazılır |
+| beş katmanın HİÇBİRİ yok | var | l'ye geri yüklenir, geri okunup doğrulanır |
+| bazı katmanlar var, bu yok | var | geri yükleme YOK (kısmi durum bilerek silinmiş sayılır); i değeri kurtarma kaydına alınır |
+| okunamıyor / IndexedDB hatalı | - | o anahtar `hata`; localStorage'a dokunulmaz |
+| açılış zaman aşımı | - | uygulama açılır, o oturumda ayna kapalı, gecikmeli açılış localStorage'a yazmaz |
+| silme işareti var | - | önce ayna silinir, geri yükleme yapılmaz |
+
+Yazma: katman değişince (`subscribePortfolio`, `notifyUserDataChanged`, `applyUserData` yani geri yükleme ve bulut çekme) localStorage'ın o anki hali sıralı kuyrukla IndexedDB'ye yazılır; yok ise silinir. Hata uygulamayı bozmaz, `getStorageSnapshot()` içinde görünür. SIFIRLA ve çıkış: localStorage'a senkron silme işareti (`fagent.mirror.cleared.v1`), sonra aynada anahtarlar ve kurtarma kayıtları silinir, işaret kalkar; silme bitmeden sayfa yenilenirse açılış işareti görüp geri yüklemez. Bozuk kayıt: beş katmanın okuyucuları bozuk ham değeri `fagent.recovery.corrupt.<anahtar>[.2-.5]` anahtarına kopyalar (en çok 5 farklı kopya), sonra boş açılır; bu anahtarlar `BACKED_UP_KEYS` dışıdır (yedeğe ve buluta gitmez) ve SIFIRLA/çıkışta silinir.
+
+Gerçek Chromium IndexedDB'sine karşı e2e: `tests/e2e/fagent-depolama-e2e.mjs` (33 kontrol). Tam kapı sonucu: 732 geçti (699 + 33), 0 başarısız. Dış ağ kullanılmadı; Supabase testleri sahte Supabase ile yeşil.
+
+Kalan işler (ayrı adım, kullanıcı onayıyla): asıl okumanın localStorage'dan IndexedDB'ye geçişi (store.ts load() asenkron/önbellekli olmalı; o zaman yedekli depo ve kirli anahtar kuralı devreye girer); uyumluluk aynasının (localStorage) ne zaman kalkacağı (§5 madde 4); kurtarma kayıtları ve otomatik geri yükleme için kullanıcıya görünür bildirim (tasarım kullanıcıda; yapılmadı); IndexedDB silme hatasında verinin aynada KALMASI (silme işareti kalır, ayna o oturumda kapalı, sonraki açılışta yeniden denenir; geri yükleme yapılmaz); IndexedDB `delete` mantıksal silmedir, fiziksel silme tarayıcıya bağlıdır (gizlilik metni notu `aydinlatma-kvkk.md`'ye eklendi, avukat onayı gerekir); çok sekme / `storage` olayı (#35 sınıfı: bir sekmede SIFIRLA/çıkış yapılırken diğer sekmenin yazması aynayı yeniden doldurabilir; canlı eşitleme yok); D-b: kurtarma kaydı sınırı (anahtar başına 3) bozuk-değer kopyasını döndürüp atabilir; bozuk değer kopyaları ayrı tutulmalı (yapılmadı); D-c: açılış zaman aşımı (2,5 sn) ile SIFIRLA yarışı: açılış geç biterse ve araya SIFIRLA girerse işaret/ayna sırası sınanmadı; D-e: ayna kapanınca (silme hatası, zaman aşımı, koruma) kullanıcıya bildirim yok (tasarım kullanıcıda); #41 sınıfı: kısmi `replace` yazımında eksik kalan katmanlar arayüzde görünmüyor (ayna bu durumda tetiklenmez, yalnızca sonraki yazımda/açılışta eşitlenir); 256 KB üstü bozuk ham değer localStorage'a kopyalanmaz (yalnız uzunluk notu); IndexedDB kurtarma kaydına yazılır, kayıt garanti edilemezse ayna aynadaki değeri ezmez (not kalır, yeniden denenir); çok sekmeli yarışta (iki sekme farklı açılış kararı) `storage` olayı ile canlı eşitleme yok; IndexedDB'de ayrılan alan sınırı/kota davranışı gerçek cihazlarda sınanmadı.

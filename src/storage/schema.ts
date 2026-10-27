@@ -11,9 +11,16 @@ export function toRecord(key: string, value: string, updatedAt: number): KvRecor
   return { key, value, updatedAt, schema: CURRENT_RECORD_SCHEMA };
 }
 
-// Yazarken: mevcut kayıt DAHA YENİ şemadan ise (schema > güncel) onun bilinmeyen alanları ve
-// sürüm numarası korunur; yalnızca key/value/updatedAt güncellenir. Aksi halde eski kod yeni
-// sürümün alanlarını `schema:1` ile geri yazıp düşürürdü.
+// DAHA YENİ şemalı kayıt (schema > güncel): bu kod onu ne okur ne yazar (idb.ts: get/set 'version'
+// hatası döner, kayda DOKUNULMAZ). Yeni sürümün alanlarını yanlış yorumlamak ya da düşürmek yerine reddedilir.
+export function isNewerSchema(raw: unknown): boolean {
+  if (typeof raw !== 'object' || raw === null) return false;
+  const sch = (raw as { schema?: unknown }).schema;
+  return typeof sch === 'number' && sch > CURRENT_RECORD_SCHEMA;
+}
+
+// Yardımcı (idb.ts set artık bunu KULLANMAZ: daha yeni şemalı kayıt yazılmaz, bkz. isNewerSchema).
+// Daha yeni şemalı kaydın alanlarını korur; yalnızca key/value/updatedAt güncellenir.
 export function mergeRecord(existing: unknown, key: string, value: string, updatedAt: number): KvRecord {
   if (typeof existing === 'object' && existing !== null) {
     const sch = (existing as { schema?: unknown }).schema;
@@ -25,9 +32,11 @@ export function mergeRecord(existing: unknown, key: string, value: string, updat
 }
 
 // Eski/bilinmeyen biçimden metin değeri çıkarır; tanınmazsa null (çağıran 'corrupt' döner,
-// kayıt SİLİNMEZ). Gelecekteki sürümden gelen kayıt (schema > güncel) da okunur: value metinse.
+// kayıt SİLİNMEZ). Gelecekteki sürümden gelen kayıt (schema > güncel) REDDEDİLİR (null);
+// çağıran önce isNewerSchema ile ayırıp 'version' döner.
 export function fromRecord(raw: unknown): string | null {
   if (typeof raw === 'string') return raw; // v0: zarfsız düz metin
+  if (isNewerSchema(raw)) return null;
   if (typeof raw === 'object' && raw !== null && typeof (raw as { value?: unknown }).value === 'string') {
     return (raw as { value: string }).value;
   }

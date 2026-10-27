@@ -10,6 +10,7 @@
 // o ayrımın kod tarafındaki karşılığıdır.
 import { AssetType, ASSET_LABELS } from './store';
 import { notifyUserDataChanged } from './backup';
+import { preserveCorruptRaw } from './recovery';
 
 const KEY = 'fagent.target.v1';
 
@@ -25,15 +26,16 @@ function emptyTargets(): TargetAllocation {
 // Bozuk/eksik alanlar 0'a tamamlanır — tek bozuk anahtar tüm tabloyu düşürmesin.
 export function getTargets(): TargetAllocation {
   const base = emptyTargets();
+  let raw: string | null = null;
   try {
-    const raw = localStorage.getItem(KEY);
+    raw = localStorage.getItem(KEY);
     if (!raw) return base;
     const parsed = JSON.parse(raw) as Partial<Record<AssetType, unknown>>;
     for (const k of Object.keys(base) as AssetType[]) {
       const v = parsed[k];
       if (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 100) base[k] = v;
     }
-  } catch { /* bozuk kayıt — boş hedeflerle devam */ }
+  } catch { if (raw) preserveCorruptRaw(KEY, raw); /* bozuk kayıt — boş hedeflerle devam; ham değer kurtarma anahtarında */ }
   return base;
 }
 

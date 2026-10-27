@@ -10,6 +10,7 @@
 import { AssetType } from './store';
 import { DEFAULT_TAX_RATES } from './analytics';
 import { notifyUserDataChanged } from './backup';
+import { preserveCorruptRaw } from './recovery';
 
 const KEY = 'fagent.tax.v1';
 
@@ -19,15 +20,16 @@ export type TaxRates = Record<AssetType, number>;
 // Bozuk/eksik alanlar varsayılandan tamamlanır — tek bozuk anahtar tüm tabloyu düşürmesin.
 export function getTaxRates(): TaxRates {
   const base = { ...DEFAULT_TAX_RATES };
+  let raw: string | null = null;
   try {
-    const raw = localStorage.getItem(KEY);
+    raw = localStorage.getItem(KEY);
     if (!raw) return base;
     const parsed = JSON.parse(raw) as Partial<Record<AssetType, unknown>>;
     for (const k of Object.keys(base) as AssetType[]) {
       const v = parsed[k];
       if (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 100) base[k] = v;
     }
-  } catch { /* bozuk kayıt — varsayılanlarla devam */ }
+  } catch { if (raw) preserveCorruptRaw(KEY, raw); /* bozuk kayıt — varsayılanlarla devam; ham değer kurtarma anahtarında */ }
   return base;
 }
 
