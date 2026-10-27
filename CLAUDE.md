@@ -52,6 +52,12 @@ Local-first ilkesiyle uzlaşma: Supabase isteğe bağlı katman olarak durur, va
 - TASARIM: ekranda yalnızca PROJEKSİYON paneli kalır; diğer panellerin (Panel, Bugün, Hisseler, Fonlar, Kripto, Kripto Piyasası, İşlemler, Ajan) görevleri arka planda motor olarak çalışır ve projeksiyonu besler. Kapsam: altyapı + veri akışı + projeksiyon ekranı.
 - EVDS anahtarı: Vercel `fagent` projesinde ortam değişkeni YOK (27.10 kontrol, hiç değişken yok). Kullanıcı eski sürümde kullandığını söyledi; eski Netlify/başka projede olabilir. Kullanıcı eklemeli.
 
+## HEDEF (kullanıcı onayı, 2026-10-28): YOL HARİTASI = ANA HEDEF
+
+`docs/yol-haritasi-birlesik.md` (YH-1…YH-8) projenin güncel hedefidir; çalışma bu sırayla yürür. Tasarım kullanıcıdadır (ayrı oturum).
+Bitiş sırası: uygulama son aşamaya gelir → kullanıcı altyapıyı kendisi test eder → alan adı alınır → yayına geçilir (fagent.vercel.app üretime geçişi ve `VITE_SUPABASE_*` kararı da o zaman ele alınır).
+Her adım sonunda kapı (typecheck, build, güvenlik taraması, birim, e2e) + güvenlik + uyum incelemesi; yeşil olmadan commit yok.
+
 ## KAPSAM KARARI (kullanıcı, 2026-10-25): YALNIZCA ALTYAPI VE VERİ AKIŞI
 
 Kullanıcı "prompt dizini"ni verdi ve "altyapı ve veri akışı sistemini kuralım; bunun dışında herhangi bir şey yapmayacağız" dedi. Spesifikasyon: `docs/veri-akisi/spec.md`
