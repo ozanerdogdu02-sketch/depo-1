@@ -249,6 +249,7 @@ export const actions = {
   // (gerçek maliyet fiyat + ücrettir); satışta gerçekleşen kârdan düşülür.
   // kind burada bilerek 'alis'|'satis' ile SINIRLI — 'gelir' işlemi addIncome() ile ayrı
   // yoldan gider (aşağıda), çünkü mantığı köktenfarklı: varlığın amount/costBasis'ine DOKUNMAZ.
+  // TODO(muhasebe): komisyonun vergisel işlenişi (maliyete eklenir mi, BSMV/KDV) doğrulanmadı.
   addTxn(holdingId: string, kind: 'alis' | 'satis', amount: number, commission = 0): void {
     const holding = state.holdings.find(h => h.id === holdingId);
     if (!holding) return; // savunma: varlık bu sırada silinmiş olabilir

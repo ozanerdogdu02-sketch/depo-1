@@ -145,6 +145,7 @@ export function applyUserData(data: unknown, opts: { mode: ApplyMode }): ApplyRe
 
 // Kullanıcı katmanlarının anlık görüntüsü — buildBackup'ın `data` kısmı ve bulut satırının
 // gövdesi. Yalnızca BACKED_UP_KEYS; önbellekler, meta ve oturum token'ı GİRMEZ.
+// TODO(hukuk): yedek dosyası kişisel finansal veri içerir; dosyanın ele geçmesine karşı bilgilendirme metni hukuken gözden geçirilmedi.
 export function snapshotUserData(): Record<string, string> {
   const data: Record<string, string> = {};
   for (const key of BACKED_UP_KEYS) {

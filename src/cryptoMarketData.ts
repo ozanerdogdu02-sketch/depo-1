@@ -107,6 +107,7 @@ export async function loadTopCoins(count = DEFAULT_COIN_COUNT, opts: { force?: b
 }
 
 // En büyük `count` coini piyasa değerine göre döner. Yalnızca CoinGecko genel ucu — anahtar yok.
+// TODO(hukuk): CoinGecko coins/markets verisinin ürün içinde gösterimi ve atıf şartları doğrulanmadı.
 export async function fetchTopCoins(count = DEFAULT_COIN_COUNT): Promise<CryptoMarketCoin[]> {
   // sparkline=true: son 7 günün fiyat serisini de getirir — EK İSTEK MALİYETİ YOK,
   // satır içi mini grafikler bu veriden çizilir.

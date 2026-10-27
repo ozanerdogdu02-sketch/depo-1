@@ -69,6 +69,8 @@ function valueOf(item: Record<string, unknown>): number | undefined {
 }
 
 // Yıllık enflasyonu döner. Başarısızlıkta `undefined` — throw ETMEZ.
+// TODO(hukuk): TCMB EVDS verisinin yeniden yayınlanması ve API anahtarı kullanım şartları doğrulanmadı.
+// TODO(muhasebe): TÜFE seri kodu TP.FG.J0 gerçek veriyle doğrulanmadı.
 export async function fetchInflationPct(signal?: AbortSignal): Promise<InflationReading | undefined> {
   const cached = readCache();
   if (cached) return cached;

@@ -13,11 +13,9 @@
 import { useSyncExternalStore } from 'react';
 import { fetchInflationPct } from './evds';
 
-// TÜİK Eylül 2026 yıllık TÜFE %29,73 (5 Ekim 2026) — haber kaynaklı, birincil kaynakla doğrulanmalı;
-// metinlerde tam sayı kullanıldığı için %30'a yuvarlandı. Canlı veri gelemezse kullanılan değer budur.
-// EVDS entegrasyonu devreye girdiğinde bu yalnızca bir GERİ DÜŞME değeri olarak kalır —
-// ama bayatlamaması için yine de dönemsel olarak elden güncellenmeli.
-export const VARSAYILAN_ENFLASYON_PCT = 30;
+// Varsayılan değer, kaynağı ve doğrulama durumu: src/config/varsayilanlar.ts. Canlı veri (EVDS) gelemezse bu kullanılır.
+import { VARSAYILAN_ENFLASYON_PCT } from './config/varsayilanlar.ts';
+export { VARSAYILAN_ENFLASYON_PCT };
 
 export type InflationSource = 'varsayim' | 'evds' | 'kullanici';
 

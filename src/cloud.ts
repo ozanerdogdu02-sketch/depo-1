@@ -65,6 +65,7 @@ const TABLE = 'portfolios';
 const ROW_FORMAT_VERSION = 1;
 // İstemci tarafı boyut sınırı (JSON.stringify uzunluğu). Migration'daki
 // pg_column_size(data) < 2000000 kısıtının altında kalır; okuma da aynı sınırla korunur.
+// TODO(hukuk): bulut senkronu açılacaksa KVKK aydınlatma/açık rıza, veri işleyen (Supabase) sözleşmesi ve yurt dışına aktarım gözden geçirilmedi.
 export const MAX_SYNC_CHARS = 1_500_000;
 // Kayıt gecikmesi — kısa tutuldu: kullanıcının başlatmadığı bir oturum düşüşünde yerel veri
 // temizlenir; henüz gönderilmemiş son değişikliğin kaybolma penceresi bu kadardır.
@@ -696,6 +697,7 @@ export async function signOut(): Promise<void> {
 // açık bir onay adımından sonra çağırır. `delete_my_account` veritabanı fonksiyonu
 // parametresizdir ve yalnızca oturum sahibinin hesabını siler; portföy satırı yabancı anahtar
 // üzerinden (on delete cascade) birlikte gider.
+// TODO(hukuk): hesap silme akışının KVKK silme/yok etme yükümlülüğü açısından yeterliliği doğrulanmadı.
 export async function deleteAccount(): Promise<AuthResult> {
   const client = getClient();
   if (!client) return DISABLED;

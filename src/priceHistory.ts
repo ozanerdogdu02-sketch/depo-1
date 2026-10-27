@@ -50,6 +50,7 @@ const isoDay = (ms: number) => new Date(ms).toISOString().slice(0, 10);
 /* ─────────────────────────  Kripto — CoinGecko  ───────────────────────── */
 
 // market_chart: { prices: [[timestampMs, fiyat], ...] } döner. days>=90 için granülerlik günlüktür.
+// TODO(hukuk): CoinGecko geçmiş veri kullanım koşulları ve yeniden dağıtım doğrulanmadı.
 export async function fetchCryptoHistory(coinId: string, days = 90): Promise<PricePoint[]> {
   const url = `https://api.coingecko.com/api/v3/coins/${encodeURIComponent(coinId)}/market_chart?vs_currency=try&days=${days}`;
   let res: Response;
@@ -81,6 +82,7 @@ export async function fetchCryptoHistory(coinId: string, days = 90): Promise<Pri
 /* ─────────────────────────  Döviz — Frankfurter (ECB)  ───────────────────────── */
 
 // { rates: { "2026-01-02": { TRY: 41.2 }, ... } } döner. ECB yalnızca iş günü yayımlar.
+// TODO(hukuk): Frankfurter (AB Merkez Bankası referans kuru) kullanım koşulları doğrulanmadı.
 export async function fetchFxHistory(code: string, days = 90): Promise<PricePoint[]> {
   const end = new Date();
   const start = new Date(end.getTime() - days * 86_400_000);

@@ -17,7 +17,12 @@
 //   • Katkı ayrıştırma — güncel değerin ne kadarı yatırılan para, ne kadarı getiri
 //   • Volatilite, maksimum düşüş, Sharpe, korelasyon, kovaryansla çeşitlendirme faydası
 
-import { PortfolioState, AssetType, totalValue, totalCost, localDateString } from './store';
+import { totalValue, totalCost, localDateString } from './store.ts';
+import type { PortfolioState, AssetType } from './store.ts';
+import { DEFAULT_TAX_RATES, UNVERIFIED_TAX, DRIFT_ABSOLUTE_BAND_PP, DRIFT_RELATIVE_BAND } from './config/varsayilanlar.ts';
+
+// Oran sabitleri src/config/varsayilanlar.ts'e taşındı (P0 kural 6); mevcut içe aktaranlar kırılmasın diye yeniden dışa aktarılır.
+export { DEFAULT_TAX_RATES, UNVERIFIED_TAX, DRIFT_ABSOLUTE_BAND_PP, DRIFT_RELATIVE_BAND };
 
 const MS_PER_DAY = 86_400_000;
 const DAYS_PER_YEAR = 365;
@@ -175,8 +180,6 @@ export function concentrationOf(s: PortfolioState): Concentration | undefined {
    ÖLÇÜLÜR. "Şu dağılımı hedefle" demek yatırım tavsiyesidir; "kendi koyduğun hedeften şu kadar
    saptın" aritmetiktir. Fonksiyon saf: hedefler dışarıdan (targetAllocation.ts) gelir. */
 
-export const DRIFT_ABSOLUTE_BAND_PP = 5;    // mutlak eşik (puan)
-export const DRIFT_RELATIVE_BAND = 0.25;    // göreli eşik (hedefin oranı)
 
 export function driftBandOf(targetPct: number): number {
   return Math.min(DRIFT_ABSOLUTE_BAND_PP, targetPct * DRIFT_RELATIVE_BAND);
@@ -491,36 +494,7 @@ export function volatilityLevel(annualVolPct: number): 'dusuk' | 'orta' | 'yukse
    Bu katmanı bankalar göstermek istemez (mevduat stopajını görünür kılar); bağımsız bir ürün
    gösterebilir. Hesap saf ve basittir, zor olan ORANIN DOĞRU OLMASIDIR — bkz. aşağıdaki not. */
 
-// Stopaj oranları ELLE GÜNCELLENEN VARSAYIMLARDIR — tıpkı enflasyon gibi. Otomatik çekilebilecek
-// resmî/anahtarsız bir uç yok ve oranlar Cumhurbaşkanı Kararı ile sık değişiyor.
-//
-// Kaynak (2026-08-01 itibarıyla doğrulandı): 27.03.2026 tarihli 11107 sayılı Cumhurbaşkanı Kararı
-// (Resmî Gazete) — yatırım fonu katılma payı kazançlarında stopaj %15 → %17,5 (01.05.2026'dan
-// itibaren elde edilen kazançlar için). TL mevduatta 6 aya kadar vade %17,5; 1 yıla kadar vade
-// %15. Hisse senedi yoğun fonlarda %0 istisnası sürüyor (TEFAS'ta işlem görmeyen serbest hisse
-// yoğun fonlar bu istisnadan çıkarıldı).
-//
-// DOĞRULANAMAYANLAR 0 BIRAKILDI, UYDURULMADI: kripto, altın ve döviz için netleşmiş bir stopaj
-// rejimi bu tarihte doğrulanamadı. Sıfır yazmak "vergi yok" iddiası DEĞİLDİR — "bu ürün bir oran
-// varsaymıyor, sen gir" demektir; arayüz ve ajan metni bunu açıkça söyler (bkz. UNVERIFIED_TAX).
-// Vergi oranı uydurmak, sahte fiyat göstermekle aynı sınıfta bir hatadır (AGENTS.md §0.2).
-export const DEFAULT_TAX_RATES: Record<AssetType, number> = {
-  fon: 17.5,
-  mevduat: 17.5, // 6 aya kadar vade varsayıldı — store vade bilgisi tutmuyor, kullanıcı düzeltebilir
-  hisse: 0,      // GVK geç. 67 kapsamında BIST pay senedi alım-satım kazancında stopaj uygulanmıyor
-  kripto: 0,     // doğrulanamadı
-  altin: 0,      // doğrulanamadı
-  doviz: 0,      // doğrulanamadı (kur farkı)
-  // 2026-09-04 eklendi — üçü de basit bir "kazanç üzerinden stopaj" modeline UYMAZ (tahvil/Eurobond
-  // vade+araca göre değişir; BES'in kendi katkı/erken çıkış rejimi var; gayrimenkulde 5 yıl elde
-  // tutma istisnası var) — bir oran uydurmaktansa 0 + doğrulanamadı etiketi aynı dürüstlük ilkesi.
-  tahvil: 0,       // doğrulanamadı
-  bes: 0,          // doğrulanamadı — ayrıca stopaj modeli BES'in gerçek rejimini temsil etmiyor
-  gayrimenkul: 0,  // doğrulanamadı
-};
-
-// Oranı "0 çünkü öyle" ile "0 çünkü doğrulayamadık" ayrımı — arayüz bunu farklı anlatmalı.
-export const UNVERIFIED_TAX: AssetType[] = ['kripto', 'altin', 'doviz', 'tahvil', 'bes', 'gayrimenkul'];
+// Stopaj oranları ve doğrulanamayan tür listesi: kaynak/tarih/etiket src/config/varsayilanlar.ts içinde.
 
 export interface TaxedHolding {
   name: string;

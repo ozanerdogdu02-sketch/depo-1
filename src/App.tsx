@@ -15,6 +15,7 @@ import {
 } from './agentMemory';
 import { getTrainedFacts, teach, deleteFact, recordFactUse, TrainedFact } from './agentTraining';
 import { afterTaxOf, UNVERIFIED_TAX, driftOf } from './analytics';
+import { SCENARIO_DEFAULT_RATES_PCT } from './config/varsayilanlar';
 import { getTaxRates, setTaxRate, isCustomRate, TaxRates } from './taxRates';
 import { getTargets, setTarget, hasTargets, TargetAllocation } from './targetAllocation';
 import { downloadBackup, restoreBackup, getBackupMeta, shouldNudge, dismissNudge, STALE_AFTER_DAYS } from './backup';
@@ -139,7 +140,7 @@ function formatFetchedAt(iso: string): string {
 // gibi. Sabit/uydurma bir "canlı" oran gösterilmez; arayüzde "senin varsayımın" olarak etiketlenir.
 //
 // Başlangıç değeri, otomatik çekilemediği için ELLE güncellenen bir varsayımdır: TÜİK yıllık TÜFE,
-// Eylül 2026 → %29,73 (yuvarlanarak 30; haber kaynaklı, doğrulanmalı). agent.ts'teki VARSAYILAN_ENFLASYON ile aynı tutulmalı —
+// Eylül 2026 → %29,73 (yuvarlanarak 30; haber kaynaklı, doğrulanmalı). agent.ts artık aynı değeri src/config/varsayilanlar.ts'ten alır —
 // ikisi ayrışırsa Panel'in kartı ile ajanın metni farklı oran söyler. Güncellerken ikisini birlikte
 // değiştir ve fagent-insight-e2e.mjs'i çalıştır.
 
@@ -286,6 +287,7 @@ function AfterTaxCard() {
         </div>
       )}
 
+      {/* TODO(muhasebe): %17,5 ve 11107 sayılı karar metni config/varsayilanlar.ts ile aynı tutulmalı; kaynak doğrulaması bekliyor. */}
       <p className="hint" style={{ marginTop: 12, color: 'var(--faint)' }}>
         Oranlar 27.03.2026 tarihli 11107 sayılı Cumhurbaşkanı Kararı'na göre varsayılmıştır (fon ve 6 aya
         kadar vadeli TL mevduat %17,5; BIST pay senedi alım-satımında stopaj yok).
@@ -1289,17 +1291,18 @@ function projectFinalValue(start: number, monthly: number, annualPct: number, ye
 
 // Üç senaryo — düşük / orta / yüksek getiri. Kullanıcının geri bildirimi: tek bir "beklenen getiri"
 // yerine bir aralık göstermek + enflasyonun (reel getiri) etkisini vurgulamak daha dürüst.
+// TODO(muhasebe): senaryo getirileri kaynaksız varsayımdır (değerler src/config/varsayilanlar.ts).
 const SCENARIOS = [
-  { key: 'dusuk', label: 'Düşük', dash: '2 4', border: 'dotted', opacity: 0.45, defaultRate: 20 },
-  { key: 'orta', label: 'Orta', dash: '6 4', border: 'dashed', opacity: 0.7, defaultRate: 35 },
-  { key: 'yuksek', label: 'Yüksek', dash: undefined, border: 'solid', opacity: 1, defaultRate: 50 },
+  { key: 'dusuk', label: 'Düşük', dash: '2 4', border: 'dotted', opacity: 0.45, defaultRate: SCENARIO_DEFAULT_RATES_PCT.dusuk },
+  { key: 'orta', label: 'Orta', dash: '6 4', border: 'dashed', opacity: 0.7, defaultRate: SCENARIO_DEFAULT_RATES_PCT.orta },
+  { key: 'yuksek', label: 'Yüksek', dash: undefined, border: 'solid', opacity: 1, defaultRate: SCENARIO_DEFAULT_RATES_PCT.yuksek },
 ] as const;
 
 function Projeksiyon() {
   const s = usePortfolio();
   const [monthly, setMonthly] = useState(5000);
   const [years, setYears] = useState(10);
-  const [rates, setRates] = useState<{ dusuk: number; orta: number; yuksek: number }>({ dusuk: 20, orta: 35, yuksek: 50 });
+  const [rates, setRates] = useState<{ dusuk: number; orta: number; yuksek: number }>({ ...SCENARIO_DEFAULT_RATES_PCT });
   const inf = useInflation();
   const inflation = inf.pct;
 

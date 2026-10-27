@@ -22,7 +22,7 @@ const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PAT
 let failed = false;
 const check = (label, ok) => { console.log(`${ok ? '✓' : '✗'} ${label}`); if (!ok) failed = true; };
 
-const VARSAYILAN = 30; // inflation.ts → VARSAYILAN_ENFLASYON_PCT
+const VARSAYILAN = 30; // src/config/varsayilanlar.ts → VARSAYILAN_ENFLASYON_PCT
 
 // EVDS yanıt biçimi taklidi. Endeks 1000 → 1450 = %45,0 yıllık.
 // 14 gözlem üretiyoruz; istemci sondan 13. ile sonuncuyu karşılaştırıyor.

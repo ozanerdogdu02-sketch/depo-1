@@ -9,6 +9,7 @@ import {
 } from './store';
 import { AgentMemoryProfile, RiskLevel, AgentMode, VadeTercihi, mostAskedTopic, mostMentionedHolding } from './agentMemory';
 import { TrainedFact, findBestMatch } from './agentTraining';
+import { VARSAYILAN_ENFLASYON_PCT, DEFAULT_DEPOSIT_RATE_PCT } from './config/varsayilanlar';
 import {
   realReturnPct, xirrOf, concentrationOf, attributionOf, contributionOf, investmentPaceOf,
   parseInflationPct, afterTaxOf, allocation, driftOf, stressTest, counterfactualDeposit,
@@ -315,12 +316,11 @@ function pnlBarChart(s: PortfolioState): ChartSpec | undefined {
 // App.tsx her çağrıda güncel oranı `inflationPct` parametresiyle geçirir (TCMB EVDS'den canlı,
 // kullanıcının girdiği ya da varsayım). agent.ts SAF kalsın diye buradan okunmaz, geçirilir.
 // Bu sabit yalnızca parametre hiç verilmediğinde (ör. doğrudan çağrılan bir test) devreye girer.
-const VARSAYILAN_ENFLASYON = 30; // inflation.ts ile aynı (TÜİK Eylül 2026 %29,73, yuvarlanmış)
+const VARSAYILAN_ENFLASYON = VARSAYILAN_ENFLASYON_PCT; // tek kaynak: config/varsayilanlar.ts
 
 // "Mevduatta tutsaydım" karşı-olgusalı için varsayılan yıllık faiz — RiskPanel.tsx'teki
 // DEFAULT_RISK_FREE_PCT ile aynı gerekçe: Türkiye için anahtarsız/resmi bir kaynak yok,
 // kullanıcı metinde bir oran belirtirse o kullanılır (parseInflationPct ile ayrıştırılır).
-const DEFAULT_DEPOSIT_RATE_PCT = 45;
 
 // Öncelik: kullanıcı cümlede bir oran yazdıysa o; yoksa App'ten gelen güncel oran; o da yoksa sabit.
 function enflasyonOrani(text: string, inflationPct?: number): number {
@@ -702,6 +702,7 @@ const CHAT_RULES: Rule[] = [
         );
       }
 
+      // TODO(muhasebe): %17,5 ve 11107 sayılı karar metni config/varsayilanlar.ts ile aynı tutulmalı; kaynak doğrulaması bekliyor.
       lines.push(
         `Oranlar 27.03.2026 tarihli 11107 sayılı Cumhurbaşkanı Kararı'na göre VARSAYILMIŞTIR ` +
         `(fon ve 6 aya kadar vadeli TL mevduat %17,5; BIST pay senedi alım-satımında stopaj yok). ` +

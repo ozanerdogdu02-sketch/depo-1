@@ -3,11 +3,11 @@ import { Loader2, ShieldAlert, ChevronDown, ChevronUp, Activity } from 'lucide-r
 import { usePortfolio, fmtTL, fmtPct, fmtDec } from './store';
 import { buildRiskReport, RiskReport } from './priceHistory';
 import { volatilityLevel } from './analytics';
+import { DEFAULT_RISK_FREE_PCT } from './config/varsayilanlar';
 
 // Risksiz faiz için anahtarsız/CORS-açık bir Türkiye kaynağı yok (TCMB dahil). Enflasyon
 // varsayımında olduğu gibi bunu da kullanıcıya bırakıyoruz ve "senin varsayımın" diye
 // etiketliyoruz — uydurma bir sabit göstermek yanıltıcı olurdu.
-const DEFAULT_RISK_FREE_PCT = 45;
 
 // Seviye artış/azalış anlamı taşımaz (belirteç: renk yalnız kazanc/kayip/vurgu) — hepsi metin
 // renginde; seviye altındaki etikette sözcükle yazılır.

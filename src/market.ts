@@ -32,6 +32,7 @@ export class MarketFetchError extends Error {}
 
 // Kaynak: Frankfurter (Avrupa Merkez Bankası referans kurları) — anahtarsız, CORS açık.
 // Not: ECB kurları günde bir güncellenir, anlık piyasa kuru değildir.
+// TODO(hukuk): Frankfurter ücretsiz sürüm kullanım koşulları ve yeniden dağıtım doğrulanmadı.
 export async function fetchTryRate(currencyCode: string): Promise<number> {
   let res: Response;
   try {
@@ -47,6 +48,7 @@ export async function fetchTryRate(currencyCode: string): Promise<number> {
 }
 
 // Kaynak: CoinGecko genel (public) fiyat ucu — anahtarsız. Birkaç dakika gecikmeli olabilir.
+// TODO(hukuk): CoinGecko ücretsiz sürüm kullanım koşulları (ticari kullanım, atıf, sunucu önbelleği) doğrulanmadı.
 export async function fetchCryptoTryPrice(coinId: string): Promise<number> {
   let res: Response;
   try {
