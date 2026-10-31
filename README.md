@@ -1,3 +1,4 @@
+> Bu depo iki uygulama içerir: **Aura Finance** (kök dizin, aşağıda) ve **Fagent** ([`fagent/`](fagent/README.md)) — anahtarsız, tarayıcı tabanlı yatırımcı paneli ve Türkçe finans ajanı. Lisans: [MIT](LICENSE).
 # Aura Finance
 
 Kişisel gelişim panosu: finansal eğitim takibi, spor rutini ve AI destekli BDT (bilişsel davranışçı terapi) duygu günlüğü.
