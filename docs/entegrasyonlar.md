@@ -4,6 +4,8 @@
 > çıkarıldı (hafızadan değil — `grep` ile doğrulandı).
 >
 > Toplantıda teknik soru gelirse bu sayfa yeter. Kaynak kod paketiyle birlikte okunmalı.
+>
+> Verinin arka plandaki yolculuğu (kontroller, durumlar, açıklar) sahne sahne: [`docs/veri-akisi/veri-yolculugu.md`](veri-akisi/veri-yolculugu.md).
 
 ---
 
