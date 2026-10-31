@@ -815,7 +815,7 @@
             "tests/run-e2e.mjs (dist/ içinde Supabase adresi yok doğrulaması)"
           ],
           "durum": "KISMEN",
-          "not": "Kod tam; canlıya açılması canlı-öncesi zorunlu listeye bağlı (A17). RLS, delete_my_account, e-posta yönlendirmeleri, PASSWORD_RECOVERY gerçek projede doğrulanmadı. Kullanıcı kararı (2026-10-27): kod repoda açık kalır, silinmez, sert kilitlenmez.",
+          "not": "Kod tam; canlıya açılması canlı-öncesi zorunlu listeye bağlı (A17). RLS, delete_my_account, e-posta yönlendirmeleri, PASSWORD_RECOVERY gerçek projede doğrulanmadı. Kullanıcı kararı (2026-10-27): kod repoda açık kalır, silinmez, sert kilitlenmez. Araştırma: docs/veri-akisi/bulut-senkron-arastirma.md (2026-10-31; öneri: sürümlü koşullu yazım + karantina + dürüst onay; karar kullanıcıda).",
           "ekran": "Abonelik planları ve hesap ekranı (hesap canlıda kapalı)"
         },
         {
@@ -855,7 +855,7 @@
             "tests/e2e/fagent-auth-e2e.mjs (mevcut davranışı sahte Supabase ile korur; açık maddeleri kapatan test yok)"
           ],
           "durum": "PLANLI",
-          "not": "34+33, 35 satırları CLAUDE.md tablosundan alındı; bu belge için kod yeniden incelenmedi, 27 ve 41 kodda görüldü.",
+          "not": "34+33, 35 satırları CLAUDE.md tablosundan alındı; bu belge için kod yeniden incelenmedi, 27 ve 41 kodda görüldü. Araştırma: docs/veri-akisi/bulut-senkron-arastirma.md (2026-10-31): 34+33, 35b ve 27 kodda yeniden incelendi; yeni gözlem 35c (kullanıcının kendi Çıkış'ında kayıt ağ hatasıyla düşerse yerel veri yine silinir, ekip doğrulamalı); öneri Seçenek 2 (2a istemci, 2b migration), 4 kullanıcı kararı bekliyor.",
           "ekran": "Abonelik planları ve hesap ekranı (hesap canlıda kapalı)"
         }
       ]

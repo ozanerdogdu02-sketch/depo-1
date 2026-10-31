@@ -192,6 +192,7 @@ Bir katmanın okuyucusu (örneğin store.load) bozuk bir kayıt bulursa boş aç
 - tests/unit/sekme-kurtarma.test.ts: D-b (KVKK): kopya alınırken SIFIRLA tamamlanırsa 'geri' kaydı silinir, veri diriltilmez; katman değeri başka yerden değişirse 'durum-degisti' (ikisi de kırmızı/yeşil kanıtlı)
 
 **Not:** Geri yükleme/dışa aktarma/listeleme saf işlev olarak testli; ekrana bağlı DEĞİL (düğme ve bildirim yeri tasarım kararı; sözleşme docs/yol-haritasi-birlesik.md §11). İki sekmede aynı kaydın eşzamanlı geri yüklenmesinde kilit yoktur: son yazan kazanır, öteki sekme storage olayıyla diskten yeniden yükler, ezilen değer 'geri' kovasında kalır. Boyut ölçümü için her kaydın değeri okunur (KvStore'da yalnız-uzunluk okuması yok); raf küçük ve sınırlıdır, listeleme açılışta ya da kullanıcı isteğiyle çağrılmalıdır. IndexedDB kovaları birim testte bellek içi taklitle, 300000 karakterlik bozuk değer yolu ve 'geri' kovası gerçek Chromium IndexedDB'siyle sınandı. Eski adlandırmayla (kovasız) yazılmış büyük bozuk kayıtlar 'farklilik' diye listelenir. Ham metin dışa aktarımı yedek dosyası biçimindedir ama yedek olarak geri yüklenirse bozuk metin yeniden kurtarma rafına girer.
+
 ### A7 · Depolama dolu, IndexedDB yok ya da engelli
 
 **Durum:** YAPILDI · **Yol haritası:** YH-1
@@ -283,6 +284,7 @@ Kullanıcı iki sekme açarsa iki oyuncu aynı tahtaya oynar. Sekmeler artık bi
 - tests/e2e/fagent-sekme-e2e.mjs 8: takılı (süresi geçmiş) işaretle sıradan yabancı yazım -> çakışma bildirimi, yanlış 'veriler silindi' yok, G'nin yazımı diskte ve IndexedDB'de, kullanıcının kendi işlemi yazılır (süre sınırı kapatılınca kontrol KIRMIZI)
 
 **Not:** Gerçek iki sayfalı Chromium ile sınandı (storage olayı gerçek); kota yalnız çakışma/O1 senaryolarında setItem hatası taklidiyle; olay gecikmesi (O3) aynı belgede doğrudan setItem ile taklit edildi. Birim testte olay sahte nesneyle verilir. Kopya ALINAMAMA (IndexedDB yok/hata) yolu yalnız birim testte (sahte preserveForeign=false); gerçek tarayıcıda hata enjekte edilmedi. Bu değişiklik CLAUDE.md zorunlu listesindeki #35'in YALNIZ 'başka sekmede çıkış/SIFIRLA sonrası bu sekmenin bellekten diski yeniden doldurması' yanını kapatır; 'hesaba yüklenmemiş tek yerel kopyanın çıkışla silinmesi' (cloud.ts karantina önerisi) AÇIK kalır. Silme-kazanır kararı ürün varsayılanıdır (kullanıcıya bildirildi).
+
 ### A9 · Hesap motoru: projeksiyon (src/projection.ts)
 
 **Durum:** KISMEN · **Yol haritası:** YH-2 · **PDF ekranı:** Projeksiyon; brüt→net→reel
@@ -533,7 +535,7 @@ Supabase hesabı oyunun isteğe bağlı bir bölümüdür. Derleme sırasında V
 - tests/e2e/fagent-auth-e2e.mjs (ayrı dist-e2e-cloud derlemesi, port 4201, SAHTE Supabase ile yeşil)
 - tests/run-e2e.mjs (dist/ içinde Supabase adresi yok doğrulaması)
 
-**Not:** Kod tam; canlıya açılması canlı-öncesi zorunlu listeye bağlı (A17). RLS, delete_my_account, e-posta yönlendirmeleri, PASSWORD_RECOVERY gerçek projede doğrulanmadı. Kullanıcı kararı (2026-10-27): kod repoda açık kalır, silinmez, sert kilitlenmez.
+**Not:** Kod tam; canlıya açılması canlı-öncesi zorunlu listeye bağlı (A17). RLS, delete_my_account, e-posta yönlendirmeleri, PASSWORD_RECOVERY gerçek projede doğrulanmadı. Kullanıcı kararı (2026-10-27): kod repoda açık kalır, silinmez, sert kilitlenmez. Araştırma: docs/veri-akisi/bulut-senkron-arastirma.md (2026-10-31; öneri: sürümlü koşullu yazım + karantina + dürüst onay; karar kullanıcıda).
 
 ### A17 · Bulut: canlı öncesi zorunlu açık maddeler (34+33, 35, 41, 27)
 
@@ -559,7 +561,7 @@ Bulut oyunu canlıya çıkmadan önce kapanması gereken dört kapı vardır. Bu
 **Test:**
 - tests/e2e/fagent-auth-e2e.mjs (mevcut davranışı sahte Supabase ile korur; açık maddeleri kapatan test yok)
 
-**Not:** 34+33, 35 satırları CLAUDE.md tablosundan alındı; bu belge için kod yeniden incelenmedi, 27 ve 41 kodda görüldü.
+**Not:** 34+33, 35 satırları CLAUDE.md tablosundan alındı; bu belge için kod yeniden incelenmedi, 27 ve 41 kodda görüldü. Araştırma: docs/veri-akisi/bulut-senkron-arastirma.md (2026-10-31): 34+33, 35b ve 27 kodda yeniden incelendi; yeni gözlem 35c (kullanıcının kendi Çıkış'ında kayıt ağ hatasıyla düşerse yerel veri yine silinir, ekip doğrulamalı); öneri Seçenek 2 (2a istemci, 2b migration), 4 kullanıcı kararı bekliyor.
 
 ## B) Veri kaynakları işletimi
 
@@ -1553,4 +1555,4 @@ Devirde alan adı kayıt sahibi, Vercel projesi/ekibi, Supabase proje sahipliği
 25. Sekmeler arası eşitleme: olay gecikmesinde yazım anı karşılaştırması ezilen sürümü kurtarma alanına alır ama işlemi yine uygular (stale bellek kazanır). Başka sekmenin sürümü kurtarma alanına alınamazsa (IndexedDB yok/hata) kaydedilmemiş değişiklik yazılmadan bekler; her yazımda kopya yeniden denenir, IndexedDB hiç yoksa bekletme sürer (yenilemede kaybolur). Silme işareti ömrü (30 sn) ölçülmedi, varsayım. Çakışma ve silme-kazanır kararları gerçek tarayıcıda yalnız kota taklidiyle sınandı; 'kopya alınamadı' yolu yalnız birim testte. #35'in 'çıkışla hesaba yüklenmemiş tek yerel kopya silinir' yanı açık.
 
 ---
-Durum dağılımı: YAPILDI 28, KISMEN 13, PLANLI 13.
+Durum dağılımı: YAPILDI 29, KISMEN 12, PLANLI 13.
