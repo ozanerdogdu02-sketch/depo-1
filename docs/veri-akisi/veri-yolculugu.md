@@ -895,7 +895,7 @@ KAP için resmi, belgelenmiş, ücretsiz bir geliştirici API'si bulunamadı. Pl
 **Test:**
 - yok (planlı: ayrıştırıcı birim testi, /api/kap 502 taklidi e2e)
 
-**Not:** Hukuki risk açık: iç uçların kullanım koşulları, MKK izni, yeniden yayın doğrulanmadı. Kazıma riski ürün satışında alıcıya yazılı açıklanır. İç uçların adresi ve biçimi doğrulanamadı.
+**Not:** Hukuki risk açık: iç uçların kullanım koşulları, MKK izni, yeniden yayın doğrulanmadı. Kazıma riski ürün satışında alıcıya yazılı açıklanır. İç uçların adresi ve biçimi doğrulanamadı. Araştırma notu (2026-10-31, docs/veri-akisi/kap-bist-erisim.md §2): üç açık kaynak kütüphanenin kaynak kodunda aynı iç uç bulundu: POST /tr/api/disclosure/members/byCriteria (gövdede tarih aralığı; başlangıç ve bitiş aynı yılda olmalı); bağlantı /tr/Bildirim/{disclosureIndex}. Resmi RSS bulunamadı. Alan adları kütüphaneler arasında tutarsız (memberTitle/kapTitle, iki tarih biçimi); KAP 429 döndürüyor ve bir kütüphaneye göre güvenlik duvarı tarayıcı benzeri başlık istiyor. Öneri: yalnız meta (şirket, başlık, tarih, tür, bağlantı), dürüst kimlik (taklit yok), CDN 15 dk, canlıda varsayılan kapalı bayrak. Gerçek yanıtla doğrulanmadı (bu ortamdan erişim yok).
 
 ### B12 · BİST gün sonu fiyatı (kazıma)
 
@@ -917,7 +917,7 @@ Hisse fiyatını otomatik getirmek için gün sonu kapanış tablosu düşünül
 **Test:**
 - yok (planlı)
 
-**Not:** Lisans gereği, gün sonu verinin üçüncü taraf uygulamada lisanssız gösterimi, ücretli üründe gösterim doğrulanmadı (TODO(hukuk)).
+**Not:** Lisans gereği, gün sonu verinin üçüncü taraf uygulamada lisanssız gösterimi, ücretli üründe gösterim doğrulanmadı (TODO(hukuk)). Araştırma notu (2026-10-31, kap-bist-erisim.md §3): birincil aday Borsa İstanbul'un resmi Günlük Bülten sayfası (2011'den beri); dosya biçimi ve adı doğrulanamadı (PDF ya da zip/CSV çıkarsa ayrıştırıcı için Üst Kurul talebi). Aracı kurum/grafik sitesi iç uçları reddedildi (üçüncü taraf ürünü; o yolları kullanan kütüphane de ticari kullanım için BİST lisansı gerektiğini yazıyor). Sembol listesi için borsaistanbul.com/datum/hisse_endeks_ds.csv adayı. Gün sonu çekişi hafta içi 19:30 TSİ sonrası önerisi; seans saatleri ikincil kaynaktan.
 
 ### B13 · Paylaşılan herkese açık veri önbelleği
 
@@ -939,7 +939,7 @@ Büyük ve herkese açık veri grupları (gün sonu fiyat geçmişi, bildirim ar
 **Test:**
 - yok (planlı)
 
-**Not:** Servis anahtarı yalnız Vercel ortam değişkeninde durur. Vercel loglarındaki IP saklama ayarı KVKK açısından not edilir (TODO(hukuk)). Ücretsiz katman sınırları doğrulanamadı.
+**Not:** Servis anahtarı yalnız Vercel ortam değişkeninde durur. Vercel loglarındaki IP saklama ayarı KVKK açısından not edilir (TODO(hukuk)). Ücretsiz katman sınırları doğrulanamadı. Araştırma notu (2026-10-31, kap-bist-erisim.md §6): Vercel CDN önbelleği bölge başınadır, süre en iyi çabadır ve stale-if-error desteklenmez; bugünün KAP listesi ve BİST kapanışı için CDN + istemci önbelleği yeter. Depo yalnız geçmiş seri gerekirse, kaynak 429/IP engeli gösterirse ya da istek sayısı ölçülerek kabul edilemez bulunursa açılır.
 
 ## C) Geliştirme ve kapı süreci
 

@@ -13,9 +13,15 @@ gerekçeli geçmişi: `docs/karar-gunlugu.md`. Ajan ekibi: `docs/ajan-sistemi.md
    ("al", "sat", "kaydır", "değerlendirebilirsin", "-malısın") yazma. Varsayılan hedef önerme.
 3. **Gerçek işlem yürütme yok.** Aracı kuruma emir, bakiye çekme, ödeme yok. Ajanın işlem
    komutu yalnızca kullanıcının yerel işlem defterine kayıt düşer.
-4. **Sahte veri yok.** Doğrulanmamış fiyat/oran gerçekmiş gibi gösterilmez. BIST hisse ve
-   TEFAS fon fiyatı için anahtarsız resmî kaynak yok; bunlar elle girilir. Varsayımlar
-   (enflasyon, vergi oranı) kaynağıyla etiketlenir.
+4. **Sahte veri yok.** Doğrulanmamış fiyat/oran gerçekmiş gibi gösterilmez. Kullanıcı kararıyla
+   (2026-10-27, metin onayı 2026-10-31) BIST hisse **gün sonu kapanışı** ve KAP bildirim **meta
+   verisi** (şirket, başlık, tarih, tür, bağlantı) herkese açık kaynaklardan **sunucu tarafında**
+   okunabilir (kazıma): istek kullanıcı verisi taşımaz, her değer kaynak ve tarihle etiketlenir,
+   kaynak yoksa ya da okunamazsa değer gösterilmez. Gün içi/anlık fiyat çekilmez. Kullanıcının elle
+   girdiği fiyat onaysız ezilmez; elle/CSV giriş her zaman geçerlidir. Kazıma canlıda varsayılan
+   **kapalıdır** (sunucu ayarı). Kaynağa dürüst kimlikle gidilir (tarayıcı taklidi yok). TEFAS fon
+   fiyatı elle girilir. Kullanım koşulu ve lisans riski `TODO(hukuk)` olarak kayıtlıdır ve satışta
+   alıcıya açıklanır. Varsayımlar (enflasyon, vergi oranı) kaynağıyla etiketlenir.
 5. **Portföy verisi kullanıcınındır.** Varsayılan olarak tarayıcıda kalır. Kullanıcı hesap
    açarsa yalnızca kendi hesabına (RLS ile korunan satır) eşitlenir. Üçüncü taraf isteğe,
    analitiğe veya log'a portföy içeriği gitmez. Telemetri serbest metin içermez.
