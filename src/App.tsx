@@ -14,8 +14,8 @@ import {
   AgentMemoryProfile, AgentPrefs, RiskLevel, AgentMode, VadeTercihi,
 } from './agentMemory';
 import { getTrainedFacts, teach, deleteFact, recordFactUse, TrainedFact } from './agentTraining';
-import { afterTaxOf, UNVERIFIED_TAX, driftOf } from './analytics';
-import { SCENARIO_DEFAULT_RATES_PCT } from './config/varsayilanlar';
+import { afterTaxOf, driftOf } from './analytics';
+import { SCENARIO_DEFAULT_RATES_PCT, senaryoVarsayilanGetirileriPct, dogrulanamayanTurler, stopajAciklamasi } from './config/varsayilanlar';
 import { sonDeger, reelDeger, projeksiyonYollari } from './projection';
 import { getTaxRates, setTaxRate, isCustomRate, TaxRates } from './taxRates';
 import { getTargets, setTarget, hasTargets, TargetAllocation } from './targetAllocation';
@@ -227,7 +227,8 @@ function AfterTaxCard() {
 
   // Portföyde gerçekten bulunan sınıflar — kullanmadığı sınıfın oranını göstermek gürültü.
   const presentTypes = [...new Set(s.holdings.map(h => h.type))];
-  const unverifiedPresent = presentTypes.filter(t => UNVERIFIED_TAX.includes(t));
+  const unverifiedPresent = presentTypes.filter(t => dogrulanamayanTurler().includes(t));
+  const stopajMetni = stopajAciklamasi();
 
   return (
     <div className="card">
@@ -286,17 +287,16 @@ function AfterTaxCard() {
                 onChange={e => setRates(setTaxRate(t, Number(e.target.value)))}
               />
               <span className="hint" style={{ margin: 0 }}>
-                %{isCustomRate(t, rates) ? ' — senin girdiğin oran' : UNVERIFIED_TAX.includes(t) ? ' — doğrulanamadı, varsayılan 0' : ' — varsayılan'}
+                %{isCustomRate(t, rates) ? ' — senin girdiğin oran' : dogrulanamayanTurler().includes(t) ? ' — doğrulanamadı, varsayılan 0' : ' — varsayılan'}
               </span>
             </div>
           ))}
         </div>
       )}
 
-      {/* TODO(muhasebe): %17,5 ve 11107 sayılı karar metni config/varsayilanlar.ts ile aynı tutulmalı; kaynak doğrulaması bekliyor. */}
+      {/* TODO(muhasebe): dayanak ve oranlar src/config/tax_rules.json'dan türetilir (stopajAciklamasi); kaynak doğrulaması bekliyor. */}
       <p className="hint" style={{ marginTop: 12, color: 'var(--faint)' }}>
-        Oranlar 27.03.2026 tarihli 11107 sayılı Cumhurbaşkanı Kararı'na göre varsayılmıştır (fon ve 6 aya
-        kadar vadeli TL mevduat %17,5; BIST pay senedi alım-satımında stopaj yok).
+        {stopajMetni.dayanak ? `Oranlar ${stopajMetni.dayanak}'na göre varsayılmıştır` : 'Oranlar varsayılmıştır (dayanağı doğrulanmadı)'} ({stopajMetni.ozet}).
         {unverifiedPresent.length > 0 && (
           <> {unverifiedPresent.map(t => ASSET_LABELS[t]).join(', ')} için doğrulanmış bir oran bulunamadığından
           %0 varsayıldı — bu “vergi yok” demek değil, “oran uydurmuyoruz” demektir; yukarıdan kendi oranını girebilirsin.</>
@@ -1307,7 +1307,7 @@ function Projeksiyon() {
   const s = usePortfolio();
   const [monthly, setMonthly] = useState(5000);
   const [years, setYears] = useState(10);
-  const [rates, setRates] = useState<{ dusuk: number; orta: number; yuksek: number }>({ ...SCENARIO_DEFAULT_RATES_PCT });
+  const [rates, setRates] = useState<{ dusuk: number; orta: number; yuksek: number }>(senaryoVarsayilanGetirileriPct);
   const inf = useInflation();
   const inflation = inf.pct;
 

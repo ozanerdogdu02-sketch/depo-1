@@ -120,6 +120,8 @@ src/
   agentMemory.ts    — Ajan'ın UZUN SÜRELİ belleği (kullanım istatistiği, localStorage)
   agentTraining.ts  — Ajan'ın EĞİTİLEBİLİR bilgi tabanı (öğretilen soru-cevaplar, localStorage)
   taxRates.ts       — kullanıcının düzenlediği stopaj oranları (localStorage)
+  vergiKurallari.ts — tarih aralıklı vergi kuralı okuyucu/doğrulayıcı (SAF); veri: config/tax_rules.json
+  varsayimlar.ts    — tarih aralıklı piyasa varsayımları (enflasyon, faiz, senaryo, sıra riski; SAF); veri: config/varsayimlar.json
   targetAllocation.ts — kullanıcının girdiği HEDEF dağılım (localStorage; varsayılanı YOK)
   backup.ts         — tam veri yedeği: beş katmanı tek JSON'da dışa/geri al (beyaz listeli);
                       bulut senkronu da aynı beyaz liste + doğrula-yaz çekirdeğini kullanır
@@ -137,7 +139,7 @@ netlify/
   functions/evds.mjs — EVDS proxy'sinin TEK KAYNAĞI: API anahtarı YALNIZCA burada (sunucu ortam değişkeni)
   analytics.ts      — FİNANSAL MATEMATİK (saf): reel getiri, XIRR, HHI, volatilite,
                       maks. düşüş, Sharpe, korelasyon, kovaryansla çeşitlendirme faydası,
-                      vergi sonrası net getiri (DEFAULT_TAX_RATES + afterTaxOf),
+                      vergi sonrası net getiri (varsayilanVergiOranlari() — config/tax_rules.json — + afterTaxOf),
                       hedef dağılım sapması / %5-%25 bandı (driftOf)
   projection.ts     — PROJEKSİYON HESABI (saf): aylık bileşik büyüme, reel değer, stopaj sonrası,
                       hedefe ulaşma süresi, getiri×enflasyon tablosu, sıra riski; sayılar kaynak
@@ -307,7 +309,7 @@ Sidebar'daki **SIFIRLA** üçünü de temizler.
   İstemci tarafı `page.route()` taklidiyle, sunucu fonksiyonu ve bağdaştırıcı sahte `fetch` ile yazılmış birim testlerle sınandı
   (yeşil); gerçek EVDS yanıtıyla doğrulanmadı — fonksiyonun kendisi yalnızca canlı deploy'da ve anahtarla
   doğrulanabilir, "test edildi" DEĞİLDİR.
-- **Stopaj oranları da elle güncellenen varsayımdır** (`analytics.ts` → `DEFAULT_TAX_RATES`).
+- **Stopaj oranları da elle güncellenen varsayımdır** (`src/config/tax_rules.json`, tarih aralıklı; `DEFAULT_TAX_RATES` bugünün tarihindeki kuraldan türetilir; hiçbir kural muhasebeciyle doğrulanmadı).
   Kaynak: 27.03.2026 tarihli 11107 sayılı Cumhurbaşkanı Kararı — fon ve 6 aya kadar vadeli TL
   mevduat %17,5; BIST pay senedi alım-satımında stopaj yok. **Kripto/altın/döviz için doğrulanmış
   bir rejim bulunamadığından %0 bırakıldı** — bu "vergi yok" iddiası değil, "oran uydurmuyoruz"

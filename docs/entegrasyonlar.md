@@ -196,7 +196,7 @@ Bunlar `AGENTS.md` ve `CLAUDE.md`'de yazılı ve testlerle korunuyor:
 3. **Veri varsayılan olarak tarayıcıda kalır** (`localStorage` esas, aynı tarayıcıdaki IndexedDB aynası; ikisi de cihaz dışına çıkmaz). Kullanıcı hesap açarsa 5 katman yalnızca kendi RLS'li
    Supabase kaydına eşitlenir (`cloud.ts`; hesapsız modda ağ isteği yoktur). Diğer ağ istisnaları: EVDS
    proxy'si (istek portföy içermez) ile kur/kripto fiyat uçları.
-4. **`agent.ts`, `analytics.ts` ve `projection.ts` SAFTIR** — I/O yok, tüm veri parametreyle gelir. Bu hem test
+4. **`agent.ts`, `analytics.ts`, `projection.ts`, `vergiKurallari.ts` ve `varsayimlar.ts` SAFTIR** — I/O yok, tüm veri parametreyle gelir. Bu hem test
    edilebilirliği hem ileride LLM'e geçişi sağlıyor.
 5. **Commit öncesi iki kez doğrula** — `typecheck` + `build` + `test:e2e` üçü de yeşil olmadan
    commit yok.

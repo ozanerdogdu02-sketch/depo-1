@@ -3,7 +3,7 @@ import { Loader2, ShieldAlert, ChevronDown, ChevronUp, Activity } from 'lucide-r
 import { usePortfolio, fmtTL, fmtPct, fmtDec } from './store';
 import { buildRiskReport, RiskReport } from './priceHistory';
 import { volatilityLevel } from './analytics';
-import { DEFAULT_RISK_FREE_PCT } from './config/varsayilanlar';
+import { varsayilanRisksizFaizPct } from './config/varsayilanlar';
 
 // Risksiz faiz için anahtarsız/CORS-açık bir Türkiye kaynağı yok (TCMB dahil). Enflasyon
 // varsayımında olduğu gibi bunu da kullanıcıya bırakıyoruz ve "senin varsayımın" diye
@@ -26,7 +26,7 @@ export function RiskPanel() {
   const [open, setOpen] = useState(false);
   const [report, setReport] = useState<RiskReport | null>(null);
   const [loading, setLoading] = useState(false);
-  const [riskFree, setRiskFree] = useState(DEFAULT_RISK_FREE_PCT);
+  const [riskFree, setRiskFree] = useState(varsayilanRisksizFaizPct);
 
   const run = async () => {
     setLoading(true);

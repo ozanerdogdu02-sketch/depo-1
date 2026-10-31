@@ -1,0 +1,106 @@
+{
+  "surum": 1,
+  "aciklama": "Stopaj/vergi kuralları: tarih aralıklı, sürümlü. Tek kaynak; kod oranı buradan okur (src/vergiKurallari.ts). Değerler koda gömülü sabitlerle BİREBİR aynıdır (taşıma, davranış değişikliği yok). Hiçbir kural muhasebeci tarafından doğrulanmadı: dogrulandi:false. baslangic/bitis 'YYYY-AA-GG' (bitis dahil) ya da null (açık uç). kaynak bilinmiyorsa null. oranBilinmiyor:true 'oran 0 çünkü öyle' değil 'oran varsaymıyor, kullanıcı girer' demektir (arayüzde doğrulanamadı etiketi).",
+  "kurallar": [
+    {
+      "id": "fon-1",
+      "varlikTuru": "fon",
+      "oranPct": 17.5,
+      "baslangic": "2026-05-01",
+      "bitis": null,
+      "kaynak": "11107 sayılı Cumhurbaşkanı Kararı, 27.03.2026 (Resmî Gazete) — kod yorumundan taşındı, birincil belgeyle doğrulanmadı",
+      "dogrulandi": false,
+      "oranBilinmiyor": false,
+      "dayanakMetni": "27.03.2026 tarihli 11107 sayılı Cumhurbaşkanı Kararı",
+      "not": "Yatırım fonu katılma payı kazancı stopajı %15 → %17,5; 01.05.2026'dan itibaren elde edilen kazançlar (BAŞLANGIÇ TARİHİ 2026-05-01 DE DOĞRULANMADI: kod yorumundan taşındı, birincil belgeyle kontrol edilmedi). Önceki dönem (%15) bu dosyada YOK: doğrulanmadığı için yazılmadı, 2026-05-01 öncesi tarih için kural dönmez (oran 0, 'bilinmiyor'). TODO(muhasebe): karar, kaynak ve geçerlilik tarihi doğrulaması."
+    },
+    {
+      "id": "mevduat-1",
+      "varlikTuru": "mevduat",
+      "oranPct": 17.5,
+      "baslangic": null,
+      "bitis": null,
+      "kaynak": null,
+      "dogrulandi": false,
+      "oranBilinmiyor": false,
+      "not": "TL mevduatta 6 aya kadar vade %17,5 varsayıldı (1 yıla kadar vade %15 iddiası doğrulanmadı). Holding vade tutmaz; kullanıcı düzeltebilir. Başlangıç tarihi doğrulanmadı. TODO(muhasebe): vade basamakları."
+    },
+    {
+      "id": "hisse-1",
+      "varlikTuru": "hisse",
+      "oranPct": 0,
+      "baslangic": null,
+      "bitis": null,
+      "kaynak": null,
+      "dogrulandi": false,
+      "oranBilinmiyor": false,
+      "not": "BIST pay senedi alım-satım kazancında stopaj 0 (GVK geç. 67 kapsamı, doğrulanmadı); hisse yoğun fon istisnası da doğrulanmadı. TODO(muhasebe)."
+    },
+    {
+      "id": "kripto-1",
+      "varlikTuru": "kripto",
+      "oranPct": 0,
+      "baslangic": null,
+      "bitis": null,
+      "kaynak": null,
+      "dogrulandi": false,
+      "oranBilinmiyor": true,
+      "not": "doğrulanmadı: oran varsayılmıyor, 0 yalnız yer tutucu. TODO(muhasebe)."
+    },
+    {
+      "id": "altin-1",
+      "varlikTuru": "altin",
+      "oranPct": 0,
+      "baslangic": null,
+      "bitis": null,
+      "kaynak": null,
+      "dogrulandi": false,
+      "oranBilinmiyor": true,
+      "not": "doğrulanmadı: oran varsayılmıyor, 0 yalnız yer tutucu. TODO(muhasebe)."
+    },
+    {
+      "id": "doviz-1",
+      "varlikTuru": "doviz",
+      "oranPct": 0,
+      "baslangic": null,
+      "bitis": null,
+      "kaynak": null,
+      "dogrulandi": false,
+      "oranBilinmiyor": true,
+      "not": "doğrulanmadı (kur farkı kazancı): oran varsayılmıyor, 0 yalnız yer tutucu. TODO(muhasebe)."
+    },
+    {
+      "id": "tahvil-1",
+      "varlikTuru": "tahvil",
+      "oranPct": 0,
+      "baslangic": null,
+      "bitis": null,
+      "kaynak": null,
+      "dogrulandi": false,
+      "oranBilinmiyor": true,
+      "not": "doğrulanmadı: tahvil/Eurobond vade ve araca göre değişir, basit stopaj modeline uymaz. TODO(muhasebe)."
+    },
+    {
+      "id": "bes-1",
+      "varlikTuru": "bes",
+      "oranPct": 0,
+      "baslangic": null,
+      "bitis": null,
+      "kaynak": null,
+      "dogrulandi": false,
+      "oranBilinmiyor": true,
+      "not": "doğrulanmadı: BES'in kendi rejimi var, stopaj modeli onu temsil etmiyor. TODO(muhasebe)."
+    },
+    {
+      "id": "gayrimenkul-1",
+      "varlikTuru": "gayrimenkul",
+      "oranPct": 0,
+      "baslangic": null,
+      "bitis": null,
+      "kaynak": null,
+      "dogrulandi": false,
+      "oranBilinmiyor": true,
+      "not": "doğrulanmadı: 5 yıl elde tutma istisnası vb. basit stopaj modeline uymaz. TODO(muhasebe)."
+    }
+  ]
+}

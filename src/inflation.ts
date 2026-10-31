@@ -14,7 +14,7 @@ import { useSyncExternalStore } from 'react';
 import { fetchInflationPct } from './evds';
 
 // Varsayılan değer, kaynağı ve doğrulama durumu: src/config/varsayilanlar.ts. Canlı veri (EVDS) gelemezse bu kullanılır.
-import { VARSAYILAN_ENFLASYON_PCT } from './config/varsayilanlar.ts';
+import { VARSAYILAN_ENFLASYON_PCT, varsayilanEnflasyonPct } from './config/varsayilanlar.ts';
 export { VARSAYILAN_ENFLASYON_PCT };
 
 export type InflationSource = 'varsayim' | 'evds' | 'kullanici';
@@ -25,7 +25,7 @@ export interface InflationState {
   periodLabel?: string; // yalnızca 'evds' için: verinin ait olduğu dönem (ör. "07-2026")
 }
 
-let state: InflationState = { pct: VARSAYILAN_ENFLASYON_PCT, source: 'varsayim' };
+let state: InflationState = { pct: varsayilanEnflasyonPct(), source: 'varsayim' };
 const listeners = new Set<() => void>();
 
 function emit(): void { listeners.forEach(fn => fn()); }
@@ -35,7 +35,7 @@ export function getInflation(): InflationState { return state; }
 // Kullanıcının elle girdiği oran. Canlı veriyi de ezer — senaryo denemesi yapmak
 // ("%55 olsaydı ne olurdu") meşru bir kullanım ve kullanıcının girdisi her zaman kazanır.
 export function setUserInflation(pct: number): void {
-  const safe = Math.min(200, Math.max(0, Number.isFinite(pct) ? pct : VARSAYILAN_ENFLASYON_PCT));
+  const safe = Math.min(200, Math.max(0, Number.isFinite(pct) ? pct : varsayilanEnflasyonPct()));
   state = { pct: safe, source: 'kullanici' };
   emit();
 }
@@ -80,7 +80,7 @@ export function inflationSourceLabel(s: InflationState): string {
 // Canlı okuma yeniden denenir: önbellekte (fagent.kaynak.tcmb.tufe.v1; eski fagent.evds.v1 göç eder) duruyorsa anında geri gelir.
 // TCMB'nin resmî oranı "kullanıcı verisi" değildir, silinmesi için bir sebep yok.
 export function resetInflation(): void {
-  state = { pct: VARSAYILAN_ENFLASYON_PCT, source: 'varsayim' };
+  state = { pct: varsayilanEnflasyonPct(), source: 'varsayim' };
   started = false;
   emit();
   void loadLiveInflation();

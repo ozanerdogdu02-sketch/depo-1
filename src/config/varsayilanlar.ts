@@ -1,6 +1,6 @@
-/* Varsayılan oran, enflasyon, stopaj ve eşik sabitleri: TEK YAPILANDIRMA YERİ (P0 kural 6).
-   Bu dosya saftır: I/O, React, window yok; yalnızca `import type` kullanır ki `node --test`
-   doğrudan koşabilsin. Değerler taşınmadan önceki kodla BİREBİR aynıdır.
+/* Varsayılan oran, enflasyon, stopaj ve eşik sabitleri: TEK YAPILANDIRMA YERİ (spec P0 kural 6 ve P6: docs/veri-akisi/spec.md).
+   Bu dosya saftır: I/O, React, window yok; yalnızca `import type` ve saf modül (vergiKurallari.ts) +
+   JSON kullanır ki `node --test` doğrudan koşabilsin. Değerler taşınmadan önceki kodla BİREBİR aynıdır.
 
    Her sabitin yanında kaynak, tarih ve doğrulama durumu yazılır. "doğrulanmadı" etiketi taşıyan
    değer, kaynağı birincil belgeyle kontrol edilene kadar varsayımdır; gerçekmiş gibi gösterilmez. */
@@ -11,7 +11,7 @@ import type { AssetType } from '../store.ts';
    katılma payı kazançlarında stopaj %15 → %17,5 (01.05.2026'dan itibaren elde edilen kazançlar).
    TL mevduatta 6 aya kadar vade %17,5; 1 yıla kadar vade %15. Hisse senedi yoğun fonlarda %0
    istisnası sürüyor (TEFAS'ta işlem görmeyen serbest hisse yoğun fonlar hariç).
-   Tarih: 2026-08-01 itibarıyla doğrulandı (ikincil okuma). Geçerlilik tarih aralığı yapısı yok (P6).
+   Tarih: 2026-08-01 itibarıyla doğrulanmadı (ikincil okuma; birincil belgeyle kontrol edilmedi). Değerler ve geçerlilik aralığı artık src/config/tax_rules.json'dadır (P6); TODO(muhasebe) işaretleri orada `dogrulandi:false` olarak da görünür.
    DOĞRULANAMAYANLAR 0 BIRAKILDI, UYDURULMADI: sıfır "vergi yok" iddiası değil, "bu ürün oran
    varsaymıyor, sen gir" demektir (bkz. UNVERIFIED_TAX). */
 // TODO(muhasebe): fon %17,5 ve 11107 sayılı karar için kaynak ve geçerlilik tarihi muhasebeci doğrulaması gerekir.
@@ -19,52 +19,81 @@ import type { AssetType } from '../store.ts';
 // TODO(muhasebe): BIST pay senedi alım-satım kazancında stopaj 0 (GVK geç. 67) ve hisse yoğun fon istisnası doğrulanmadı.
 // TODO(muhasebe): kripto, altın, döviz, tahvil, BES, gayrimenkul oranları doğrulanamadı (0 + etiket).
 // TODO(muhasebe): komisyon/masraf vergisel işlenişi (maliyete eklenir mi, BSMV/KDV) ve kur farkı kazancı ele alınmadı.
-export const DEFAULT_TAX_RATES: Record<AssetType, number> = {
-  fon: 17.5,
-  mevduat: 17.5, // 6 aya kadar vade varsayıldı: store vade bilgisi tutmuyor, kullanıcı düzeltebilir
-  hisse: 0,      // GVK geç. 67 kapsamında BIST pay senedi alım-satım kazancında stopaj uygulanmıyor
-  kripto: 0,     // doğrulanamadı
-  altin: 0,      // doğrulanamadı
-  doviz: 0,      // doğrulanamadı (kur farkı)
-  // 2026-09-04 eklendi: üçü de basit "kazanç üzerinden stopaj" modeline UYMAZ (tahvil/Eurobond
-  // vade+araca göre değişir; BES'in kendi rejimi var; gayrimenkulde 5 yıl elde tutma istisnası var).
-  tahvil: 0,       // doğrulanamadı
-  bes: 0,          // doğrulanamadı; stopaj modeli BES'in gerçek rejimini temsil etmiyor
-  gayrimenkul: 0,  // doğrulanamadı
-};
+import taxRulesJson from './tax_rules.json' with { type: 'json' };
+import { yukle, bugunkuVarsayilanOranlar, yerelBugun } from '../vergiKurallari.ts';
+import varsayimlarJson from './varsayimlar.json' with { type: 'json' };
+import { yukleVarsayim, varsayimDegeri } from '../varsayimlar.ts';
 
-// Oranı "0 çünkü öyle" ile "0 çünkü doğrulayamadık" ayrımı: arayüz bunu farklı anlatır.
-export const UNVERIFIED_TAX: AssetType[] = ['kripto', 'altin', 'doviz', 'tahvil', 'bes', 'gayrimenkul'];
+// Oranlar src/config/tax_rules.json'dan (tarih aralıklı, kaynak/doğrulama alanlı) bugünün tarihine göre türetilir.
+// Kullanıcının kendi oranı (taxRates.ts) bunun üstüne yazar. Eşdeğerlik: tests/unit/vergi-kurallari.test.ts.
+const TUM_TURLER: readonly AssetType[] = ['fon', 'mevduat', 'hisse', 'kripto', 'altin', 'doviz', 'tahvil', 'bes', 'gayrimenkul']; // eski nesneyle aynı anahtar sırası
+export const VERGI_KURALLARI = yukle(taxRulesJson, TUM_TURLER);
+// Çağrı anındaki tarihle (gece yarısını aşan açık sekmede de doğru; tarih başına önbellekli). Tüketiciler bunu çağırır.
+export function varsayilanVergiOranlari(tarih: string = yerelBugun()): Record<AssetType, number> { return bugunkuVarsayilanOranlar(VERGI_KURALLARI, TUM_TURLER, tarih).oranlar; }
+export function dogrulanamayanTurler(tarih: string = yerelBugun()): AssetType[] { return bugunkuVarsayilanOranlar(VERGI_KURALLARI, TUM_TURLER, tarih).bilinmeyen; }
+// Sayfa yüklenme anındaki görüntü (eski dışa aktarım adları; testler ve geri uyumluluk için). Yeni kod yukarıdaki işlevleri kullanır.
+const turetilen = bugunkuVarsayilanOranlar(VERGI_KURALLARI, TUM_TURLER, yerelBugun());
+export const DEFAULT_TAX_RATES: Record<AssetType, number> = turetilen.oranlar;
 
-/* ───────────── Enflasyon varsayımı (yıllık, %) ─────────────
-   Kaynak: TÜİK Eylül 2026 yıllık TÜFE %29,73 (5 Ekim 2026), haber kaynaklı; tam sayıya yuvarlandı.
-   Durum: birincil kaynakla DOĞRULANMADI. Canlı veri (TCMB EVDS, seri TP.FG.J0) gelemezse geri düşme
-   değeri budur; EVDS seri kodu da gerçek veriyle doğrulanmadı. Dönemsel olarak elle güncellenir.
-   inflation.ts ve agent.ts bu tek değeri kullanır. */
+// Oranı "0 çünkü öyle" ile "0 çünkü doğrulayamadık" ayrımı: arayüz bunu farklı anlatır (tax_rules.json oranBilinmiyor).
+export const UNVERIFIED_TAX: AssetType[] = turetilen.bilinmeyen;
+
+/* Ekranda (App.tsx stopaj kartı) ve ajanda (agent.ts vergi yanıtı) gösterilen dayanak cümlesinin parçaları: değerler
+   tax_rules.json'dan türetilir, metinde elle yazılı oran/karar numarası kalmaz. Bugünkü çıktı eski sabit metinle aynıdır
+   (tests/unit/vergi-kurallari.test.ts). dayanak null ise (o tarih için fon kuralı ya da dayanak yok) cümle "kaynağı
+   doğrulanmadı" diye söyler; sayı uydurulmaz. */
+export function stopajAciklamasi(tarih: string = yerelBugun()): { dayanak: string | null; ozet: string } {
+  const sayi = (n: number) => String(n).replace('.', ',');
+  const kural = (tur: AssetType) => VERGI_KURALLARI.kurallar.find(k => k.varlikTuru === tur && (k.baslangic === null || k.baslangic <= tarih) && (k.bitis === null || tarih <= k.bitis));
+  const fon = kural('fon'), mev = kural('mevduat'), his = kural('hisse');
+  const parcalar: string[] = [];
+  if (fon && mev && fon.oranPct === mev.oranPct) parcalar.push(`fon ve 6 aya kadar vadeli TL mevduat %${sayi(fon.oranPct)}`);
+  else {
+    parcalar.push(fon ? `fon %${sayi(fon.oranPct)}` : 'fon için bu tarihte kural yok');
+    if (mev) parcalar.push(`6 aya kadar vadeli TL mevduat %${sayi(mev.oranPct)}`);
+  }
+  const hisse = his && his.oranPct === 0 ? 'BIST pay senedi alım-satımında stopaj yok' : his ? `BIST pay senedi alım-satımında %${sayi(his.oranPct)}` : 'BIST pay senedi için kural yok';
+  return { dayanak: fon?.dayanakMetni ?? null, ozet: `${parcalar.join(', ')}; ${hisse}` };
+}
+
+/* ───────────── Piyasa varsayımları (zamanla değişir): src/config/varsayimlar.json ─────────────
+   Enflasyon (%30), mevduat faizi (%45), risksiz faiz (%45), senaryo getirileri (%20/35/50) ve sıra riski sapması (15 pp)
+   tarih aralıklı, kaynaklı ve `dogrulandi:false` alanlı JSON'dadır; değerler taşınmadan önceki sabitlerle BİREBİR aynıdır.
+   Enflasyon kaynağı: TÜİK Eylül 2026 yıllık TÜFE %29,73 (haber kaynaklı, tam sayıya yuvarlandı), doğrulanmadı; canlı
+   TCMB EVDS (TP.FG.J0, o da doğrulanmadı) gelemezse geri düşme değeridir. Diğerleri kaynaksız elle varsayımdır. */
 // TODO(muhasebe): TÜFE değeri ve TP.FG.J0 seri kodu birincil kaynakla doğrulanmadı.
-export const VARSAYILAN_ENFLASYON_PCT = 30;
+// TODO(muhasebe): faiz ve senaryo getirileri kaynaksız varsayımdır; "senin varsayımın" etiketiyle gösterilir.
+const VARSAYIM_ANAHTARLARI = ['enflasyon_pct', 'mevduat_faiz_pct', 'risksiz_faiz_pct', 'senaryo_dusuk_pct', 'senaryo_orta_pct', 'senaryo_yuksek_pct', 'sira_riski_sapma_pp'] as const;
+export const VARSAYIMLAR = yukleVarsayim(varsayimlarJson, VARSAYIM_ANAHTARLARI);
+/* Çağrı anındaki tarihle okunur. Tarih için kayıt yoksa (sınırlı aralıklı bir kural bitmişse) en yakın geçmiş kaydın değeri
+   kullanılır (hâlâ varsayım etiketli); hiç geçmiş kayıt yoksa sonraki ilk kayıt. Sayı uydurulmaz, bilinen varsayımdan seçilir.
+   Geri düşme `varsayimDetay().geriDusuldu` bayrağıyla görünür (şimdilik ekrana bağlı değil: bugünkü kayıtlar açık uçlu).
+   Vergi ile fark (gerekçe): yanlış bir stopaj oranı kullanıcıya yanlış NET para gösterir, o yüzden kuralı olmayan tarihte
+   oran 0 ve "bilinmiyor" olur; varsayım ise zaten kullanıcının değiştirebildiği, etiketli bir ön değerdir, en yakın bilinen
+   değer boş ekrandan daha dürüst bir başlangıçtır. */
+export function varsayimDetay(anahtar: (typeof VARSAYIM_ANAHTARLARI)[number], tarih: string = yerelBugun(), dosya: typeof VARSAYIMLAR = VARSAYIMLAR): { deger: number; geriDusuldu: boolean } {
+  const d = varsayimDegeri(dosya, anahtar, tarih);
+  if (d !== undefined) return { deger: d, geriDusuldu: false };
+  const hepsi = dosya.varsayimlar.filter(v => v.anahtar === anahtar).sort((x, y) => (x.baslangic ?? '').localeCompare(y.baslangic ?? ''));
+  const gecmis = hepsi.filter(v => v.baslangic === null || v.baslangic <= tarih);
+  return { deger: (gecmis.length ? gecmis[gecmis.length - 1] : hepsi[0]).deger, geriDusuldu: true };
+}
+function varsayim(anahtar: (typeof VARSAYIM_ANAHTARLARI)[number]): number { return varsayimDetay(anahtar).deger; }
+export const varsayilanEnflasyonPct = (): number => varsayim('enflasyon_pct');
+export const varsayilanMevduatFaizPct = (): number => varsayim('mevduat_faiz_pct');
+export const varsayilanRisksizFaizPct = (): number => varsayim('risksiz_faiz_pct');
+export const siraRiskiSapmaPP = (): number => varsayim('sira_riski_sapma_pp');
+export const senaryoVarsayilanGetirileriPct = (): { dusuk: number; orta: number; yuksek: number } =>
+  ({ dusuk: varsayim('senaryo_dusuk_pct'), orta: varsayim('senaryo_orta_pct'), yuksek: varsayim('senaryo_yuksek_pct') });
 
-/* ───────────── Faiz varsayımları (yıllık, %) ─────────────
-   Türkiye için anahtarsız/resmî bir kaynak yok; kullanıcı kendi oranını girebilir.
-   Kaynak: yok (elle varsayım). Tarih: doğrulanmadı. */
-// TODO(muhasebe): her iki faiz varsayımı da kaynaksızdır; "senin varsayımın" etiketiyle gösterilir.
-export const DEFAULT_DEPOSIT_RATE_PCT = 45; // ajan: "mevduatta tutsaydım" karşı-olgusalı
-export const DEFAULT_RISK_FREE_PCT = 45;    // RiskPanel: risksiz faiz varsayımı
+// Sayfa yüklenme anındaki görüntü (eski dışa aktarım adları; testler ve geri uyumluluk için). Yeni kod yukarıdaki işlevleri kullanır.
+export const VARSAYILAN_ENFLASYON_PCT = varsayilanEnflasyonPct();
+export const DEFAULT_DEPOSIT_RATE_PCT = varsayilanMevduatFaizPct();
+export const DEFAULT_RISK_FREE_PCT = varsayilanRisksizFaizPct();
+export const SCENARIO_DEFAULT_RATES_PCT = senaryoVarsayilanGetirileriPct();
+export const SIRA_RISKI_SAPMA_PP = siraRiskiSapmaPP();
 
-/* ───────────── Projeksiyon senaryo getirileri (yıllık, %) ─────────────
-   Kaynak: yok; kullanıcı arayüzde değiştirebilir. Tahmin değil, örnek aralıktır.
-   Tarih: doğrulanmadı. */
-// TODO(muhasebe): senaryo getirileri kaynaksız varsayımdır; belgelenmeli.
-export const SCENARIO_DEFAULT_RATES_PCT = { dusuk: 20, orta: 35, yuksek: 50 } as const;
-
-/* ───────────── Sıra riski sapması (yüzde puan) ─────────────
-   "Kötü yıllar başta" senaryosunda yıllık getiri ortalama ∓ bu değerdir (src/projection.ts siraRiski).
-   Kaynak: yok; örnek amaçlı kaynaksız varsayım, tahmin değil. Tarih: doğrulanmadı. */
-// ÜRÜN VARSAYIMI: kaynaksızdır, ama vergi/mevzuat iddiası taşımaz; hukuk/muhasebe doğrulaması gerekmez (TODO(muhasebe) değil).
-// Arayüzde gösterilirse 'varsayım' etiketiyle gösterilir.
-export const SIRA_RISKI_SAPMA_PP = 15;
-
-/* ───────────── Hedef sapma eşikleri ─────────────
+/* ───────────── Hedef sapma eşikleri (ürün sabiti, TS'te kalır) ─────────────
    bant = min(DRIFT_ABSOLUTE_BAND_PP, hedef × DRIFT_RELATIVE_BAND) puan (gerekçe: analytics.ts driftBandOf).
    Kaynak: ürün tasarım kararı (bir hukuki/vergisel kaynak yok). */
 export const DRIFT_ABSOLUTE_BAND_PP = 5;

@@ -19,9 +19,9 @@
 
 import { totalValue, totalCost, localDateString } from './store.ts';
 import type { PortfolioState, AssetType } from './store.ts';
-import { DEFAULT_TAX_RATES, UNVERIFIED_TAX, DRIFT_ABSOLUTE_BAND_PP, DRIFT_RELATIVE_BAND } from './config/varsayilanlar.ts';
+import { DEFAULT_TAX_RATES, UNVERIFIED_TAX, varsayilanVergiOranlari, dogrulanamayanTurler, DRIFT_ABSOLUTE_BAND_PP, DRIFT_RELATIVE_BAND } from './config/varsayilanlar.ts';
 
-// Oran sabitleri src/config/varsayilanlar.ts'e taşındı (P0 kural 6); mevcut içe aktaranlar kırılmasın diye yeniden dışa aktarılır.
+// Oran sabitleri src/config/varsayilanlar.ts'e taşındı (kural: docs/veri-akisi/spec.md P0 kural 6 ve P6); mevcut içe aktaranlar kırılmasın diye yeniden dışa aktarılır.
 export { DEFAULT_TAX_RATES, UNVERIFIED_TAX, DRIFT_ABSOLUTE_BAND_PP, DRIFT_RELATIVE_BAND };
 
 const MS_PER_DAY = 86_400_000;
@@ -527,7 +527,7 @@ export interface AfterTaxResult {
 export function afterTaxOf(
   s: PortfolioState,
   inflationPct: number,
-  rates: Record<AssetType, number> = DEFAULT_TAX_RATES,
+  rates: Record<AssetType, number> = varsayilanVergiOranlari(),
 ): AfterTaxResult | undefined {
   const invested = totalCost(s);
   if (invested <= 0) return undefined;
@@ -556,7 +556,7 @@ export function afterTaxOf(
     realNetReturnPct: realReturnPct(netReturnPct, inflationPct),
     realGrossReturnPct: realReturnPct(grossReturnPct, inflationPct),
     byHolding,
-    hasUnverified: s.holdings.some(h => UNVERIFIED_TAX.includes(h.type)),
+    hasUnverified: s.holdings.some(h => dogrulanamayanTurler().includes(h.type)),
     realizedGain: s.realizedPnl,
   };
 }

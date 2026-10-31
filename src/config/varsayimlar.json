@@ -1,0 +1,28 @@
+{
+  "surum": 1,
+  "aciklama": "Zamanla değişen piyasa varsayımları: tarih aralıklı, sürümlü. Tek kaynak; kod değeri buradan okur (src/varsayimlar.ts). Değerler koda gömülü sabitlerle BİREBİR aynıdır (taşıma, davranış değişikliği yok). Hiçbiri doğrulanmadı: dogrulandi:false. baslangic/bitis 'YYYY-AA-GG' (bitis dahil) ya da null (açık uç). kaynak bilinmiyorsa null. Hepsi arayüzde 'varsayım' etiketiyle gösterilir; kullanıcı değiştirebilir.",
+  "varsayimlar": [
+    { "id": "enflasyon-1", "anahtar": "enflasyon_pct", "deger": 30, "birim": "yillik_yuzde", "baslangic": null, "bitis": null,
+      "kaynak": "TÜİK Eylül 2026 yıllık TÜFE %29,73 (5 Ekim 2026), haber kaynaklı; tam sayıya yuvarlandı — kod yorumundan taşındı, birincil kaynakla doğrulanmadı",
+      "dogrulandi": false,
+      "not": "Canlı veri (TCMB EVDS, TP.FG.J0) gelemezse geri düşme değeri; seri kodu da gerçek veriyle doğrulanmadı. EVDS ve kullanıcı girdisi bunun üstüne yazar (inflation.ts). Dönemsel elle güncellenir. TODO(muhasebe)." },
+    { "id": "mevduat-faiz-1", "anahtar": "mevduat_faiz_pct", "deger": 45, "birim": "yillik_yuzde", "baslangic": null, "bitis": null,
+      "kaynak": null, "dogrulandi": false,
+      "not": "Ajan 'mevduatta tutsaydım' karşı-olgusalı için elle varsayım; Türkiye için anahtarsız/resmî kaynak yok. 'senin varsayımın' etiketiyle gösterilir. TODO(muhasebe)." },
+    { "id": "risksiz-faiz-1", "anahtar": "risksiz_faiz_pct", "deger": 45, "birim": "yillik_yuzde", "baslangic": null, "bitis": null,
+      "kaynak": null, "dogrulandi": false,
+      "not": "RiskPanel risksiz faiz varsayımı; kaynaksız elle varsayım. TODO(muhasebe)." },
+    { "id": "senaryo-dusuk-1", "anahtar": "senaryo_dusuk_pct", "deger": 20, "birim": "yillik_yuzde", "baslangic": null, "bitis": null,
+      "kaynak": null, "dogrulandi": false,
+      "not": "Projeksiyon senaryosu; tahmin değil örnek aralık, kullanıcı arayüzde değiştirir. TODO(muhasebe)." },
+    { "id": "senaryo-orta-1", "anahtar": "senaryo_orta_pct", "deger": 35, "birim": "yillik_yuzde", "baslangic": null, "bitis": null,
+      "kaynak": null, "dogrulandi": false,
+      "not": "Projeksiyon senaryosu; tahmin değil örnek aralık. TODO(muhasebe)." },
+    { "id": "senaryo-yuksek-1", "anahtar": "senaryo_yuksek_pct", "deger": 50, "birim": "yillik_yuzde", "baslangic": null, "bitis": null,
+      "kaynak": null, "dogrulandi": false,
+      "not": "Projeksiyon senaryosu; tahmin değil örnek aralık. TODO(muhasebe)." },
+    { "id": "sira-riski-sapma-1", "anahtar": "sira_riski_sapma_pp", "deger": 15, "birim": "yuzde_puan", "baslangic": null, "bitis": null,
+      "kaynak": null, "dogrulandi": false,
+      "not": "'Kötü yıllar başta' senaryosunda yıllık getiri ortalama ∓ bu değerdir (projection.ts siraRiski). Örnek amaçlı kaynaksız ürün varsayımı; vergi/mevzuat iddiası taşımaz." }
+  ]
+}

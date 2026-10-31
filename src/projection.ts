@@ -13,7 +13,7 @@
    Diğerleri (stopajSonrasiDeger, hedefeUlasmaSuresi, getiriEnflasyonTablosu, siraRiski) şimdilik
    arayüze bağlı değildir; bağlama kararı tasarım oturumundadır. */
 import type { AssetType } from './store.ts';
-import { DEFAULT_TAX_RATES, UNVERIFIED_TAX, SIRA_RISKI_SAPMA_PP } from './config/varsayilanlar.ts';
+import { varsayilanVergiOranlari, dogrulanamayanTurler, siraRiskiSapmaPP } from './config/varsayilanlar.ts';
 
 /* ───────────── Kaynak etiketi ───────────── */
 export type KaynakEtiketi = 'resmi' | 'varsayim' | 'kullanici';
@@ -178,7 +178,7 @@ export function turAgirliklari(varliklar: { type: AssetType; amount: number }[])
 export interface StopajGirdisi extends ProjeksiyonGirdisi {
   /** Portföyün tür dağılımı (göreli ağırlık; toplamı 1 olmak zorunda değil). */
   agirliklar: TurAgirliklari;
-  /** Varsayılan: DEFAULT_TAX_RATES. Kullanıcının kendi oranları verilirse oranKaynagi='kullanici'. */
+  /** Varsayılan: varsayilanVergiOranlari() (tax_rules.json, çağrı anındaki kural). Kullanıcının kendi oranları verilirse oranKaynagi='kullanici'. */
   oranlar?: Record<AssetType, number>;
   oranKaynagi?: KaynakEtiketi;
 }
@@ -197,7 +197,7 @@ export interface StopajSonucu {
     (analytics.ts afterTaxOf ile aynı kural: kazanç üzerinden, zarar mahsubu yok).
     TODO(muhasebe): oranlar doğrulanmadı (varsayilanlar.ts); sonuç 'varsayim' etiketli kalır. */
 export function stopajSonrasiDeger(g: StopajGirdisi): StopajSonucu {
-  const oranlar = g.oranlar ?? DEFAULT_TAX_RATES;
+  const oranlar = g.oranlar ?? varsayilanVergiOranlari();
   const oranKaynagi = g.oranKaynagi ?? 'varsayim';
 
   // Ağırlıklar turAgirliklari gibi süzülür: sonlu ve pozitif olmayanlar yok sayılır.
@@ -215,7 +215,7 @@ export function stopajSonrasiDeger(g: StopajGirdisi): StopajSonucu {
       const w = agirlik(t);
       if (w === 0) continue;
       oran += (w / toplam) * (oranlar[t] ?? 0);
-      if (UNVERIFIED_TAX.includes(t)) dogrulanmadi = true;
+      if (dogrulanamayanTurler().includes(t)) dogrulanmadi = true;
     }
   }
 
@@ -332,7 +332,7 @@ export function siraRiski(g: {
   const k = kaynaklariBirlestir(g.kaynaklar);
   const n = yilSinirla(g.yil);
   const ort = oranSinirla(g.ortalamaPct);
-  const istenenHam = g.sapmaPP ?? SIRA_RISKI_SAPMA_PP;
+  const istenenHam = g.sapmaPP ?? siraRiskiSapmaPP();
   const istenen = Number.isFinite(istenenHam) ? Math.max(0, istenenHam) : 0;
   const sapma = Math.min(istenen, Math.max(0, ort + 99));
   const yarim = Math.floor(n / 2);

@@ -132,6 +132,8 @@ Aynı hatayı tekrar yapma. Yeni bir hata bulunursa buraya tek satır eklenir (t
 - 2026-10-24: `public/` altındaki her dosya üretim paketine girer; test/hata ayıklama sayfası konmaz (cors-test.html böyle sızdı).
 - 2026-10-24: Varsayılan sabit (enflasyon, stopaj, eşik) değişince eski değeri `grep -rn` ile src ve tests/e2e'de ara; testlerde aynı sayı sabit olarak tekrar eder.
 
+- 2026-10-31: Bir ajan test koşusunu `pkill` ile kesti (kural ihlali) ve `npx` altındaki `vite preview`/`http.server` alt süreçleri port tutarak kaldı. Doğrusu: süreci yalnız PID ile durdur; `npx` ile açılan sunucunun ALT sürecini de `ps`/`lsof -i :4200,4201` ile bulup PID ile kapat; koşu sonunda portların boş olduğunu doğrula. `ss` bu ortamda yok, `lsof` kullan.
+
 **Süreç**
 - **HATA (2026-10-24, kullanıcı düzeltti): işleri ekipsiz, tek başıma yapma.** Kullanıcı geliştirme işlerinin **ajan ekibiyle** (`fagent-ekip` iş akışı; araştırma için `fagent-arastirma`) yürütülmesini ister. "En ucuz yol" ifadesini "ekibi atla" diye yorumladım ve bir gün boyu çoğu işi kendim yaptım; bu kullanıcının söylediğinin dışına çıkmaktır. Kural: kod/test/belge geliştirme işi → önce ekip akışı; ekipsiz çalışma ancak kullanıcı AÇIKÇA "ekipsiz/kendin yap" derse. Kredi tasarrufu gerekçesi benim kararım değildir: ucuzluk istenirse ekibin KÜÇÜK bir koşusu (`maksKalem` düşük, roller kısıtlı) önerilir/yapılır, ekip tamamen atlanmaz. Kullanıcı kendi adıma karar vermemi istemiyor; soru sormaya da gerek yok: varsayılan = ekip.
 - Kullanıcı bir komutu yarıda keserse (tool reddi) nedenini soru olarak anla, aynı komutu tekrar deneme; önce durumu sade dille açıkla.

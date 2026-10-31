@@ -26,6 +26,9 @@ Vercel: framework Vite, çıktı `dist`, `vercel.json` güvenlik başlıkların�
 - **EVDS anahtarı geçersizse (401/403):** işlev günlüğüne bak; her açılışta bir istek gider, kullanıcıya yalnız "ulaşılamadı" görünür (yukarı akış 4xx devre kesiciyi açmaz).
 - **EVDS seri kodları:** TÜFE `TP.FG.J0` ve kur serileri gerçek yanıtla doğrulanmadı; kur serisi listesi bilerek boş (`TODO(muhasebe)`).
 
+- **Vergi kuralı ve sistem saati:** `src/config/tax_rules.json` içindeki fon kuralı 2026-05-01'den başlar (başlangıç tarihi de doğrulanmadı). Cihaz saati bu tarihten geriyse (yanlış ayarlı saat) fon için kural dönmez: oran 0 ve tür "bilinmiyor" sayılır, ekran "doğrulanamadı" der; sayı uydurulmaz. Yeni kural eklerken aralıkların bitişik olması gerekir (doğrulayıcı çakışma/boşlukta açılışta hata verir).
+- **Stopaj oranı kaydı:** kullanıcının girdiği oran yalnız değiştirdiği sınıf için saklanır; eski sürümün tam tablo kaydı ilk okumada sadeleşir. Kural değişmeden önce uygulamayı hiç açmamış eski kullanıcıda eski değerler "kullanıcı oranı" gibi kalabilir.
+
 ## Devir kontrol listesi
 - [ ] Alan adı kayıt sahibi değişikliği · [ ] Vercel proje/ekip aktarımı · [ ] Supabase proje sahipliği · [ ] Ödeme sağlayıcı hesabı/IBAN değişikliği
 - [ ] Ortam değişkenleri alıcının hesabında yeniden girildi, eski anahtarlar iptal edildi · [ ] GitHub deposu aktarıldı

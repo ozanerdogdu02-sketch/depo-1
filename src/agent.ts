@@ -9,7 +9,7 @@ import {
 } from './store';
 import { AgentMemoryProfile, RiskLevel, AgentMode, VadeTercihi, mostAskedTopic, mostMentionedHolding } from './agentMemory';
 import { TrainedFact, findBestMatch } from './agentTraining';
-import { VARSAYILAN_ENFLASYON_PCT, DEFAULT_DEPOSIT_RATE_PCT } from './config/varsayilanlar';
+import { varsayilanEnflasyonPct, varsayilanMevduatFaizPct, stopajAciklamasi } from './config/varsayilanlar';
 import {
   realReturnPct, xirrOf, concentrationOf, attributionOf, contributionOf, investmentPaceOf,
   parseInflationPct, afterTaxOf, allocation, driftOf, stressTest, counterfactualDeposit,
@@ -99,7 +99,7 @@ function isStablecoin(h: Holding): boolean {
   return STABLECOIN_NAME_TEST.test(h.name);
 }
 
-export function analyzePortfolio(s: PortfolioState, inflationPct: number = VARSAYILAN_ENFLASYON): string[] {
+export function analyzePortfolio(s: PortfolioState, inflationPct: number = varsayilanEnflasyonPct()): string[] {
   const total = totalValue(s);
   if (!s.holdings.length) {
     return ['Portföyün henüz boş. Panel sekmesinden varlık ekle ya da örnek veriyle başla, sonra tekrar analiz edelim.'];
@@ -316,7 +316,7 @@ function pnlBarChart(s: PortfolioState): ChartSpec | undefined {
 // App.tsx her çağrıda güncel oranı `inflationPct` parametresiyle geçirir (TCMB EVDS'den canlı,
 // kullanıcının girdiği ya da varsayım). agent.ts SAF kalsın diye buradan okunmaz, geçirilir.
 // Bu sabit yalnızca parametre hiç verilmediğinde (ör. doğrudan çağrılan bir test) devreye girer.
-const VARSAYILAN_ENFLASYON = VARSAYILAN_ENFLASYON_PCT; // tek kaynak: config/varsayilanlar.ts
+// Enflasyon varsayımı tek kaynaktan, çağrı anında okunur: config/varsayimlar.json (config/varsayilanlar.ts)
 
 // "Mevduatta tutsaydım" karşı-olgusalı için varsayılan yıllık faiz — RiskPanel.tsx'teki
 // DEFAULT_RISK_FREE_PCT ile aynı gerekçe: Türkiye için anahtarsız/resmi bir kaynak yok,
@@ -324,7 +324,7 @@ const VARSAYILAN_ENFLASYON = VARSAYILAN_ENFLASYON_PCT; // tek kaynak: config/var
 
 // Öncelik: kullanıcı cümlede bir oran yazdıysa o; yoksa App'ten gelen güncel oran; o da yoksa sabit.
 function enflasyonOrani(text: string, inflationPct?: number): number {
-  return parseInflationPct(text) ?? inflationPct ?? VARSAYILAN_ENFLASYON;
+  return parseInflationPct(text) ?? inflationPct ?? varsayilanEnflasyonPct();
 }
 
 // Sınıf dağılımı (pasta) okuması — Herfindahl konsantrasyonu + etkin varlık sayısı.
@@ -377,10 +377,10 @@ function readInvestmentChart(s: PortfolioState, inflationPct?: number): string {
   const x = xirrOf(s);
   if (x) {
     if (x.reliable) {
-      const real = realReturnPct(x.annualPct, inflationPct ?? VARSAYILAN_ENFLASYON);
+      const real = realReturnPct(x.annualPct, inflationPct ?? varsayilanEnflasyonPct());
       lines.push(
         `Para-ağırlıklı yıllık getirin (XIRR) ${fmtPctPlain(x.annualPct, 1)}. ` +
-        `%${fmtDec(inflationPct ?? VARSAYILAN_ENFLASYON, 0)} enflasyon varsayımıyla reel karşılığı ${fmtPctPlain(real, 1)} ` +
+        `%${fmtDec(inflationPct ?? varsayilanEnflasyonPct(), 0)} enflasyon varsayımıyla reel karşılığı ${fmtPctPlain(real, 1)} ` +
         `(Fisher: (1+nominal)/(1+enflasyon)−1; "nominal eksi enflasyon" kestirmesi burada yanıltır).`,
       );
     } else {
@@ -702,10 +702,11 @@ const CHAT_RULES: Rule[] = [
         );
       }
 
-      // TODO(muhasebe): %17,5 ve 11107 sayılı karar metni config/varsayilanlar.ts ile aynı tutulmalı; kaynak doğrulaması bekliyor.
+      // TODO(muhasebe): dayanak ve oranlar src/config/tax_rules.json'dan türetilir (stopajAciklamasi); kaynak doğrulaması bekliyor.
+      const stopaj = stopajAciklamasi();
       lines.push(
-        `Oranlar 27.03.2026 tarihli 11107 sayılı Cumhurbaşkanı Kararı'na göre VARSAYILMIŞTIR ` +
-        `(fon ve 6 aya kadar vadeli TL mevduat %17,5; BIST pay senedi alım-satımında stopaj yok). ` +
+        `Oranlar ${stopaj.dayanak ? `${stopaj.dayanak}'na göre` : '(dayanağı doğrulanmadı)'} VARSAYILMIŞTIR ` +
+        `(${stopaj.ozet}). ` +
         `Vade, fon türü ve istisnalar sonucu değiştirir — bu bir vergi beyannamesi değil, bir tahmindir.`,
       );
 
@@ -910,7 +911,7 @@ const CHAT_RULES: Rule[] = [
     id: 'karsi-olgusal',
     test: /mevduatta (tutsayd|kalsayd|bıraksayd)|mevduata yatırsayd|hep mevduatta olsa|bankada tutsayd|mevduatla karşılaştır/i,
     reply: (s, text) => {
-      const rate = parseInflationPct(text) ?? DEFAULT_DEPOSIT_RATE_PCT;
+      const rate = parseInflationPct(text) ?? varsayilanMevduatFaizPct();
       const hypothetical = counterfactualDeposit(s, rate);
       if (hypothetical === undefined) return 'Bu karşılaştırmayı yapmak için önce bir işlem geçmişin olması gerek.';
       // "Gerçekte elindeki" yalnızca güncel varlıkların değeri DEĞİL — kapattığın pozisyonlardan
@@ -1092,7 +1093,7 @@ export function chatReply(
   history: AgentMessage[] = [],
   memory?: AgentMemoryProfile,
   trainedFacts: TrainedFact[] = [],
-  // Kullanıcının düzenlediği stopaj oranları (taxRates.ts). Verilmezse DEFAULT_TAX_RATES.
+  // Kullanıcının düzenlediği stopaj oranları (taxRates.ts). Verilmezse varsayilanVergiOranlari() (tax_rules.json, bugünün kuralı).
   // agent.ts saf kalsın diye localStorage'a burada DEĞİL, App.tsx'te dokunuluyor.
   taxRates?: Record<AssetType, number>,
   // Kullanıcının girdiği hedef dağılım (targetAllocation.ts). Aynı gerekçeyle dışarıdan gelir.

@@ -315,34 +315,53 @@ Motor saf bir hesap makinesidir: içine sayı girer, sayı çıkar; ağ, React, 
 - tests/unit/projeksiyon.test.ts: stopajSonrasiDeger: karışım ağırlıklı oran; doğrulanmamış tür işaretlenir
 - tests/e2e/fagent-projection-e2e.mjs
 
-**Not:** Ekrana yalnız sonDeger, reelDeger, projeksiyonYollari bağlı. senaryoSonucu, stopajSonrasiDeger, turAgirliklari, hedefeUlasmaSuresi, getiriEnflasyonTablosu, siraRiski, birlestirKaynak, enflasyonEtiketi henüz ekrana bağlı değil (PDF tasarımındaki ilgili ekrana bağlama bekliyor). Aşama B (Monte Carlo) için ayrı onay gerekiyor.
+**Not:** Ekrana yalnız sonDeger, reelDeger, projeksiyonYollari bağlı. senaryoSonucu, stopajSonrasiDeger, turAgirliklari, hedefeUlasmaSuresi, getiriEnflasyonTablosu, siraRiski, birlestirKaynak, enflasyonEtiketi henüz ekrana bağlı değil (PDF tasarımındaki ilgili ekrana bağlama bekliyor). Arka plan motoru tamam; kalan iş ekran bağlama (tasarım) ve Aşama B (Monte Carlo, ayrı onay).
 
-### A10 · Varsayımlar ve vergi oranları: koda gömülü sabit yok kuralı
+### A10 · Varsayımlar ve vergi oranları: oran/varsayım değerleri tarih aralıklı dosyada
 
-**Durum:** KISMEN · **Yol haritası:** YH-2 · **PDF ekranı:** brüt→net→reel; Projeksiyon
+**Durum:** YAPILDI · **Yol haritası:** YH-2 · **PDF ekranı:** brüt→net→reel; Projeksiyon
 
-Oranlar (enflasyon varsayımı, stopaj, eşikler, zaman aşımları) tek bir dosyada toplanır ve yanında kaynağı yazar. Doğrulanamayan oran uydurulmaz: stopaj tablosunda kripto, altın, döviz, tahvil, BES, gayrimenkul için 0 yazar ve 'doğrulanmadı' etiketi taşır.
+Zamanla değişen her sayı (stopaj oranları, enflasyon, faiz ve senaryo varsayımları, sıra riski sapması) iki JSON dosyasında durur: her kaydın geçerlilik aralığı, sürümü, kaynağı ve 'doğrulandı' alanı vardır. Doğrulanamayan oran uydurulmaz: kaynak null, dogrulandi false yazar. Kod değeri çağrı anında bugünün tarihine göre seçer; kullanıcı, EVDS ve kaynak etiketi önceliği aynen sürer. Kural: docs/veri-akisi/spec.md P0 kural 6 ve P6 (AGENTS.md §0.6 değil).
 
 | Kontrol | Geçerse | Geçemezse |
 |---|---|---|
-| Sabit tek yerde mi (src/config/varsayilanlar.ts) | analytics.ts, inflation.ts gibi modüller oradan içe aktarır. | Gömülü sabit kalırsa belge-kod-tutarlılığı grep'i yakalar (eski değeri src ve tests'te ara). |
+| Sabit tek yerde mi (vergi: src/config/tax_rules.json; piyasa varsayımları: src/config/varsayimlar.json; ikisi src/config/varsayilanlar.ts üzerinden) | analytics.ts, inflation.ts gibi modüller oradan içe aktarır. | Gömülü sabit kalırsa belge-kod-tutarlılığı grep'i yakalar (eski değeri src ve tests'te ara). |
+| Tarih aralıklı kural dosyası (tax_rules.json, src/vergiKurallari.ts dogrula/yukle) | Aynı varlık türünde aralıklar çakışmaz ve boşluk bırakmaz, şema geçerlidir; bugünün tarihindeki kural DEFAULT_TAX_RATES'e, oranBilinmiyor:true olanlar UNVERIFIED_TAX'a türetilir. | Dosya geçersizse uygulama açılışta Error fırlatır (sessiz yanlış oran yok); tarih için kural yoksa oran 0 ve tür 'bilinmiyor' sayılır, sayı uydurulmaz. |
+| Piyasa varsayımları (varsayimlar.json, src/varsayimlar.ts dogrulaVarsayim/yukleVarsayim) | Aynı doğrulayıcı (çakışma, boşluk, şema) geçer; enflasyon %30, mevduat/risksiz faiz %45, senaryo %20/35/50, sıra riski 15 pp bugün için eski sabitlerle birebir aynı. | Dosya geçersizse açılışta Error fırlatır; tarih için kayıt yoksa en yakın geçmiş (yoksa ilk) varsayım kullanılır, hâlâ 'varsayım' etiketli. |
 | Doğrulanmamış tür (UNVERIFIED_TAX) | Ekranda varsayım olarak etiketlenir. | - |
 | Enflasyon kaynağı etiketi | 'TCMB EVDS · dönem', 'senin girdiğin oran' ya da 'varsayım (... doğrulanmadı)' yazar. | - |
+| Kullanıcı oranı katmanı (taxRates.ts) | Yalnız kullanıcının değiştirdiği sınıf saklanır, varsayılana eşit değer silinir; eski tam tablo kaydı ilk okumada güvenle sadeleşir. Tarihli yeni kural dokunulmamış sınıflara ulaşır, kullanıcı oranı korunur. | Bozuk kayıt kurtarma anahtarına kopyalanır, varsayılana düşülür. |
+| Varsayım geri düşmesi (varsayimDetay) | Tarih için kayıt varsa geriDusuldu:false. | Kayıt yoksa en yakın geçmiş (o da yoksa ilk) varsayım kullanılır ve geriDusuldu:true döner (ekrana bağlı değil; bugünkü kayıtlar açık uçlu). Vergi farklıdır: kural yoksa oran 0 ve 'bilinmiyor' olur, çünkü yanlış stopaj yanlış net para gösterir; varsayım ise etiketli, kullanıcının değiştirebildiği ön değerdir. |
 
 **Kod:**
+- `src/config/varsayimlar.json`
+- `src/config/tax_rules.json`
+- `src/vergiKurallari.ts:dogrula`
+- `src/vergiKurallari.ts:gecerliKural`
+- `src/vergiKurallari.ts:varsayilanOranlar`
 - `src/config/varsayilanlar.ts:DEFAULT_TAX_RATES`
 - `src/config/varsayilanlar.ts:UNVERIFIED_TAX`
 - `src/config/varsayilanlar.ts:VARSAYILAN_ENFLASYON_PCT`
 - `src/inflation.ts:inflationSourceLabel`
+- `src/varsayimlar.ts:dogrulaVarsayim`
+- `src/varsayimlar.ts:varsayimDegeri`
+- `src/config/varsayilanlar.ts:varsayilanEnflasyonPct`
+- `src/config/varsayilanlar.ts:varsayilanVergiOranlari`
+- `src/taxRates.ts:getTaxRates`
+- `src/config/varsayilanlar.ts:varsayimDetay`
+- `src/config/varsayilanlar.ts:stopajAciklamasi`
 
 **Bozulursa:** Yanlış oran kullanıcıya yanlış net getiri gösterir. Bu yüzden her oran muhasebe doğrulaması bekleyen varsayım olarak etiketlidir; veri bozulmaz.
 
 **Test:**
+- tests/unit/vergi-oranlari-kullanici.test.ts: O1 (ileri tarihli kural + kullanıcı oranı, eski tablo göçü), D5 davranış testi
+- tests/unit/varsayimlar.test.ts: eşdeğerlik (eski sabitlerle birebir), tarih sınırları, bozuk dosya, gece yarısı önbelleği, inflation.ts etiketi
+- tests/unit/vergi-kurallari.test.ts: eşdeğerlik (eski sabitlerle birebir), tarih sınırları, çakışma/boşluk, bozuk dosya
 - tests/unit/hesap.test.ts: varsayılanlar: değerler taşıma öncesiyle aynı
 - tests/unit/hesap.test.ts: afterTaxOf: fon kazancı %17,5 stopajla net; zararda stopaj 0
 - tests/e2e/fagent-vergi-e2e.mjs
 
-**Not:** Oranlar yapılandırma dosyasında (TypeScript), tarih aralıklı JSON değil; tarih aralıklı tax_rules.json (spec P6) yapılmadı. Fon stopajı %17,5 ve enflasyon varsayımı %30 birincil kaynakla doğrulanmadı (TODO(muhasebe)).
+**Not:** Vergi (tax_rules.json) ve piyasa varsayımları (varsayimlar.json) tarih aralıklı, sürümlü, kaynaklı JSON'da; hiçbiri doğrulanmadı (dogrulandi:false, kaynağı bilinmeyen null, TODO(muhasebe) not alanında). Bugünkü değerler eski sabitlerle birebir aynı (eşdeğerlik testleri). Tüketiciler (inflation, agent, projection, analytics, taxRates, RiskPanel, Projeksiyon başlangıç değeri) değeri ÇAĞRI ANINDA bugünün tarihiyle okur, gece yarısını aşan açık sekmede de doğrudur; eski dışa aktarım adları (DEFAULT_TAX_RATES, VARSAYILAN_ENFLASYON_PCT vb.) yalnız sayfa yükleme anının görüntüsüdür (testler ve geri uyumluluk). Ürün sabitleri (hedef sapma eşikleri, kaynak zaman aşımları/TTL, mantık aralıkları, yedek boyut sınırı, SIFIRLA işareti ömrü) piyasa/vergi varsayımı olmadığı için TS'te kalır. Fon stopajı %17,5 ve enflasyon %30 birincil kaynakla doğrulanmadı (TODO(muhasebe)). Sınırlar: (1) 'Oran değerleri JSON'da' iddiası; ekran stopaj kartı (App.tsx) ve ajan vergi yanıtı (agent.ts) dayanak cümlesini stopajAciklamasi() ile tax_rules.json'dan türetir, metin bugün eskisiyle birebir aynı; kural dosyasında dayanak yoksa 'dayanağı doğrulanmadı' der. 'Ücret' ve kur gibi değerler bu dosyalarda yok. (2) Fon kuralının 2026-05-01 başlangıcı da doğrulanmadı; sistem saati bu tarihten geriyse fon oranı 0/bilinmiyor görünür (devir belgesinde açık madde). (3) Eski tam tablo stopaj kaydı olan kullanıcı kural değişmeden önce uygulamayı hiç açmazsa eski değerler kullanıcı oranı gibi kalır.
 
 ### A11 · Ajan ve içgörü metni: kural tabanlı, yasak kalıplı
 
@@ -1490,7 +1509,7 @@ Devirde alan adı kayıt sahibi, Vercel projesi/ekibi, Supabase proje sahipliği
 | Üretim derlemesi | npm run build (scripts/build.mjs); CI | Her iş sonunda | Derleme biter ve gizli Supabase anahtarı yoksa |
 | Derleme: gizli Supabase anahtarı kilidi | scripts/build.mjs | Her derlemede | sb_secret_ ya da service_role içeren VITE_* değerinde derleme durur |
 | Güvenlik taraması | npm run guvenlik -- --dist (scripts/guvenlik-tarama.mjs); CI | Her iş sonunda, derlemeden sonra | Gizli anahtar deseni, izlenen .env, VITE_ gizli değişken, npm audit; kritik bulguda çıkış 1 |
-| Birim testler | npm run test:unit (tests/unit/*.test.ts) | Her iş sonunda | depolama, evds-sunucu, kaynaklar, projeksiyon, hesap test dosyaları; CI'da koşulmuyor (açık) |
+| Birim testler | npm run test:unit (tests/unit/*.test.ts) | Her iş sonunda | depolama, evds-sunucu, kaynaklar, projeksiyon, hesap, vergi-kurallari, varsayimlar test dosyaları; CI'da koşulmuyor (açık) |
 | Uçtan uca testler (iki derleme) | npm run test:e2e (tests/run-e2e.mjs) | Her iş sonunda, ve düzeltme turlarından sonra | dist/ hesapsız (port 4200) ve dist-e2e-cloud/ sahte Supabase (port 4201); sonuç 'sahte Supabase ile yeşil' |
 | Kontrol sayısı azalmaz | Test ajanı raporu | Her e2e koşusunda | Önceki kayıtlı sayıyla karşılaştırma (son kayıt 736) |
 | Auth beyaz liste kontrolleri silinmez | tests/e2e/fagent-auth-e2e.mjs | Bulut ya da yedek yoluna dokunan her işte | Beyaz liste kontrolleri gevşetilmez |
@@ -1521,7 +1540,7 @@ Devirde alan adı kayıt sahibi, Vercel projesi/ekibi, Supabase proje sahipliği
 12. Sunucu hız sınırı ve devre kesici sunucusuz ortamda örnek başına bellekte tutulur; kesin garanti değil, en iyi çaba.
 13. Hız sınırında kullanılan istemci IP'sinin kişisel veri sayılıp sayılmadığı avukat teyidine bağlı (TODO(hukuk)); EVDS kullanım şartları ticari/abonelikli üründe birincil metinle doğrulanmadı.
 14. Projeksiyon motorunun yeni fonksiyonlarının çoğu ekrana bağlı değil; Aşama B (Monte Carlo) için ayrı onay gerekiyor ve rassal yürüyüş ertelemesiyle çelişki notu planda.
-15. Vergi oranları tarih aralıklı tax_rules.json yerine TypeScript yapılandırmasında; fon stopajı %17,5 ve enflasyon varsayımı %30 birincil kaynakla doğrulanmadı (TODO(muhasebe)).
+15. Vergi oranları (tax_rules.json) ve piyasa varsayımları (varsayimlar.json) tarih aralıklı dosyada; hiçbiri muhasebeci doğrulamasından geçmedi (dogrulandi:false); fon stopajı %17,5 ve enflasyon varsayımı %30 birincil kaynakla doğrulanmadı (TODO(muhasebe)). Fon için 2026-05-01 öncesi oran (%15) doğrulanmadığı için dosyada yok.
 16. KAP (YH-4), BİST (YH-5) ve paylaşılan veri önbelleği (YH-6) yapılmadı; YH-7 ve YH-8 PDF tasarımına göre yeniden tanımlanacak (motorlar PDF ekranlarını besler). KAP/BİST için kaynak sayfa, kullanım koşulu ve lisans doğrulanmadı; AGENTS.md §0.4 güncellemesi kullanıcı onayı bekliyor.
 17. docs/mvp-tanimi.md, CHANGELOG, scripts/paket-olustur.sh, /home/user/FAGENT-Paket, 'Uyumluluk durumu ve açık maddeler' sayfası ve alan adı henüz yok. MVP kapsamı (PDF tasarımındaki hangi ekran ve özellik ilk sürümde açık) kullanıcıya sorulacak.
 18. ci.yml Node 20 kuruyor, package.json engines >=22.18; CI'da test:unit adımı yok; aksiyonlar SHA ile sabit değil; Dependabot yok. Kod okunarak görüldü, CI koşusu yapılmadı.
