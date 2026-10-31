@@ -70,6 +70,10 @@ Odak: sistemi ve işleyişi kurmak; KVKK/SPK/ETBİS vb. yükümlülükler satı�
 
 `docs/tasarim/FAGENT_web_sitesi.pdf` Fagent'ın NORMAL ürün tasarımıdır (brüt→net→reel, sekmeli paneller Panel/Grafik/Hisseler/Fonlar/Kripto/Projeksiyon, abonelik planları, SSS, gizlilik kartları). Fagent içinde çalışan veriler ve kontroller bu tasarımın ARKASINDA (backend/motor) çalışır. Bu, 2026-10-27/28'deki "ekranda yalnızca Projeksiyon kalsın" kararının YERİNİ ALIR; YH-7 (paneller motora) "motorlar PDF ekranlarını besler" olarak, YH-8 (kenar çubuğunu kaldırma) PDF tasarımına göre yeniden tanımlanacak. Görsel tasarım kullanıcıda. "Oyun simülasyonu" ayrı bir açıklama sayfasıdır (arka plandaki tüm veri/kontrol ve operasyonel süreçleri bölüm/sahne olarak anlatır; kaynak `docs/veri-akisi/veri-yolculugu.json`), ürün tasarımıyla ilgisi yoktur.
 
+## KARAR (kullanıcı, 2026-10-31): BULUT SENKRONU ÖNERİLERİ KABUL; ŞİMDİ YALNIZ VERİ VE KOD
+
+`docs/veri-akisi/bulut-senkron-arastirma.md` önerileri kabul: önce Seçenek 2a (istemci kodu; 34+33, 35b, 35c), sonra 2b (sürüm sütunu; 27) — 2b'nin migration'ı yalnız DOSYA olarak hazırlanır, gerçek veritabanına adım 5'te açık onayla uygulanır. Çıkışta hesaba gitmemiş veri en çok 7 gün bu cihazda karantinada bekler; aynı hesapla girişte "indir / hesaba yükle / sil" sorulur; başka hesapla girişte, SIFIRLA'da ve hesap silmede silinir. KVKK (47) ve tüm hukuk/muhasebe konuları EN SONA bırakıldı (kullanıcı: "hukuki ve muhasebeci kısmını en son konuşuruz"). Simülasyon bölümleri sırayla: A bitince kullanıcıya A'nın kısa özeti yazılır, sonra B.
+
 ## DURUM VE SIRADAKİ İŞLER (2026-10-30, kullanım sınırı nedeniyle durduruldu)
 
 Commit'li: YH-1 (P3 bağlama), YH-2 (projeksiyon motoru). Tasarım: kullanıcının "mevcut tasarım" PDF'i `docs/tasarim/FAGENT_web_sitesi.pdf` (sekmeli paneller + 3 abonelik planı; tek-ekran-Projeksiyon kararı ve "abonelik yapılmaz" kapsamıyla ÇELİŞKİ var → `docs/mvp-tanimi.md` yazılacak, kullanıcıya sorulacak).
