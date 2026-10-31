@@ -23,8 +23,33 @@
 // ayna asenkron silinir (clearMirror). Silme bitmeden sayfa yenilenirse açılış işareti görür ve geri
 // yüklemek yerine aynayı siler: silinen veri geri gelmez.
 import type { KvStore, StorageError } from './types.ts';
+import { SIFIRLA_ISARETI_OMRU_MS } from '../config/varsayilanlar.ts';
 
 export const MIRROR_CLEARED_KEY = 'fagent.mirror.cleared.v1';
+
+// Silme işareti ETKİN mi? Değer Date.now() damgasıdır (clearMirrorForReset). Yalnız SIFIRLA_ISARETI_OMRU_MS boyunca etkin sayılır;
+// takılı (silme hatası) işaret süre dolunca sekmeler arası kararları (silme kazanır, yazıcı durdurma, kurtarma kopyası) etkilemez.
+// Geriye uyum: damga olarak okunamayan eski biçimli değer etkin SAYILMAZ (açılıştaki temizlik işareti yine de görür ve yeniden dener).
+// Saat sapması: gelecekteki damga süre sınırı içinde etkin sayılır.
+export function resetMarkerActive(value: string | null | undefined, now = Date.now(), maxAge = SIFIRLA_ISARETI_OMRU_MS): boolean {
+  if (value === null || value === undefined) return false;
+  const t = Number(value);
+  if (!Number.isFinite(t) || t < 1e12) return false;
+  return Math.abs(now - t) <= maxAge;
+}
+
+// "Gerçekten boş" değer: anahtar yok, ya da boş portföy durumu (onboarded=false, varlık ve işlem yok). SIFIRLA portföyü bu
+// durumla yazar, diğer katmanları siler (null). Sıradan bir yabancı yazım (dolu portföy, tercih değişikliği) boş SAYILMAZ.
+export function isEmptyPortfolioRaw(raw: string | null | undefined): boolean {
+  if (raw === null || raw === undefined) return true;
+  try {
+    const p = JSON.parse(raw) as { onboarded?: unknown; holdings?: unknown; txns?: unknown };
+    return p !== null && typeof p === 'object' && p.onboarded === false
+      && Array.isArray(p.holdings) && p.holdings.length === 0 && Array.isArray(p.txns) && p.txns.length === 0;
+  } catch { return false; }
+}
+export const isEmptyLayerValue = (key: string, raw: string | null | undefined): boolean =>
+  raw === null || raw === undefined || (key === 'fagent.portfolio.v1' && isEmptyPortfolioRaw(raw));
 export const RECOVERY_IDB_PREFIX = 'fagent.recovery.idb.';
 // localStorage'da büyük (256 KB üstü) bozuk ham değer için src/recovery.ts bu anahtarı yazar: `<önek><anahtar>.not`.
 // Not varken ayna yazıcısı, aynadaki (aynı bozuk) değeri ezmeden önce kurtarma kaydına alır (src/recovery.ts ile aynı önek).
@@ -45,8 +70,20 @@ export interface BootReport {
 // sınır aşılırsa en eski silinir (sıra: ilk kayıt, sonra artan zaman).
 export const MAX_RECOVERY_PER_KEY = 3;
 
-function recoverySlots(all: string[], key: string): string[] {
-  const base = RECOVERY_IDB_PREFIX + key;
+// Kurtarma "kovaları" (A6, D-b): 'farkli' = açılışta localStorage ile farklı bulunan IndexedDB değeri (varsayılan, eski
+// adlandırma); 'bozuk' = 256 KB üstü BOZUK ham değer (localStorage'a kopyalanamadığı için burada durur). Ayrı önekte
+// tutulur ve her kovanın üst sınırı (MAX_RECOVERY_PER_KEY) ayrıdır: sık değişen "farklılık" kayıtları bozuk değeri
+// dışarı itemez. Bozuk kova anahtarı: `fagent.recovery.idb.bozuk.<anahtar>[.<zaman>]`.
+// 'geri' = kurtarma kaydından geri yüklemeden (src/kurtarma.ts) ya da başka sekmenin değerinin korunmasından önce alınan
+// MEVCUT değer: geri yükleme geri alınabilsin diye ayrı kovada durur (farklılık/bozuk kayıtlarını itmez, onlarca itilmez).
+export type RecoveryKova = 'farkli' | 'bozuk' | 'geri';
+export const BOZUK_KOVA_ONEKI = 'bozuk.';
+export const GERI_KOVA_ONEKI = 'geri.';
+export const recoveryBase = (key: string, kova: RecoveryKova = 'farkli') =>
+  RECOVERY_IDB_PREFIX + (kova === 'bozuk' ? BOZUK_KOVA_ONEKI : kova === 'geri' ? GERI_KOVA_ONEKI : '') + key;
+
+function recoverySlots(all: string[], key: string, kova: RecoveryKova = 'farkli'): string[] {
+  const base = recoveryBase(key, kova);
   const re = new RegExp('^' + base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(\\.(\\d+))?$');
   return all.filter(k => re.test(k)).sort((x, y) => {
     const nx = x === base ? -1 : Number(x.slice(base.length + 1));
@@ -55,11 +92,13 @@ function recoverySlots(all: string[], key: string): string[] {
   });
 }
 
-export async function saveRecovery(idb: KvStore, key: string, value: string): Promise<{ key?: string; error?: StorageError }> {
-  const base = RECOVERY_IDB_PREFIX + key;
+// koru: üst sınır aşılınca SİLİNMEMESİ gereken kayıt anahtarları (ör. şu an geri yüklenmekte olan kayıt). Korunanlar atlanır,
+// bir sonraki en eski silinir; sınır korunamıyorsa yeni kayıt geri alınır ve hata döner.
+export async function saveRecovery(idb: KvStore, key: string, value: string, kova: RecoveryKova = 'farkli', koru: readonly string[] = []): Promise<{ key?: string; error?: StorageError }> {
+  const base = recoveryBase(key, kova);
   const l = await idb.list(base);
   if (!l.ok) return { error: l.error };
-  const slots = recoverySlots(l.value, key);
+  const slots = recoverySlots(l.value, key, kova);
   for (const sl of slots) {
     const cur = await idb.get(sl);
     if (cur.ok && cur.value === value) return { key: sl }; // aynı değer zaten kurtarma kaydında
@@ -72,9 +111,14 @@ export async function saveRecovery(idb: KvStore, key: string, value: string): Pr
   const a = await idb.addIfAbsent(target, value);
   if (!a.ok) return { error: a.error };
   if (!a.value) return { error: { code: 'io', message: 'Kurtarma kaydı anahtarı çakıştı' } };
-  // üst sınır: en eskiler silinir (yeni yazılan her zaman en son)
+  // üst sınır: en eskiler silinir (yeni yazılan her zaman en son; korunanlar atlanır)
   const all = [...slots, target];
-  for (const old of all.slice(0, Math.max(0, all.length - MAX_RECOVERY_PER_KEY))) {
+  const silinecek = all.slice(0, -1).filter(k => !koru.includes(k)).slice(0, Math.max(0, all.length - MAX_RECOVERY_PER_KEY));
+  if (all.length - silinecek.length > MAX_RECOVERY_PER_KEY) {
+    await idb.delete(target);
+    return { error: { code: 'io', message: 'Kurtarma kaydı sınırı korunamıyor: silinebilir kayıt yok' } };
+  }
+  for (const old of silinecek) {
     const d = await idb.delete(old);
     if (!d.ok) {
       // Sınır korunamıyor: yeni kaydı geri al (eski kayıtlar durur), hata dön -> çağıran ezme/silme yapmaz.
@@ -206,7 +250,7 @@ export function createMirrorWriter(ls: KvStore, idb: KvStore, allKeys: readonly 
 
   const fail1 = (e: StorageError) => { st.lastError = e; st.failures++; };
 
-  const resetMarked = async () => { const m = await ls.get(MIRROR_CLEARED_KEY); return m.ok && m.value !== undefined; };
+  const resetMarked = async () => { const m = await ls.get(MIRROR_CLEARED_KEY); return m.ok && resetMarkerActive(m.value); };
 
   async function one(key: string): Promise<void> {
     for (let attempt = 0; attempt < 3; attempt++) {

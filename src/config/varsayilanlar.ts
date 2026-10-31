@@ -92,3 +92,12 @@ export const KUR_GUNLUK_SAPMA_PCT = 20;                        // bir önceki g�
    bunun yaklaşık iki katı tolerans verilir. Bulut senkron sınırı (cloud.ts MAX_SYNC_CHARS) ayrıdır.
    Kaynak: tarayıcı kotası genel bilgi (ikincil), birincil belgeyle doğrulanmadı. */
 export const YEDEK_DOSYA_MAX_BOYUT = 10_000_000;
+
+/* ───────────── SIFIRLA silme işareti ömrü (sekmeler arası, veri yolculuğu A8) ─────────────
+   SIFIRLA/çıkış localStorage'a 'fagent.mirror.cleared.v1' işaretini (değer: Date.now()) koyar ve IndexedDB silmesi
+   bitince kaldırır. Silme hata alırsa işaret kalır (sonraki açılış yeniden dener). İşaret süresiz "silme sürüyor"
+   sayılırsa başka sekmenin sıradan yazımı silme sanılır, bekleyen değerler atılır ve ayna yazıcısı sonsuza dek durur.
+   Bu yüzden işaret yalnız bu süre boyunca "etkin" sayılır; eski (sayı olmayan) biçimli işaret etkin SAYILMAZ.
+   Gerekçe: IndexedDB'de birkaç anahtarı silmek normalde milisaniyeler sürer; 30 sn, yavaş cihaz ve çok sekmeli açılışlar
+   için bol, takılı işareti ise çabucak etkisiz kılan bir üst sınırdır. Ölçülmedi; varsayım (gerçek cihazlarda doğrulanmadı). */
+export const SIFIRLA_ISARETI_OMRU_MS = 30_000;

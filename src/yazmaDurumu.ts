@@ -19,17 +19,83 @@ const pending = new Map<string, string>();
 const deleted = new Set<string>();
 const listeners = new Set<() => void>();
 let dirtyKeys: readonly string[] = [];
+// ---- Sekmeler arası durum bildirimleri (veri yolculuğu sahne A8) ----
+// (1) ÇAKIŞMA: bu sekmede kaydedilmemiş (bekleyen) değer varken BAŞKA bir sekme aynı anahtarı değiştirdi. Bekleyen değer
+//     ezilmez. Diğer sekmenin sürümü kurtarma alanına GÜVENLE alınana kadar anahtar için yazım BEKLETİLİR (hold): bekleyen
+//     değer, diskteki öteki sürümün üstüne yazılmaz. Kopyalama başarılı olursa bekletme kalkar; başarısızsa sürer.
+//     Çakışma, bekleyen çözülünce (yazım başarılı, silme, geri yükleme) kendiliğinden kalkar.
+// (2) SİLME KAZANIR: başka sekmede SIFIRLA/çıkış yapıldı; bu sekmenin bekleyen değeri ATILIR (diske/aynaya geri yazılmaz) ve
+//     kullanıcıya söylenir. Sayfa yenilenene ya da bu anahtar için SIFIRLA yapılana dek bildirim durur.
+// (3) ÜZERİNE YAZMA: eski bellekle yapılan bir yazım, diskteki (başka sekmeden gelmiş) farklı sürümün üstüne yazdı (olay
+//     gecikmesi); önceki sürümün kurtarma alanına kopyalanıp kopyalanmadığı bildirilir.
+// Yalnızca anahtar ADI tutulur; içerik log'a gitmez.
+const conflicts = new Map<string, 'bekle' | 'kopyalandi'>();
+const holds = new Set<string>();
+// Bekletmedeki anahtar için öteki sekmenin sürümü (kopya yeniden denenebilsin diye bellekte tutulur) ve yeniden deneme alıcısı.
+const holdValues = new Map<string, string>();
+const retrying = new Set<string>();
+type HoldRetry = (key: string, foreignValue: string) => Promise<boolean>;
+let holdRetry: HoldRetry | undefined;
+export function setHoldRetry(fn: HoldRetry | undefined): void { holdRetry = fn; }
+const discarded = new Set<string>();
+const overwritten = new Map<string, boolean>();
+let conflictKeys: readonly string[] = [];
+let noticeText = '';
+
+function sameList(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((k, i) => k === b[i]);
+}
+
+function composeNotice(): string {
+  const parts: string[] = [];
+  const cs = [...conflicts.values()];
+  if (cs.includes('bekle')) parts.push(TAB_CONFLICT_BEKLEMEDE);
+  if (cs.includes('kopyalandi')) parts.push(TAB_CONFLICT_KOPYALANDI);
+  if (discarded.size > 0) parts.push(TAB_RESET_DISCARDED_MESSAGE);
+  const ow = [...overwritten.values()];
+  if (ow.includes(true)) parts.push(TAB_OVERWRITE_COPIED_MESSAGE);
+  if (ow.includes(false)) parts.push(TAB_OVERWRITE_NOT_COPIED_MESSAGE);
+  return parts.join(' ');
+}
 
 function refresh(): void {
   const next = [...new Set([...pending.keys(), ...deleted])].sort();
-  const same = next.length === dirtyKeys.length && next.every((k, i) => k === dirtyKeys[i]);
-  if (same) return;
+  for (const k of [...conflicts.keys()]) if (!pending.has(k) && !deleted.has(k)) { conflicts.delete(k); holds.delete(k); }
+  for (const k of [...holds]) if (!pending.has(k) && !deleted.has(k)) holds.delete(k);
+  for (const k of [...holdValues.keys()]) if (!holds.has(k)) holdValues.delete(k);
+  const nextConflicts = [...conflicts.keys()].sort();
+  const nextNotice = composeNotice();
+  if (sameList(next, dirtyKeys) && sameList(nextConflicts, conflictKeys) && nextNotice === noticeText) return;
   dirtyKeys = next;
+  conflictKeys = nextConflicts;
+  noticeText = nextNotice;
   listeners.forEach(fn => { try { fn(); } catch { /* dinleyici hatası yazmayı bozmasın */ } });
+}
+
+// Bekletmedeki anahtar yeniden yazılmak istendi: öteki sekmenin sürümünün kurtarma alanına kopyası YENİDEN denenir.
+// Başarılıysa bekletme kalkar ve en güncel bekleyen değer yazılır; başarısızsa (ör. IndexedDB hiç yok) bekletme sürer.
+function retryHold(key: string): void {
+  const v = holdValues.get(key);
+  if (!holdRetry || v === undefined || retrying.has(key)) return;
+  retrying.add(key);
+  void holdRetry(key, v).catch(() => false).then(ok => {
+    retrying.delete(key);
+    if (!ok || !holds.has(key)) return;
+    resolveTabConflict(key, true);
+    const latest = pending.get(key);
+    if (latest !== undefined) writeLocal(key, latest);
+  });
 }
 
 // Yazar; başarıyı döner. ASLA fırlatmaz.
 export function writeLocal(key: string, value: string): boolean {
+  if (holds.has(key)) {
+    // Çakışma: öteki sekmenin sürümü kurtarma alanına alınamadı; bekleyen değer diskteki sürümün üstüne YAZILMAZ.
+    pending.set(key, value);
+    refresh();
+    retryHold(key);
+    return false;
+  }
   try {
     localStorage.setItem(key, value);
     pending.delete(key);
@@ -47,6 +113,7 @@ export function writeLocal(key: string, value: string): boolean {
 export function removeLocal(key: string): void {
   pending.delete(key);
   deleted.delete(key);
+  conflicts.delete(key); holds.delete(key); discarded.delete(key); overwritten.delete(key);
   try { localStorage.removeItem(key); } catch { /* yok */ }
   refresh();
 }
@@ -95,6 +162,61 @@ export function bindUnsavedGuard(protect: (key: string, on: boolean) => void): (
   return () => { off(); for (const k of guarded) protect(k, false); guarded = new Set(); };
 }
 
+// Başka sekme, bu sekmede bekleyen (kaydedilmemiş) bir anahtarı değiştirdi: çakışma işaretle ve yazımı BEKLET. Bekleyen
+// değere dokunmaz. Anahtarın bekleyeni yoksa (çakışma değil) false döner ve hiçbir şey işaretlenmez.
+export function markTabConflict(key: string, foreignValue?: string): boolean {
+  if (!pending.has(key) && !deleted.has(key)) return false;
+  conflicts.set(key, 'bekle');
+  holds.add(key);
+  if (foreignValue !== undefined) holdValues.set(key, foreignValue);
+  refresh();
+  return true;
+}
+
+// Öteki sekmenin sürümünün kurtarma alanına alınması sonuçlandı: başarılıysa yazım bekletmesi kalkar (bekleyen değer
+// hâlâ pending; sonraki yazımda diske iner), başarısızsa bekletme SÜRER.
+export function resolveTabConflict(key: string, kopyalandi: boolean): void {
+  if (!conflicts.has(key)) return;
+  if (kopyalandi) { conflicts.set(key, 'kopyalandi'); holds.delete(key); }
+  refresh();
+}
+
+// SİLME KAZANIR: başka sekmede SIFIRLA/çıkış yapıldı. Verilen anahtarların bekleyen/'silinmeli' durumu atılır
+// (diske DOKUNULMAZ: o zaten silinmiş/boşaltılmıştır). Atılan anahtarları döner.
+export function discardPendingBySiblingReset(keys: readonly string[]): string[] {
+  const out: string[] = [];
+  for (const k of keys) {
+    if (!pending.has(k) && !deleted.has(k)) continue;
+    pending.delete(k); deleted.delete(k); conflicts.delete(k); holds.delete(k);
+    discarded.add(k);
+    out.push(k);
+  }
+  if (out.length > 0) refresh();
+  return out;
+}
+
+// Başka sekmede SIFIRLA sürerken bu sekmede yapılan işlem yazılmadan atıldı (silme kazanır): kullanıcıya bildirilir.
+export function noteDiscardedBySiblingReset(key: string): void {
+  discarded.add(key);
+  refresh();
+}
+
+// Eski bellekle yapılan yazım diskteki farklı sürümün üstüne yazdı (store.ts commit); kurtarma kopyası alındı mı?
+export function markTabOverwrite(key: string, kopyalandi: boolean): void {
+  overwritten.set(key, kopyalandi);
+  refresh();
+}
+
+// Çakışmalı anahtarlar — useSyncExternalStore için kararlı referans (subscribeUnsaved ile aynı abonelik).
+export function getTabConflictKeys(): readonly string[] {
+  return conflictKeys;
+}
+
+// Sekmeler arası bildirim metni ('' = yok) — useSyncExternalStore için kararlı (dize değeri).
+export function getTabNotice(): string {
+  return noticeText;
+}
+
 // Kirli (diske yazılamamış) anahtarlar — useSyncExternalStore için kararlı referans.
 export function getUnsavedKeys(): readonly string[] {
   return dirtyKeys;
@@ -108,3 +230,17 @@ export function subscribeUnsaved(fn: () => void): () => void {
 // Kullanıcıya görünen tek metin kaynağı (arayüz ve testler buradan okur).
 export const UNSAVED_MESSAGE =
   'Son değişiklik tarayıcıya kaydedilemedi; tarayıcı depolama kotası dolu olabilir. Değişiklik şu an yalnızca bu açık sayfada duruyor ve sayfa yenilenirse kaybolur. Yedek dosyası, Panel sekmesindeki "Veri Yedeği" kartından indirilebilir.';
+
+// Sekmeler arası bildirim metinleri (A8): yalnızca olanı söyler. Çakışma metinleri UNSAVED_MESSAGE'ın (yedeğin nereden
+// indirileceğini söyler) ARDINA eklenir.
+const TAB_CONFLICT_ORTAK = 'Başka bir sekmede aynı veri değiştirildi; bu sekmede ise henüz kaydedilmemiş bir değişiklik var.';
+export const TAB_CONFLICT_KOPYALANDI =
+  `${TAB_CONFLICT_ORTAK} Diğer sekmenin sürümü bu tarayıcıdaki kurtarma alanına kopyalandı; bu sekmedeki değişiklik açık sayfada duruyor ve yedek dosyasına giriyor.`;
+export const TAB_CONFLICT_BEKLEMEDE =
+  `${TAB_CONFLICT_ORTAK} Diğer sekmenin sürümü kurtarma alanına kopyalanamadığı için bu sekmedeki değişiklik diske yazılmıyor; açık sayfada duruyor ve yedek dosyasına giriyor.`;
+export const TAB_RESET_DISCARDED_MESSAGE =
+  'Başka bir sekmede veriler silindi; bu sekmedeki kaydedilmemiş değişiklik de silindi.';
+export const TAB_OVERWRITE_COPIED_MESSAGE =
+  'Başka bir sekmede yapılan değişiklik, bu sekmedeki işlemle üzerine yazıldı; önceki sürüm bu tarayıcıdaki kurtarma alanına kopyalandı.';
+export const TAB_OVERWRITE_NOT_COPIED_MESSAGE =
+  'Başka bir sekmede yapılan değişiklik, bu sekmedeki işlemle üzerine yazıldı; önceki sürüm kurtarma alanına kopyalanamadı. Yedek dosyası, Panel sekmesindeki "Veri Yedeği" kartından indirilebilir.';

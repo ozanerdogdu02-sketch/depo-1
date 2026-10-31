@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { preserveCorruptRaw } from './recovery.ts';
-import { writeLocal, removeLocal } from './yazmaDurumu.ts';
+import { writeLocal, removeLocal, getPendingWrite, noteDiscardedBySiblingReset, discardPendingBySiblingReset } from './yazmaDurumu.ts';
+import { isEmptyPortfolioRaw } from './storage/mirror.ts';
 
 // tahvil/bes/gayrimenkul 2026-09-04'te eklendi. Üçü de altın/mevduat ile AYNI mantıkta:
 // manuel girişli, canlı/tarihsel fiyat kaynağı yok, stopaj oranı doğrulanamadı (bkz. analytics.ts
@@ -127,13 +128,22 @@ const CRYPTO_SAMPLE: PortfolioState = {
   ],
 };
 
+// Bu sekmenin bellekteki durumunun dayandığı DİSK değeri (son yüklenen ya da son başarıyla yazılan ham metin; yoksa null).
+// commit diskteki değeri bununla karşılaştırır: farklıysa başka sekme araya yazmıştır (storage olayı henüz işlenmedi).
+let lastRaw: string | null = null;
 let state: PortfolioState = load();
+// Olay gecikmesi penceresi (A8): eski bellek diskteki FARKLI sürümün üstüne yazacaksa, yazmadan önce o sürüm bu işleve verilir
+// (src/main.tsx: kurtarma alanına kopyalar ve kullanıcıya bildirir). Sonuç: kopyalandı mı. Hata fırlatmamalıdır.
+type DivergenceSink = (key: string, diskRaw: string) => Promise<boolean> | boolean;
+let divergenceSink: DivergenceSink | undefined;
+export function setDivergenceSink(fn: DivergenceSink | undefined): void { divergenceSink = fn; }
 const listeners = new Set<() => void>();
 
 function load(): PortfolioState {
   let raw: string | null = null;
   try {
     raw = localStorage.getItem(KEY);
+    lastRaw = raw;
     if (!raw) return EMPTY;
     const parsed = JSON.parse(raw) as PortfolioState;
     // Bozuk/beklenmeyen biçim: boş açılır AMA ham değer önce kurtarma anahtarına kopyalanır; ilk kayıt onu ezemez.
@@ -162,11 +172,40 @@ function load(): PortfolioState {
   }
 }
 
+// Başka bir sekme portföy anahtarını değiştirdi (storage olayı, src/sekmeSenkron.ts): bellekteki durum diskten yeniden
+// yüklenir; böylece bu sekmedeki sonraki işlem eski bellekle diskteki yeni veriyi ezmez. Bu sekmede kaydedilmemiş
+// (bekleyen) değer varken ÇAĞRILMAZ (sekmeSenkron çakışma sayar).
+export function reloadPortfolioFromDisk(): void {
+  state = load();
+  listeners.forEach(fn => fn());
+}
+
 function commit(next: PortfolioState): void {
+  // Olay gecikmesi koruması (A8): diskteki ham değer, bu sekmenin son bildiği değerden farklıysa başka sekme araya yazmıştır.
+  //  * disk gerçekten BOŞALMIŞSA (anahtar yok ya da boş portföy durumu) ve son bilinen değer doluydu: başka sekmede SIFIRLA/çıkış
+  //    yapıldı; SİLME KAZANIR: bu işlem yazılmaz, bekleyen değer de atılır, bellek diskten yüklenir, kullanıcıya söylenir.
+  //    (Silme işaretinin varlığı tek başına karar vermez: takılı işaret sıradan yabancı yazımı silme gibi göstermesin.)
+  //  * disk başka dolu bir sürümdeyse: yazmadan ÖNCE o sürüm kurtarma alanına alınır ve bildirilir (işlem yine uygulanır).
+  try {
+    const disk = localStorage.getItem(KEY);
+    if (disk !== lastRaw) {
+      // Bu sekmenin kendi bekleyen değeri varsa (ör. başarısız geri yüklemenin rollback'i) diskin boş olması başka sekmeden gelmiş sayılmaz.
+      if (isEmptyPortfolioRaw(disk) && lastRaw !== null && !isEmptyPortfolioRaw(lastRaw) && getPendingWrite(KEY) === undefined) {
+        discardPendingBySiblingReset([KEY]);
+        noteDiscardedBySiblingReset(KEY);
+        reloadPortfolioFromDisk();
+        return;
+      }
+      if (disk !== null && !isEmptyPortfolioRaw(disk) && !getPendingWrite(KEY)) {
+        try { void divergenceSink?.(KEY, disk); } catch { /* alıcı hatası yazmayı durdurmaz */ }
+      }
+    }
+  } catch { /* depolama okunamıyor: mevcut davranış */ }
   state = next;
   // Yazma hatası (kota) fırlatmaz: bellek durumu geçerli kalır, anahtar "kaydedilmedi" işaretlenir
   // (yazmaDurumu.ts) ve arayüz uyarır. Sonraki commit tüm durumu yeniden yazar.
-  writeLocal(KEY, JSON.stringify(next));
+  const raw = JSON.stringify(next);
+  if (writeLocal(KEY, raw)) lastRaw = raw;
   listeners.forEach(fn => fn());
 }
 
@@ -201,6 +240,7 @@ export const actions = {
   },
   reset(): void {
     removeLocal(KEY);
+    lastRaw = null;
     commit(EMPTY);
   },
   addHolding(name: string, type: AssetType, amount: number, quantity?: number, symbol?: string): void {

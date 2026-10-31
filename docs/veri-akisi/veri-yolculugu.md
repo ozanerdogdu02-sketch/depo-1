@@ -150,33 +150,48 @@ Her başarılı commit'ten sonra bir 'ayna yazıcısı' uyanır. localStorage'ı
 
 ### A6 · Bozuk kayıt: kurtarma kaydı
 
-**Durum:** KISMEN · **Yol haritası:** YH-1
+**Durum:** YAPILDI · **Yol haritası:** YH-1
 
-Bir katmanın okuyucusu (örneğin store.load) bozuk bir kayıt bulursa boş açılır ama bozuk ham değeri önce kurtarma rafına koyar. Böylece kullanıcının ilk yeni kaydı bozuk veriyi ezse bile asıl metin elde kalır. Raf küçük kalır: 256 KB üstü değerler kopyalanmaz, yalnız bir not düşülür; anahtar başına üst sınır vardır.
+Bir katmanın okuyucusu (örneğin store.load) bozuk bir kayıt bulursa boş açılır ama bozuk ham değeri önce kurtarma rafına koyar. Böylece kullanıcının ilk yeni kaydı bozuk veriyi ezse bile asıl metin elde kalır. Raf küçük kalır: 256 KB üstü değerler localStorage'a kopyalanmaz, yalnız bir not düşülür ve ham değer IndexedDB'nin ayrı 'bozuk' kovasına gider; anahtar başına üst sınır vardır. Rafı yöneten arka plan işlevleri de vardır (ekranı yok): kayıtları listeler, ayrıştırılabilen bir kaydı doğrulayıp ilgili katmana geri yükler (önceki değeri ayrı bir 'geri' kovasına alarak), ayrıştırılamayanı ham metin olarak dışa aktarılabilir biçimde verir.
 
 | Kontrol | Geçerse | Geçemezse |
 |---|---|---|
 | JSON okunabiliyor ve biçim doğru mu (holdings ve txns dizi) | Eski veri göçüyle okunur (costBasis yoksa amount, holdingId yoksa isimle eşleştirme, realizedPnl yoksa 0). | Boş açılır; ham değer fagent.recovery.corrupt.<anahtar> anahtarına kopyalanır. |
 | Ham değer 256 KB (MAX_RAW_COPY) altında mı | localStorage'da en çok 5 farklı kopya (.2 ... .5), aynı değer çoğalmaz. | localStorage'a kopyalanmaz; <anahtar>.not düşer; kopya IndexedDB'de kurtarma kaydına alınmaya çalışılır, alınınca not silinir. |
-| IndexedDB kurtarma kaydı anahtar başına en çok 3 (MAX_RECOVERY_PER_KEY) | Yeni kayıt eklenir. | En eski kayıt silinir; silinemezse yeni kayıt geri alınır, sınır aşılmaz. |
+| IndexedDB kurtarma kaydı anahtar başına en çok 3, üç ayrı kovada: 'bozuk' (256 KB üstü bozuk ham değer), 'farkli' (açılışta localStorage ile farklı bulunan kopya), 'geri' (geri yüklemeden ya da başka sekmenin değerinin korunmasından önceki değer) | Yeni kayıt kendi kovasına eklenir; bir kovanın dolması ötekilerin kayıtlarını dışarı itmez (D-b). Geri yüklenmekte olan kayıt, kendi kovası dolu olsa bile üst sınır nedeniyle silinmez. | Kovanın en eski (korunmayan) kaydı silinir; silinemezse ya da silinecek kayıt yoksa yeni kayıt geri alınır, sınır aşılmaz. |
 | Not yazılamıyor VE kurtarma alınamıyor | - | Anahtar KORUMALI işaretlenir; ayna bozuk değeri ezmez. |
+| Kurtarma kaydı listeleme (listRecoveries) | Her kayıt için anahtar, tür (bozuk / farklilik / buyuk), boyut ve yalnız adından çıkarılabiliyorsa tarih döner; tarih uydurulmaz. | Depo okunamazsa tipli hata döner, fırlatmaz. |
+| Geri yükleme (restoreRecovery): ham metin JSON mu ve katmanın biçiminde mi | ETKİN silme işareti (SIFIRLA/çıkış sürüyor; damga + 30 sn süre sınırı) ve bekleyen (kaydedilmemiş) değer yoksa (ikisi de yazımdan hemen önce senkron yeniden denetlenir) mevcut değer önce 'geri' kovasına alınır (geri yükleme geri alınabilir; kaynak kayıt korunur), sonra değer yalnız o katmana A14 yoluyla (applyUserData, anlık görüntü + iki turlu rollback) yazılır; ayna write-through ile eşitlenir; bellek tazelemesi (portföy diskten yeniden yüklenir, diğer katmanlar için sayaç) işlevin içinde yapılır; kurtarma kaydı silinmez. Önceki değer 'geri' kovasına alındıktan sonra katmanın diskteki değeri ve kaynak kayıt yeniden okunur: bu arada SIFIRLA tamamlanmışsa (işaret kalkmış, kaynak silinmiş) o çağrıda oluşturulan 'geri' kaydı silinir ve hiçbir şey yazılmaz (silinen veri rafta kalmaz). | HİÇBİR ŞEY yazılmaz; neden döner (ayristirilamadi, gecersiz-bicim, bekleyen-var, sifirlama-suruyor, durum-degisti, onceki-korunamadi, yazilamadi, yalniz-not, desteklenmiyor) ve ayrıştırılamayan ham metin yedek dosyası biçiminde dışa aktarılabilir olarak verilir (exportRecovery). readRecovery yalnız kurtarma öneklerini okur. |
 
 **Kod:**
 - `src/recovery.ts:preserveCorruptRaw`
 - `src/recovery.ts:clearRecoveryKeys`
 - `src/storage/mirror.ts:saveRecovery`
 - `src/store.ts:load`
+- `src/kurtarma.ts:listRecoveries, restoreRecovery, exportRecovery, disaAktarimOlustur`
+- `src/backup.ts:applyUserData (mode 'selected')`
+- `src/storage/mirror.ts:saveRecovery (kova: farkli | bozuk)`
+- `src/mirror.ts (256 KB üstü bozuk değer 'bozuk' kovasına), src/mirror.ts:getRecoveryStores`
+- `src/storage/mirror.ts:saveRecovery (kova: farkli | bozuk | geri; koru)`
 
-**Bozulursa:** Kullanıcı bozuk kayıt sonrası boş portföyle açılır; ham veri kurtarma rafındadır ama ekranda bunu gösteren bir bildirim yoktur (tasarım kullanıcıda). Rafa dokunulmazsa veri kaybolmaz; SIFIRLA ve çıkış rafı siler.
+**Bozulursa:** Kullanıcı bozuk kayıt sonrası boş portföyle açılır; ham veri kurtarma rafındadır. Rafı geri yükleyen işlev vardır ama ekrana bağlı değildir ve ekranda bozuk kaydı bildiren bir bildirim yoktur (tasarım kullanıcıda). Rafa dokunulmazsa veri kaybolmaz; SIFIRLA ve çıkış rafı siler.
 
 **Test:**
 - tests/unit/depolama.test.ts: recovery: bozuk ham değer kopyalanır, aynı değer çoğalmaz, farklı değerler ayrı yuvaya, en çok 5; clearRecoveryKeys temizler
 - tests/unit/depolama.test.ts: store.load: bozuk JSON ve yanlış biçim EMPTY döner ama ham değer kurtarma anahtarına kopyalanır
 - tests/unit/depolama.test.ts: DÜŞÜK-6: 256 KB üstü bozuk ham değer kopyalanmaz (yalnızca uzunluk notu)
 - tests/unit/depolama.test.ts: ORTA-2: IndexedDB değeri her açılışta değişse bile anahtar başına kurtarma kaydı en çok 3
+- tests/unit/sekme-kurtarma.test.ts: A6: listRecoveries — tür, anahtar, tarih (yalnız addan çıkarılabiliyorsa), boyut
+- tests/unit/sekme-kurtarma.test.ts: A6: ayrıştırılabilir kayıt geri yüklenir; mevcut değer rafa alınır; kayıt silinmez; sonrası çağrılır
+- tests/unit/sekme-kurtarma.test.ts: A6: ayrıştırılamayan kayıt yazılmaz, ham metin yedek dosyası biçiminde aynen döner
+- tests/unit/sekme-kurtarma.test.ts: A6 D-b: bozuk kovadaki kayıt farklılık kayıtlarıyla dışarı itilmez; kovaların sınırı ayrı
+- tests/e2e/fagent-sekme-e2e.mjs: A6 D-b: 300000 karakterlik bozuk değer IndexedDB 'bozuk' kovasında (kırmızı/yeşil kanıtlı: sink kovasız çağrılınca kontrol KIRMIZI)
+- tests/unit/sekme-kurtarma.test.ts: A6: gecersiz-bicim, yalnız-not, desteklenmeyen anahtar, bulunamadı, bekleyen-var, kota hatasında rollback tamam
+- tests/unit/sekme-kurtarma.test.ts: O2: 3 kayıtlı kovada en eski kayıt geri yüklenir + kota hatası -> kayıt rafta durur; saveRecovery koru; mevcut değer 'geri' kovasında (kırmızı/yeşil kanıtlı)
+- tests/unit/sekme-kurtarma.test.ts: D1 bekleyen-var yazımdan hemen önce tekrarlanır; D2 sifirlama-suruyor (başta ve beklemeler sırasında); D3 bellek tazelemesi içeride; D4 readRecovery yalnız kurtarma önekleri; D7 clearMirror sonrası tüm kovalar boş (her biri kırmızı/yeşil kanıtlı)
+- tests/unit/sekme-kurtarma.test.ts: D-b (KVKK): kopya alınırken SIFIRLA tamamlanırsa 'geri' kaydı silinir, veri diriltilmez; katman değeri başka yerden değişirse 'durum-degisti' (ikisi de kırmızı/yeşil kanıtlı)
 
-**Not:** Mekanizma var ve testli; kullanıcıya görünür bildirim ve 'kurtarma kaydından geri yükle' arayüzü yok. Bozuk değer kopyalarının ayrı tutulması (D-b) plan belgesinde 'yapılmadı' diye geçiyor.
-
+**Not:** Geri yükleme/dışa aktarma/listeleme saf işlev olarak testli; ekrana bağlı DEĞİL (düğme ve bildirim yeri tasarım kararı; sözleşme docs/yol-haritasi-birlesik.md §11). İki sekmede aynı kaydın eşzamanlı geri yüklenmesinde kilit yoktur: son yazan kazanır, öteki sekme storage olayıyla diskten yeniden yükler, ezilen değer 'geri' kovasında kalır. Boyut ölçümü için her kaydın değeri okunur (KvStore'da yalnız-uzunluk okuması yok); raf küçük ve sınırlıdır, listeleme açılışta ya da kullanıcı isteğiyle çağrılmalıdır. IndexedDB kovaları birim testte bellek içi taklitle, 300000 karakterlik bozuk değer yolu ve 'geri' kovası gerçek Chromium IndexedDB'siyle sınandı. Eski adlandırmayla (kovasız) yazılmış büyük bozuk kayıtlar 'farklilik' diye listelenir. Ham metin dışa aktarımı yedek dosyası biçimindedir ama yedek olarak geri yüklenirse bozuk metin yeniden kurtarma rafına girer.
 ### A7 · Depolama dolu, IndexedDB yok ya da engelli
 
 **Durum:** YAPILDI · **Yol haritası:** YH-1
@@ -223,27 +238,51 @@ Tarayıcı bazen bir kapıyı kapatır: özel gezinti, kota dolu, IndexedDB hiç
 
 ### A8 · İki sekme aynı anda
 
-**Durum:** KISMEN · **Yol haritası:** YH-1
+**Durum:** YAPILDI · **Yol haritası:** YH-1
 
-Kullanıcı iki sekme açarsa iki oyuncu aynı tahtaya oynar. Koruma kısmen var: bir sekme SIFIRLA yaparken diğer sekmenin yazıcısı araya girip silinmiş veriyi aynaya geri koyamaz (silme işareti ve kurtarma kaydı temizliği). Ama sekmeler birbirini canlı izlemez.
+Kullanıcı iki sekme açarsa iki oyuncu aynı tahtaya oynar. Sekmeler artık birbirini izler: bir sekme beş katmandan birini değiştirince diğeri window 'storage' olayıyla bunu duyar ve kendi belleğini diskten yeniden yükler; böylece eski bellek diskteki yeni veriyi ezmez. Olay gecikirse bile yazım anında disk bellekle karşılaştırılır; farklıysa ezilecek sürüm önce kurtarma alanına alınır ve kullanıcıya söylenir. Kaydedilmemiş (kota nedeniyle bekleyen) değeri olan sekme çakışmayı sessizce ezmez: bekleyen değeri korur, öteki sekmenin değerini kurtarma alanına alır; alamazsa kendi değerini diskteki öteki değerin üstüne yazmaz. Bir sekme SIFIRLA/çıkış yaparsa silme kazanır (yalnız öteki sekmede değer gerçekten boşaldıysa): öteki sekme boşalır, kaydedilmemiş değeri de atılır, silme bitene dek ayna yazıcısı durur ve kullanıcıya söylenir.
 
 | Kontrol | Geçerse | Geçemezse |
 |---|---|---|
-| Silme işareti varken başka sekmenin yazıcısı kurtarma kaydı oluşturuyor mu | Oluşturmaz; araya girerse alınan kayıt geri silinir. | - |
-| Sekmeler arası canlı eşitleme (storage olayı) | - | YOK: src altında storage olayı dinleyicisi bulunamadı. Bir sekmede yapılan değişiklik diğer sekmeye yenilenene kadar yansımaz; ikinci sekme eski durumla yazarsa son yazan kazanır. |
+| Silme işareti varken başka sekmenin yazıcısı kurtarma kaydı oluşturuyor mu | Oluşturmaz; araya girerse alınan kayıt geri silinir. Başka sekmenin değerini korumak için yapılan kopya da (preserveForeignValue) silme işaretinde çalışmaz ve tek kuyrukta sırayla işlenir. | - |
+| Başka sekme bir katmanı değiştirdi (storage olayı, handleTabEvent) | Portföy için bellek diskten yeniden yüklenir (reloadPortfolioFromDisk), ekran yenilenmeden güncellenir; sonraki işlem diskteki yeni veriyi ezmez. Vergi, hedef, ajan belleği ve öğretilen bilgi diskten her okumada okunur; ekrandaki durumları tazeleyen bir sayaç (useLayerEpoch) artar. key=null (başka sekme localStorage.clear yaptı) tüm katmanları kapsar. Yedeklenen katmanlar dışındaki anahtarlar yok sayılır. | Olay işlenirken hata olursa yutulur (uygulama bozulmaz); bellek eski kalır, sonraki olay, yazım anı karşılaştırması ya da yenileme düzeltir. |
+| Olay gecikmesi: yazım anında disk, bellekle karşılaştırılır (store.ts commit, lastRaw) | Disk bellekle uyumluysa yazım olduğu gibi yapılır. | Disk başka bir sürümdeyse yazımdan ÖNCE o sürüm kurtarma alanına alınır (geri kovası) ve #kayit-uyarisi kartına 'üzerine yazıldı; önceki sürüm ... kopyalandı / kopyalanamadı' cümlesi eklenir; işlem yine uygulanır. Disk gerçekten BOŞALMIŞSA (anahtar yok ya da boş portföy durumu: onboarded=false, varlık ve işlem yok) ve son bilinen değer doluydu, bu başka sekmede SIFIRLA/çıkış sayılır (silme işareti olmasa da): işlem YAZILMAZ (silme kazanır), bekleyen değer atılır, bellek diskten yüklenir ve 'başka sekmede veriler silindi' bildirimi çıkar. |
+| Bu sekmede kaydedilmemiş (A7 bekleyen) değer varken başka sekme aynı anahtarı değiştirdi | - | ÇAKIŞMA: bekleyen değer ezilmez, diskten yükleme yapılmaz; öteki sekmenin yeni değeri IndexedDB kurtarma alanına alınır. Alma sonuçlanana kadar ve alınamazsa bu anahtar için yazım BEKLETİLİR (bekleyen değer diskteki öteki değerin üstüne yazılmaz; uyarı sürer). Bekletmede her yeni yazım denemesinde kopya YENİDEN denenir; başarılıysa bekletme kalkar ve en güncel değer yazılır. IndexedDB hiç yoksa (ya da sürekli hata verirse) kopya hiç alınamaz: bekletme sürer, değişiklik yalnız açık sayfada ve yedek dosyasında durur, sayfa yenilenirse kaybolur. Başarılıysa kart 'Diğer sekmenin sürümü bu tarayıcıdaki kurtarma alanına kopyalandı; bu sekmedeki değişiklik açık sayfada duruyor ve yedek dosyasına giriyor' der; başarısızsa 'kopyalanamadığı için bu sekmedeki değişiklik diske yazılmıyor' der. Yedek dosyası bekleyen değeri taşır. Bekleyen çözülünce çakışma kalkar. |
+| Başka sekmede SIFIRLA/çıkış (anahtarın silinmesi ya da boş portföy durumu; silme işareti) | SİLME KAZANIR YALNIZ değer gerçekten boşsa (newValue=null, boş portföy durumu ya da clear()): bu sekmenin belleği diskten (boş) yüklenir, kaydedilmemiş (bekleyen) değeri de atılır (diske ve aynaya geri yazılmaz, yedeğe sızmaz); kart 'Başka bir sekmede veriler silindi; bu sekmedeki kaydedilmemiş değişiklik de silindi.' der. Silme işareti (fagent.mirror.cleared.v1, değer Date.now() damgası) yalnız 30 sn (SIFIRLA_ISARETI_OMRU_MS, src/config/varsayilanlar.ts; ölçülmedi, varsayım) etkin sayılır; etkinken bu sekmenin ayna yazıcısı durur, işaret kalkınca ya da süre dolunca (zamanlayıcı) sürer; bu sekmenin kendi silmesi sürüyorsa kendisi sürdürür. | Silme işareti takılırsa (IndexedDB silmesi hata aldı): işaret süre dolunca etkisizdir; başka sekmenin sıradan (dolu) yazımı silme sayılmaz, bekleyen değer atılmaz, ayna yazıcısı sürer, kullanıcının işlemi yazılır, yanlış 'veriler silindi' bildirimi çıkmaz. Eski biçimli (damga olmayan) işaret etkin sayılmaz. Açılıştaki temizlik (bootMirror) işaret yaşına bakmaksızın her açılışta silmeyi yeniden dener; takılı işaret bu sayede sonunda kalkar. Bu sekmenin KENDİ silmesi hata alırsa o sekmenin yazıcısı oturum boyunca kapalı kalır (değişmedi). |
 
 **Kod:**
+- `src/sekmeSenkron.ts:handleTabEvent, installTabSync, useLayerEpoch, createForeignPreserver, createForeignResetGate`
+- `src/store.ts:reloadPortfolioFromDisk, commit (lastRaw, setDivergenceSink)`
+- `src/yazmaDurumu.ts:markTabConflict, resolveTabConflict, discardPendingBySiblingReset, markTabOverwrite, getTabNotice, writeLocal (hold)`
+- `src/mirror.ts:pauseMirrorForForeignReset, resumeMirrorAfterForeignReset, preserveForeignValue`
+- `src/main.tsx (installTabSync ve setDivergenceSink bağlantısı)`
+- `src/App.tsx (#kayit-uyarisi ek cümle; ekrandaki durumların diskten tazelenmesi)`
 - `src/storage/mirror.ts:runResetClear`
 - `src/storage/mirror.ts:clearMirror (ikinci tur temizlik)`
+- `src/storage/mirror.ts:resetMarkerActive, isEmptyPortfolioRaw, isEmptyLayerValue`
+- `src/config/varsayilanlar.ts:SIFIRLA_ISARETI_OMRU_MS`
+- `src/backup.ts:setAfterApplyHook (geri yükleme/bulut çekme sonrası bellek tazeleme; src/main.tsx bağlar)`
+- `src/yazmaDurumu.ts:setHoldRetry (bekletmede kopya yeniden denemesi)`
 
-**Bozulursa:** İki sekmede farklı düzenleme yapılırsa son yazan kazanır; önceki sekmenin değişikliği kaybolabilir. Uyarı ya da kilit yoktur.
+**Bozulursa:** Kaydedilmemiş değeri olan sekmede çakışma sürerken öteki sekmenin sürümü kurtarma alanına alınamazsa bu sekmenin değişikliği diske yazılmaz; yalnız açık sayfada ve yedekte durur, sayfa yenilenirse kaybolur (uyarı ve beforeunload onayı bunu bildirir). İki sekmede aynı katmanda iki ayrı kaydedilmemiş değer varsa sekmeler birbirinden habersiz kalır. Çakışmada kopya başarılıysa bekleyen değerin sonraki başarılı yazımı diskteki öteki değerin üstüne yazar (öteki değer kurtarma alanında kalır). Başka sekmede SIFIRLA yapıldığında bu sekmenin kaydedilmemiş değişikliği kasıtlı olarak atılır (silme kazanır). Takılı silme işareti 30 sn sonra etkisiz sayılır; bu pencerede başka sekmenin dolu yazımı da yazıcıyı durdurabilir (en çok 30 sn). Disk boşaldığında bekleyen değer atıldığı için kullanıcı, başka sekmedeki SIFIRLA'dan önce yaptığı kaydedilmemiş değişikliği kaybeder (kasıtlı; kartta söylenir).
 
 **Test:**
 - tests/unit/depolama.test.ts: O-B: başka sekmenin yazıcısı SIFIRLA ile yarışırsa (silme işareti var) kurtarma kaydı oluşmaz / geri silinir
 - tests/unit/depolama.test.ts: O-B: clearMirror ikinci tur
+- tests/unit/sekme-kurtarma.test.ts: A8: başka sekme portföyü değiştirince bellek diskten yüklenir; sonraki işlem o kaydı ezmez (kontrol grubu: işleyici yokken ezilir)
+- tests/unit/sekme-kurtarma.test.ts: A8: diğer katman sayacı, ilgisiz anahtar, key=null
+- tests/unit/sekme-kurtarma.test.ts: A8: kaydedilmemiş değer varken çakışma (ezilmez, yüklenmez, yedekte kalır, kopya başarılıysa 'kopyalandı' metni, çözülünce kalkar)
+- tests/unit/sekme-kurtarma.test.ts: UYUM: kopya alınamadıysa bekleyen değer diskteki sürümün üstüne yazılmaz, kota açılsa bile (kırmızı/yeşil kanıtlı)
+- tests/unit/sekme-kurtarma.test.ts: A8: başka sekmede SIFIRLA — yazıcı durdurulur, bellek boşalır, eski veri geri yazılmaz, işaret kalkınca yazıcı sürer
+- tests/unit/sekme-kurtarma.test.ts: O1 silme kazanır (bekleyen atılır, bildirim, yedeğe sızmaz; işaret olayı sonra gelirse; vergi katmanı; newValue=null) (kırmızı/yeşil kanıtlı)
+- tests/unit/sekme-kurtarma.test.ts: O3 olay gecikmesi — ezilen sürüm sink'e verilir; fark + SIFIRLA işareti varken yazılmaz (kırmızı/yeşil kanıtlı)
+- tests/unit/sekme-kurtarma.test.ts: D5 createForeignPreserver (işarette çalışmaz, tek kuyruk, yarışta geri silinir); D6 createForeignResetGate (kendi silmesi sürerken sürdürmez)
+- tests/e2e/fagent-sekme-e2e.mjs (gerçek Chromium, aynı bağlamda iki sayfa): A kayıt ekler B yenilemeden görür; B'nin kaydı A'nınkini ezmez; A'da SIFIRLA B diski yeniden doldurmaz; kaydedilmemiş değer çakışması kartta ve kopya geri kovasında; O1: B'de bekleyen + A'da SIFIRLA -> bildirim, B'nin sonraki yazımı eski veriyi geri getirmez, IndexedDB'de de yok; O3: olay gecikmesi taklidi -> ezilen sürüm kurtarma alanında + kart (O1 ve O3 korumaları kapatılınca ilgili kontroller KIRMIZI, açılınca yeşil)
+- tests/unit/sekme-kurtarma.test.ts: O-a: resetMarkerActive süre sınırı ve eski biçim; takılı işaret + sıradan yabancı yazım (bekleyen atılmaz, yanlış bildirim yok); taze işaret + dolu yazım silme sayılmaz; takılı işaretle kullanıcı işlemi yazılır; yazıcı kapısı zamanlayıcısı (kırmızı/yeşil kanıtlı)
+- tests/unit/sekme-kurtarma.test.ts: D-a restoreBackup sonrası kanca bellek tazeler, kendi yazımız yabancı sanılmaz (kancasız yanlış alarm = kontrol grubu); D-c bekletmede yeniden deneme; D-d boş disk = silme (kırmızı/yeşil kanıtlı)
+- tests/e2e/fagent-sekme-e2e.mjs 8: takılı (süresi geçmiş) işaretle sıradan yabancı yazım -> çakışma bildirimi, yanlış 'veriler silindi' yok, G'nin yazımı diskte ve IndexedDB'de, kullanıcının kendi işlemi yazılır (süre sınırı kapatılınca kontrol KIRMIZI)
 
-**Not:** Gerçek iki sekmeli tarayıcı testi yok; yalnız birim düzeyinde sahte zamanlama ile sınandı.
-
+**Not:** Gerçek iki sayfalı Chromium ile sınandı (storage olayı gerçek); kota yalnız çakışma/O1 senaryolarında setItem hatası taklidiyle; olay gecikmesi (O3) aynı belgede doğrudan setItem ile taklit edildi. Birim testte olay sahte nesneyle verilir. Kopya ALINAMAMA (IndexedDB yok/hata) yolu yalnız birim testte (sahte preserveForeign=false); gerçek tarayıcıda hata enjekte edilmedi. Bu değişiklik CLAUDE.md zorunlu listesindeki #35'in YALNIZ 'başka sekmede çıkış/SIFIRLA sonrası bu sekmenin bellekten diski yeniden doldurması' yanını kapatır; 'hesaba yüklenmemiş tek yerel kopyanın çıkışla silinmesi' (cloud.ts karantina önerisi) AÇIK kalır. Silme-kazanır kararı ürün varsayılanıdır (kullanıcıya bildirildi).
 ### A9 · Hesap motoru: projeksiyon (src/projection.ts)
 
 **Durum:** KISMEN · **Yol haritası:** YH-2 · **PDF ekranı:** Projeksiyon; brüt→net→reel
@@ -1471,28 +1510,28 @@ Devirde alan adı kayıt sahibi, Vercel projesi/ekibi, Supabase proje sahipliği
 1. Dış kaynaklar (EVDS, CoinGecko, Frankfurter) gerçek ağda hiç doğrulanmadı; tüm sonuçlar taklit yanıtla yeşil.
 2. EVDS_API_KEY Vercel fagent projesinde tanımlı değil (27.10 kontrolü); TÜFE seri kodu TP.FG.J0 ve tüm kur seri kodları gerçek yanıtla doğrulanmadı; kur tablosu bilerek boş.
 3. Gerçek Supabase projesine karşı RLS, delete_my_account, e-posta yönlendirmeleri ve PASSWORD_RECOVERY doğrulanmadı; auth testleri sahte Supabase ile yeşil.
-4. Bulut canlı-öncesi maddeleri açık: 34+33 (girişliyken SIFIRLA buluttaki kopyayı ezer), 35 (başka sekmeden çıkış yerel kopyayı silebilir), 27 (koşulsuz upsert, son yazan kazanır). 41 (geri yükleme atomik değil, boyut sınırı) kapandı (A14). Bunlar kapanana kadar VITE_SUPABASE_* canlıda tanımlanmaz.
+4. Bulut canlı-öncesi maddeleri açık: 34+33 (girişliyken SIFIRLA buluttaki kopyayı ezer), 35 (başka sekmeden çıkış yerel kopyayı silebilir; A8 ile yalnız 'öteki sekmenin diski yeniden doldurması' yanı kapandı), 27 (koşulsuz upsert, son yazan kazanır). 41 (geri yükleme atomik değil, boyut sınırı) kapandı (A14). Bunlar kapanana kadar VITE_SUPABASE_* canlıda tanımlanmaz.
 5. localStorage doluyken yazılamayan değişiklik yalnız bellekte durur: sayfa yenilenirse kaybolur (ekrandaki uyarı ve beforeunload onayı bunu bildirir); değer IndexedDB aynasına bilerek yazılmaz (localStorage esas kaynak). Kota, setItem hatası taklit edilerek sınandı; gerçek kota dolumu denenmedi. Vergi/hedef/ajan katmanlarının kota yolu node birim testinde değil yalnız yazmaDurumu üzerinden sınandı. Uyarının yönlendirdiği 'Veri Yedeği' kartı yalnız Panel sekmesinde; yeri tasarım kararı.
 6. Kayıt kimliği t<milisaniye> / h<milisaniye> biçiminde; aynı milisaniyede iki kayıt aynı kimliği alabilir (store.ts addTxn, addIncome, addHolding). Kod okunarak görüldü.
 7. store.addTxn tutarın pozitif olmasını kendisi denetlemez; denetim arayüzde (App.tsx). Başka bir çağıran (örn. ajan) geçersiz tutar gönderirse store'a ulaşabilir; ajan yolunda tutar denetiminin tamlığı bu belgede doğrulanmadı.
-8. Sekmeler arası canlı eşitleme yok (storage olayı dinleyicisi bulunamadı): iki sekmede son yazan kazanır.
-9. Asıl okuma hâlâ localStorage'dan; IndexedDB yalnız doğrulanmış ayna. Okumanın IndexedDB'ye geçmesi, uyumluluk aynasının kalkma zamanı ve kurtarma kayıtları için kullanıcıya görünür bildirim yapılmadı.
-10. IndexedDB'de ayrılan alan sınırı ve kota davranışı gerçek cihazlarda sınanmadı; IndexedDB silme mantıksaldır, fiziksel silme tarayıcıya bağlıdır (aydınlatma metni notu avukat onayı bekliyor).
-11. 256 KB üstü bozuk ham değer localStorage'a kopyalanmaz (yalnız uzunluk notu); bozuk değer kopyalarının ayrı tutulması (D-b) yapılmadı.
-12. kaynakDurumMetni ve KaynakSonucu sözleşmesi ekrana bağlı değil (PDF tasarımındaki ilgili ekrana bağlama bekliyor); CoinGecko ve Frankfurter çağrıları henüz ortak çalıştırıcıya taşınmadı ve CSP connect-src daraltılmadı.
-13. EVDS çökerse en kötü vazgeçme süresi yaklaşık 11 sn (5 + 1 + 5); e2e ile ölçülmedi, arka planda çalıştığı için ekranı bekletmediği varsayımı doğrulanmadı.
-14. Sunucu hız sınırı ve devre kesici sunucusuz ortamda örnek başına bellekte tutulur; kesin garanti değil, en iyi çaba.
-15. Hız sınırında kullanılan istemci IP'sinin kişisel veri sayılıp sayılmadığı avukat teyidine bağlı (TODO(hukuk)); EVDS kullanım şartları ticari/abonelikli üründe birincil metinle doğrulanmadı.
-16. Projeksiyon motorunun yeni fonksiyonlarının çoğu ekrana bağlı değil; Aşama B (Monte Carlo) için ayrı onay gerekiyor ve rassal yürüyüş ertelemesiyle çelişki notu planda.
-17. Vergi oranları tarih aralıklı tax_rules.json yerine TypeScript yapılandırmasında; fon stopajı %17,5 ve enflasyon varsayımı %30 birincil kaynakla doğrulanmadı (TODO(muhasebe)).
-18. KAP (YH-4), BİST (YH-5) ve paylaşılan veri önbelleği (YH-6) yapılmadı; YH-7 ve YH-8 PDF tasarımına göre yeniden tanımlanacak (motorlar PDF ekranlarını besler). KAP/BİST için kaynak sayfa, kullanım koşulu ve lisans doğrulanmadı; AGENTS.md §0.4 güncellemesi kullanıcı onayı bekliyor.
-19. docs/mvp-tanimi.md, CHANGELOG, scripts/paket-olustur.sh, /home/user/FAGENT-Paket, 'Uyumluluk durumu ve açık maddeler' sayfası ve alan adı henüz yok. MVP kapsamı (PDF tasarımındaki hangi ekran ve özellik ilk sürümde açık) kullanıcıya sorulacak.
-20. ci.yml Node 20 kuruyor, package.json engines >=22.18; CI'da test:unit adımı yok; aksiyonlar SHA ile sabit değil; Dependabot yok. Kod okunarak görüldü, CI koşusu yapılmadı.
-21. Bağımlılıklar için 14 günlük bekleme kuralı depoda bulunamadı; bağımlılık güncelleme düzeni yazılı kural değil.
-22. Yapay zekâ yorumu denemesi kullanıcının 'başla' onayını bekliyor; 'yorum bizi sorumlu tutmaz' varsayımı doğrulanmadı, SPK açısından avukat görüşü canlı öncesi zorunlu. HF model kartları bu ortamdan doğrulanamadı.
-23. Yasal metin taslakları (docs/yasal) avukat onaylı değil; ETBİS hiçbir belgede geçmiyor.
-24. Devir belgeleri güncel değil: kurulum-ve-devir.md IndexedDB aynasını ve yeni sunucu uçlarını anlatmıyor; ilan taslağındaki test sayısı (674+) eski.
-25. Gerçek tarayıcıda 1440 px ve 375 px görsel kontrol yapılmadı (doğrulama durumu notu, 2026-10-18).
+8. Asıl okuma hâlâ localStorage'dan; IndexedDB yalnız doğrulanmış ayna. Okumanın IndexedDB'ye geçmesi, uyumluluk aynasının kalkma zamanı ve kurtarma kayıtları için kullanıcıya görünür bildirim yapılmadı.
+9. IndexedDB'de ayrılan alan sınırı ve kota davranışı gerçek cihazlarda sınanmadı; IndexedDB silme mantıksaldır, fiziksel silme tarayıcıya bağlıdır (aydınlatma metni notu avukat onayı bekliyor).
+10. kaynakDurumMetni ve KaynakSonucu sözleşmesi ekrana bağlı değil (PDF tasarımındaki ilgili ekrana bağlama bekliyor); CoinGecko ve Frankfurter çağrıları henüz ortak çalıştırıcıya taşınmadı ve CSP connect-src daraltılmadı.
+11. EVDS çökerse en kötü vazgeçme süresi yaklaşık 11 sn (5 + 1 + 5); e2e ile ölçülmedi, arka planda çalıştığı için ekranı bekletmediği varsayımı doğrulanmadı.
+12. Sunucu hız sınırı ve devre kesici sunucusuz ortamda örnek başına bellekte tutulur; kesin garanti değil, en iyi çaba.
+13. Hız sınırında kullanılan istemci IP'sinin kişisel veri sayılıp sayılmadığı avukat teyidine bağlı (TODO(hukuk)); EVDS kullanım şartları ticari/abonelikli üründe birincil metinle doğrulanmadı.
+14. Projeksiyon motorunun yeni fonksiyonlarının çoğu ekrana bağlı değil; Aşama B (Monte Carlo) için ayrı onay gerekiyor ve rassal yürüyüş ertelemesiyle çelişki notu planda.
+15. Vergi oranları tarih aralıklı tax_rules.json yerine TypeScript yapılandırmasında; fon stopajı %17,5 ve enflasyon varsayımı %30 birincil kaynakla doğrulanmadı (TODO(muhasebe)).
+16. KAP (YH-4), BİST (YH-5) ve paylaşılan veri önbelleği (YH-6) yapılmadı; YH-7 ve YH-8 PDF tasarımına göre yeniden tanımlanacak (motorlar PDF ekranlarını besler). KAP/BİST için kaynak sayfa, kullanım koşulu ve lisans doğrulanmadı; AGENTS.md §0.4 güncellemesi kullanıcı onayı bekliyor.
+17. docs/mvp-tanimi.md, CHANGELOG, scripts/paket-olustur.sh, /home/user/FAGENT-Paket, 'Uyumluluk durumu ve açık maddeler' sayfası ve alan adı henüz yok. MVP kapsamı (PDF tasarımındaki hangi ekran ve özellik ilk sürümde açık) kullanıcıya sorulacak.
+18. ci.yml Node 20 kuruyor, package.json engines >=22.18; CI'da test:unit adımı yok; aksiyonlar SHA ile sabit değil; Dependabot yok. Kod okunarak görüldü, CI koşusu yapılmadı.
+19. Bağımlılıklar için 14 günlük bekleme kuralı depoda bulunamadı; bağımlılık güncelleme düzeni yazılı kural değil.
+20. Yapay zekâ yorumu denemesi kullanıcının 'başla' onayını bekliyor; 'yorum bizi sorumlu tutmaz' varsayımı doğrulanmadı, SPK açısından avukat görüşü canlı öncesi zorunlu. HF model kartları bu ortamdan doğrulanamadı.
+21. Yasal metin taslakları (docs/yasal) avukat onaylı değil; ETBİS hiçbir belgede geçmiyor.
+22. Devir belgeleri güncel değil: kurulum-ve-devir.md IndexedDB aynasını ve yeni sunucu uçlarını anlatmıyor; ilan taslağındaki test sayısı (674+) eski.
+23. Gerçek tarayıcıda 1440 px ve 375 px görsel kontrol yapılmadı (doğrulama durumu notu, 2026-10-18).
+24. Kurtarma rafı işlevleri (listele, geri yükle, dışa aktar) ekrana bağlı değil; düğme ve bildirim yeri tasarım kararı. İki sekmede eşzamanlı geri yüklemede kilit yok (son yazan kazanır). Eski adlandırmayla yazılmış büyük bozuk kayıtlar 'farklilik' diye listelenir. Listeleme her kaydı okuyarak boyut ölçer (raf küçük ve sınırlı).
+25. Sekmeler arası eşitleme: olay gecikmesinde yazım anı karşılaştırması ezilen sürümü kurtarma alanına alır ama işlemi yine uygular (stale bellek kazanır). Başka sekmenin sürümü kurtarma alanına alınamazsa (IndexedDB yok/hata) kaydedilmemiş değişiklik yazılmadan bekler; her yazımda kopya yeniden denenir, IndexedDB hiç yoksa bekletme sürer (yenilemede kaybolur). Silme işareti ömrü (30 sn) ölçülmedi, varsayım. Çakışma ve silme-kazanır kararları gerçek tarayıcıda yalnız kota taklidiyle sınandı; 'kopya alınamadı' yolu yalnız birim testte. #35'in 'çıkışla hesaba yüklenmemiş tek yerel kopya silinir' yanı açık.
 
 ---
-Durum dağılımı: YAPILDI 26, KISMEN 15, PLANLI 13.
+Durum dağılımı: YAPILDI 28, KISMEN 13, PLANLI 13.

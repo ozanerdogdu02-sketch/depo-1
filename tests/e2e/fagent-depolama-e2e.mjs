@@ -157,7 +157,16 @@ await ctx2.close();
 const ctx3 = await newCtx();
 const a = await open(ctx3);
 const b = await open(ctx3);
-await Promise.all([sampleBtn(a).click(), b.getByRole('button', { name: 'Kendi paramı gireceğim' }).click()]);
+// A8 sonrası: A yazınca B storage olayıyla panele geçer; bu yüzden düğme tıklamasına yarışmak yerine ÖNCE tek sekmeden başlanır,
+// sonra iki sekme SIRAYLA (ama hızlı ve art arda) kayıt ekler. Kontrol edilen şey iki sekmeli yazımdan sonra ayna tutarlılığıdır.
+await sampleBtn(a).click();
+await b.waitForSelector('#h-name');
+await a.fill('#h-name', 'EVAA'); await a.fill('#h-amount', '10');
+await a.getByRole('button', { name: 'Ekle', exact: true }).click();
+check('B sekmesi A\'nın kaydını yenilemeden gördü', await until(async () => (await b.locator('text=EVAA').count()) > 0));
+await b.fill('#h-name', 'EVBB'); await b.fill('#h-amount', '20');
+await b.getByRole('button', { name: 'Ekle', exact: true }).click();
+check('İki sekmenin kaydı birlikte diskte', await until(async () => { const v = (await lsGet(a, PK)) ?? ''; return v.includes('EVAA') && v.includes('EVBB'); }));
 const lsFinal = await until(async () => !!(await lsGet(a, PK)));
 check('İki sekme eşzamanlı yazdı, localStorage dolu', lsFinal);
 check('IndexedDB aynası son localStorage haliyle EŞLEŞİYOR (iki sekme sonrası)',

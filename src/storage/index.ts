@@ -20,7 +20,8 @@ export type { MigrateReport, MigrateEntry, MigrateStatus, RollbackResult } from 
 export { validateTxnExtras } from './txnFields.ts';
 export type { TxnExtras, TxnExtrasResult } from './txnFields.ts';
 export { toRecord, mergeRecord, fromRecord, isNewerSchema, UPGRADE_STEPS, CURRENT_RECORD_SCHEMA } from './schema.ts';
-export { bootMirror, clearMirror, runResetClear, saveRecovery, createMirrorWriter, MIRROR_CLEARED_KEY, RECOVERY_IDB_PREFIX, CORRUPT_NOTE_PREFIX, corruptNoteKey } from './mirror.ts';
+export { bootMirror, clearMirror, runResetClear, saveRecovery, createMirrorWriter, MIRROR_CLEARED_KEY, RECOVERY_IDB_PREFIX, CORRUPT_NOTE_PREFIX, corruptNoteKey, BOZUK_KOVA_ONEKI, GERI_KOVA_ONEKI, recoveryBase, resetMarkerActive, isEmptyPortfolioRaw, isEmptyLayerValue } from './mirror.ts';
+export type { RecoveryKova } from './mirror.ts';
 export type { BootReport, BootEntry, BootAction, MirrorWriter, MirrorStatus } from './mirror.ts';
 
 export function createBrowserStore(onFallback?: (n: FallbackNotice) => void) {

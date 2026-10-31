@@ -111,6 +111,8 @@ src/
   store.ts          — portföy veri modeli + actions (localStorage: fagent.portfolio.v1)
   mirror.ts         — IndexedDB aynası: açılış (bootStorage), write-through, SIFIRLA silmesi; localStorage esas
   recovery.ts       — bozuk kayıt ham değerinin kurtarma kopyası (fagent.recovery.corrupt.*)
+  kurtarma.ts       — kurtarma rafını listeleme / geri yükleme / dışa aktarma (arka plan işlevi, ekranı yok)
+  sekmeSenkron.ts   — başka sekmede yapılan değişikliği (storage olayı) bu sekmenin belleğine taşır; çakışmada kaydedilmemiş değeri korur
   storage/          — ince IndexedDB katmanı (idb, localStorage, yedekli depo, göç, ayna kuralları); bağımlılık yok
   market.ts         — döviz/kripto canlı fiyat (Frankfurter.dev, CoinGecko — anahtarsız)
   csv.ts            — varlık/işlem CSV dışa-içe aktarma

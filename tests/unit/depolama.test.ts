@@ -1062,7 +1062,7 @@ for (const step of [0, 1, 2, 3, 5, 8, 13]) {
   test(`O-B: KOŞAN iş sırasında SIFIRLA (pause, ${step} ms sonra) -> silinen veri kurtarma kaydında KALMAZ`, async () => {
     const ls = delayMem(0), idb = delayMem(1);
     idb.m.set('a', 'OLD-A'); idb.m.set('b', 'OLD-B');
-    ls.m.set(MIRROR_CLEARED_KEY, '1'); // clearMirrorForReset işareti önce senkron koyar
+    ls.m.set(MIRROR_CLEARED_KEY, String(Date.now())); // clearMirrorForReset işareti önce senkron koyar
     const w = createMirrorWriter(ls, idb, K3);
     w.request(); // ls boş -> silme/kurtarma yolu
     await new Promise(r => setTimeout(r, step));
@@ -1077,7 +1077,7 @@ test('O-B: başka sekmenin yazıcısı SIFIRLA ile yarışırsa (silme işareti 
   for (const delayB of [0, 1, 2, 4]) {
     const ls = delayMem(0), idb = delayMem(1);
     idb.m.set('a', 'OLD-A');
-    ls.m.set(MIRROR_CLEARED_KEY, '1');
+    ls.m.set(MIRROR_CLEARED_KEY, String(Date.now()));
     const wA = createMirrorWriter(ls, idb, K3);
     const wB = createMirrorWriter(ls, idb, K3);
     const p = runResetClear(wA, ls, idb, K3);
@@ -1092,13 +1092,13 @@ test('O-B: başka sekmenin yazıcısı SIFIRLA ile yarışırsa (silme işareti 
 test('O-B: silme işareti varken yazıcı localStorage\'da olmayan anahtar için kurtarma kaydı ALMAZ; işaret araya girerse alınan kayıt geri silinir', async () => {
   const ls = delayMem(0), idb = delayMem(0);
   idb.m.set('a', 'OLD');
-  ls.m.set(MIRROR_CLEARED_KEY, '1');
+  ls.m.set(MIRROR_CLEARED_KEY, String(Date.now()));
   const w = createMirrorWriter(ls, idb, K3);
   w.request(['a']); await w.flush();
   assert.deepEqual([...idb.m.keys()], ['a']); // dokunulmadı: silmeyi clearMirror yapar
   // işaret kurtarma kaydı alınırken konursa: kayıt geri silinir
   ls.m.delete(MIRROR_CLEARED_KEY);
-  const racing: KvStore = { ...idb, addIfAbsent: async (k, v) => { const r = await idb.addIfAbsent(k, v); ls.m.set(MIRROR_CLEARED_KEY, '1'); return r; } };
+  const racing: KvStore = { ...idb, addIfAbsent: async (k, v) => { const r = await idb.addIfAbsent(k, v); ls.m.set(MIRROR_CLEARED_KEY, String(Date.now())); return r; } };
   const w2 = createMirrorWriter(ls, racing, K3);
   w2.request(['a']); await w2.flush();
   assert.deepEqual([...idb.m.keys()].filter(k => k.startsWith(RECOVERY_IDB_PREFIX)), []);

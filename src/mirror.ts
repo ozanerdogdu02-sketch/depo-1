@@ -9,10 +9,12 @@
 // Bu modül store.ts'i İÇE AKTARMAZ (store.ts modül yüklenirken load() koşar; önce açılış bitmeli).
 import { BACKED_UP_KEYS } from './backup';
 import {
-  bootMirror, runResetClear, saveRecovery, corruptNoteKey, createIdbStore, createLocalStore, createMirrorWriter, MIRROR_CLEARED_KEY,
+  bootMirror, runResetClear, saveRecovery, corruptNoteKey, createIdbStore, createLocalStore, createMirrorWriter, MIRROR_CLEARED_KEY, resetMarkerActive,
 } from './storage';
 import { setOversizeSink } from './recovery';
 import { bindUnsavedGuard } from './yazmaDurumu';
+import { createForeignPreserver, createForeignResetGate } from './sekmeSenkron';
+import { SIFIRLA_ISARETI_OMRU_MS } from './config/varsayilanlar';
 import type { BootReport, KvStore, MirrorStatus, MirrorWriter } from './storage';
 
 export type StorageState = 'baslamadi' | 'hazir' | 'kullanilamiyor' | 'zaman-asimi' | 'hatali';
@@ -63,7 +65,7 @@ export async function bootStorage(timeoutMs = 2500): Promise<StorageSnapshot> {
       // 256 KB üstü bozuk ham değer: localStorage'a değil IndexedDB kurtarma kaydına yazılır; başarılıysa not kalkar.
       setOversizeSink(async (key, raw) => {
         try {
-          const rc = await saveRecovery(s.idb, key, raw);
+          const rc = await saveRecovery(s.idb, key, raw, 'bozuk'); // ayrı kova: farklılık kayıtları bozuk değeri itemez (A6 D-b)
           if (rc.error) return false;
           await s.ls.delete(corruptNoteKey(key)); // not yalnızca kayıt BAŞARIYLA alındıktan sonra silinir
           return true;
@@ -115,9 +117,30 @@ export function clearMirrorForReset(): void {
     // Silme başarısızsa yazıcı kapanır, yeniden istek yapılmaz (bkz. runResetClear).
     await runResetClear(writer, s.ls, s.idb, KEYS);
   };
-  clearing = run().catch(() => { /* işaret localStorage'da kaldı: sonraki açılış tekrar dener */ });
+  clearingActive = true;
+  clearing = run().catch(() => { /* işaret localStorage'da kaldı: sonraki açılış tekrar dener */ }).finally(() => { clearingActive = false; });
 }
 let clearing: Promise<void> | undefined;
+let clearingActive = false; // bu sekmenin KENDİ SIFIRLA/çıkış silmesi sürüyor
+
+// ---- Sekmeler arası (A8): src/sekmeSenkron.ts bu işlevleri enjekte eder ----
+// Başka sekmede SIFIRLA/çıkış sürerken bu sekmenin yazıcısı durur: silinen veri (ya da boş durumun kurtarma kaydı) aynaya yazılmaz.
+// Bitince yazıcı sürer ve localStorage'ın o anki hali (boş) ile eşitlenir; bu sekmenin KENDİ silmesi (clearMirrorForReset) hâlâ
+// sürüyorsa devam ETMEZ (runResetClear bitince kendisi sürdürür). Mantık: src/sekmeSenkron.ts createForeignResetGate.
+// İşaret takılırsa (öteki sekmenin silmesi hata aldı) yazıcı sonsuza dek durmaz: süre dolunca otomatik sürer (kapıdaki zamanlayıcı).
+// Açılıştaki temizlik (bootMirror) işaret varken her açılışta silmeyi yeniden dener.
+const foreignGate = createForeignResetGate(
+  { pause: () => writer?.pause(), resume: () => writer?.resume(), request: () => writer?.request() },
+  () => clearingActive, () => isResetMarked(), SIFIRLA_ISARETI_OMRU_MS + 1000,
+);
+export function pauseMirrorForForeignReset(): void { foreignGate.start(); }
+export function resumeMirrorAfterForeignReset(): void { foreignGate.end(); }
+// Kurtarma alanına kopya: tek kuyruk, silme işaretinde çalışmaz (src/sekmeSenkron.ts createForeignPreserver). true = kayıt alındı.
+export const preserveForeignValue = createForeignPreserver(() => stores()?.idb, () => isResetMarked());
+// Silme işareti ETKİN mi (canlı okuma; damga + süre sınırı: resetMarkerActive). Takılı eski işaret etkin sayılmaz.
+export function isResetMarked(): boolean {
+  try { return typeof localStorage !== 'undefined' && resetMarkerActive(localStorage.getItem(MIRROR_CLEARED_KEY)); } catch { return false; }
+}
 
 export function getStorageSnapshot(): StorageSnapshot {
   return { state, boot: bootReport, mirror: writer?.status(), note };
@@ -127,4 +150,14 @@ export function getStorageSnapshot(): StorageSnapshot {
 export async function flushMirror(): Promise<void> {
   await writer?.flush();
   await clearing;
+}
+
+// Kurtarma rafı işlevleri (src/kurtarma.ts) için tarayıcı depoları. IndexedDB yoksa yalnız localStorage rafı döner.
+export function getRecoveryStores(): { ls: KvStore; idb?: KvStore } | undefined {
+  try {
+    if (typeof localStorage === 'undefined') return undefined;
+    lsStore ??= createLocalStore(localStorage);
+    if (typeof indexedDB !== 'undefined') idbStore ??= createIdbStore(indexedDB);
+    return { ls: lsStore, ...(idbStore ? { idb: idbStore } : {}) };
+  } catch { return undefined; }
 }

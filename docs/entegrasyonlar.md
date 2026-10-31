@@ -98,6 +98,9 @@ Sunucu olmadığı için tüm veri kullanıcının tarayıcısında. **Beş kal�
 | `fagent.recovery.corrupt.<anahtar>[.2-.5][.not]` | Bozuk kayıt açılışında ham değerin kopyası (256 KB üstü için localStorage'da yalnız uzunluk notu `.not`; ham değer IndexedDB kurtarma kaydında) | ❌ | ✅ |
 | IndexedDB `fagent`/`kv`: beş katmanın aynası | localStorage'ın doğrulanmış kopyası | ❌ (yedek `localStorage`'dan alınır) | ✅ (+ silme işareti) |
 | IndexedDB `fagent.recovery.idb.<anahtar>[.zaman]` | İki kopya farklıysa/yerelde eksikse IndexedDB değerinin kurtarma kaydı (anahtar başına en çok 3) | ❌ | ✅ |
+| IndexedDB `fagent.recovery.idb.bozuk.<anahtar>[.zaman]` | 256 KB üstü bozuk ham değerin kurtarma kaydı (ayrı kova: farklılık kayıtları onu dışarı itmez; anahtar başına en çok 3). Kayıtları listeleme/geri yükleme/dışa aktarma işlevleri `src/kurtarma.ts`'te, ekranı yok | ❌ | ✅ |
+| IndexedDB `fagent.recovery.idb.geri.<anahtar>[.zaman]` | Kurtarma kaydından geri yüklemeden ya da başka sekmenin değerinin ezilmesinden önceki değerin kopyası (anahtar başına en çok 3) | ❌ | ✅ |
+| (anahtar yok) sekmeler arası | Aynı tarayıcıdaki sekmeler `storage` olayıyla birbirinin değişikliğini bellekte izler (`src/sekmeSenkron.ts`); ağa gitmez, yeni veri yazmaz | — | — |
 
 IndexedDB silmesi mantıksaldır (kayıt silinir; disk üzerindeki kalıntının fiziksel olarak hemen yok edilmesi garanti edilmez). Aynadaki silme başarısız olursa işaret kalır ve sonraki açılışta yeniden denenir; veri geri yüklenmez.
 

@@ -20,7 +20,8 @@ import { sonDeger, reelDeger, projeksiyonYollari } from './projection';
 import { getTaxRates, setTaxRate, isCustomRate, TaxRates } from './taxRates';
 import { getTargets, setTarget, hasTargets, TargetAllocation } from './targetAllocation';
 import { downloadBackup, restoreBackup, getBackupMeta, shouldNudge, dismissNudge, STALE_AFTER_DAYS, YEDEK_DOSYA_MAX_BOYUT } from './backup';
-import { getUnsavedKeys, subscribeUnsaved, UNSAVED_MESSAGE } from './yazmaDurumu';
+import { getUnsavedKeys, getTabNotice, subscribeUnsaved, UNSAVED_MESSAGE } from './yazmaDurumu';
+import { useLayerEpoch } from './sekmeSenkron';
 import { clearLocalUserData } from './localData';
 // cloud.ts yan etkisi: env tanımlıysa hesap/bulut senkronunu başlatır; tanımsızsa hiçbir şey
 // yapmaz (istemci oluşturulmaz, ağ isteği atılmaz). Hesap arayüzü ve düğmesi yalnızca
@@ -166,6 +167,7 @@ function ProactiveInsightsCard({ targets }: { targets: TargetAllocation }) {
   const inflation = inf.pct;
   // Risk toleransı tercihini de taze okuyoruz (Ajan sekmesinde değiştirilebilir) — kart ile
   // ajanın farklı bir uyumsuzluk sonucu göstermesi en kötü senaryo olurdu (bkz. §1.16/§1.18 dersi).
+  useLayerEpoch(); // başka sekme ajan tercihini değiştirdiyse yeniden hesapla (A8)
   const memory = getProfile();
   const insights = useMemo(() => proactiveInsights(s, inflation, targets, memory), [s, inflation, targets, memory]);
   if (insights.length === 0) return null;
@@ -217,6 +219,8 @@ function AfterTaxCard() {
   const inf = useInflation();
   const inflation = inf.pct;
   const [rates, setRates] = useState<TaxRates>(() => getTaxRates());
+  const layerEpoch = useLayerEpoch(); // başka sekme vergi oranını değiştirdiyse diskten yeniden oku (A8)
+  useEffect(() => { if (layerEpoch > 0) setRates(getTaxRates()); }, [layerEpoch]);
   const [open, setOpen] = useState(false);
   const result = useMemo(() => afterTaxOf(s, inflation, rates), [s, inflation, rates]);
   if (!result) return null;
@@ -671,6 +675,8 @@ function Panel({ assetType, title, query }: PanelProps) {
   // Hedef dağılım burada tutulur ve İKİ karta birden verilir (Hedef Dağılım + Proaktif İçgörüler).
   // Her kart kendi state'ini tutsaydı biri düzenlenince diğeri bayat sayı gösterirdi.
   const [targets, setTargets] = useState<TargetAllocation>(() => getTargets());
+  const layerEpoch = useLayerEpoch(); // başka sekme hedefi değiştirdiyse diskten yeniden oku (A8)
+  useEffect(() => { if (layerEpoch > 0) setTargets(getTargets()); }, [layerEpoch]);
 
   // Sınıfa göre filtrelenmiş (aramadan etkilenmeyen) gerçek toplam — arama sadece listeyi daraltır.
   const classHoldings = useMemo(
@@ -1700,6 +1706,8 @@ function Ajan() {
   ]);
   const [input, setInput] = useState('');
   const [facts, setFacts] = useState<TrainedFact[]>(() => getTrainedFacts());
+  const layerEpoch = useLayerEpoch(); // başka sekme ajan belleğini/öğretilen bilgiyi değiştirdiyse diskten yeniden oku (A8)
+  useEffect(() => { if (layerEpoch > 0) { setMem(getProfile()); setFacts(getTrainedFacts()); } }, [layerEpoch]);
   const [teachOpen, setTeachOpen] = useState(false);
   const [teachQ, setTeachQ] = useState('');
   const [teachA, setTeachA] = useState('');
@@ -1940,11 +1948,16 @@ function SideLink({ active, onClick, icon: Icon, label, badge }: {
 function useUnsavedKeys(): readonly string[] {
   return useSyncExternalStore(subscribeUnsaved, getUnsavedKeys);
 }
+// Sekmeler arası durum bildirimi (çakışma, başka sekmede silme, üzerine yazma): aynı uyarı kartında ek cümle ('' = yok).
+function useTabNotice(): string {
+  return useSyncExternalStore(subscribeUnsaved, getTabNotice);
+}
 
 export default function App() {
   const s = usePortfolio();
   const cloud = useCloud();
   const unsaved = useUnsavedKeys();
+  const tabNotice = useTabNotice();
 
   // Diske yazılamamış değişiklik varken sayfa kapatılır/yenilenirse tarayıcının standart onay kutusu çıkar (metin tarayıcıya aittir).
   useEffect(() => {
@@ -2062,10 +2075,10 @@ export default function App() {
         {/* Ajan sekmesi dar ölçüde: 1100px'lik sütunda sohbet balonları (max-width %85)
             ~935px'e ulaşıp okunaklılığı düşürüyordu. */}
         <div className={`main-inner${tab === 'ajan' ? ' main-inner-narrow' : ''}`}>
-          {unsaved.length > 0 && (
+          {(unsaved.length > 0 || tabNotice !== '') && (
             <div className="card" id="kayit-uyarisi" role="alert" style={{ borderColor: 'var(--line-strong)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <AlertTriangle size={14} color="var(--text)" aria-hidden="true" />
-              <span className="hint" style={{ margin: 0 }}>{UNSAVED_MESSAGE}</span>
+              <span className="hint" style={{ margin: 0 }}>{[unsaved.length > 0 ? UNSAVED_MESSAGE : '', tabNotice].filter(Boolean).join(' ')}</span>
             </div>
           )}
           {cloudEnabled && tab === 'hesap' ? (

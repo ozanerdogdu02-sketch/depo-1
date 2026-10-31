@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
-import { bootStorage, requestMirror } from './mirror';
+import { bootStorage, requestMirror, pauseMirrorForForeignReset, resumeMirrorAfterForeignReset, preserveForeignValue, isResetMarked } from './mirror';
 
 // Hangi build'in yayında olduğunu hızlıca doğrulamak için (bkz. vite.config.ts __BUILD_TIME__).
 // eslint-disable-next-line no-console
@@ -13,8 +13,8 @@ async function start(): Promise<void> {
   //    store'a bağlı her modül AŞAĞIDA dinamik içe aktarılır. Kısa zaman aşımı: uygulama açılışı bloklanmaz.
   try { await bootStorage(); } catch { /* açılış hatası uygulamayı durdurmaz; durum getStorageSnapshot()'ta */ }
 
-  const [{ default: App }, { ErrorBoundary }, { purgeLegacyKeys }, { subscribePortfolio }, { subscribeUserData, subscribeUserDataWrites }] =
-    await Promise.all([import('./App'), import('./ErrorBoundary'), import('./localData'), import('./store'), import('./backup')]);
+  const [{ default: App }, { ErrorBoundary }, { purgeLegacyKeys }, { subscribePortfolio, reloadPortfolioFromDisk, setDivergenceSink }, { subscribeUserData, subscribeUserDataWrites, setAfterApplyHook }, { installTabSync, bumpLayerEpoch }, { markTabOverwrite }] =
+    await Promise.all([import('./App'), import('./ErrorBoundary'), import('./localData'), import('./store'), import('./backup'), import('./sekmeSenkron'), import('./yazmaDurumu')]);
 
   // Kaldırılmış özelliklerin eski yerel anahtarlarını ilk açılışta temizle.
   purgeLegacyKeys();
@@ -23,6 +23,25 @@ async function start(): Promise<void> {
   subscribePortfolio(requestMirror);
   subscribeUserData(requestMirror);
   subscribeUserDataWrites(requestMirror);
+
+  // Geri yükleme / bulut çekme / kurtarma diske yazınca bellek diskten tazelenir (D-a): kendi yazımız yabancı sanılmaz.
+  setAfterApplyHook(keys => {
+    if (keys.includes('fagent.portfolio.v1')) reloadPortfolioFromDisk();
+    if (keys.some(k => k !== 'fagent.portfolio.v1')) bumpLayerEpoch();
+  });
+
+  // Başka sekmede yapılan değişiklik bu sekmenin belleğine taşınır (A8): eski bellek diski ezmesin.
+  // Olay gecikmesi: eski bellek diskteki farklı sürümün üstüne yazacaksa o sürüm önce kurtarma alanına alınır ve bildirilir.
+  setDivergenceSink((key, diskRaw) => preserveForeignValue(key, diskRaw).then(ok => { markTabOverwrite(key, ok); return ok; }));
+
+  installTabSync({
+    reloadPortfolio: reloadPortfolioFromDisk,
+    preserveForeign: preserveForeignValue,
+    resetMarked: isResetMarked,
+    diskValue: (key: string) => { try { return localStorage.getItem(key); } catch { return null; } },
+    foreignResetStart: pauseMirrorForForeignReset,
+    foreignResetEnd: resumeMirrorAfterForeignReset,
+  });
 
   // ErrorBoundary en dışta: App içindeki HERHANGİ bir bileşenin render hatası beyaz ekran
   // yerine veri kurtarma ekranını göstersin.

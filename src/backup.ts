@@ -107,7 +107,9 @@ export interface RestoreResult {
 //   'portfolioOnly' — yalnızca 'fagent.portfolio.v1' yazılır, diğer katmanlara dokunulmaz
 //                     (eski standalone biçimli bulut satırı yalnızca portföy içerir).
 
-export type ApplyMode = 'replace' | 'portfolioOnly';
+//   'selected'      — yalnızca `only` ile verilen (BACKED_UP_KEYS içinden) anahtarlar yazılır, diğerlerine dokunulmaz
+//                     (kurtarma kaydından tek katman geri yükleme, src/kurtarma.ts).
+export type ApplyMode = 'replace' | 'portfolioOnly' | 'selected';
 
 // 'yazilamadi' sonuçlarında rollback alanı: 'tamam' = önceki veri aynen geri yazıldı (hiçbir şey
 // değişmedi); 'eksik' = geri alma da başarısız oldu, rollbackKeys'teki katmanlar önceki halinde OLMAYABİLİR.
@@ -123,9 +125,10 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
 }
 
 // Beyaz listeden geçirilmiş, yazılmaya hazır çiftler. SAF — localStorage'a dokunmaz.
-export function whitelistUserData(data: unknown, mode: ApplyMode): [string, string][] | undefined {
+export function whitelistUserData(data: unknown, mode: ApplyMode, only?: readonly string[]): [string, string][] | undefined {
   if (!isPlainObject(data)) return undefined;
-  const keys: readonly string[] = mode === 'portfolioOnly' ? [PORTFOLIO_KEY] : BACKED_UP_KEYS;
+  const all: readonly string[] = BACKED_UP_KEYS;
+  const keys: readonly string[] = mode === 'portfolioOnly' ? [PORTFOLIO_KEY] : mode === 'selected' ? (only ?? []).filter(k => all.includes(k)) : all;
   const out: [string, string][] = [];
   for (const key of keys) {
     if (!Object.prototype.hasOwnProperty.call(data, key)) continue;
@@ -135,8 +138,14 @@ export function whitelistUserData(data: unknown, mode: ApplyMode): [string, stri
   return out;
 }
 
-export function applyUserData(data: unknown, opts: { mode: ApplyMode }): ApplyResult {
-  const toWrite = whitelistUserData(data, opts.mode);
+// Yazım sonrası bellek tazeleme kancası (D-a): geri yükleme / bulut çekme / kurtarma diske yazınca, o anahtarların bellekteki
+// durumu (store.ts lastRaw dahil) diskten yeniden yüklenmeli ki kendi yazımımız "yabancı yazım" sanılmasın. backup.ts store.ts'i
+// İÇE AKTARMAZ (açılış sırası: store, bootStorage'dan sonra yüklenir); kanca src/main.tsx'te bağlanır.
+let afterApply: ((keys: readonly string[]) => void) | undefined;
+export function setAfterApplyHook(fn: ((keys: readonly string[]) => void) | undefined): void { afterApply = fn; }
+
+export function applyUserData(data: unknown, opts: { mode: ApplyMode; only?: readonly string[] }): ApplyResult {
+  const toWrite = whitelistUserData(data, opts.mode, opts.only);
   if (!toWrite) return { ok: false, reason: 'gecersiz' };
   if (toWrite.length === 0) return { ok: false, reason: 'bos' };
 
@@ -185,6 +194,7 @@ export function applyUserData(data: unknown, opts: { mode: ApplyMode }): ApplyRe
     return { ok: false, reason: 'yazilamadi', rollback: 'eksik', rollbackKeys: failed };
   }
   clearPendingWrites([...written, ...removed]); // yalnız yazılan/silinen katmanların bekleyeni geçersiz
+  try { afterApply?.([...written, ...removed]); } catch { /* tazeleme hatası yazımı geri almaz */ }
   fireWrites();
   return { ok: true, written: toWrite.length };
 }
