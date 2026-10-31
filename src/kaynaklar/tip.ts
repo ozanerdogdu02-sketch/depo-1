@@ -15,6 +15,8 @@ export type KaynakDurum = 'guncel' | 'eski' | 'ulasilamadi' | 'kapali' | 'veri_y
 export type KaynakHata =
   | 'anahtar_yok'
   | 'seri_dogrulanmadi'
+  | 'kapali'            // kazıma bayrağı sunucuda kapalı (FAGENT_KAZIMA); arıza değil
+  | 'kaynak_reddetti'   // yukarı akış isteği kabul etmedi (4xx / güvenlik duvarı); yeniden denenmez
   | 'ulasilamadi'
   | 'kaynak_hatasi'
   | 'okunamadi'
@@ -33,7 +35,7 @@ export interface KaynakSonucu<T> {
 
 // Yapılandırma durumu: yeniden denenmez, devre kesiciyi açmaz.
 export function yapilandirmaHatasi(hata: KaynakHata | undefined): boolean {
-  return hata === 'anahtar_yok' || hata === 'seri_dogrulanmadi';
+  return hata === 'anahtar_yok' || hata === 'seri_dogrulanmadi' || hata === 'kapali';
 }
 
 /* ───────────── TTL, geri çekilme, devre kesici (saf) ───────────── */
@@ -121,7 +123,9 @@ export function kaynakDurumMetni<T>(s: KaynakSonucu<T>, secenek: DurumMetniSecen
     case 'kapali': {
       const neden = s.hata === 'seri_dogrulanmadi'
         ? 'sunucuda bu seri henüz tanımlı değil'
-        : 'sunucu anahtarı tanımlı değil';
+        : s.hata === 'kapali'
+          ? 'bu kaynak sunucuda etkin değil'
+          : 'sunucu anahtarı tanımlı değil';
       return ekle(`Veri kaynağı yapılandırılmamış (${e.ad}: ${neden}).`, secenek.varsayim);
     }
     case 'veri_yok':

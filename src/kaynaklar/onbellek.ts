@@ -15,6 +15,7 @@ export interface OnbellekKaydi<T> {
 export const ONBELLEK_ANAHTARLARI = {
   tcmbTufe: 'fagent.kaynak.tcmb.tufe.v1',
   tcmbKur: 'fagent.kaynak.tcmb.kur.v1',
+  kapBildirimler: 'fagent.kaynak.kap.v1',
 } as const;
 
 // Biçimi tanınmayan kayıt yok sayılır (silinmez, üzerine yeni başarılı okuma yazar).

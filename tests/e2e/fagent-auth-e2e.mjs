@@ -240,6 +240,7 @@ const NOISE = {
   'fagent.evds.v1': JSON.stringify({ at: 1, v: 40 }),
   'fagent.kaynak.tcmb.tufe.v1': JSON.stringify({ at: 1, v: 41 }),
   'fagent.kaynak.tcmb.kur.v1': JSON.stringify({ at: 1, v: 42 }),
+  'fagent.kaynak.kap.v1': JSON.stringify({ surum: 1, kaynak: 'kap', alindi: '2026-01-01T00:00:00.000Z', veri: { bildirimler: [{ no: 1, zaman: '2026-01-01T10:00:00+03:00', kodlar: ['KAPSINAMA'], unvan: 'GIZLI-KAP-ONBELLEK', baslik: 'x' }] } }),
 };
 const WHITELIST = ['fagent.portfolio.v1', 'fagent.agent.memory.v1', 'fagent.agent.training.v1', 'fagent.tax.v1', 'fagent.target.v1'];
 const LAYERS = {
@@ -318,6 +319,8 @@ const UID = USERS[EMAIL];
     && !bodyStr.includes('fagent.pricehistory.v1.') && !bodyStr.includes('sb-'));
   check('(a) Upsert gövdesinde yeni kaynak önbelleği anahtarları (fagent.kaynak.tcmb.*) yok',
     !bodyStr.includes('fagent.kaynak.tcmb.') && !dataKeys.some(k => k.startsWith('fagent.kaynak.')));
+  check('(a) Upsert gövdesinde KAP kaynak önbelleği (fagent.kaynak.kap.*) ve içeriği yok',
+    !bodyStr.includes('fagent.kaynak.kap.') && !bodyStr.includes('GIZLI-KAP-ONBELLEK') && !dataKeys.includes('fagent.kaynak.kap.v1'));
 
   // --- Değişiklik → gecikmeli otomatik kayıt ---
   const before = mock.upserts.length;

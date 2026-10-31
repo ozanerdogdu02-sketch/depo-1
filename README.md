@@ -152,8 +152,11 @@ src/
                       (zaman aşımı/yeniden deneme/devre kesici), TCMB TÜFE + kur (tcmb.ts)
 api/
   evds.mjs          — Vercel Function: netlify/functions/evds.mjs mantığını Vercel'e bağlar
+  kap.mjs           — Vercel Function: netlify/functions/kap.mjs mantığını Vercel'e bağlar (varsayılan KAPALI)
 netlify/
   functions/evds.mjs — EVDS proxy'sinin TEK KAYNAĞI: API anahtarı YALNIZCA burada (sunucu ortam değişkeni)
+  functions/kap.mjs  — KAP bildirim META ucu (kazıma; FAGENT_KAZIMA=on yoksa 503 kapali)
+  ortak/sunucu-ortak.mjs — sunucu ucu ortak parçaları (istemci kimliği, hız sınırı, devre kesici, gövde sınırı, yukarı akış isteği)
   analytics.ts      — FİNANSAL MATEMATİK (saf): reel getiri, XIRR, HHI, volatilite,
                       maks. düşüş, Sharpe, korelasyon, kovaryansla çeşitlendirme faydası,
                       vergi sonrası net getiri (varsayilanVergiOranlari() — config/tax_rules.json — + afterTaxOf),
@@ -326,6 +329,12 @@ Sidebar'daki **SIFIRLA** üçünü de temizler.
   İstemci tarafı `page.route()` taklidiyle, sunucu fonksiyonu ve bağdaştırıcı sahte `fetch` ile yazılmış birim testlerle sınandı
   (yeşil); gerçek EVDS yanıtıyla doğrulanmadı — fonksiyonun kendisi yalnızca canlı deploy'da ve anahtarla
   doğrulanabilir, "test edildi" DEĞİLDİR.
+- **KAP bildirim listesi KAPALI ve gerçek yanıtla DOĞRULANMADI.** Kod hazır (`netlify/functions/kap.mjs`, `api/kap.mjs`,
+  `src/kaynaklar/kap.ts`) ama sunucu ortam değişkeni `FAGENT_KAZIMA=on` yoksa `/api/kap` 503 `kapali` döner ve KAP'a hiç
+  gidilmez (canlıda varsayılan). Açıkken: dürüst kimlik (`FAGENT/1.0`, tarayıcı taklidi yok), yalnız meta alanlar
+  (şirket kodu, unvan, başlık, tarih, tür, bildirim no; özet/ek alınmaz), parametresiz sabit istek (portföy ve semboller
+  sunucuya gitmez, süzme tarayıcıda), 60 sn aralık, devre kesici, CDN önbelleği. Uç adresi ve alanlar açık kaynak
+  kütüphanelerin kodundan çıkarıldı; bu ortamdan kap.org.tr'ye erişim yok. Ekrana bağlı değil. Hukuk: `TODO(hukuk)`.
 - **Stopaj oranları da elle güncellenen varsayımdır** (`src/config/tax_rules.json`, tarih aralıklı; `DEFAULT_TAX_RATES` bugünün tarihindeki kuraldan türetilir; hiçbir kural muhasebeciyle doğrulanmadı).
   Kaynak: 27.03.2026 tarihli 11107 sayılı Cumhurbaşkanı Kararı — fon ve 6 aya kadar vadeli TL
   mevduat %17,5; BIST pay senedi alım-satımında stopaj yok. **Kripto/altın/döviz için doğrulanmış

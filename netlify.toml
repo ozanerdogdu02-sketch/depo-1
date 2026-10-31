@@ -16,6 +16,12 @@
   to = "/.netlify/functions/evds"
   status = 200
 
+# KAP meta ucu (kazıma; FAGENT_KAZIMA=on yoksa 503 kapali). İstemci kısa yolu kullanır.
+[[redirects]]
+  from = "/api/kap"
+  to = "/.netlify/functions/kap"
+  status = 200
+
 # Güvenlik başlıkları — vercel.json ile aynı değerler (tek kaynak: vercel.json; değişirse ikisini birlikte güncelle).
 [[headers]]
   for = "/*"

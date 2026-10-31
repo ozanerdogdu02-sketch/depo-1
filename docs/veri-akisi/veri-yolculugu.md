@@ -585,7 +585,7 @@ Bulut oyunu canlıya çıkmadan önce dört kapı kapanmalıdır. Kullanıcı ka
 
 ## B) Veri kaynakları işletimi
 
-Dışarıdan gelen her sayı bir kapıdan geçer: sunucu geçiş fonksiyonu (anahtar yalnız orada), istemci çalıştırıcısı (zaman aşımı, yeniden deneme, devre kesici, önbellek) ve mantık denetimi. Kaynak çökerse yalnız o kaynağın bölümü etkilenir; uydurma sayı gösterilmez. Bugün canlı olan: kur (Frankfurter) ve kripto (CoinGecko). Hazır ama anahtarsız kapalı: TCMB/EVDS. Planlı: KAP, BİST, paylaşılan önbellek.
+Dışarıdan gelen her sayı bir kapıdan geçer: sunucu geçiş fonksiyonu (anahtar yalnız orada), istemci çalıştırıcısı (zaman aşımı, yeniden deneme, devre kesici, önbellek) ve mantık denetimi. Kaynak çökerse yalnız o kaynağın bölümü etkilenir; uydurma sayı gösterilmez. Bugün canlı olan: kur (Frankfurter) ve kripto (CoinGecko). Hazır ama anahtarsız kapalı: TCMB/EVDS. KAP: sunucu ucu ve istemci kodu yazıldı (U1–U3), canlıda varsayılan KAPALI, gerçek KAP yanıtıyla doğrulanmadı. Planlı: BİST, paylaşılan önbellek.
 
 
 ### B1 · Enflasyon çekimi: tarayıcıdan EVDS'ye giden yol
@@ -877,25 +877,39 @@ BIST hisse ve TEFAS fon fiyatı için anahtarsız resmi kaynak bulunamadı; bu y
 
 ### B11 · KAP bildirimleri (kazıma)
 
-**Durum:** PLANLI · **Yol haritası:** YH-4 · **PDF ekranı:** Hisseler (şirket bildirimleri)
+**Durum:** KISMEN · **Yol haritası:** YH-4 · **PDF ekranı:** Hisseler (şirket bildirimleri)
 
-KAP için resmi, belgelenmiş, ücretsiz bir geliştirici API'si bulunamadı. Plan, kullanıcının açık kararıyla sitenin herkese açık iç uçlarını sunucu tarafında kibar hız sınırıyla okumaktır. Kullanıcıdan hiçbir girdi (sembol listesi dahil) sunucuya gitmez; sunucu sabit 'son N bildirim' tablosu çeker, süzme tarayıcıda yapılır. Bu ortam KAP'a erişemediği için kod yazılmadı.
+KAP için resmi, belgelenmiş, ücretsiz bir geliştirici API'si bulunamadı. Kullanıcının açık kararıyla sitenin herkese açık iç ucu sunucu tarafında kibar hız sınırıyla okunur. Kullanıcıdan hiçbir girdi (sembol listesi dahil) sunucuya gitmez: ağ isteği parametresiz ve gövdesizdir, sunucu sabit 'dün + bugün bildirimleri' meta tablosunu çeker, portföye göre süzme tarayıcıda yapılır. Sunucu ucu varsayılan KAPALIDIR (FAGENT_KAZIMA=on yoksa 503 kapali). Bu ortam KAP'a erişemediği için kod yalnız sahte fetch ve türetilmiş fikstürle sınandı.
 
 | Kontrol | Geçerse | Geçemezse |
 |---|---|---|
-| Hukuk okuması (TODO(hukuk)) | Kullanıcı kararı karar günlüğüne yazılır, geliştirme başlar. | KAP bağlanmaz. |
-| Ortak kazıma çatısı (kibar bekleme, kimliği belli User-Agent, devre kesici) | - | Henüz yok. |
+| Kazıma bayrağı (sunucu ortam değişkeni FAGENT_KAZIMA=on) | Sunucu KAP'a sabit bir istek atar. | 503 'kapali'; yukarı akışa hiç gidilmez; istemci 'Veri kaynağı yapılandırılmamış (KAP: bu kaynak sunucuda etkin değil).' der. |
+| Parametresiz istek (her sorgu parametresi 400), tarih penceresini sunucu kurar | Portföy ve semboller ağa hiç girmez. | 400 gecersiz_parametre. |
+| Ortak kazıma çatısı: dürüst User-Agent (FAGENT/1.0, tarayıcı taklidi yok), 4 sn zaman aşımı, yönlendirme yok, 2 MB / 500 satır sınırı, aynı anda tek istek, istekler arası en az 60 sn (sonuç paylaşılır), devre kesici (3 ağ/5xx hatası -> 15 dk), 429'da Retry-After kadar bekleme | Kaynağa kaba yük binmez. | 502 ulasilamadi / sinir_asildi; önbellekte son bilinen değer varsa 'eski' diye etiketli anılır. |
+| Ayrıştırıcı: iki tarih biçimi, memberTitle/kapTitle, virgüllü hisse kodları; yalnız meta alanlar (özet, ek, metin alınmaz) | Süzülmüş liste döner (en yeni önce). | 'okunamadi' (HTML/güvenlik duvarı sayfası ya da şema uyuşmazlığı); uydurma satır yok. |
+| Güvenlik duvarı ya da 4xx reddi | - | 'kaynak_reddetti': engel aşılmaz, yeniden denenmez, devre kesici sayılmaz; KAP bölümü 'KAP'a ulaşılamadı.' der. |
+| CDN önbelleği: seans içi (hafta içi 09:00–19:00 TSİ) 15 dk, dışı 1 saat; istemci önbelleği 15 dk | Saatte bölge başına en çok ~4 yukarı akış isteği. | Süresi geçen istemci kaydı silinmez, 'eski' kalır. |
+| Hukuk okuması (TODO(hukuk)) | Kullanıcı kararı karar günlüğüne yazılır; canlıda bayrak açılır. | Bayrak kapalı kalır; KAP canlıda bağlanmaz. |
 | Metin dili: yorumsuz liste | ŞİRKET · tarih · başlık · KAP bağlantısı. | Yorum/yön cümlesi yasak. |
 
 **Kod:**
-- `doğrulanamadı: api/kap.mjs ve src/kaynaklar/kap.ts henüz yok (KaynakAdi tipinde 'kap' adı ve durum metni etiketi tanımlı: src/kaynaklar/tip.ts)`
+- `netlify/functions/kap.mjs:createKapHandler (sunucu; bayrak, ayrıştırıcı kapAyristir, pencere kapPenceresi)`
+- `api/kap.mjs:GET (Vercel bağlama)`
+- `netlify/ortak/sunucu-ortak.mjs (EVDS ile ortak: istemci kimliği, hız sınırı, devre kesici, sinirliOku, yukariAkisaGit)`
+- `src/kaynaklar/kap.ts:kapOku, kapSuz, kapBaglanti (istemci; süzme tarayıcıda)`
+- `src/kaynaklar/onbellek.ts:ONBELLEK_ANAHTARLARI.kapBildirimler (fagent.kaynak.kap.v1, yedek/buluta girmez)`
+- `doğrulanamadı: gerçek KAP yanıtı (uç adresi ve gövde alanları kütüphane kaynak kodundan çıkarıldı; memberType değeri dahil)`
 
-**Bozulursa:** Henüz canlı değil; yoksa kullanıcı bildirim görmez.
+**Bozulursa:** Kapalıyken ya da KAP ulaşılamazken kullanıcı bildirim görmez; durum metni nedenini söyler. Diğer kaynaklar (kripto, TCMB) etkilenmez; veri kaybı yok.
 
 **Test:**
-- yok (planlı: ayrıştırıcı birim testi, /api/kap 502 taklidi e2e)
+- tests/unit/kap-sunucu.test.ts: bayrak, parametre, sabit istek ve kimlik, meta süzme, iki tarih biçimi, 429/5xx/4xx/zaman aşımı/büyük gövde, devre kesici, 60 sn paylaşım, seans/CDN
+- tests/unit/kap-istemci.test.ts: ağ isteğinde parametre yok (portföy sembolü ağa girmez), süzme tarayıcıda, önbellek, kapali/eski/veri_yok durumları
+- tests/unit/evds-sunucu.test.ts (ortak modül taşındıktan sonra DEĞİŞMEDEN yeşil)
+- tests/e2e/fagent-auth-e2e.mjs: fagent.kaynak.kap.* anahtarı bulut gövdesine girmez
+- tests/fixtures/kap/*: kütüphane kodlarından türetilmiş örnek, gerçek yanıtla doğrulanmadı
 
-**Not:** Hukuki risk açık: iç uçların kullanım koşulları, MKK izni, yeniden yayın doğrulanmadı. Kazıma riski ürün satışında alıcıya yazılı açıklanır. İç uçların adresi ve biçimi doğrulanamadı. Araştırma notu (2026-10-31, docs/veri-akisi/kap-bist-erisim.md §2): üç açık kaynak kütüphanenin kaynak kodunda aynı iç uç bulundu: POST /tr/api/disclosure/members/byCriteria (gövdede tarih aralığı; başlangıç ve bitiş aynı yılda olmalı); bağlantı /tr/Bildirim/{disclosureIndex}. Resmi RSS bulunamadı. Alan adları kütüphaneler arasında tutarsız (memberTitle/kapTitle, iki tarih biçimi); KAP 429 döndürüyor ve bir kütüphaneye göre güvenlik duvarı tarayıcı benzeri başlık istiyor. Öneri: yalnız meta (şirket, başlık, tarih, tür, bağlantı), dürüst kimlik (taklit yok), CDN 15 dk, canlıda varsayılan kapalı bayrak. Gerçek yanıtla doğrulanmadı (bu ortamdan erişim yok).
+**Not:** Hukuki risk açık: iç ucun kullanım koşulları, MKK izni, yeniden yayın doğrulanmadı (TODO(hukuk)). Kazıma riski ürün satışında alıcıya yazılı açıklanır. U1–U3 yapıldı (2026-10-31): ortak sunucu modülü, kazıma bayrağı, KAP sunucu ucu ve istemci. Ekrana bağlanmadı (tasarım kullanıcıda, U7). U4 (Vercel önizlemede gerçek KAP denemesi) kullanıcı Vercel önizleme ortamına FAGENT_KAZIMA=on ekleyince yapılır: gerçek yanıtla uç adresi, memberType değeri, gövde alanları ve güvenlik duvarının dürüst kimliği kabul edip etmediği doğrulanacak. Duvar reddederse KAP bölümü 'ulaşılamadı' kalır (tarayıcı taklidi yapılmaz, K1). Araştırma notu: docs/veri-akisi/kap-bist-erisim.md §2.
 
 ### B12 · BİST gün sonu fiyatı (kazıma)
 
@@ -1411,7 +1425,7 @@ Devir paketine eklenecek tek sayfa: hangi yükümlülük kimde, hangi madde aç�
 
 **Durum:** YAPILDI · **PDF ekranı:** Abonelik planları (ödeme canlıda kapalı); Gizlilik kartları
 
-Satıştan önce canlıda dört kapı kilitli kalır: hesap (Supabase), ödeme, kazıma (KAP/BİST) ve yapay zekâ yorumu. Hesap kapısı kodla kilitli: env boşken bulut kodu çalışmaz. Ödeme, kazıma ve yapay zekâ için kod yoktur.
+Satıştan önce canlıda dört kapı kilitli kalır: hesap (Supabase), ödeme, kazıma (KAP/BİST) ve yapay zekâ yorumu. Hesap kapısı kodla kilitli: env boşken bulut kodu çalışmaz. Ödeme ve yapay zekâ için kod yoktur. Kazıma kodu (KAP) vardır ama sunucu ayarı FAGENT_KAZIMA=on yoksa kapalıdır (503 kapali).
 
 | Kontrol | Geçerse | Geçemezse |
 |---|---|---|
@@ -1563,7 +1577,7 @@ Devirde alan adı kayıt sahibi, Vercel projesi/ekibi, Supabase proje sahipliği
 13. Hız sınırında kullanılan istemci IP'sinin kişisel veri sayılıp sayılmadığı avukat teyidine bağlı (TODO(hukuk)); EVDS kullanım şartları ticari/abonelikli üründe birincil metinle doğrulanmadı.
 14. Projeksiyon motorunun yeni fonksiyonlarının çoğu ekrana bağlı değil; Aşama B (Monte Carlo) için ayrı onay gerekiyor ve rassal yürüyüş ertelemesiyle çelişki notu planda.
 15. Vergi oranları (tax_rules.json) ve piyasa varsayımları (varsayimlar.json) tarih aralıklı dosyada; hiçbiri muhasebeci doğrulamasından geçmedi (dogrulandi:false); fon stopajı %17,5 ve enflasyon varsayımı %30 birincil kaynakla doğrulanmadı (TODO(muhasebe)). Fon için 2026-05-01 öncesi oran (%15) doğrulanmadığı için dosyada yok.
-16. KAP (YH-4), BİST (YH-5) ve paylaşılan veri önbelleği (YH-6) yapılmadı; YH-7 ve YH-8 PDF tasarımına göre yeniden tanımlanacak (motorlar PDF ekranlarını besler). KAP/BİST için kaynak sayfa, kullanım koşulu ve lisans doğrulanmadı; AGENTS.md §0.4 güncellemesi kullanıcı onayı bekliyor.
+16. KAP (YH-4) sunucu ucu ve istemcisi yazıldı ama kapalı ve gerçek yanıtla doğrulanmadı (U4 bekliyor); BİST (YH-5) ve paylaşılan veri önbelleği (YH-6) yapılmadı; YH-7 ve YH-8 PDF tasarımına göre yeniden tanımlanacak (motorlar PDF ekranlarını besler). KAP/BİST için kaynak sayfa, kullanım koşulu ve lisans doğrulanmadı; AGENTS.md §0.4 güncellemesi kullanıcı onayı bekliyor.
 17. docs/mvp-tanimi.md, CHANGELOG, scripts/paket-olustur.sh, /home/user/FAGENT-Paket, 'Uyumluluk durumu ve açık maddeler' sayfası ve alan adı henüz yok. MVP kapsamı (PDF tasarımındaki hangi ekran ve özellik ilk sürümde açık) kullanıcıya sorulacak.
 18. ci.yml Node 20 kuruyor, package.json engines >=22.18; CI'da test:unit adımı yok; aksiyonlar SHA ile sabit değil; Dependabot yok. Kod okunarak görüldü, CI koşusu yapılmadı.
 19. Bağımlılıklar için 14 günlük bekleme kuralı depoda bulunamadı; bağımlılık güncelleme düzeni yazılı kural değil.
@@ -1575,4 +1589,4 @@ Devirde alan adı kayıt sahibi, Vercel projesi/ekibi, Supabase proje sahipliği
 25. Sekmeler arası eşitleme: olay gecikmesinde yazım anı karşılaştırması ezilen sürümü kurtarma alanına alır ama işlemi yine uygular (stale bellek kazanır). Başka sekmenin sürümü kurtarma alanına alınamazsa (IndexedDB yok/hata) kaydedilmemiş değişiklik yazılmadan bekler; her yazımda kopya yeniden denenir, IndexedDB hiç yoksa bekletme sürer (yenilemede kaybolur). Silme işareti ömrü (30 sn) ölçülmedi, varsayım. Çakışma ve silme-kazanır kararları gerçek tarayıcıda yalnız kota taklidiyle sınandı; 'kopya alınamadı' yolu yalnız birim testte. #35'in 'çıkışla hesaba yüklenmemiş tek yerel kopya silinir' yanı açık.
 
 ---
-Durum dağılımı: YAPILDI 29, KISMEN 13, PLANLI 12.
+Durum dağılımı: YAPILDI 29, KISMEN 14, PLANLI 11.

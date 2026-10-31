@@ -77,6 +77,20 @@ kontrolüyle doğrulanmıştı; bağdaştırıcıya taşındıktan sonra yeni e2
 
 ---
 
+## 2b. KAP bildirim meta ucu (kazıma) ⚠️ VARSAYILAN KAPALI, DOĞRULANMADI
+
+| | |
+|---|---|
+| Dosya | `api/kap.mjs` (Vercel); mantık tek kaynakta: `netlify/functions/kap.mjs`; EVDS ile ortak parçalar `netlify/ortak/sunucu-ortak.mjs` |
+| İstemci | `src/kaynaklar/kap.ts` → `GET /api/kap` (parametresiz, gövdesiz; önbellek `fagent.kaynak.kap.v1`, TTL 15 dk, yedek/buluta girmez; süzme tarayıcıda) |
+| Yukarı akış | `POST https://www.kap.org.tr/tr/api/disclosure/members/byCriteria` (belgesiz iç uç; açık kaynak kütüphane kodundan çıkarıldı) |
+| Bayrak | `FAGENT_KAZIMA=on` (yalnız sunucu ortam değişkeni). Yoksa 503 `kapali`, KAP'a gidilmez; istemci "Veri kaynağı yapılandırılmamış (KAP: bu kaynak sunucuda etkin değil)." der |
+| Kimlik | `User-Agent: FAGENT/1.0` (isteğe bağlı `FAGENT_ILETISIM` eklenir); tarayıcı taklidi YOK, yönlendirme izlenmez |
+| Alınan veri | Yalnız meta: şirket kodu, unvan, başlık, tarih, tür, bildirim no. Özet/metin/ek alınmaz |
+| Kibar kullanım | Aynı anda 1 istek, iki istek arası >= 60 sn (sonuç paylaşılır), 4 sn zaman aşımı, 2 MB / 500 satır, 3 ağ/5xx hatası -> 15 dk devre kesici, 429'da Retry-After, CDN `s-maxage` seans içi 900 sn / dışı 3600 sn |
+| CSP | Değişmez: tarayıcı yalnız kendi `/api/kap` adresine gider (`connect-src 'self'`) |
+| Durum | Kod ve birim testler hazır (sahte fetch, türetilmiş fikstür); gerçek KAP yanıtıyla DOĞRULANMADI; ekrana bağlı değil. Önizlemede deneme (U4) için Vercel Preview ortamına `FAGENT_KAZIMA=on` eklenmeli. `TODO(hukuk)` açık |
+
 ## 3. Depolama — tarayıcı `localStorage` (esas) + IndexedDB aynası
 
 Sunucu olmadığı için tüm veri kullanıcının tarayıcısında. **Beş kalıcı kullanıcı katmanı** (yedeğe ve hesaplıysa buluta giden, `BACKED_UP_KEYS`) **ile yardımcı yerel anahtarlar.** Tek gerçek kaynak `localStorage`'dır; aynı beş katman tarayıcının IndexedDB'sine (`fagent` veritabanı, `kv` deposu) doğrulanmış ayna olarak da yazılır (`src/mirror.ts`, `src/storage/mirror.ts`). Ayna aynı tarayıcıdadır, ağa gitmez:

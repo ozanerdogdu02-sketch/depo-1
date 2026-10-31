@@ -109,6 +109,7 @@ export const KAYNAK_YENIDEN_DENEME_BEKLEME_MS = [1_000] as const; // en çok 1 y
 export const KAYNAK_DEVRE_KESICI_MS = 15 * 60 * 1000;          // denemeler tükenince kaynak bu süre denenmez
 export const TCMB_TUFE_TTL_MS = 12 * 60 * 60 * 1000;           // TÜFE ayda bir açıklanır
 export const TCMB_KUR_TTL_MS = 60 * 60 * 1000;                 // kur günde bir açıklanır
+export const KAP_TTL_MS = 15 * 60 * 1000;                      // KAP bildirim listesi: sunucu CDN'i seans içinde 15 dk
 export const TUFE_MANTIK_ARALIK_PCT = { min: -50, max: 500 } as const; // dışı: veri yok say
 export const KUR_GUNLUK_SAPMA_PCT = 20;                        // bir önceki gözlemden ± bu kadar dışı: veri yok say
 

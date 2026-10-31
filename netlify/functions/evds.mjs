@@ -18,6 +18,13 @@
 //
 // TODO(hukuk): EVDS şartlarının ticari/abonelikli üründe gösterime izin verip vermediği birincil metinle doğrulanmadı.
 
+import {
+  json, istemciKimligi, createIstemciSiniri, createDevreKesici, sinirliOku, yukariAkisaGit,
+} from '../ortak/sunucu-ortak.mjs';
+
+// Test ve eski içe aktarımlar için aynı adla dışa aktarılır (asıl kod netlify/ortak/sunucu-ortak.mjs).
+export { istemciKimligi };
+
 const EVDS_BASE = 'https://evds2.tcmb.gov.tr/service/evds';
 
 const SERIES_RE = /^[A-Z0-9]+(\.[A-Z0-9]+)+$/;
@@ -39,15 +46,8 @@ const TUFE_PENCERE_AY = 14;
 const KUR_PENCERE_GUN = 14;
 const IZINLI_PARAMETRELER = ['series', 'tablo'];
 
-// Yukarı akış koruması (örnek başına bellekte; sunucusuz ortamda örnekler arası paylaşılmaz = en iyi çaba).
-// Zaman aşımı istemcinin zaman aşımından (5 sn) kısa tutulur ki istemci sunucunun yanıtını alabilsin.
-const UPSTREAM_ZAMAN_ASIMI_MS = 4000;
+// Yukarı akış koruması (hız sınırı, devre kesici, zaman aşımı) netlify/ortak/sunucu-ortak.mjs içindedir.
 const MAKS_GOVDE_BAYT = 512 * 1024;
-const ISTEMCI_PENCERE_MS = 60_000;
-const ISTEMCI_MAKS_ISTEK = 30;       // pencere başına istemci
-const ISTEMCI_MAKS_KAYIT = 1000;     // bellek sınırı
-const DEVRE_ESIK = 3;                // ardışık yukarı akış hatası (ağ, zaman aşımı, 5xx)
-const DEVRE_SURE_MS = 60_000;
 
 const p2 = (n) => String(n).padStart(2, '0');
 const evdsTarih = (d) => `${p2(d.getUTCDate())}-${p2(d.getUTCMonth() + 1)}-${d.getUTCFullYear()}`;
@@ -61,56 +61,6 @@ export function sunucuPenceresi(simdiMs, kurIstegi) {
   return [evdsTarih(bas), evdsTarih(bugun)];
 }
 
-function json(body, status = 200, extraHeaders = {}) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      'content-type': 'application/json; charset=utf-8',
-      'x-content-type-options': 'nosniff',
-      ...(status === 200 ? {} : { 'cache-control': 'no-store' }),
-      ...extraHeaders,
-    },
-  });
-}
-
-// İstemci kimliği YALNIZ çalışılan platformun kendi koyduğu başlıklardan alınır; x-forwarded-for ASLA kullanılmaz
-// (istemci sahteleyebilir). Öbür platformun başlığı YOK SAYILIR: Vercel'de istemci sahte x-nf-client-connection-ip
-// gönderip kovasını değiştiremez, Netlify'da sahte x-real-ip işe yaramaz.
-// Başlık yoksa tek ortak 'bilinmeyen' kovası: bu yalnız Vercel/Netlify dışı ya da yerel ortamda olur; üretimde başlık her zaman vardır.
-// Yalnızca bellekte, 1 dk; kaydedilmez/loglanmaz.
-// TODO(hukuk): hız sınırı için IP adresi kısa süreli bellekte tutulur; aydınlatma metninde belirtildi, avukat teyidi gerekir.
-export function istemciKimligi(headers, platform = 'netlify') {
-  const aday = platform === 'vercel'
-    ? (headers.get('x-real-ip') ?? headers.get('x-vercel-forwarded-for'))
-    : headers.get('x-nf-client-connection-ip');
-  const k = (aday ?? '').split(',')[0].trim().slice(0, 64);
-  return k || 'bilinmeyen';
-}
-
-// Gövdeyi bayt sınırıyla okur: content-length büyükse hiç okumaz; akış sırasında sınırı aşarsa keser.
-async function sinirliOku(res, maks) {
-  const bildirilen = Number(res.headers.get('content-length'));
-  if (Number.isFinite(bildirilen) && bildirilen > maks) return undefined;
-  if (!res.body) {
-    const metin = await res.text();
-    return new TextEncoder().encode(metin).length <= maks ? metin : undefined;
-  }
-  const okuyucu = res.body.getReader();
-  const parcalar = [];
-  let toplam = 0;
-  for (;;) {
-    const { done, value } = await okuyucu.read();
-    if (done) break;
-    toplam += value.byteLength;
-    if (toplam > maks) { await okuyucu.cancel().catch(() => {}); return undefined; }
-    parcalar.push(value);
-  }
-  const tum = new Uint8Array(toplam);
-  let konum = 0;
-  for (const c of parcalar) { tum.set(c, konum); konum += c.byteLength; }
-  return new TextDecoder().decode(tum);
-}
-
 // Test için enjekte edilebilir üretici. Varsayılan dışa aktarma gerçek ortamı kullanır.
 export function createEvdsHandler({
   fetchFn = (...a) => globalThis.fetch(...a),
@@ -119,24 +69,8 @@ export function createEvdsHandler({
   kurSerileri = KUR_SERILERI,
   platform = 'netlify', // 'netlify' | 'vercel': hangi platform başlığına güvenileceği (api/evds.mjs 'vercel' verir)
 } = {}) {
-  const istemciler = new Map(); // anahtar -> { bas, sayi }; Map ekleme sırası = en eski önce
-  let ardisikHata = 0;
-  let devreAcilis;
-
-  function istemciSiniriAsildi(req) {
-    const anahtar = istemciKimligi(req.headers, platform);
-    const t = simdi();
-    const k = istemciler.get(anahtar);
-    if (!k || t - k.bas >= ISTEMCI_PENCERE_MS) {
-      istemciler.delete(anahtar); // yeniden eklenince sona (en yeni) geçer
-      // Tablo doluysa en eski kaydı at (tümünü silmek saldırganın başkalarının sayaçlarını sıfırlamasına yol açardı).
-      while (istemciler.size >= ISTEMCI_MAKS_KAYIT) istemciler.delete(istemciler.keys().next().value);
-      istemciler.set(anahtar, { bas: t, sayi: 1 });
-      return false;
-    }
-    k.sayi += 1;
-    return k.sayi > ISTEMCI_MAKS_ISTEK;
-  }
+  const istemciSiniriAsildi = createIstemciSiniri({ simdi, platform });
+  const devre = createDevreKesici({ simdi });
 
   return async (req) => {
     if (istemciSiniriAsildi(req)) {
@@ -180,10 +114,9 @@ export function createEvdsHandler({
     }
 
     // Devre kesici: yukarı akış üst üste hata verdiyse kısa süre ona gidilmez (hem TCMB'ye hem bize yük bindirmez).
-    if (devreAcilis !== undefined && simdi() - devreAcilis < DEVRE_SURE_MS) {
+    if (devre.acikMi()) {
       return json({ error: 'ulasilamadi', message: 'TCMB EVDS servisine ulaşılamadı.' }, 502, { 'retry-after': '60' });
     }
-    devreAcilis = undefined;
 
     const [startDate, endDate] = sunucuPenceresi(simdi(), kurIstegi);
     const seriParam = kurIstegi ? kurSerileri.join('-') : series;
@@ -194,31 +127,20 @@ export function createEvdsHandler({
 
     // Yalnız GERÇEK yukarı akış arızaları sayılır: ağ hatası, zaman aşımı, 5xx. Yukarı akış 4xx ve
     // beklenmedik gövde sayılmaz (bizim isteğimizin/anahtarın sorunu olabilir; devreyi açmak yardım etmez).
-    const hataKaydet = () => {
-      ardisikHata += 1;
-      if (ardisikHata >= DEVRE_ESIK) { devreAcilis = simdi(); ardisikHata = 0; }
-    };
-
-    let res;
-    try {
-      res = await fetchFn(upstream, {
-        headers: { key, accept: 'application/json' },
-        signal: AbortSignal.timeout(UPSTREAM_ZAMAN_ASIMI_MS),
-        redirect: 'error',
-      });
-    } catch (e) {
-      hataKaydet();
-      if (e && (e.name === 'TimeoutError' || e.name === 'AbortError')) {
-        return json({ error: 'zaman_asimi', message: 'TCMB EVDS zamanında yanıt vermedi.' }, 502);
-      }
-      return json({ error: 'ulasilamadi', message: 'TCMB EVDS servisine ulaşılamadı.' }, 502);
+    const g = await yukariAkisaGit(fetchFn, upstream, { headers: { key, accept: 'application/json' } });
+    if (g.hata) {
+      devre.hata();
+      return g.hata === 'zaman_asimi'
+        ? json({ error: 'zaman_asimi', message: 'TCMB EVDS zamanında yanıt vermedi.' }, 502)
+        : json({ error: 'ulasilamadi', message: 'TCMB EVDS servisine ulaşılamadı.' }, 502);
     }
+    const res = g.res;
 
     if (!res.ok) {
       // TCMB'nin ham hata gövdesini ve durum kodunu istemciye AKTARMIYORUZ — içinde anahtarı yankılayan ya da
       // altyapı bilgisi sızdıran bir metin olabilir. Sade ve sabit bir mesaj döner.
       if (res.status >= 500) {
-        hataKaydet();
+        devre.hata();
         return json({ error: 'kaynak_hatasi', message: 'TCMB EVDS şu an yanıt vermiyor.' }, 502);
       }
       return json({ error: 'kaynak_reddetti', message: 'TCMB EVDS isteği kabul etmedi.' }, 502);
@@ -234,7 +156,7 @@ export function createEvdsHandler({
       return json({ error: 'okunamadi', message: 'TCMB EVDS yanıtı okunamadı.' }, 502);
     }
 
-    ardisikHata = 0;
+    devre.basari();
     // TÜFE ayda, kur günde bir açıklanır — her sayfa açılışında TCMB'ye gitmek gereksiz ve kaba olurdu.
     const saniye = kurIstegi ? 3600 : 21600;
     return json({ items: data.items }, 200, { 'cache-control': `public, max-age=${saniye}, s-maxage=${saniye}` });
