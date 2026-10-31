@@ -846,7 +846,7 @@ test('ORTA-3: applyUserData replace kipinde yazım yarıda kalırsa (yazilamadi)
   let failSet = true;
   (globalThis as unknown as { localStorage: unknown }).localStorage = {
     getItem: (k: string) => (k in store ? store[k] : null),
-    setItem: (k: string, v: string) => { if (failSet) { const e = new Error('dolu'); e.name = 'QuotaExceededError'; throw e; } store[k] = v; },
+    setItem: (k: string, v: string) => { if (failSet && k === 'fagent.target.v1') { const e = new Error('dolu'); e.name = 'QuotaExceededError'; throw e; } store[k] = v; },
     removeItem: (k: string) => { delete store[k]; },
   };
   try {
@@ -854,7 +854,7 @@ test('ORTA-3: applyUserData replace kipinde yazım yarıda kalırsa (yazilamadi)
     let fired = 0;
     const off = subscribeUserDataWrites(() => { fired++; });
     const bad = applyUserData({ 'fagent.target.v1': '{"fon":40}' }, { mode: 'replace' });
-    assert.deepEqual(bad, { ok: false, reason: 'yazilamadi' });
+    assert.deepEqual(bad, { ok: false, reason: 'yazilamadi', rollback: 'tamam' });
     assert.equal(fired, 0);
     failSet = false;
     const good = applyUserData({ 'fagent.target.v1': '{"fon":40}' }, { mode: 'replace' });
@@ -1225,4 +1225,265 @@ test('D-f: not metni durumu doğru anlatır — "yazıldı" demez, "henüz alın
     assert.ok(note.includes('henüz alınmadı'));
     assert.ok(!/kurtarma kaydına yazılır|yazıldı/.test(note));
   } finally { setOversizeSink(undefined); delete (globalThis as { localStorage?: unknown }).localStorage; }
+});
+
+// ---- A7 / A14: yazma hatası, kirli durum, rollback, boyut sınırı ----
+type LsStub = { store: Record<string, string>; failSetAfter: number; sets: number; failRemove: boolean; sticky: boolean };
+function installLs(init: Record<string, string>): LsStub {
+  const st: LsStub = { store: { ...init }, failSetAfter: Infinity, sets: 0, failRemove: false, sticky: false };
+  (globalThis as unknown as { localStorage: unknown }).localStorage = {
+    getItem: (k: string) => (k in st.store ? st.store[k] : null),
+    setItem: (k: string, v: string) => {
+      // Varsayılan: kota TEK yazımda dolar (N. yazım), sonraki (geri alma) yazımlar geçer. sticky: hep dolu.
+      if (st.sets >= st.failSetAfter) { if (!st.sticky) st.failSetAfter = Infinity; const e = new Error('dolu'); e.name = 'QuotaExceededError'; throw e; }
+      st.sets++; st.store[k] = v;
+    },
+    removeItem: (k: string) => { if (st.failRemove) throw new Error('x'); delete st.store[k]; },
+  };
+  return st;
+}
+const uninstallLs = () => { delete (globalThis as { localStorage?: unknown }).localStorage; };
+
+test('A7: store.commit kota hatasında fırlatmaz; bellek güncel, anahtar KİRLİ; sonraki başarılı yazım temizler', async () => {
+  const st = installLs({});
+  try {
+    const { actions, getPortfolio } = await import('../../src/store.ts');
+    const { getUnsavedKeys, getPendingWrite } = await import('../../src/yazmaDurumu.ts');
+    st.failSetAfter = 0; st.sticky = true;
+    actions.startEmpty(); // fırlatmamalı
+    assert.equal(getPortfolio().onboarded, true);
+    assert.deepEqual([...getUnsavedKeys()], ['fagent.portfolio.v1']);
+    assert.equal(st.store['fagent.portfolio.v1'], undefined);
+    assert.ok(getPendingWrite('fagent.portfolio.v1')?.includes('"onboarded":true'));
+    st.failSetAfter = Infinity; st.sticky = false; // kota açıldı
+    actions.addHolding('THYAO', 'hisse', 1000);
+    assert.deepEqual([...getUnsavedKeys()], []);
+    assert.ok(st.store['fagent.portfolio.v1'].includes('THYAO'));
+  } finally { uninstallLs(); }
+});
+
+test('A7: yazmaDurumu — yazılamayan değer bekler, okuma/yedek anlık görüntüsü onu görür; başarılı yazım ve removeLocal temizler', async () => {
+  const st = installLs({});
+  try {
+    const y = await import('../../src/yazmaDurumu.ts');
+    const { snapshotUserData } = await import('../../src/backup.ts');
+    let bildirim = 0;
+    const off = y.subscribeUnsaved(() => { bildirim++; });
+    st.failSetAfter = 0; st.sticky = true;
+    assert.equal(y.writeLocal('fagent.tax.v1', '{"fon":12}'), false);
+    assert.equal(y.writeLocal('fagent.target.v1', '{"hisse":40}'), false);
+    assert.deepEqual([...y.getUnsavedKeys()], ['fagent.target.v1', 'fagent.tax.v1']);
+    assert.equal(y.getPendingWrite('fagent.tax.v1'), '{"fon":12}');
+    assert.equal(JSON.parse(snapshotUserData()['fagent.tax.v1']).fon, 12);
+    st.failSetAfter = Infinity; st.sticky = false;
+    assert.equal(y.writeLocal('fagent.tax.v1', '{"fon":13}'), true);
+    assert.deepEqual([...y.getUnsavedKeys()], ['fagent.target.v1']);
+    y.removeLocal('fagent.target.v1');
+    assert.deepEqual([...y.getUnsavedKeys()], []);
+    assert.ok(bildirim >= 3);
+    off();
+  } finally { uninstallLs(); }
+});
+
+test('A14: N. yazımda kota hatası -> rollback TAMAM, önceki 5 katman aynen geri gelir, ayna bildirimi atılmaz', async () => {
+  const old = {
+    'fagent.portfolio.v1': '{"eski":1}', 'fagent.agent.memory.v1': '{"eski":2}', 'fagent.agent.training.v1': '[1]',
+    'fagent.tax.v1': '{"fon":10}',
+  };
+  const st = installLs(old);
+  try {
+    const { applyUserData, subscribeUserDataWrites, snapshotUserData } = await import('../../src/backup.ts');
+    let fired = 0;
+    const off = subscribeUserDataWrites(() => { fired++; });
+    st.failSetAfter = 2; // 3. yazımda hata: iki katman yeni değerle yazılmış olacak
+    const r = applyUserData({
+      'fagent.portfolio.v1': 'YENI1', 'fagent.agent.memory.v1': 'YENI2', 'fagent.target.v1': 'YENI3',
+    }, { mode: 'replace' });
+    assert.deepEqual(r, { ok: false, reason: 'yazilamadi', rollback: 'tamam' });
+    st.failSetAfter = Infinity;
+    assert.deepEqual(st.store, old); // aynen: değişen yok, silinen yok, eklenen yok
+    assert.equal(fired, 0);
+    assert.deepEqual(snapshotUserData(), old);
+    off();
+  } finally { uninstallLs(); }
+});
+
+test('A14: rollback da başarısızsa açık durum: rollback "eksik" ve etkilenen anahtarlar listelenir', async () => {
+  const st = installLs({ 'fagent.portfolio.v1': 'ESKI', 'fagent.tax.v1': 'ESKI-V' });
+  try {
+    const { applyUserData } = await import('../../src/backup.ts');
+    st.failSetAfter = 1; st.sticky = true; // 1. yazım tamam, 2. yazım hata, geri alma yazımları da hata
+    const r = applyUserData({ 'fagent.portfolio.v1': 'YENI', 'fagent.tax.v1': 'YENI-V' }, { mode: 'replace' });
+    assert.equal(r.ok, false);
+    assert.ok(!r.ok && r.reason === 'yazilamadi' && r.rollback === 'eksik');
+    assert.ok(!r.ok && r.reason === 'yazilamadi' && r.rollbackKeys?.includes('fagent.portfolio.v1'));
+    // ORTA-2: geri alınamayan katmanların ESKİ değeri bekleyen olarak tutulur (kaybolmaz)
+    const y = await import('../../src/yazmaDurumu.ts');
+    const { snapshotUserData } = await import('../../src/backup.ts');
+    assert.equal(y.getPendingWrite('fagent.portfolio.v1'), 'ESKI');
+    assert.equal(y.getPendingWrite('fagent.tax.v1'), undefined); // zaten eski halinde: geri yazılması gerekmedi
+    assert.ok(y.getUnsavedKeys().includes('fagent.portfolio.v1'));
+    assert.equal(snapshotUserData()['fagent.portfolio.v1'], 'ESKI'); // yedek eski değeri taşır
+    y.clearPendingWrites();
+  } finally { uninstallLs(); }
+});
+
+test('A14: replace kipinde veride olmayan katman yazımdan ÖNCE silinir (DÜŞÜK-3); başarıda bekleyenler temizlenir', async () => {
+  const st = installLs({ 'fagent.target.v1': '{"a":1}', 'fagent.tax.v1': '{"fon":1}' });
+  try {
+    const { applyUserData } = await import('../../src/backup.ts');
+    const r = applyUserData({ 'fagent.tax.v1': '{"fon":2}' }, { mode: 'replace' });
+    assert.deepEqual(r, { ok: true, written: 1 });
+    assert.equal(st.store['fagent.target.v1'], undefined);
+    assert.equal(st.store['fagent.tax.v1'], '{"fon":2}');
+  } finally { uninstallLs(); }
+});
+
+test('A14: restoreBackup boyut sınırı ayrıştırmadan önce uygulanır; mesajlar rollback durumunu söyler', async () => {
+  const st = installLs({ 'fagent.tax.v1': 'ESKI' });
+  try {
+    const { restoreBackup } = await import('../../src/backup.ts');
+    const { YEDEK_DOSYA_MAX_BOYUT } = await import('../../src/config/varsayilanlar.ts');
+    const big = restoreBackup(' '.repeat(YEDEK_DOSYA_MAX_BOYUT + 1));
+    assert.equal(big.ok, false);
+    assert.match(big.message, /çok büyük/);
+    assert.equal(st.store['fagent.tax.v1'], 'ESKI');
+    const file = JSON.stringify({ fagentBackup: 1, data: { 'fagent.tax.v1': 'YENI', 'fagent.target.v1': 'Y2' } });
+    st.failSetAfter = 1;
+    const bad = restoreBackup(file);
+    assert.equal(bad.ok, false);
+    assert.match(bad.message, /aynen korundu/);
+    assert.equal(st.store['fagent.tax.v1'], 'ESKI');
+  } finally { uninstallLs(); }
+});
+
+// BAYT TOPLAMINA göre kota taklidi: tüm değerlerin toplam uzunluğu sınırı aşarsa setItem hata verir (gerçek kota net boyuta bakar).
+function installByteQuotaLs(init: Record<string, string>, limit: number, failOn?: { key: string }): { store: Record<string, string> } {
+  const st = { store: { ...init } };
+  const total = () => Object.values(st.store).reduce((n, v) => n + v.length, 0);
+  (globalThis as unknown as { localStorage: unknown }).localStorage = {
+    getItem: (k: string) => (k in st.store ? st.store[k] : null),
+    setItem: (k: string, v: string) => {
+      const prev = st.store[k];
+      st.store[k] = v;
+      if (total() > limit || failOn?.key === k) { if (prev === undefined) delete st.store[k]; else st.store[k] = prev; const e = new Error('dolu'); e.name = 'QuotaExceededError'; throw e; }
+    },
+    removeItem: (k: string) => { delete st.store[k]; },
+  };
+  return st;
+}
+
+test('ORTA-1: bayt toplamı kotasında rollback ÖNCE küçülenleri geri yazar; tek turlu sıra "eksik" bırakırdı', async () => {
+  // eski: portföy 50, bellek 10, öğretilen 30 (=90); sınır 100. Yeni: portföy 10 (küçülür), bellek 60 (büyür), öğretilen 90 (kotaya takılır).
+  const old = { 'fagent.portfolio.v1': 'P'.repeat(50), 'fagent.agent.memory.v1': 'M'.repeat(10), 'fagent.agent.training.v1': 'T'.repeat(30) };
+  const st = installByteQuotaLs(old, 100);
+  try {
+    const { applyUserData } = await import('../../src/backup.ts');
+    const y = await import('../../src/yazmaDurumu.ts');
+    const r = applyUserData({ 'fagent.portfolio.v1': 'p'.repeat(10), 'fagent.agent.memory.v1': 'm'.repeat(60), 'fagent.agent.training.v1': 't'.repeat(90) }, { mode: 'replace' });
+    assert.deepEqual(r, { ok: false, reason: 'yazilamadi', rollback: 'tamam' });
+    assert.deepEqual(st.store, old);
+    assert.deepEqual([...y.getUnsavedKeys()], []);
+  } finally { uninstallLs(); }
+});
+
+test('ORTA-1: ilk turda geri yazılamayan anahtar ikinci turda yeniden denenir', async () => {
+  const old = { 'fagent.portfolio.v1': 'A', 'fagent.tax.v1': 'B' };
+  const st = installLs(old);
+  try {
+    const { applyUserData } = await import('../../src/backup.ts');
+    // 1. yazım tamam, 2. yazım hata; geri almada ilk deneme de hata verir (3. çağrı), sonrakiler geçer
+    let n = 0;
+    const ls = (globalThis as unknown as { localStorage: { setItem: (k: string, v: string) => void } }).localStorage;
+    const orig = ls.setItem;
+    ls.setItem = (k, v) => { n++; if (n === 2 || n === 3) { const e = new Error('dolu'); e.name = 'QuotaExceededError'; throw e; } orig(k, v); };
+    const r = applyUserData({ 'fagent.portfolio.v1': 'X', 'fagent.tax.v1': 'Y' }, { mode: 'replace' });
+    assert.deepEqual(r, { ok: false, reason: 'yazilamadi', rollback: 'tamam' });
+    assert.deepEqual(st.store, old);
+  } finally { uninstallLs(); }
+});
+
+test('ORTA-2: portfolioOnly başarısında yalnız yazılan anahtarın bekleyeni temizlenir (DÜŞÜK-1)', async () => {
+  installLs({});
+  try {
+    const y = await import('../../src/yazmaDurumu.ts');
+    const { applyUserData } = await import('../../src/backup.ts');
+    y.markPending('fagent.tax.v1', 'BEKLEYEN-V');
+    y.markPending('fagent.portfolio.v1', 'BEKLEYEN-P');
+    const r = applyUserData({ 'fagent.portfolio.v1': 'YENI' }, { mode: 'portfolioOnly' });
+    assert.equal(r.ok, true);
+    assert.equal(y.getPendingWrite('fagent.portfolio.v1'), undefined);
+    assert.equal(y.getPendingWrite('fagent.tax.v1'), 'BEKLEYEN-V');
+    y.clearPendingWrites(['fagent.tax.v1']);
+    assert.deepEqual([...y.getUnsavedKeys()], []);
+  } finally { uninstallLs(); }
+});
+
+test('A14: boyut sabiti ve mesaj "yaklaşık"', async () => {
+  installLs({});
+  try {
+    const { restoreBackup } = await import('../../src/backup.ts');
+    const { YEDEK_DOSYA_MAX_BOYUT } = await import('../../src/config/varsayilanlar.ts');
+    assert.match(restoreBackup(' '.repeat(YEDEK_DOSYA_MAX_BOYUT + 1)).message, /yaklaşık 10 MB/);
+  } finally { uninstallLs(); }
+});
+
+// ---- Kapanış turu: neden bazlı koruma, 'silinmeli' işareti, korumanın hemen eşitlenmesi ----
+test('DÜŞÜK-A: koruma neden bazlı: bir nedenin kalkması diğerini kaldırmaz; son neden kalkınca ayna eşitlenir', async () => {
+  const ls = delayMem(0), idb = delayMem(0);
+  idb.m.set(KEYS[0], 'IDB-SAGLAM');
+  ls.m.set(KEYS[0], 'LS-KARISIK');
+  const w = createMirrorWriter(ls, idb, PK);
+  w.protect(KEYS[0], true, 'bekleyen');
+  w.protect(KEYS[0], true, 'kurtarma');
+  w.protect(KEYS[0], false, 'kurtarma');     // biri kalktı: diğeri hâlâ koruyor
+  w.request([KEYS[0]]); await w.flush();
+  assert.equal(idb.m.get(KEYS[0]), 'IDB-SAGLAM');
+  w.protect(KEYS[0], false, 'bekleyen');     // son neden kalktı -> eşitlenir
+  await w.flush();
+  assert.equal(idb.m.get(KEYS[0]), 'LS-KARISIK');
+  // aynı nedenle iki kez açıp bir kez kapatmak yeter (küme semantiği, sayaç değil): kalıcı kilit kalmaz
+  w.protect(KEYS[0], true, 'x'); w.protect(KEYS[0], true, 'x'); w.protect(KEYS[0], false, 'x');
+  ls.m.set(KEYS[0], 'YENI'); w.request([KEYS[0]]); await w.flush();
+  assert.equal(idb.m.get(KEYS[0]), 'YENI');
+});
+
+test('DÜŞÜK-C: bindUnsavedGuard abonelikten hemen sonra mevcut kirli anahtarları korur; çözülünce korumayı kaldırır', async () => {
+  installLs({});
+  try {
+    const y = await import('../../src/yazmaDurumu.ts');
+    y.markPending('fagent.tax.v1', 'BEKLEYEN');   // bağlanmadan ÖNCE kirli
+    const events: [string, boolean][] = [];
+    const off = y.bindUnsavedGuard((k, on) => events.push([k, on]));
+    assert.deepEqual(events, [['fagent.tax.v1', true]]);
+    y.markPending('fagent.target.v1', 'B2');
+    assert.deepEqual(events.slice(1), [['fagent.target.v1', true]]);
+    y.clearPendingWrites(['fagent.tax.v1']);
+    assert.deepEqual(events.slice(2), [['fagent.tax.v1', false]]);
+    off();
+    assert.deepEqual(events.slice(3), [['fagent.target.v1', false]]);
+    y.clearPendingWrites();
+  } finally { uninstallLs(); }
+});
+
+test('DÜŞÜK-B: eskiden olmayan katmanın yeni değeri silinemezse "silinmeli" işareti konur (uyarı, okuma null, yedekte yok)', async () => {
+  const store: Record<string, string> = { 'fagent.tax.v1': 'A' };
+  let sets = 0;
+  (globalThis as unknown as { localStorage: unknown }).localStorage = {
+    getItem: (k: string) => (k in store ? store[k] : null),
+    setItem: (k: string, v: string) => { sets++; if (sets === 2) { const e = new Error('dolu'); e.name = 'QuotaExceededError'; throw e; } store[k] = v; },
+    removeItem: (k: string) => { if (k === 'fagent.agent.training.v1') throw new Error('silinemedi'); delete store[k]; },
+  };
+  try {
+    const { applyUserData, snapshotUserData } = await import('../../src/backup.ts');
+    const y = await import('../../src/yazmaDurumu.ts');
+    // training eskiden YOK -> yazılır (1. set); tax 2. set'te hata; geri almada training silinemez
+    const r = applyUserData({ 'fagent.agent.training.v1': 'YENI-T', 'fagent.tax.v1': 'B' }, { mode: 'replace' });
+    assert.ok(!r.ok && r.reason === 'yazilamadi' && r.rollback === 'eksik' && r.rollbackKeys?.includes('fagent.agent.training.v1'));
+    assert.ok(y.getUnsavedKeys().includes('fagent.agent.training.v1'));
+    assert.equal(y.readLocal('fagent.agent.training.v1'), null);
+    assert.equal(snapshotUserData()['fagent.agent.training.v1'], undefined);
+    assert.equal(store['fagent.tax.v1'], 'A');
+    y.clearPendingWrites();
+  } finally { uninstallLs(); }
 });

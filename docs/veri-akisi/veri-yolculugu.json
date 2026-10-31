@@ -278,7 +278,7 @@
           "id": "A7",
           "ad": "Depolama dolu, IndexedDB yok ya da engelli",
           "yh": "YH-1",
-          "oyun": "Tarayıcı bazen bir kapıyı kapatır: özel gezinti, kota dolu, IndexedDB hiç yok. IndexedDB tarafında oyun bunu hata kodu olarak tanır (quota, unavailable, blocked, version, io, corrupt) ve uygulamayı durdurmaz. localStorage tarafı ise tek kale: o dolarsa ana kopya yazılamaz.",
+          "oyun": "Tarayıcı bazen bir kapıyı kapatır: özel gezinti, kota dolu, IndexedDB hiç yok. IndexedDB tarafında oyun bunu hata kodu olarak tanır (quota, unavailable, blocked, version, io, corrupt) ve uygulamayı durdurmaz. localStorage tarafı ise tek kale: o dolarsa ana kopya yazılamaz. Bu durumda yazma hatası yakalanır, değişiklik 'kaydedilmedi' diye işaretlenir ve ekranda uyarı çıkar.",
           "kontroller": [
             {
               "ad": "IndexedDB açılabiliyor mu",
@@ -301,26 +301,44 @@
               "gecemezse": "Yazma yedeğe düşer, anahtar KİRLİ işaretlenir, okuma önce yedeği kullanır (asıl okuma IndexedDB'ye geçince devreye girer)."
             },
             {
-              "ad": "localStorage doluyken commit (store.ts)",
-              "gecerse": "Kayıt yazılır.",
-              "gecemezse": "setItem hata fırlatır; commit içinde yakalanmıyor. Bellekteki durum zaten güncellendiği için o oturumda doğru görünebilir, ama yenilemede kayıt yoktur."
+              "ad": "localStorage doluyken yazma (store.commit ve diğer dört katman)",
+              "gecerse": "Kayıt yazılır; anahtar 'kaydedilmedi' listesinden çıkar.",
+              "gecemezse": "setItem hatası yakalanır (fırlatmaz): bellekteki durum geçerli kalır, değer bellekte bekletilir, anahtar KİRLİ işaretlenir ve her sekmede role=alert uyarısı çıkar (yedeğin nereden indirileceğini söyler: Panel > Veri Yedeği kartı). Yedek dosyası bekleyen son değeri taşır; sonraki başarılı yazım diske iner ve uyarıyı kaldırır. Sayfa kapatılırken kaydedilmemiş değişiklik varsa tarayıcı onay sorar (beforeunload). Değer IndexedDB aynasına yazılmaz; bekleyen anahtar için ayna korumalıdır (localStorage esas kaynak kalır)."
+            },
+            {
+              "ad": "Ayna koruması (bekleyen anahtar)",
+              "gecerse": "Bekleyen (diske yazılamayan) anahtar yokken ayna localStorage'ı IndexedDB'ye normal yansıtır.",
+              "gecemezse": "Bekleyen anahtar varken ayna o anahtara ne yazar ne siler (neden bazlı koruma: 'bekleyen' ve 'kurtarma' ayrı nedenlerdir, biri kalkınca diğeri kalkmaz); koruma, abonelikten hemen sonra mevcut kirli anahtarlar için de kurulur; bekleyen çözülünce koruma kalkar ve ayna eşitlenir."
             }
           ],
           "kod": [
             "src/storage/idb.ts (hata eşlemesi)",
             "src/storage/resilient.ts",
             "src/storage/local.ts",
-            "src/store.ts:commit"
+            "src/yazmaDurumu.ts:writeLocal",
+            "src/store.ts:commit",
+            "src/taxRates.ts, src/targetAllocation.ts, src/agentMemory.ts, src/agentTraining.ts (kayıt işlevleri writeLocal kullanır)",
+            "src/backup.ts:snapshotUserData (bekleyen değeri önceler)",
+            "src/mirror.ts (bekleyen anahtar için writer.protect)",
+            "src/App.tsx (#kayit-uyarisi, role=alert; beforeunload)",
+            "src/yazmaDurumu.ts:bindUnsavedGuard",
+            "src/storage/mirror.ts:protect (neden bazlı)"
           ],
-          "bozulursa": "IndexedDB tarafı bozulursa veri kaybı yok. localStorage dolarsa son işlem diske yazılmayabilir ve kullanıcıya hata gösterilmez: bu gerçek bir açıktır (bkz. acik).",
+          "bozulursa": "IndexedDB tarafı bozulursa veri kaybı yok. localStorage dolarsa son işlem diske yazılamaz ama bellekte durur; kullanıcı ekranda 'kaydedilemedi' uyarısını görür ve yedek indirebilir. Sayfa yenilenirse diske yazılamayan değişiklik kaybolur (uyarı bunu söyler).",
           "test": [
             "tests/unit/depolama.test.ts: idb: açılamıyor/engelli/yok -> tipli hata, throw yok",
             "tests/unit/depolama.test.ts: local: kota hatası quota koduyla döner; depolama yoksa unavailable",
             "tests/unit/depolama.test.ts: Y1: version/blocked hatasında YAZMA yedeğe düşmez",
-            "tests/unit/depolama.test.ts: Y1: io/quota hatasında yedeğe yazılır, anahtar KİRLİ"
+            "tests/unit/depolama.test.ts: Y1: io/quota hatasında yedeğe yazılır, anahtar KİRLİ",
+            "tests/unit/depolama.test.ts: A7: store.commit kota hatasında fırlatmaz; bellek güncel, anahtar KİRLİ; sonraki başarılı yazım temizler",
+            "tests/unit/depolama.test.ts: A7: yazmaDurumu — yazılamayan değer bekler, okuma/yedek anlık görüntüsü onu görür; başarılı yazım ve removeLocal temizler",
+            "tests/e2e/fagent-yazma-e2e.mjs (gerçek Chromium, Storage.prototype.setItem kota taklidi): uyarı görünür, sayfa çökmez, yedek bekleyen değeri taşır, kota açılınca uyarı kalkar",
+            "tests/e2e/fagent-yazma-e2e.mjs: uyarı metni Panel/Veri Yedeği'ni söyler; beforeunload yalnız kaydedilmemiş değişiklik varken istenir",
+            "tests/e2e/fagent-yazma-e2e.mjs 5d/5e: korumalı portföy için IndexedDB kopyası aynı kalır (koruma kapatılınca bu kontrol KIRMIZI verir), kota açılıp portföye yazılınca IndexedDB yeni değerle eşitlenir",
+            "tests/unit/depolama.test.ts: DÜŞÜK-A neden bazlı koruma; DÜŞÜK-C bindUnsavedGuard hemen eşitler"
           ],
-          "durum": "KISMEN",
-          "not": "localStorage dolu iken store.commit davranışı için test bulunamadı; yukarıdaki sonuç kodu okuyarak çıkarıldı, çalıştırılarak doğrulanmadı."
+          "durum": "YAPILDI",
+          "not": "Kota gerçek doldurularak değil, setItem'in QuotaExceededError fırlatması taklit edilerek sınandı. Uyarı kutusu ekrandaki en üst satırdır; yeri, görünümü ve 'Veri Yedeği' kartının yalnız Panel sekmesinde olması tasarım kararıdır (uyarı her sekmede çıkar, kart yalnız Panel'de). Vergi, hedef, ajan belleği ve öğretilen bilgi katmanlarının kota davranışı birim testte yalnız yazmaDurumu üzerinden sınandı (bu modüller node altında içe aktarılamıyor: uzantısız içe aktarma). Ayna korumasının (mirror.ts) IndexedDB tarafı birim testte yok; e2e yalnız kopyanın değişmediğini doğrular."
         },
         {
           "id": "A8",
@@ -551,8 +569,8 @@
         },
         {
           "id": "A14",
-          "ad": "Yedek geri yükleme ve ya-hep-ya-hiç sorunu (#41)",
-          "oyun": "Geri yükleme güvenilmeyen girdi sayılır: dosya dışarıdan gelebilir. Önce dosya sürümü ve biçimi denetlenir, sonra yalnız beyaz listedeki anahtarlar ve yalnız metin değerler alınır. Ancak yazım iki adımlıdır: önce eski katmanlar silinir, sonra yenileri yazılır. Bu iki adımın arasında kota dolarsa yarım kalan bir durum doğabilir.",
+          "ad": "Yedek geri yükleme ve ya-hep-ya-hiç (#41)",
+          "oyun": "Geri yükleme güvenilmeyen girdi sayılır: dosya dışarıdan gelebilir. Önce dosya boyutu (yaklaşık 10 MB) ve sürümü/biçimi denetlenir, sonra yalnız beyaz listedeki anahtarlar ve yalnız metin değerler alınır. Yazımdan önce mevcut beş katmanın diskteki anlık görüntüsü alınır; veride olmayan katmanlar silinir, sonra yeni değerler yazılır (silmeyi öne almak, son hali kotaya sığan bir geri yüklemenin ara adımda takılmasını önler; eski değerler bellekteki anlık görüntüde durur). Herhangi bir yazım kota nedeniyle başarısız olursa anlık görüntüye geri dönülür: önce küçülen katmanlar, sonra büyüyenler, başarısızlar ikinci turda yeniden denenir.",
           "kontroller": [
             {
               "ad": "Geçerli JSON ve fagentBackup sürümü",
@@ -571,28 +589,43 @@
             },
             {
               "ad": "Yazım atomik mi (applyUserData replace)",
-              "gecerse": "-",
-              "gecemezse": "DEĞİL: önce BACKED_UP_KEYS siliniyor, sonra tek tek yazılıyor; kota ortada dolarsa 'yazilamadi' döner ve bazı katmanlar eksik kalabilir. Ayna bu durumda bildirilmez."
+              "gecerse": "Hata olursa anlık görüntüye geri dönülür (rollback, iki tur) ve önceki veri aynen kalır; mesaj bunu söyler. Ayna bildirimi yalnız tam başarıda atılır.",
+              "gecemezse": "Geri alma iki turda da başarısız olursa sonuç rollback 'eksik' + etkilenen anahtarlar döner; o katmanların eski değeri bellekte bekletilir (uyarı kartı çıkar, yedek eski değeri taşır, ayna o anahtara yazmaz) ve mesaj 'önceki veriler tamamen geri alınamadı' der ve yedeği Panel > Veri Yedeği kartından indirmeye yönlendirir. Sessiz yarım durum kalmaz."
             },
             {
               "ad": "Dosya boyutu sınırı",
-              "gecerse": "-",
-              "gecemezse": "Yok: restoreBackup içinde boyut sınırı bulunamadı."
+              "gecerse": "En çok yaklaşık 10 MB (YEDEK_DOSYA_MAX_BOYUT; bayt ya da karakter, hangisi önce aşılırsa); arayüz dosyayı okumadan önce, restoreBackup ayrıştırmadan önce denetler.",
+              "gecemezse": "'Dosya çok büyük' mesajı; onay penceresi bile açılmaz, hiçbir şey değişmez."
+            },
+            {
+              "ad": "Geri alınamayan katman: eski değer ve 'silinmeli' işareti",
+              "gecerse": "Geri alma başarılıysa bekleyen yoktur.",
+              "gecemezse": "Geri alınamayan katmanın eski değeri bekletilir; eskiden olmayan katmanın yeni değeri silinemediyse 'silinmeli' işareti konur (okuma null, yedekte yok, uyarı çıkar). İki durumda da ayna o anahtarı korur (src/mirror.ts bindUnsavedGuard)."
             }
           ],
           "kod": [
             "src/backup.ts:restoreBackup",
             "src/backup.ts:whitelistUserData",
-            "src/backup.ts:applyUserData",
-            "src/App.tsx (confirm 'Geri yükleme MEVCUT VERİLERİNİN ÜZERİNE YAZAR')"
+            "src/backup.ts:applyUserData (anlık görüntü, yazım, rollback)",
+            "src/config/varsayilanlar.ts:YEDEK_DOSYA_MAX_BOYUT",
+            "src/App.tsx (boyut denetimi + confirm 'Geri yükleme MEVCUT VERİLERİNİN ÜZERİNE YAZAR')"
           ],
-          "bozulursa": "Kota dolu ya da çok büyük dosya durumunda yarım geri yükleme olabilir: kullanıcı katmanlarının bir kısmı silinmiş, bir kısmı yazılmamış kalır. Yedek dosyasının kendisi etkilenmez, tekrar denenebilir.",
+          "bozulursa": "Kota dolarsa geri yükleme baştan sona uygulanmaz: önceki veri geri yazılır ve kullanıcı bunu mesajdan okur. Geri alma da başarısız olursa (nadir) mesaj bunu açıkça söyler; yedek dosyasının kendisi etkilenmez, tekrar denenebilir.",
           "test": [
             "tests/e2e/fagent-yedek-e2e.mjs",
-            "tests/unit/depolama.test.ts: ORTA-3: applyUserData replace kipinde yazım yarıda kalırsa (yazilamadi) ayna bildirimi ATILMAZ; başarılıda atılır"
+            "tests/e2e/fagent-yazma-e2e.mjs: N. yazımda kota hatası -> beş katman birebir aynı; geri alma da başarısız -> açık mesaj; 10 MB üstü dosya reddedilir",
+            "tests/unit/depolama.test.ts: ORTA-3: applyUserData replace kipinde yazım yarıda kalırsa (yazilamadi) ayna bildirimi ATILMAZ; başarılıda atılır",
+            "tests/unit/depolama.test.ts: A14: N. yazımda kota hatası -> rollback TAMAM, önceki katmanlar aynen geri gelir",
+            "tests/unit/depolama.test.ts: A14: rollback da başarısızsa açık durum (rollback eksik + anahtarlar)",
+            "tests/unit/depolama.test.ts: A14: replace kipinde silme yeni değerlerden SONRA; restoreBackup boyut sınırı",
+            "tests/unit/depolama.test.ts: ORTA-1: bayt toplamı kotasında rollback önce küçülenleri geri yazar / ikinci tur yeniden dener",
+            "tests/unit/depolama.test.ts: ORTA-2: portfolioOnly başarısında yalnız yazılan anahtarın bekleyeni temizlenir; 'eksik' durumda eski değer bekleyende",
+            "tests/e2e/fagent-yazma-e2e.mjs: geri alınamayan katman için uyarı, yedek eski değeri taşır, IndexedDB kopyası ezilmedi",
+            "tests/unit/depolama.test.ts: DÜŞÜK-B 'silinmeli' işareti (uyarı, okuma null, yedekte yok)",
+            "tests/e2e/fagent-yazma-e2e.mjs 5d: geri yüklemede geri alınamayan portföy için ayna koruması (kırmızı/yeşil kanıtlı)"
           ],
-          "durum": "KISMEN",
-          "not": "CLAUDE.md canlı-öncesi listesinde madde 41 olarak açık. applyUserData üstündeki yorum 'ya hep ya hiç' diyor; silme-sonra-yazma sırası bunu tam sağlamıyor.",
+          "durum": "YAPILDI",
+          "not": "CLAUDE.md canlı-öncesi listesinde madde 41 bu değişiklikle kapanır (tablo güncellemesi koordinatörde). 'Önceki veriler aynen korundu' güvencesi YALNIZ DİSKE KAYITLI katmanları kapsar: yazma hatasıyla önceden diske yazılamamış (yalnız bellekte bekleyen) değişiklikler anlık görüntüde yoktur ve sayfa yenilenirse zaten kaybolur. Kota taklit edildi (setItem hatası; birim testte bayt toplamına göre), gerçek kota dolumu denenmedi. Yaklaşık 10 MB sınırı genel tarayıcı kotası bilgisinden (ikincil) türetildi.",
           "ekran": "Gizlilik kartları; geri yükleme düğmesinin yeri tasarımda belirlenecek"
         },
         {
@@ -705,9 +738,9 @@
               "gecemezse": "Hesaba yüklenmemiş tek yerel kopyayı silebilir (kayıt kaynaklı)."
             },
             {
-              "ad": "41: geri yükleme yazımı ya-hep-ya-hiç değil, boyut sınırı yok",
-              "gecerse": "-",
-              "gecemezse": "Bkz. A14 (kodda doğrulandı)."
+              "ad": "41: geri yükleme yazımı ya-hep-ya-hiç, dosya boyutu sınırı",
+              "gecerse": "KAPANDI: anlık görüntü + rollback ve 10 MB sınırı kodda ve testte (bkz. A14).",
+              "gecemezse": "-"
             },
             {
               "ad": "27: koşulsuz upsert",
@@ -2191,8 +2224,8 @@
     "Dış kaynaklar (EVDS, CoinGecko, Frankfurter) gerçek ağda hiç doğrulanmadı; tüm sonuçlar taklit yanıtla yeşil.",
     "EVDS_API_KEY Vercel fagent projesinde tanımlı değil (27.10 kontrolü); TÜFE seri kodu TP.FG.J0 ve tüm kur seri kodları gerçek yanıtla doğrulanmadı; kur tablosu bilerek boş.",
     "Gerçek Supabase projesine karşı RLS, delete_my_account, e-posta yönlendirmeleri ve PASSWORD_RECOVERY doğrulanmadı; auth testleri sahte Supabase ile yeşil.",
-    "Bulut canlı-öncesi maddeleri açık: 34+33 (girişliyken SIFIRLA buluttaki kopyayı ezer), 35 (başka sekmeden çıkış yerel kopyayı silebilir), 41 (geri yükleme atomik değil, dosya boyutu sınırı yok), 27 (koşulsuz upsert, son yazan kazanır). Bunlar kapanana kadar VITE_SUPABASE_* canlıda tanımlanmaz.",
-    "store.commit içinde localStorage.setItem hatası yakalanmıyor: depolama doluyken son işlem yazılmayabilir ve kullanıcıya hata gösterilmeyebilir. Kod okunarak görüldü, test yok.",
+    "Bulut canlı-öncesi maddeleri açık: 34+33 (girişliyken SIFIRLA buluttaki kopyayı ezer), 35 (başka sekmeden çıkış yerel kopyayı silebilir), 27 (koşulsuz upsert, son yazan kazanır). 41 (geri yükleme atomik değil, boyut sınırı) kapandı (A14). Bunlar kapanana kadar VITE_SUPABASE_* canlıda tanımlanmaz.",
+    "localStorage doluyken yazılamayan değişiklik yalnız bellekte durur: sayfa yenilenirse kaybolur (ekrandaki uyarı ve beforeunload onayı bunu bildirir); değer IndexedDB aynasına bilerek yazılmaz (localStorage esas kaynak). Kota, setItem hatası taklit edilerek sınandı; gerçek kota dolumu denenmedi. Vergi/hedef/ajan katmanlarının kota yolu node birim testinde değil yalnız yazmaDurumu üzerinden sınandı. Uyarının yönlendirdiği 'Veri Yedeği' kartı yalnız Panel sekmesinde; yeri tasarım kararı.",
     "Kayıt kimliği t<milisaniye> / h<milisaniye> biçiminde; aynı milisaniyede iki kayıt aynı kimliği alabilir (store.ts addTxn, addIncome, addHolding). Kod okunarak görüldü.",
     "store.addTxn tutarın pozitif olmasını kendisi denetlemez; denetim arayüzde (App.tsx). Başka bir çağıran (örn. ajan) geçersiz tutar gönderirse store'a ulaşabilir; ajan yolunda tutar denetiminin tamlığı bu belgede doğrulanmadı.",
     "Sekmeler arası canlı eşitleme yok (storage olayı dinleyicisi bulunamadı): iki sekmede son yazan kazanır.",

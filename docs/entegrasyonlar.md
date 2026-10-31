@@ -103,7 +103,15 @@ IndexedDB silmesi mantıksaldır (kayıt silinir; disk üzerindeki kalıntının
 
 **Yedekleme:** `backup.ts` beş kalıcı katmanı tek JSON'da dışa/geri alıyor. Geri yüklemede
 **beyaz liste** var — dosya dışarıdan gelebilir, tanınmayan anahtar yazılmıyor. Ayrıca
-**ya hep ya hiç**: önce tamamı doğrulanıyor, sonra yazılıyor; bozuk dosya mevcut veriyi bozmuyor.
+**ya hep ya hiç**: önce dosya boyutu (yaklaşık 10 MB; bayt ya da karakter, hangisi önce aşılırsa) ve tamamı doğrulanıyor.
+Sonra mevcut beş katmanın **anlık görüntüsü** alınıyor, veride olmayan katmanlar silinip yeni değerler yazılıyor.
+Herhangi bir yazım kota nedeniyle başarısız olursa **rollback** yapılıyor: önce küçülen/silinen katmanlar geri yazılıyor
+(kota toplam boyuta bakar), sonra büyüyenler; başarısızlar **ikinci turda** yeniden deneniyor. Geri alma da
+başarısızsa o katmanların eski değeri bellekte bekletiliyor (ekranda "kaydedilemedi" uyarısı, yedek eski değeri taşır,
+IndexedDB aynası o anahtara yazmaz) ve mesaj durumu açıkça söylüyor. Bozuk dosya mevcut veriyi bozmuyor.
+**Kota uyarısı:** normal kullanımda da (ör. işlem eklerken) localStorage yazımı kota yüzünden başarısız olursa hata
+yakalanıyor, değer bellekte bekletiliyor, tüm sekmelerde uyarı çıkıyor ve sayfa kapatılırken tarayıcı onay soruyor
+(`src/yazmaDurumu.ts`). Uyarı "Veri Yedeği" kartına (yalnızca Panel sekmesinde) yönlendirir; kartın yeri tasarım kararıdır.
 
 ---
 

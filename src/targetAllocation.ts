@@ -11,6 +11,7 @@
 import { AssetType, ASSET_LABELS } from './store';
 import { notifyUserDataChanged } from './backup';
 import { preserveCorruptRaw } from './recovery';
+import { writeLocal, removeLocal, readLocal } from './yazmaDurumu';
 
 const KEY = 'fagent.target.v1';
 
@@ -28,7 +29,7 @@ export function getTargets(): TargetAllocation {
   const base = emptyTargets();
   let raw: string | null = null;
   try {
-    raw = localStorage.getItem(KEY);
+    raw = readLocal(KEY); // diske yazılamayan son değer (ya da 'silinmeli' = null) önceliklidir
     if (!raw) return base;
     const parsed = JSON.parse(raw) as Partial<Record<AssetType, unknown>>;
     for (const k of Object.keys(base) as AssetType[]) {
@@ -45,7 +46,7 @@ export function getTargets(): TargetAllocation {
 export function setTarget(type: AssetType, pct: number): TargetAllocation {
   const next = getTargets();
   next[type] = Math.min(100, Math.max(0, Number.isFinite(pct) ? pct : 0));
-  try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* kota — bellekte kalır */ }
+  writeLocal(KEY, JSON.stringify(next)); // kota hatası: kirli işaretlenir, arayüz uyarır (yazmaDurumu.ts)
   notifyUserDataChanged(); // hesaplı kullanıcıda bulut kaydı zamanlansın (cloud.ts)
   return next;
 }
@@ -57,6 +58,6 @@ export function hasTargets(targets: TargetAllocation): boolean {
 
 // SIFIRLA ile birlikte çağrılır (portföy + bellek + öğretilen bilgi + vergi oranları ile aynı anda).
 export function resetTargets(): void {
-  try { localStorage.removeItem(KEY); } catch { /* yok */ }
+  removeLocal(KEY);
   notifyUserDataChanged();
 }

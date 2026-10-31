@@ -12,6 +12,7 @@ import {
   bootMirror, runResetClear, saveRecovery, corruptNoteKey, createIdbStore, createLocalStore, createMirrorWriter, MIRROR_CLEARED_KEY,
 } from './storage';
 import { setOversizeSink } from './recovery';
+import { bindUnsavedGuard } from './yazmaDurumu';
 import type { BootReport, KvStore, MirrorStatus, MirrorWriter } from './storage';
 
 export type StorageState = 'baslamadi' | 'hazir' | 'kullanilamiyor' | 'zaman-asimi' | 'hatali';
@@ -56,6 +57,9 @@ export async function bootStorage(timeoutMs = 2500): Promise<StorageSnapshot> {
       state = 'zaman-asimi'; note = `Açılış ${timeoutMs} ms içinde bitmedi; ayna bu oturumda kapalı`;
     } else {
       bootReport = r; writer = w; state = 'hazir';
+      // Diske yazılamayan (bekleyen) anahtarlar için ayna korumalıdır: localStorage'ın o anki (eski ya da karışık)
+      // hali IndexedDB'deki son sağlam kopyanın üstüne yazılmaz. Bekleyen çözülünce koruma kalkar ve ayna eşitlenir.
+      bindUnsavedGuard((key, on) => w.protect(key, on, 'bekleyen'));
       // 256 KB üstü bozuk ham değer: localStorage'a değil IndexedDB kurtarma kaydına yazılır; başarılıysa not kalkar.
       setOversizeSink(async (key, raw) => {
         try {
@@ -64,7 +68,7 @@ export async function bootStorage(timeoutMs = 2500): Promise<StorageSnapshot> {
           await s.ls.delete(corruptNoteKey(key)); // not yalnızca kayıt BAŞARIYLA alındıktan sonra silinir
           return true;
         } catch { return false; }
-      }, (key, on) => w.protect(key, on));
+      }, (key, on) => w.protect(key, on, 'kurtarma'));
       if (r.clearError || r.entries.some(e => e.action === 'silinemedi')) {
         // Aynadaki silme başarısız: silme işareti kalır (sonraki açılış yeniden dener); bu oturumda ayna yazmaz,
         // böylece silinmek istenen eski veri kurtarma kopyasına çevrilmez.

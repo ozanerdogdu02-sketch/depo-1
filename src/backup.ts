@@ -12,6 +12,9 @@
 // dışarıdan gelebilir; içindeki rastgele anahtarları localStorage'a yazmak, saldırganın
 // uygulamanın durumunu belirlemesine izin vermek olurdu.
 
+import { YEDEK_DOSYA_MAX_BOYUT } from './config/varsayilanlar.ts';
+import { readLocal, clearPendingWrites, markPending } from './yazmaDurumu.ts';
+
 const BACKUP_VERSION = 1;
 const META_KEY = 'fagent.backup.v1';
 
@@ -44,6 +47,7 @@ export interface BackupMeta {
 
 const DAY_MS = 86_400_000;
 export const STALE_AFTER_DAYS = 14;
+export { YEDEK_DOSYA_MAX_BOYUT };
 const DISMISS_DAYS = 7;
 
 export function getBackupMeta(): BackupMeta {
@@ -105,9 +109,12 @@ export interface RestoreResult {
 
 export type ApplyMode = 'replace' | 'portfolioOnly';
 
+// 'yazilamadi' sonuçlarında rollback alanı: 'tamam' = önceki veri aynen geri yazıldı (hiçbir şey
+// değişmedi); 'eksik' = geri alma da başarısız oldu, rollbackKeys'teki katmanlar önceki halinde OLMAYABİLİR.
 export type ApplyResult =
   | { ok: true; written: number }
-  | { ok: false; reason: 'gecersiz' | 'bos' | 'yazilamadi' };
+  | { ok: false; reason: 'gecersiz' | 'bos' }
+  | { ok: false; reason: 'yazilamadi'; rollback: 'tamam' | 'eksik'; rollbackKeys?: string[] };
 
 const PORTFOLIO_KEY = 'fagent.portfolio.v1';
 
@@ -132,16 +139,52 @@ export function applyUserData(data: unknown, opts: { mode: ApplyMode }): ApplyRe
   const toWrite = whitelistUserData(data, opts.mode);
   if (!toWrite) return { ok: false, reason: 'gecersiz' };
   if (toWrite.length === 0) return { ok: false, reason: 'bos' };
+
+  // 1) Anlık görüntü (rollback için): DİSKTEKİ ham değerler. Okunamıyorsa geri alma garanti
+  //    edilemez; hiçbir şey yazmadan çık (veri değişmedi).
+  const before = new Map<string, string | null>();
+  try {
+    for (const key of BACKED_UP_KEYS) before.set(key, localStorage.getItem(key));
+  } catch {
+    return { ok: false, reason: 'yazilamadi', rollback: 'tamam' };
+  }
+
+  // 2) Yazım: ÖNCE veride olmayan katmanlar silinir (replace), SONRA yeni değerler yazılır.
+  //    Gerekçe (kota ödünleşimi): kota net boyuta bakar; silmeyi önce yapmak, son hali kotaya sığan
+  //    bir geri yüklemenin ara adımda takılmasını önler. Güvenlidir çünkü eski değerler bellekteki
+  //    anlık görüntüdedir ve hata olursa aşağıdaki rollback (ikinci tur + bekleyen değer) devreye girer.
+  const written = toWrite.map(([k]) => k);
+  const removed: string[] = [];
   try {
     if (opts.mode === 'replace') {
-      for (const key of BACKED_UP_KEYS) localStorage.removeItem(key);
+      for (const key of BACKED_UP_KEYS) if (!written.includes(key)) { localStorage.removeItem(key); removed.push(key); }
     }
     for (const [key, v] of toWrite) localStorage.setItem(key, v);
   } catch {
-    // Yarım kalan yazımda ayna TETİKLENMEZ: eksik kalmış bir 'replace' aynadaki sağlam kopyayı silemesin.
-    // Ayna bir sonraki başarılı yazımda ya da açılışta localStorage ile eşitlenir.
-    return { ok: false, reason: 'yazilamadi' };
+    // 3) Rollback. Kota toplam boyuta bakar: ÖNCE küçülen/silinen katmanlar geri yazılır (yer açar),
+    //    SONRA büyüyenler; başarısızlar ikinci turda yeniden denenir. Ayna TETİKLENMEZ.
+    const cur = (k: string): number => { try { return localStorage.getItem(k)?.length ?? 0; } catch { return 0; } };
+    const order = [...before.keys()].sort((x, y) => ((before.get(x)?.length ?? 0) - cur(x)) - ((before.get(y)?.length ?? 0) - cur(y)));
+    let failed: string[] = order;
+    for (let round = 0; round < 2 && failed.length > 0; round++) {
+      const next: string[] = [];
+      for (const key of failed) {
+        const old = before.get(key) ?? null;
+        try {
+          if (old === null) localStorage.removeItem(key);
+          else if (localStorage.getItem(key) !== old) localStorage.setItem(key, old);
+        } catch { next.push(key); }
+      }
+      failed = next;
+    }
+    if (failed.length === 0) return { ok: false, reason: 'yazilamadi', rollback: 'tamam' };
+    // Geri alınamayan katmanların ESKİ değeri kaybolmasın: bekleyen olarak bellekte tutulur (uyarı kartı çıkar,
+    // yedek eski değeri taşır, okuyucular onu okur) ve ayna bu anahtarlara yazmaz (mirror.ts, bekleyen = korumalı).
+    // Eskiden olmayan katmanın yeni değeri silinemediyse 'silinmeli' işareti konur (markPending null).
+    for (const key of failed) markPending(key, before.get(key) ?? null);
+    return { ok: false, reason: 'yazilamadi', rollback: 'eksik', rollbackKeys: failed };
   }
+  clearPendingWrites([...written, ...removed]); // yalnız yazılan/silinen katmanların bekleyeni geçersiz
   fireWrites();
   return { ok: true, written: toWrite.length };
 }
@@ -153,7 +196,8 @@ export function snapshotUserData(): Record<string, string> {
   const data: Record<string, string> = {};
   for (const key of BACKED_UP_KEYS) {
     try {
-      const v = localStorage.getItem(key);
+      // Diske yazılamamış (kota) son değer varsa o önceliklidir: yedek/bulut en güncel hali taşısın.
+      const v = readLocal(key);
       if (v !== null) data[key] = v;
     } catch { /* okunamayan anahtarı atla — yarım yedek, hiç yedeksizden iyidir */ }
   }
@@ -197,6 +241,10 @@ export function subscribeUserData(fn: () => void): () => void {
 // Geri yükleme MEVCUT VERİNİN ÜZERİNE YAZAR — çağıran taraf önce kullanıcıya onaylatmalı.
 // Dosya bozuksa hiçbir şey yazılmaz (ya hep ya hiç): önce tamamı doğrulanır, sonra yazılır.
 export function restoreBackup(text: string): RestoreResult {
+  // Boyut sınırı: ayrıştırmadan ÖNCE (güvenilmeyen girdi).
+  if (text.length > YEDEK_DOSYA_MAX_BOYUT) {
+    return { ok: false, message: `Dosya çok büyük (en çok yaklaşık ${Math.round(YEDEK_DOSYA_MAX_BOYUT / 1_000_000)} MB); hiçbir şey değişmedi.` };
+  }
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
@@ -215,9 +263,12 @@ export function restoreBackup(text: string): RestoreResult {
   // BEYAZ LİSTE + ya hep ya hiç: ortak çekirdek (bulut senkronu da aynısını kullanır).
   const result = applyUserData(file.data, { mode: 'replace' });
   if (!result.ok) {
-    return result.reason === 'yazilamadi'
-      ? { ok: false, message: 'Yazma başarısız — tarayıcı depolama kotası dolu olabilir.' }
-      : { ok: false, message: 'Yedekte geri yüklenebilir bir veri bulunamadı.' };
+    if (result.reason === 'yazilamadi') {
+      return result.rollback === 'tamam'
+        ? { ok: false, message: 'Yazma başarısız — tarayıcı depolama kotası dolu olabilir. Önceki veriler aynen korundu, hiçbir şey değişmedi.' }
+        : { ok: false, message: 'Yazma başarısız — tarayıcı depolama kotası dolu olabilir. Önceki veriler tamamen geri alınamadı; bazı katmanlar eksik ya da değişmiş olabilir. Geri alınamayan katmanların önceki değerleri bu açık sayfada bekletiliyor; sayfa yenilenmeden önce Panel sekmesindeki "Veri Yedeği" kartından yedek dosyası indirilebilir.' };
+    }
+    return { ok: false, message: 'Yedekte geri yüklenebilir bir veri bulunamadı.' };
   }
 
   // Meta (son yedek zamanı) yalnızca DOSYA yolunda yazılır; bulut yolu meta yazmaz.

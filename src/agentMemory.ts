@@ -9,6 +9,7 @@
 import { AssetType } from './store';
 import { notifyUserDataChanged } from './backup';
 import { preserveCorruptRaw } from './recovery';
+import { writeLocal, removeLocal, readLocal } from './yazmaDurumu';
 
 const KEY = 'fagent.agent.memory.v1';
 
@@ -55,7 +56,7 @@ function empty(): AgentMemoryProfile {
 function load(): AgentMemoryProfile {
   let raw: string | null = null;
   try {
-    raw = localStorage.getItem(KEY);
+    raw = readLocal(KEY); // diske yazılamayan son değer (ya da 'silinmeli' = null) önceliklidir
     if (!raw) return empty();
     const parsed = JSON.parse(raw) as Partial<AgentMemoryProfile>;
     const dp = defaultPrefs();
@@ -84,7 +85,7 @@ function load(): AgentMemoryProfile {
 }
 
 function save(p: AgentMemoryProfile): void {
-  localStorage.setItem(KEY, JSON.stringify(p));
+  writeLocal(KEY, JSON.stringify(p)); // kota hatası yutulmaz: kirli işaretlenir (yazmaDurumu.ts)
   notifyUserDataChanged(); // hesaplı kullanıcıda bulut kaydı zamanlansın (cloud.ts)
 }
 
@@ -161,6 +162,6 @@ export function mostMentionedHolding(p: AgentMemoryProfile): string | undefined 
 // Portföy "SIFIRLA" ile silindiğinde tutarlılık için bu da temizlenir — kalıntı davranış
 // profili bırakmamak KVKK'ya bu repodaki genel yaklaşımla uyumludur (bkz. Aura Finance bölümü).
 export function resetMemory(): void {
-  localStorage.removeItem(KEY);
+  removeLocal(KEY);
   notifyUserDataChanged();
 }

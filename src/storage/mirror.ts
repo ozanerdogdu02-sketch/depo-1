@@ -185,7 +185,10 @@ export interface MirrorWriter {
   status(): MirrorStatus;
   disable(): void;                          // oturum boyunca ayna yazmayı kapat (açılış zaman aşımı vb.)
   clearPending(): void;                     // SIFIRLA: kuyruktaki yazmaları at
-  protect(key: string, on: boolean): void;  // korumalı anahtar: kurtarma kaydı alınana dek aynaya yazılmaz/silinmez
+  // korumalı anahtar: kurtarma kaydı alınana / bekleyen değer çözülene dek aynaya yazılmaz/silinmez.
+  // NEDEN bazlı: iki kaynak (recovery.ts büyük bozuk değer, mirror.ts bekleyen değer) aynı anahtarı korursa
+  // birinin kaldırması diğerinin korumasını kaldırmaz; anahtar, TÜM nedenler kalkınca serbest kalır.
+  protect(key: string, on: boolean, reason?: string): void;
   pause(): void;                            // SIFIRLA: koşan iş bir sonraki adımda durur (kurtarma/yazma/silme yapmaz)
   resume(): void;
 }
@@ -195,7 +198,7 @@ export interface MirrorWriter {
 export function createMirrorWriter(ls: KvStore, idb: KvStore, allKeys: readonly string[]): MirrorWriter {
   let enabled = true;
   let paused = false;
-  const protectedKeys = new Set<string>();
+  const protectedKeys = new Map<string, Set<string>>();
   const stop = () => !enabled || paused;
   const pending = new Set<string>();
   let running: Promise<void> | undefined;
@@ -289,7 +292,14 @@ export function createMirrorWriter(ls: KvStore, idb: KvStore, allKeys: readonly 
     status: () => ({ ...st, enabled, pending: pending.size }),
     disable() { enabled = false; pending.clear(); },
     clearPending() { pending.clear(); },
-    protect(key, on) { if (on) protectedKeys.add(key); else { protectedKeys.delete(key); if (enabled && !paused) { pending.add(key); if (!running) start(); } } },
+    protect(key, on, reason = 'genel') {
+      const reasons = protectedKeys.get(key) ?? new Set<string>();
+      if (on) { reasons.add(reason); protectedKeys.set(key, reasons); return; }
+      reasons.delete(reason);
+      if (reasons.size > 0) return; // başka bir neden hâlâ koruyor
+      protectedKeys.delete(key);
+      if (enabled && !paused) { pending.add(key); if (!running) start(); }
+    },
     pause() { paused = true; pending.clear(); },
     resume() { paused = false; },
   };

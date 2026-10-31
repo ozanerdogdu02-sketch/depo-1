@@ -82,3 +82,13 @@ export const TCMB_TUFE_TTL_MS = 12 * 60 * 60 * 1000;           // TÜFE ayda bir
 export const TCMB_KUR_TTL_MS = 60 * 60 * 1000;                 // kur günde bir açıklanır
 export const TUFE_MANTIK_ARALIK_PCT = { min: -50, max: 500 } as const; // dışı: veri yok say
 export const KUR_GUNLUK_SAPMA_PCT = 20;                        // bir önceki gözlemden ± bu kadar dışı: veri yok say
+
+/* ───────────── Yedek dosyası boyut sınırı ─────────────
+   Yedek geri yüklemede dosya okunmadan/ayrıştırılmadan ÖNCE uygulanır (güvenilmeyen girdi).
+   Birim: bayt ya da karakter, hangisi önce aşılırsa (arayüz dosya baytını, restoreBackup metin karakterini sayar;
+   karakter sayısı baytı aşamaz, yani sınır en geç baytta tetiklenir).
+   Gerekçe: tarayıcı localStorage kotası köken başına yaklaşık 5 milyon karakterdir; geçerli bir
+   yedeğin verisi bunu aşamaz. Dosya biçimi iç içe JSON metni (kaçışlı) ve girintili olduğundan
+   bunun yaklaşık iki katı tolerans verilir. Bulut senkron sınırı (cloud.ts MAX_SYNC_CHARS) ayrıdır.
+   Kaynak: tarayıcı kotası genel bilgi (ikincil), birincil belgeyle doğrulanmadı. */
+export const YEDEK_DOSYA_MAX_BOYUT = 10_000_000;

@@ -182,7 +182,7 @@ Env boşken bulut kodu hiç çalışmaz; hesapsız ürün bu maddelerden etkilen
 |---|---|---|---|
 | 34 + 33 | `src/cloud.ts`, `src/App.tsx` | Girişliyken SIFIRLA + yeniden kurulum buluttaki kopyayı sormadan ezer; onay metni yanıltıcı | veri-akışı + tasarım |
 | 35 | `src/cloud.ts` | Başka sekmeden çıkış, hesaba yüklenmemiş tek yerel kopyayı siler | veri-akışı |
-| 41 | `src/backup.ts` | Geri yükleme yazımı ya-hep-ya-hiç değil; dosya boyutu sınırı yok | veri-akışı |
+| ~~41~~ | `src/backup.ts` | ✅ Kapandı (31.10, A14): anlık görüntü + iki turlu rollback, geri alınamayan değer bekletilir ve ayna korunur, ~10 MB sınırı; `fagent-yazma-e2e.mjs`, `depolama.test.ts` | — |
 | 27 | `src/cloud.ts` | Koşulsuz upsert: iki cihazda son yazan kazanır (koşullu güncelleme ya da açıkça belgeleme) | veri-akışı |
 | ~~40~~ | `scripts/build.mjs` | ✅ Kapandı: derleme `sb_secret_`/service_role içeren VITE_* değerinde durur | — |
 | ~~43/16~~ | `vercel.json`, `netlify.toml` | ✅ Kapandı (24.10): CSP, frame-ancestors, nosniff, Referrer-Policy, Permissions-Policy; `fagent-csp-e2e.mjs` korur. Vercel önizlemede başlıklar DOĞRULANDI (24.10, yanıt başlıklarında görüldü) | — |

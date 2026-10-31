@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent } from 'react';
 import { PieChart, Pie, Cell, Tooltip, AreaChart, Area, BarChart, Bar, LineChart, Line, Legend, XAxis, YAxis, ResponsiveContainer, type PieLabelRenderProps } from 'recharts';
 import {
   Bot, Send, TrendingUp, Trash2, RotateCcw, LayoutDashboard, ArrowLeftRight, BookOpen,
@@ -19,7 +19,8 @@ import { SCENARIO_DEFAULT_RATES_PCT } from './config/varsayilanlar';
 import { sonDeger, reelDeger, projeksiyonYollari } from './projection';
 import { getTaxRates, setTaxRate, isCustomRate, TaxRates } from './taxRates';
 import { getTargets, setTarget, hasTargets, TargetAllocation } from './targetAllocation';
-import { downloadBackup, restoreBackup, getBackupMeta, shouldNudge, dismissNudge, STALE_AFTER_DAYS } from './backup';
+import { downloadBackup, restoreBackup, getBackupMeta, shouldNudge, dismissNudge, STALE_AFTER_DAYS, YEDEK_DOSYA_MAX_BOYUT } from './backup';
+import { getUnsavedKeys, subscribeUnsaved, UNSAVED_MESSAGE } from './yazmaDurumu';
 import { clearLocalUserData } from './localData';
 // cloud.ts yan etkisi: env tanımlıysa hesap/bulut senkronunu başlatır; tanımsızsa hiçbir şey
 // yapmaz (istemci oluşturulmaz, ağ isteği atılmaz). Hesap arayüzü ve düğmesi yalnızca
@@ -448,6 +449,11 @@ function BackupCard() {
     const file = e.target.files?.[0];
     e.target.value = ''; // aynı dosya tekrar seçilebilsin
     if (!file) return;
+    // Boyut sınırı: dosya okunmadan önce (restoreBackup içinde de aynı sınır var).
+    if (file.size > YEDEK_DOSYA_MAX_BOYUT) {
+      setMsg({ text: `Dosya çok büyük (en çok yaklaşık ${Math.round(YEDEK_DOSYA_MAX_BOYUT / 1_000_000)} MB); hiçbir şey değişmedi.`, ok: false });
+      return;
+    }
     if (!confirm('Geri yükleme MEVCUT VERİLERİNİN ÜZERİNE YAZAR. Devam edilsin mi?')) return;
     const reader = new FileReader();
     reader.onload = () => {
@@ -1930,9 +1936,23 @@ function SideLink({ active, onClick, icon: Icon, label, badge }: {
   );
 }
 
+// Diske yazılamayan (kota dolu vb.) değişiklik varsa tek satırlık uyarı; yeni ekran/bileşen değil.
+function useUnsavedKeys(): readonly string[] {
+  return useSyncExternalStore(subscribeUnsaved, getUnsavedKeys);
+}
+
 export default function App() {
   const s = usePortfolio();
   const cloud = useCloud();
+  const unsaved = useUnsavedKeys();
+
+  // Diske yazılamamış değişiklik varken sayfa kapatılır/yenilenirse tarayıcının standart onay kutusu çıkar (metin tarayıcıya aittir).
+  useEffect(() => {
+    if (unsaved.length === 0) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [unsaved.length]);
   const [tab, setTab] = useState<Tab>('panel');
   const [query, setQuery] = useState('');
 
@@ -2042,6 +2062,12 @@ export default function App() {
         {/* Ajan sekmesi dar ölçüde: 1100px'lik sütunda sohbet balonları (max-width %85)
             ~935px'e ulaşıp okunaklılığı düşürüyordu. */}
         <div className={`main-inner${tab === 'ajan' ? ' main-inner-narrow' : ''}`}>
+          {unsaved.length > 0 && (
+            <div className="card" id="kayit-uyarisi" role="alert" style={{ borderColor: 'var(--line-strong)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <AlertTriangle size={14} color="var(--text)" aria-hidden="true" />
+              <span className="hint" style={{ margin: 0 }}>{UNSAVED_MESSAGE}</span>
+            </div>
+          )}
           {cloudEnabled && tab === 'hesap' ? (
             <Account onSignedIn={() => setTab('panel')} onSkip={() => setTab('panel')} />
           ) : !s.onboarded ? (

@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { preserveCorruptRaw } from './recovery.ts';
+import { writeLocal, removeLocal } from './yazmaDurumu.ts';
 
 // tahvil/bes/gayrimenkul 2026-09-04'te eklendi. Üçü de altın/mevduat ile AYNI mantıkta:
 // manuel girişli, canlı/tarihsel fiyat kaynağı yok, stopaj oranı doğrulanamadı (bkz. analytics.ts
@@ -163,7 +164,9 @@ function load(): PortfolioState {
 
 function commit(next: PortfolioState): void {
   state = next;
-  localStorage.setItem(KEY, JSON.stringify(next));
+  // Yazma hatası (kota) fırlatmaz: bellek durumu geçerli kalır, anahtar "kaydedilmedi" işaretlenir
+  // (yazmaDurumu.ts) ve arayüz uyarır. Sonraki commit tüm durumu yeniden yazar.
+  writeLocal(KEY, JSON.stringify(next));
   listeners.forEach(fn => fn());
 }
 
@@ -197,7 +200,7 @@ export const actions = {
     commit({ ...EMPTY, onboarded: true });
   },
   reset(): void {
-    localStorage.removeItem(KEY);
+    removeLocal(KEY);
     commit(EMPTY);
   },
   addHolding(name: string, type: AssetType, amount: number, quantity?: number, symbol?: string): void {

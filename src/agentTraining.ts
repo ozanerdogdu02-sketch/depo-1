@@ -7,6 +7,7 @@
 // kullanım istatistiği tutan, davranışı değiştirmeyen) katmandan farklıdır.
 import { notifyUserDataChanged } from './backup';
 import { preserveCorruptRaw } from './recovery';
+import { writeLocal, removeLocal, readLocal } from './yazmaDurumu';
 
 const KEY = 'fagent.agent.training.v1';
 
@@ -21,7 +22,7 @@ export interface TrainedFact {
 function load(): TrainedFact[] {
   let raw: string | null = null;
   try {
-    raw = localStorage.getItem(KEY);
+    raw = readLocal(KEY); // diske yazılamayan son değer (ya da 'silinmeli' = null) önceliklidir
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) { preserveCorruptRaw(KEY, raw); return []; }
@@ -33,7 +34,7 @@ function load(): TrainedFact[] {
 }
 
 function save(facts: TrainedFact[]): void {
-  localStorage.setItem(KEY, JSON.stringify(facts));
+  writeLocal(KEY, JSON.stringify(facts)); // kota hatası yutulmaz: kirli işaretlenir (yazmaDurumu.ts)
   notifyUserDataChanged(); // hesaplı kullanıcıda bulut kaydı zamanlansın (cloud.ts)
 }
 
@@ -77,7 +78,7 @@ export function recordFactUse(id: string): void {
 }
 
 export function resetTraining(): void {
-  localStorage.removeItem(KEY);
+  removeLocal(KEY);
   notifyUserDataChanged();
 }
 

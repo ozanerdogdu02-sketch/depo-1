@@ -24,7 +24,7 @@ iş eklenmez. Ekip bir işi bitirince durumunu **Tamam** yapar ve commit'i yazar
 | 5 | #43/16 Güvenlik başlıkları (vercel.json) ve cors-test.html'in üretimden çıkarılması | 4 | yuksek | kucuk | Bekliyor | araştırma: fagent-guvenlik, fagent-veri-akisi, fagent-test |
 | 6 | Migration'a authenticated için açık grant ekle | 5 | yuksek | kucuk | Bekliyor | araştırma: fagent-guvenlik |
 | 7 | #35 Başka sekmeden çıkışta kaydedilmemiş yerel kopyayı karantinaya al | 2 | yuksek | kucuk | Bekliyor | araştırma: fagent-veri-akisi, fagent-test |
-| 8 | #41 Geri yükleme: 2 MB sınırı ve hata durumunda eski veriye dönüş | 2 | yuksek | orta | Bekliyor | araştırma: fagent-veri-akisi, fagent-test |
+| 8 | #41 Geri yükleme: ~10 MB sınırı (bayt ya da karakter, hangisi önce) ve hata durumunda eski veriye dönüş (anlık görüntü, rollback) | 2 | yuksek | orta | ✅ Tamam (31.10) | araştırma: fagent-veri-akisi, fagent-test |
 | 9 | #34/33 SIFIRLA: dürüst onay modalı; yeniden kurulumda buluttaki kopyayı ezme | 2 | yuksek | orta | Bekliyor | araştırma: fagent-tasarim, fagent-veri-akisi, fagent-test |
 | 10 | #27 Koşullu güncelleme: portfolios.version | 5 | yuksek | orta | Bekliyor | araştırma: fagent-veri-akisi, fagent-guvenlik, fagent-test |
 | 11 | #47 KVKK: aydınlatma ile rızayı ayır; devredilebilir veri sorumlusu yapılandırması | 7 | yuksek | orta | Bekliyor | araştırma: fagent-tasarim, fagent-uyum, fagent-test |
