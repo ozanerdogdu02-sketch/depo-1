@@ -69,3 +69,16 @@ export const SIRA_RISKI_SAPMA_PP = 15;
    Kaynak: ürün tasarım kararı (bir hukuki/vergisel kaynak yok). */
 export const DRIFT_ABSOLUTE_BAND_PP = 5;
 export const DRIFT_RELATIVE_BAND = 0.25;
+
+/* ───────────── Kaynak bağdaştırıcı sabitleri (src/kaynaklar/) ─────────────
+   Kaynak: ürün tasarım kararı (docs/veri-akisi/cok-kaynakli-veri-plani.md §2.2–2.3); hukuki/vergisel iddia yok.
+   Tarih: 2026-10-28. Kur günlük sapma eşiği kaynaksız bir akla yatkınlık sınırıdır, piyasa iddiası değildir. */
+// En kötü durumda bir kaynağın vazgeçme süresi: 5 sn + 1 sn bekleme + 5 sn = 11 sn (eski: ~34 sn).
+// Sunucu ucunun yukarı akış zaman aşımı (4 sn) bundan kısa tutulur.
+export const KAYNAK_ZAMAN_ASIMI_MS = 5_000;                    // her istek için
+export const KAYNAK_YENIDEN_DENEME_BEKLEME_MS = [1_000] as const; // en çok 1 yeniden deneme
+export const KAYNAK_DEVRE_KESICI_MS = 15 * 60 * 1000;          // denemeler tükenince kaynak bu süre denenmez
+export const TCMB_TUFE_TTL_MS = 12 * 60 * 60 * 1000;           // TÜFE ayda bir açıklanır
+export const TCMB_KUR_TTL_MS = 60 * 60 * 1000;                 // kur günde bir açıklanır
+export const TUFE_MANTIK_ARALIK_PCT = { min: -50, max: 500 } as const; // dışı: veri yok say
+export const KUR_GUNLUK_SAPMA_PCT = 20;                        // bir önceki gözlemden ± bu kadar dışı: veri yok say

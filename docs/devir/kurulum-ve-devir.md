@@ -20,6 +20,12 @@ Vercel: framework Vite, çıktı `dist`, `vercel.json` güvenlik başlıkların�
 ## Supabase (hesap özelliği açılacaksa)
 `supabase/migrations/` içindeki SQL uygulanır; RLS satır güvenliği ve `delete_my_account` işlevi gelir. Site URL, e-posta yönlendirmeleri ve özel SMTP ayarlanır. **Canlıya almadan önce** `CLAUDE.md` → "Hesap katmanı — canlı öncesi zorunlu liste" kapatılmalıdır (şu an açık: SIFIRLA/çıkış/geri yükleme/çakışma maddeleri).
 
+## Açık maddeler (alıcıya devredilen)
+- **EVDS ara katmanı ve IP:** `netlify/functions/evds.mjs` istek sınırı için istemci IP adresini yalnızca kısa süreli bellekte (≈1 dk) tutar, kalıcı kayıt yoktur. IP'nin kişisel veri sayılıp sayılmadığı ve aydınlatma metnindeki ifade avukat teyidine bağlıdır (`TODO(hukuk)`, `docs/yasal/aydinlatma-kvkk.md`).
+- **EVDS kullanım şartları:** ticari/abonelikli üründe gösterim ve kaynak gösterme biçimi birincil metinle doğrulanmadı (`TODO(hukuk)`).
+- **EVDS anahtarı geçersizse (401/403):** işlev günlüğüne bak; her açılışta bir istek gider, kullanıcıya yalnız "ulaşılamadı" görünür (yukarı akış 4xx devre kesiciyi açmaz).
+- **EVDS seri kodları:** TÜFE `TP.FG.J0` ve kur serileri gerçek yanıtla doğrulanmadı; kur serisi listesi bilerek boş (`TODO(muhasebe)`).
+
 ## Devir kontrol listesi
 - [ ] Alan adı kayıt sahibi değişikliği · [ ] Vercel proje/ekip aktarımı · [ ] Supabase proje sahipliği · [ ] Ödeme sağlayıcı hesabı/IBAN değişikliği
 - [ ] Ortam değişkenleri alıcının hesabında yeniden girildi, eski anahtarlar iptal edildi · [ ] GitHub deposu aktarıldı

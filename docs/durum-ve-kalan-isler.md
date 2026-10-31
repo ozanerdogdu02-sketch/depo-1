@@ -2,6 +2,10 @@
 
 > **Güncelleme (28.10):** YH-2 (projeksiyon motoru, Aşama A) bitti ve doğrulandı: e2e 735/735, birim 117/117 (sahte Supabase ile yeşil). Puan: 13,5 / 39 ≈ %35. Dosya adı `src/projection.ts`. Ekrana bağlanmayan yeni fonksiyonlar tasarım oturumunu bekliyor.
 
+> **Güncelleme (YH-3 bitti, EVDS anahtarı bekliyor):** kapı yeşil (e2e 736/736 sahte Supabase ile, birim 181/181). Puan 13,5 → 16 / 39 ≈ %41 (YH-3'ün yarım 0,5 puanı tam 3 oldu: 10 + 3 + 3 = 16; 16/39 = %41,0). Anahtar ve kur seri kodları doğrulanana kadar canlı enflasyon/kur kapalı kalır.
+
+> **Güncelleme (28.10, YH-3 anahtarsız bölüm):** `src/kaynaklar/` çatısı, TCMB bağdaştırıcısı ve `api/evds.mjs` genişletmesi yazıldı; birim 179/179 (güvenlik/uyum düzeltme turu dâhil). Kur kodları ve kullanıcı anahtarı bekleniyor, CoinGecko/Frankfurter yeniden bağlama ve CSP daraltma YAPILMADI (ayrıntı: yol haritası YH-3 "Yapıldı"). YH-3 puanı kapıdan (e2e dâhil) geçmeden değişmez.
+
 Yazan: yönetmen, 2026-10-27. Durum: **BELGE. Kod yok, commit yok.** Siz satır satır kontrol edin; yanlış gördüğünüz satırın yanına not düşün.
 Dayanak: `docs/yol-haritasi-birlesik.md` (kısaca "yol haritası"), `CLAUDE.md`, `git log` (son commit `455804e`), çalışma ağacı (`git status`).
 

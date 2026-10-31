@@ -76,8 +76,8 @@ KaynakSonucu<T> = {
 - Süresi geçmiş önbellek **silinmez**: kaynak çökünce "son bilinen değer" olarak, tarihiyle gösterilir (`durum: 'eski'`).
 
 ### 2.3 Hata, yeniden deneme, devre kesici
-- Zaman aşımı: her istek `AbortController` ile 8 sn (öneri).
-- Yeniden deneme: aynı oturumda en çok 2 kez, artan bekleme (2 sn, 8 sn). Sonra **devre kesici**: o kaynak 15 dk
+- Zaman aşımı: her istek `AbortController` ile 5 sn (YH-3'te uygulandı; ilk öneri 8 sn idi). Sunucu ucunun yukarı akış zaman aşımı 4 sn.
+- Yeniden deneme: aynı oturumda en çok 1 kez, 1 sn bekleme (YH-3'te uygulandı; ilk öneri 2 kez, 2 sn/8 sn idi; en kötü vazgeçme süresi ≈ 11 sn). Sonra **devre kesici**: o kaynak 15 dk
   denenmez, durum `ulasilamadi`. Sayfa her açıldığında kaynağa yüklenilmez.
 - `anahtar_yok` (503) yeniden denenmez: bu bir arıza değil, yapılandırma durumudur → `kapali`.
 - Mantık kontrolü bağdaştırıcıda: ör. TÜFE −%50…+%500 dışı → `mantik_disi`, değer atılır (bugünkü kural korunur).

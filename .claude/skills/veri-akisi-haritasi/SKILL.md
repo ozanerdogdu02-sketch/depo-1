@@ -15,11 +15,11 @@ Plan: `docs/veri-akisi/mevcut-durum-ve-plan.md`. Spec: `docs/veri-akisi/spec.md`
 | fagent.tax.v1 | src/taxRates.ts | evet |
 | fagent.target.v1 | src/targetAllocation.ts | evet |
 | fagent.backup.v1, cloud.owner/base.v1 | src/backup.ts, src/localData.ts | hayir |
-| evds.v1, cryptomarket.cache.v2, pricehistory.v1.* | src/evds.ts, cryptoMarketData.ts, priceHistory.ts (önbellek) | hayir |
+| kaynak.tcmb.tufe.v1, kaynak.tcmb.kur.v1 (eski evds.v1 göç eder), cryptomarket.cache.v2, pricehistory.v1.* | src/kaynaklar/ (tcmb.ts, onbellek.ts), cryptoMarketData.ts, priceHistory.ts (önbellek) | hayir |
 
 - Liste: `BACKED_UP_KEYS` src/backup.ts:26 (aynı liste bulut beyaz listesi). Yeni katman: yedek + SIFIRLA (localData.ts) + cloud.
 - Tek yazma noktası: store.ts `actions.*`. Diğer katmanlar `notifyUserDataChanged()` çağırır.
-- Dış ağ (src): Frankfurter market.ts:38, priceHistory.ts:92; CoinGecko market.ts:53, priceHistory.ts:57, cryptoMarketData.ts:119; /api/evds evds.ts:85 (api/evds.mjs -> netlify/functions/evds.mjs); Supabase cloud.ts (düz metin upsert :303).
+- Dış ağ (src): Frankfurter market.ts:38, priceHistory.ts:92; CoinGecko market.ts:53, priceHistory.ts:57, cryptoMarketData.ts:119; /api/evds src/kaynaklar/tcmb.ts (evds.ts ince sarmalayıcı; api/evds.mjs -> netlify/functions/evds.mjs); Supabase cloud.ts (düz metin upsert :303).
 - Gömülü sabitler (P0 kural 6 ihlali): analytics.ts:507 DEFAULT_TAX_RATES, inflation.ts:20, agent.ts:318, App.tsx:142,290.
 - e2e: localStorage'a dokunan 11 dosya (yedek, auth, hedef, ... ); route taklidi: cryptodemo, cryptomarket, live, risk.
 - Node 22.22: `node --test x.test.ts` çalışır, ama içe aktarma `.ts` uzantılı olmalı (uzantısız ERR_MODULE_NOT_FOUND). indexedDB yok, crypto.subtle var.

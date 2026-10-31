@@ -77,7 +77,7 @@ export function inflationSourceLabel(s: InflationState): string {
 // döndürüyor, kartlar unmount olup varsayılanla yeniden mount oluyordu). Paylaşılan modül
 // durumuna geçince o örtük davranış kayboldu ve açıkça geri konması gerekti — e2e testi yakaladı.
 //
-// Canlı okuma yeniden denenir: önbellekte (fagent.evds.v1) duruyorsa anında geri gelir.
+// Canlı okuma yeniden denenir: önbellekte (fagent.kaynak.tcmb.tufe.v1; eski fagent.evds.v1 göç eder) duruyorsa anında geri gelir.
 // TCMB'nin resmî oranı "kullanıcı verisi" değildir, silinmesi için bir sebep yok.
 export function resetInflation(): void {
   state = { pct: VARSAYILAN_ENFLASYON_PCT, source: 'varsayim' };

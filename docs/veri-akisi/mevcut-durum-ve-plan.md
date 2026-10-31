@@ -17,7 +17,7 @@ Her satır numarası bu belgenin yazıldığı gün kodda doğrulandı; kayabili
 | `fagent.target.v1` | hedef dağılım | `src/targetAllocation.ts:14` | evet |
 | `fagent.backup.v1` | yedek hatırlatma meta verisi | `src/backup.ts:16` | hayır (bilerek) |
 | `fagent.cloud.owner.v1`, `fagent.cloud.base.v1` | bulut sahiplik işareti ve son eşitleme hash'i | `src/localData.ts:25,28` | hayır |
-| `fagent.evds.v1` | TÜFE önbelleği | `src/evds.ts:16` | hayır |
+| `fagent.kaynak.tcmb.tufe.v1` (eski: `fagent.evds.v1`, göç eder) | TÜFE önbelleği | `src/kaynaklar/tcmb.ts`, `src/kaynaklar/onbellek.ts` | hayır |
 | `fagent.cryptomarket.cache.v2` | kripto piyasa önbelleği | `src/cryptoMarketData.ts:37` | hayır |
 | `fagent.pricehistory.v1.*` (önek) | fiyat geçmişi önbelleği; anahtarda sembol var | `src/priceHistory.ts:17` | hayır |
 | `fagent.ai.proxyurl.v1` | ÇIKARILMIŞ özelliğin artığı; yalnız silinir | `src/localData.ts:54` (LEGACY_KEYS) | hayır |

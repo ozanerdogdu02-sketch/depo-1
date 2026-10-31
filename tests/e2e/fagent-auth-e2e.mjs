@@ -201,6 +201,8 @@ const NOISE = {
   'fagent.pricehistory.v1.THYAO': JSON.stringify({ at: 1, series: [1, 2, 3] }),
   'fagent.cryptomarket.cache.v2': JSON.stringify({ at: 1, rows: [] }),
   'fagent.evds.v1': JSON.stringify({ at: 1, v: 40 }),
+  'fagent.kaynak.tcmb.tufe.v1': JSON.stringify({ at: 1, v: 41 }),
+  'fagent.kaynak.tcmb.kur.v1': JSON.stringify({ at: 1, v: 42 }),
 };
 const WHITELIST = ['fagent.portfolio.v1', 'fagent.agent.memory.v1', 'fagent.agent.training.v1', 'fagent.tax.v1', 'fagent.target.v1'];
 const LAYERS = {
@@ -277,6 +279,8 @@ const UID = USERS[EMAIL];
     !dataKeys.some(k => k.startsWith('sb-'))
     && !['fagent.ai.proxyurl.v1', 'fagent.cryptomarket.cache.v2', 'fagent.evds.v1', 'fagent.cloud.owner.v1'].some(k => bodyStr.includes(k))
     && !bodyStr.includes('fagent.pricehistory.v1.') && !bodyStr.includes('sb-'));
+  check('(a) Upsert gövdesinde yeni kaynak önbelleği anahtarları (fagent.kaynak.tcmb.*) yok',
+    !bodyStr.includes('fagent.kaynak.tcmb.') && !dataKeys.some(k => k.startsWith('fagent.kaynak.')));
 
   // --- Değişiklik → gecikmeli otomatik kayıt ---
   const before = mock.upserts.length;

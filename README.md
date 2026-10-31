@@ -126,7 +126,9 @@ src/
   localData.ts      — SIFIRLA ve çıkış temizliği (yerel kullanıcı katmanları)
   ErrorBoundary.tsx — render hatasında beyaz ekran yerine veri kurtarma ekranı
   inflation.ts      — enflasyon oranının TEK KAYNAĞI (varsayım / TCMB EVDS / kullanıcı)
-  evds.ts           — TCMB EVDS istemcisi; hata FIRLATMAZ, başarısızlıkta varsayıma düşülür
+  evds.ts           — TCMB EVDS istemcisi (ince sarmalayıcı); hata FIRLATMAZ, başarısızlıkta varsayıma düşülür
+  kaynaklar/        — kaynak bağdaştırıcı çatısı: KaynakSonucu + durum metni (tip.ts), önbellek, çalıştırıcı
+                      (zaman aşımı/yeniden deneme/devre kesici), TCMB TÜFE + kur (tcmb.ts)
 api/
   evds.mjs          — Vercel Function: netlify/functions/evds.mjs mantığını Vercel'e bağlar
 netlify/
@@ -294,14 +296,15 @@ Sidebar'daki **SIFIRLA** üçünü de temizler.
   enflasyonu canlı ÇEKMİYOR, varsayım modunda çalışıyor. Anahtar tanımlanınca canlı enflasyon açılır;
   açılması için tek gereken Vercel ortam değişkenine anahtarı eklemek. Sunum/doküman dilinde bu ayrımı koru:
   "hazır ve açılmayı bekliyor" doğru, "canlı çekiyoruz" yanlış.
-- **EVDS seri kodu (`evds.ts` → `TUFE_SERIES`) HENÜZ DOĞRULANMADI.** Yanlışsa proxy boş yanıt
-  verir, istemci `undefined` döner ve varsayıma düşülür — ekranda yanlış bir sayı ÇIKMAZ.
+- **EVDS seri kodu (`src/kaynaklar/tcmb.ts` → `TUFE_SERIES`; `evds.ts` yeniden dışa aktarır) HENÜZ DOĞRULANMADI.** Yanlışsa yanıt okunamaz ya da akla yatkınlık kontrolünde reddedilir,
+  istemci `undefined` döner ve varsayıma düşülür — ekranda yanlış bir sayı ÇIKMAZ.
   Yıllık değişim endeksin kendisinden hesaplandığı için serinin baz yılı sonucu etkilemez.
 - **Netlify Function gerçek deploy dışında koşturulamadı** (ne netlify-cli var ne dış ağ erişimi).
   Vercel durumu: önizlemede yalnızca anahtarsız 503 `anahtar_yok` yanıtı ve güvenlik başlıkları gözlendi (24.10.2026);
   gerçek EVDS verisi doğrulanmadı.
-  İstemci tarafı `page.route()` taklidiyle test edildi; fonksiyonun kendisi yalnızca canlı
-  deploy'da doğrulanabilir — "test edildi" DEĞİLDİR.
+  İstemci tarafı `page.route()` taklidiyle, sunucu fonksiyonu ve bağdaştırıcı sahte `fetch` ile yazılmış birim testlerle sınandı
+  (yeşil); gerçek EVDS yanıtıyla doğrulanmadı — fonksiyonun kendisi yalnızca canlı deploy'da ve anahtarla
+  doğrulanabilir, "test edildi" DEĞİLDİR.
 - **Stopaj oranları da elle güncellenen varsayımdır** (`analytics.ts` → `DEFAULT_TAX_RATES`).
   Kaynak: 27.03.2026 tarihli 11107 sayılı Cumhurbaşkanı Kararı — fon ve 6 aya kadar vadeli TL
   mevduat %17,5; BIST pay senedi alım-satımında stopaj yok. **Kripto/altın/döviz için doğrulanmış

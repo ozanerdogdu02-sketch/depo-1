@@ -51,21 +51,23 @@ anahtarı istiyor, anahtar istemciye inemez.
 
 | | |
 |---|---|
-| Dosya | `api/evds.mjs` (Vercel Function); mantık tek kaynakta: `netlify/functions/evds.mjs` (79 satır, Netlify alternatifi) |
-| İstemci | `src/evds.ts` → `/api/evds` (Vercel: `api/evds.mjs`; Netlify: `netlify.toml` yönlendirmesi) |
+| Dosya | `api/evds.mjs` (Vercel Function); mantık tek kaynakta: `netlify/functions/evds.mjs` (Netlify alternatifi) |
+| İstemci | `src/evds.ts` → `src/kaynaklar/tcmb.ts` (5 sn zaman aşımı, 1 yeniden deneme, 15 dk devre kesici, önbellek; istek yalnız `series` ya da `tablo` taşır, tarih aralığını sunucu kurar) → `/api/evds` (Vercel: `api/evds.mjs`; Netlify: `netlify.toml` yönlendirmesi) |
 | Yukarı akış | `https://evds2.tcmb.gov.tr/service/evds` |
 | Anahtar | `EVDS_API_KEY` — **yalnızca sunucu ortam değişkeni** (Vercel; Netlify'da da aynı ad), istemciye hiç inmiyor |
 | Durum | ❌ **Kapalı** — Vercel önizlemede (24.10.2026) anahtar tanımsızken 503 `anahtar_yok` gözlendi; gerçek EVDS verisiyle doğrulanmadı (EVDS_API_KEY tanımlanınca ve seri kodu doğrulanınca açılır) |
 
 **Kapalıyken ne oluyor:** fonksiyon 503 döner → `evds.ts` `undefined` döner → uygulama elle
-girilen enflasyon varsayımına düşer → **kullanıcıya hiçbir hata gösterilmez.** Bu yol 26 e2e
-kontrolüyle doğrulandı.
+girilen enflasyon varsayımına düşer → **kullanıcıya hiçbir hata gösterilmez.** Bu yol önceki sürümde 26 e2e
+kontrolüyle doğrulanmıştı; bağdaştırıcıya taşındıktan sonra yeni e2e koşusu bekleniyor (test ajanı) ve birim testleri (sahte fetch) yeşil.
 
 **Güvenlik önlemleri (kod içinde):**
 - Seri kodu biçim kısıtından geçiyor (`^[A-Z0-9]+(\.[A-Z0-9]+)+$`) — açık bir proxy'yi keyfî
   istek iletmeye çevirmemek için
 - Tarih parametreleri `GG-AA-YYYY` biçimiyle doğrulanıyor
 - TCMB'nin **ham hata gövdesi istemciye aktarılmıyor** (anahtarı yankılama / altyapı sızdırma riski)
+- İstemci başına hız sınırı (30/dk, bellekte), yukarı akış 4 sn zaman aşımı, 512 KB bayt sınırı, yalnız `{items}` süzülür, 3 ardışık ağ/zaman aşımı/5xx hatasında 60 sn devre kesici (örnek başına; sunucusuz ortamda en iyi çaba). İstemci kimliği yalnız platform başlıklarından (`x-nf-client-connection-ip`, `x-real-ip`, `x-vercel-forwarded-for`) alınır, bellekte 1 dk tutulur, kaydedilmez
+- Kur tablosu (`?tablo=kur`): seri listesi sunucuda sabit ve BOŞ (doğrulanmadı) -> 503 `seri_dogrulanmadi`; istemci seri/sembol göndermez
 - 6 saatlik önbellek başlığı — TÜFE ayda bir açıklanıyor, her açılışta TCMB'ye gitmek gereksiz
 
 > **Gizlilik notu — toplantıda sorulursa:** Bu istek **kullanıcının portföy verisini içermiyor.**
@@ -85,7 +87,9 @@ Sunucu olmadığı için tüm veri kullanıcının tarayıcısında. **Beş kal�
 | `fagent.tax.v1` | Düzenlenmiş stopaj oranları | ✅ | ✅ |
 | `fagent.target.v1` | Hedef varlık dağılımı | ✅ | ✅ |
 | `fagent.backup.v1` | Son yedek tarihi / erteleme | ❌ (meta) | ✅ |
-| `fagent.evds.v1` | Enflasyon önbelleği (12 sa) | ❌ (yeniden üretilebilir) | — |
+| `fagent.kaynak.tcmb.tufe.v1` | TÜFE önbelleği (kaynak/dönem/alındı etiketli, 12 sa; süresi geçse de silinmez) | ❌ (yeniden üretilebilir) | — |
+| `fagent.kaynak.tcmb.kur.v1` | TCMB kur önbelleği (1 sa; kur serisi doğrulanana kadar yazılmaz) | ❌ (yeniden üretilebilir) | — |
+| `fagent.evds.v1` | ESKİ enflasyon önbelleği; ilk açılışta yeni anahtara taşınır, tanınmayan içerik dokunulmadan kalır | ❌ | — |
 | `fagent.cryptomarket.cache.v2` | Kripto piyasa önbelleği | ❌ (yeniden üretilebilir) | — |
 | `fagent.pricehistory.v1.*` | Fiyat serisi önbelleği | ❌ (yeniden üretilebilir) | — |
 | `fagent.mirror.cleared.v1` | SIFIRLA/çıkışta konan silme işareti (IndexedDB aynası silinene dek) | ❌ | kendiliğinden kalkar |
@@ -163,7 +167,7 @@ Dürüstlük gereği ayrı başlık. Bunların hiçbiri "test edildi" diye sunul
 | Ne | Neden |
 |---|---|
 | **Netlify Function'ın kendisi** | Geliştirme ortamında ne netlify-cli var ne dış ağ erişimi. İstemci tarafı `page.route()` taklidiyle test edildi; fonksiyon yalnızca gerçek deploy'da doğrulanabilir |
-| **EVDS seri kodu** (`TUFE_SERIES = 'TP.FG.J0'`) | EVDS arayüzünden teyit edilmedi. Yanlışsa proxy boş döner → varsayıma düşülür → **ekranda yanlış sayı çıkmaz** (fail-safe) |
+| **EVDS seri kodu** (`TUFE_SERIES = 'TP.FG.J0'`) | EVDS arayüzünden teyit edilmedi. Yanlışsa yanıt okunamaz ya da akla yatkınlık kontrolünde reddedilir → varsayıma düşülür → **ekranda yanlış sayı çıkmaz** (fail-safe) |
 | **BtcTurk / TEFAS / altın CORS** | Geliştirme ortamının çıkış politikası tüm dış hostları engelliyor (403). Test sayfası `scripts/cors-test.html`, üretim paketine girmez |
 | **Gerçek ağ üzerinden canlı fiyat** | Aynı sebep. `page.route()` ile taklit edildi; gerçek doğrulama kullanıcının tarayıcısında yapılmalı |
 
