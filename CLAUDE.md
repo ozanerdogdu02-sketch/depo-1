@@ -66,6 +66,10 @@ Kullanıcı portföy + piyasa verisi üzerinden LLM yorumu ve açık kaynak mode
 
 Odak: sistemi ve işleyişi kurmak; KVKK/SPK/ETBİS vb. yükümlülükler satış sonrası alıcıda. Çerçeve: (1) satıştan önce canlıda hesap, ödeme, kazıma ve yapay zekâ yorumu KAPALI kalır (kullanıcı verisi toplayan özellik açılırsa veri sorumlusu satıcı olur); (2) "yükümlülükler sağlandı" diye beyan edilmez, devir paketine "Uyumluluk durumu ve açık maddeler" sayfası eklenir (`docs/devir/`; kaynaklar: `TODO(hukuk)/TODO(muhasebe)` işaretleri, `docs/yasal/*`, `docs/teknoloji-talepleri.md`); (3) avukat görüşü alıcıya devredilen açık madde olarak yazılır, istenirse satıştan önce alınır.
 
+## KARAR (kullanıcı, 2026-10-31): ÜRÜN TASARIMI = PDF; MOTORLAR ARKADA
+
+`docs/tasarim/FAGENT_web_sitesi.pdf` Fagent'ın NORMAL ürün tasarımıdır (brüt→net→reel, sekmeli paneller Panel/Grafik/Hisseler/Fonlar/Kripto/Projeksiyon, abonelik planları, SSS, gizlilik kartları). Fagent içinde çalışan veriler ve kontroller bu tasarımın ARKASINDA (backend/motor) çalışır. Bu, 2026-10-27/28'deki "ekranda yalnızca Projeksiyon kalsın" kararının YERİNİ ALIR; YH-7 (paneller motora) "motorlar PDF ekranlarını besler" olarak, YH-8 (kenar çubuğunu kaldırma) PDF tasarımına göre yeniden tanımlanacak. Görsel tasarım kullanıcıda. "Oyun simülasyonu" ayrı bir açıklama sayfasıdır (arka plandaki tüm veri/kontrol ve operasyonel süreçleri bölüm/sahne olarak anlatır; kaynak `docs/veri-akisi/veri-yolculugu.json`), ürün tasarımıyla ilgisi yoktur.
+
 ## DURUM VE SIRADAKİ İŞLER (2026-10-30, kullanım sınırı nedeniyle durduruldu)
 
 Commit'li: YH-1 (P3 bağlama), YH-2 (projeksiyon motoru). Tasarım: kullanıcının "mevcut tasarım" PDF'i `docs/tasarim/FAGENT_web_sitesi.pdf` (sekmeli paneller + 3 abonelik planı; tek-ekran-Projeksiyon kararı ve "abonelik yapılmaz" kapsamıyla ÇELİŞKİ var → `docs/mvp-tanimi.md` yazılacak, kullanıcıya sorulacak).
