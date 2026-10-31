@@ -130,3 +130,20 @@ export const YEDEK_DOSYA_MAX_BOYUT = 10_000_000;
    Gerekçe: IndexedDB'de birkaç anahtarı silmek normalde milisaniyeler sürer; 30 sn, yavaş cihaz ve çok sekmeli açılışlar
    için bol, takılı işareti ise çabucak etkisiz kılan bir üst sınırdır. Ölçülmedi; varsayım (gerçek cihazlarda doğrulanmadı). */
 export const SIFIRLA_ISARETI_OMRU_MS = 30_000;
+
+/* ───────────── Karantina ömrü (hesaba gitmemiş yerel kopya) ─────────────
+   Çıkışta/oturum düşüşünde hesaba henüz gitmemiş veri silinmek yerine bu cihazda ayrı bir anahtarda
+   (fagent.quarantine.v1, src/karantina.ts) en çok bu süre saklanır; süre dolunca silinir.
+   Gerekçe: kullanıcıya "geri alma" için makul bir pencere vermek (bir hafta sonu + birkaç gün) ile ortak
+   cihazda portföy verisinin gereğinden uzun kalmaması arasındaki denge. Kullanıcı kararı (2026-10-31): 7 gün.
+   Süre dolması okuma/açılış anında kontrol edilir (zamanlayıcı yok); kullanıcı hesabı değişirse,
+   SIFIRLA yapılırsa ya da hesap silinirse süre beklenmeden silinir.
+   Doğrulama durumu: ürün kararı, dış kaynağa dayanmaz. */
+export const KARANTINA_OMRU_MS = 7 * 24 * 60 * 60 * 1000;
+
+/* Karantinada aynı anda tutulan en çok kayıt sayısı. Karara bağlanmamış (kullanıcının indir/yükle/sil demediği) bir
+   kopyanın üzerine yenisi sessizce yazılmasın diye yeni kopya ikinci kayıt olarak eklenir; sayı sınırsız büyümesin
+   (localStorage kotası köken başına ~5 milyon karakter, bulut satırı sınırı 1,5 milyon karakter) ve kullanıcı karar
+   kartında az sayıda kopyayı ayırt edebilsin diye 2. Üçüncü kopya gelirse EN ESKİ kayıt düşer; kullanıcı bu durumda
+   kartta "iki kopya" görmüştür ve her birini indirebilir. Kaynak: ürün kararı (2026-10-31 tur 2), dış kaynağa dayanmaz. */
+export const KARANTINA_MAKS_KAYIT = 2;

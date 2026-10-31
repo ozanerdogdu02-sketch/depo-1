@@ -48,6 +48,10 @@ const subOf = req => {
 function makeMock() {
   return {
     rows: {},        // uid -> bulut satırının `data` (jsonb) değeri
+    versions: {},    // uid -> portfolios.version (sürümlü mod; bkz. versioned)
+    versioned: true, // false: eski veritabanı (version sütunu yok → 42703)
+    failWrites: false, // true: portfolios yazmaları 503 döner (internet yok taklidi)
+    writes: [],      // { method: 'INSERT'|'PATCH'|'UPSERT', uid, ver }
     upserts: [],     // { uid, row } — portfolios'a atılan her yazma
     rpcCalls: 0, recoverCalls: 0, wrongPassword: false,
     signupBody: null, recoverBody: null, // PKCE: code_challenge gövdede olmalı
@@ -113,23 +117,56 @@ async function attach(page, mock, base) {
         return route.fulfill({ status: 204, body: '' });
       }
       if (url.includes('/portfolios')) {
-        if (req.method() === 'GET') {
-          const uid = (new URL(url).searchParams.get('user_id') || '').replace(/^eq\./, '');
+        const u = new URL(url);
+        const method = req.method();
+        const wantsVersion = (u.searchParams.get('select') || '').includes('version');
+        const versionCol404 = () => json(400, { code: '42703', message: 'column portfolios.version does not exist' });
+        const eqParam = k => (u.searchParams.get(k) || '').replace(/^eq\./, '');
+        if (method === 'GET') {
+          const uid = eqParam('user_id');
           const data = mock.rows[uid];
           const accept = req.headers()['accept'] || '';
+          if (wantsVersion && !mock.versioned) return versionCol404();
+          const item = data === undefined ? undefined : (wantsVersion ? { data, version: mock.versions[uid] ?? 0 } : { data });
           if (accept.includes('vnd.pgrst.object')) {
-            return data !== undefined
-              ? json(200, { data })
+            return item !== undefined
+              ? json(200, item)
               : json(406, { code: 'PGRST116', message: 'no rows' });
           }
-          return json(200, data !== undefined ? [{ data }] : []);
+          return json(200, item !== undefined ? [item] : []);
         }
-        if (req.method() === 'POST') {
+        if (mock.failWrites && method !== 'GET') return json(503, { message: 'ag hatasi (taklit)' });
+        if (method === 'POST') {
           const body = JSON.parse(req.postData() || '{}');
           const row = Array.isArray(body) ? body[0] : body;
+          const isUpsert = u.searchParams.has('on_conflict') || (req.headers()['prefer'] || '').includes('resolution=');
+          if (!isUpsert) {
+            // düz insert (sürümlü ilk kayıt)
+            if (!mock.versioned) return versionCol404();
+            if (mock.rows[row.user_id] !== undefined) return json(409, { code: '23505', message: 'duplicate key' });
+            mock.writes.push({ method: 'INSERT', uid: row.user_id });
+            mock.upserts.push({ uid: row.user_id, row });
+            mock.rows[row.user_id] = row.data;
+            mock.versions[row.user_id] = 0;
+            return json(201, [{ version: 0 }]);
+          }
+          mock.writes.push({ method: 'UPSERT', uid: row.user_id });
           mock.upserts.push({ uid: row.user_id, row });
           mock.rows[row.user_id] = row.data;
+          mock.versions[row.user_id] = (mock.versions[row.user_id] ?? 0) + 1;
           return route.fulfill({ status: 201, body: '' });
+        }
+        if (method === 'PATCH') {
+          const uid = eqParam('user_id');
+          const ver = u.searchParams.has('version') ? Number(eqParam('version')) : null;
+          if (ver !== null && !mock.versioned) return versionCol404();
+          const body = JSON.parse(req.postData() || '{}');
+          mock.writes.push({ method: 'PATCH', uid, ver });
+          if (mock.rows[uid] === undefined || (ver !== null && (mock.versions[uid] ?? 0) !== ver)) return json(200, []);
+          mock.upserts.push({ uid, row: { user_id: uid, ...body } });
+          mock.rows[uid] = body.data;
+          mock.versions[uid] = (mock.versions[uid] ?? 0) + 1;
+          return json(200, [{ version: mock.versions[uid] }]);
         }
       }
     }
@@ -763,6 +800,494 @@ const UID = USERS[EMAIL];
   await page.goto(CLOUD_BASE + '?code=sahte-kod', { waitUntil: 'networkidle' });
   check('(p) Şifre sıfırlama bağlantısı doğrudan "Yeni şifre belirle" formunu açar',
     await until(async () => (await page.locator('.card-title', { hasText: 'Yeni şifre belirle' }).count()) === 1));
+}
+
+// =====================================================================================
+// KARANTİNA + SÜRÜMLÜ YAZIM (bulut-senkron-arastirma.md 2a: 34+33, 35b, 35c; 2b: 27)
+// Hepsi SAHTE Supabase ile sınanır; gerçek projede doğrulanmadı.
+// =====================================================================================
+const QKEY = 'fagent.quarantine.v1';
+const qAll = async page => { const r = await lsGet(page, QKEY); if (!r) return []; const j = JSON.parse(r); return Array.isArray(j) ? j : [j]; };
+const qRec = async page => (await qAll(page))[0] ?? null; // en yeni kayıt
+// Çıkış (kullanıcının kendi bastığı): hesaba gitmemiş veri varsa önce sorulur; "7 gün bu cihazda sakla ve çık" seçilir.
+const askGroup = page => page.getByRole('group', { name: 'Çıkışta hesaba gitmemiş değişiklikler' });
+async function leaveKeep(page) {
+  await page.locator('.side-account').click();
+  await accountCardOf(page).getByRole('button', { name: /Çıkış yap/ }).click();
+  await askGroup(page).waitFor({ timeout: 8000 });
+  await askGroup(page).getByRole('button', { name: /7 gün bu cihazda sakla ve çık/ }).click();
+}
+const qCard = page => page.getByRole('region', { name: 'Kurtarılmamış yerel kopya' });
+const accountCardOf = page => page.locator('.card').filter({ has: page.locator('.card-title', { hasText: 'Hesabım' }) });
+async function addHolding(page, name, amount = '700') {
+  if ((await page.locator('#h-name').count()) === 0) await page.locator('.side-nav button', { hasText: /^PANEL$/ }).first().click();
+  await page.fill('#h-name', name);
+  await page.fill('#h-amount', amount);
+  await page.getByRole('button', { name: 'Ekle', exact: true }).click();
+}
+async function signedInWithData(mock, email = EMAIL, names = ['Q Ilk Varlik']) {
+  const t = await newPage(CLOUD_BASE, { mock });
+  await open(t.page, CLOUD_BASE);
+  await seed(t.page, { 'fagent.portfolio.v1': portfolio(names) });
+  await login(t.page, email);
+  await confirmUpload(t.page);
+  await until(async () => mock.upserts.length >= 1);
+  await until(async () => (await sideText(t.page)).includes(email));
+  await until(async () => (await t.page.locator('#h-name').count()) === 1);
+  return t;
+}
+const dumpHas = async (page, text) => JSON.stringify(await lsDump(page)).includes(text);
+
+// (q1) 35c: internet yokken kullanıcının Çıkış'ı → hesaba gitmemiş değişiklik karantinada; aynı hesapla girişte sorulur
+{
+  const mock = makeMock();
+  const { page } = await signedInWithData(mock);
+  mock.failWrites = true;
+  await addHolding(page, 'Q1 Gitmeyen Varlik');
+  check('(q1) Kayıt başarısız olunca durum "hata"', await until(async () => (await bodyText(page)).includes('Buluta kaydedilemedi') || (await page.locator('.side-account-dot.warn').count()) === 1, 6000));
+  await page.locator('.side-account').click();
+  await accountCardOf(page).getByRole('button', { name: /Çıkış yap/ }).click();
+  await askGroup(page).waitFor({ timeout: 8000 });
+  check('(q1) Hesaba gitmemiş veri varken Çıkış ÖNCE sorar (sakla / indir / sil / vazgeç); henüz çıkılmadı',
+    await askGroup(page).getByRole('button', { name: /7 gün bu cihazda sakla ve çık/ }).count() === 1
+    && await askGroup(page).getByRole('button', { name: /İndir/ }).count() === 1
+    && await askGroup(page).getByRole('button', { name: /Sil ve çık/ }).count() === 1
+    && await askGroup(page).getByRole('button', { name: /Vazgeç/ }).count() === 1
+    && (await sideText(page)).includes(EMAIL) && (await qRec(page)) === null);
+  await askGroup(page).getByRole('button', { name: /Vazgeç/ }).click();
+  check('(q1) "Vazgeç" oturumu ve veriyi olduğu gibi bırakır',
+    (await sideText(page)).includes(EMAIL) && (await lsGet(page, 'fagent.portfolio.v1'))?.includes('Q1 Gitmeyen Varlik') === true && (await qRec(page)) === null);
+  await accountCardOf(page).getByRole('button', { name: /Çıkış yap/ }).click();
+  await askGroup(page).waitFor({ timeout: 8000 });
+  await askGroup(page).getByRole('button', { name: /7 gün bu cihazda sakla ve çık/ }).click();
+  check('(q1) Çıkıştan sonra GİRİŞ / KAYIT', await until(async () => (await sideText(page)).includes('GİRİŞ / KAYIT')));
+  const rec = await qRec(page);
+  check('(q1) Hesaba gitmemiş değişiklik silinmedi: karantina kaydı var ve yeni varlığı içerir',
+    !!rec && JSON.stringify(rec.data).includes('Q1 Gitmeyen Varlik'));
+  check('(q1) Karantina kaydı hesap kimliğinin özetiyle etiketli; e-posta/kullanıcı kimliği düz yazılmamış',
+    !!rec && typeof rec.owner === 'string' && rec.owner.length >= 8
+    && !JSON.stringify(rec).includes(UID) && !JSON.stringify(rec).includes(EMAIL) && !JSON.stringify(rec).includes('ornek.com'));
+  check('(q1) Çıkıştan sonra kullanıcı katmanları yine temizlendi (ortak cihaz)',
+    !(await lsKeys(page)).includes('fagent.portfolio.v1') && !(await lsKeys(page)).includes('fagent.cloud.owner.v1'));
+  check('(q1) Bulut satırı yeni varlığı İÇERMEZ (kayıt gitmemişti)', !JSON.stringify(mock.rows[UID]).includes('Q1 Gitmeyen Varlik'));
+  // Aynı hesapla yeniden giriş → bulut verisi gelir + karantina sorusu
+  mock.failWrites = false;
+  await login(page, EMAIL);
+  await qCard(page).waitFor({ timeout: 12000 });
+  check('(q1) Aynı hesapla girişte "indir / hesaba yükle / sil" sorulur',
+    await qCard(page).getByRole('button', { name: /İndir/ }).count() === 1
+    && await qCard(page).getByRole('button', { name: /Hesabıma yükle/ }).count() === 1
+    && await qCard(page).getByRole('button', { name: /Sil/ }).count() === 1);
+  check('(q1) Kart sormadan hiçbir şey yazılmadı (karantina duruyor, bulut değişmedi)',
+    !!(await qRec(page)) && !JSON.stringify(mock.rows[UID]).includes('Q1 Gitmeyen Varlik'));
+  // indir: ayrı dosya, yedek biçiminde
+  const [dl] = await Promise.all([
+    page.waitForEvent('download', { timeout: 8000 }),
+    qCard(page).getByRole('button', { name: /İndir/ }).click(),
+  ]);
+  const dlText = await (async () => { const fs = await import('node:fs'); return fs.readFileSync(await dl.path(), 'utf8'); })();
+  check('(q1) "İndir" ayrı bir dosya verir (yedek biçimi, kopya içeriği); karantina yine duruyor',
+    dl.suggestedFilename().includes('karantina') && dlText.includes('Q1 Gitmeyen Varlik') && dlText.includes('"fagentBackup"') && !!(await qRec(page)));
+  // hesaba yükle: bulut satırı kopyayla değişir, karantina silinir
+  await qCard(page).getByRole('button', { name: /Hesabıma yükle/ }).click(); // dialog otomatik kabul
+  check('(q1) "Hesabıma yükle" bulut satırını kopyayla güncelledi',
+    await until(async () => JSON.stringify(mock.rows[UID]).includes('Q1 Gitmeyen Varlik')));
+  check('(q1) Yüklemeden sonra karantina silindi', await until(async () => (await lsGet(page, QKEY)) === null));
+  check('(q1) Yüklenen kopya bu tarayıcıda görünür',
+    await until(async () => (await page.locator('.list-row', { hasText: 'Q1 Gitmeyen Varlik' }).count()) >= 1, 12000));
+  // gövde: karantina anahtarı buluta HİÇ girmedi
+  const bodies = JSON.stringify(mock.upserts);
+  check('(q1) Karantina anahtarı hiçbir bulut gövdesine girmedi', !bodies.includes('quarantine') && !bodies.includes('karantina'));
+  check('(q1) Bulut gövdelerinde yalnızca 5 beyaz liste anahtarı var',
+    mock.upserts.every(u => Object.keys(u.row.data.data).every(k => WHITELIST.includes(k))));
+  check('(q1) Karantina anahtarı sahte Supabase dışına da gitmedi',
+    !mock.outside.some(r => (r.url + r.post).includes('quarantine')));
+}
+
+// (q2) 35b: başka sekmeden çıkış (oturum düşüşü) hesaba gitmemiş veriyi silmez; "sil" karantinayı kaldırır
+{
+  const mock = makeMock();
+  const { page } = await signedInWithData(mock);
+  mock.failWrites = true;
+  await addHolding(page, 'Q2 Yarim Varlik');
+  await sleep(2500);
+  await page.evaluate(ref => {
+    const bc = new BroadcastChannel(`sb-${ref}-auth-token`);
+    bc.postMessage({ event: 'SIGNED_OUT', session: null });
+    bc.close();
+  }, FAKE_REF);
+  check('(q2) Oturum düşünce kenar çubuğu GİRİŞ / KAYIT', await until(async () => (await sideText(page)).includes('GİRİŞ / KAYIT')));
+  const rec = await qRec(page);
+  check('(q2) Oturum düşüşünde hesaba gitmemiş veri karantinaya alındı', !!rec && JSON.stringify(rec.data).includes('Q2 Yarim Varlik'));
+  check('(q2) Ana kullanıcı anahtarları yine temizlendi', !(await lsKeys(page)).includes('fagent.portfolio.v1'));
+  mock.failWrites = false;
+  await login(page, EMAIL);
+  await qCard(page).waitFor({ timeout: 12000 });
+  await qCard(page).getByRole('button', { name: /Sil/ }).click();
+  check('(q2) "Sil" karantinayı kaldırır', await until(async () => (await lsGet(page, QKEY)) === null));
+  check('(q2) "Sil" sonrası kopyanın içeriği cihazda kalmadı', !(await dumpHas(page, 'Q2 Yarim Varlik')));
+  check('(q2) "Sil" bulut satırına dokunmadı', !JSON.stringify(mock.rows[UID]).includes('Q2 Yarim Varlik'));
+}
+
+// (q3) başka hesapla girişte, (q4) süre dolunca, (q5) SIFIRLA'da ve hesap silmede karantina SİLİNİR
+{
+  const mock = makeMock();
+  mock.rows[USERS['bob@ornek.com']] = cloudRowOf({ 'fagent.portfolio.v1': portfolio(['Bob Bulut']) });
+  const { page } = await signedInWithData(mock);
+  const makeQuarantine = async name => {
+    mock.failWrites = true;
+    await addHolding(page, name);
+    await sleep(1800);
+    await leaveKeep(page);
+    await until(async () => (await qRec(page)) !== null);
+    mock.failWrites = false;
+  };
+  await makeQuarantine('Q3 Test Varlik');
+  check('(q3) Hazırlık: karantina var', !!(await qRec(page)));
+  // süre dolumu: kaydı 8 gün öncesine çek, aynı hesapla gir
+  await page.evaluate(k => { const j = JSON.parse(localStorage.getItem(k)); const a = Array.isArray(j) ? j : [j]; a.forEach(r => { r.savedAt -= 8 * 86400000; }); localStorage.setItem(k, JSON.stringify(a)); }, QKEY);
+  await login(page, EMAIL);
+  await until(async () => (await sideText(page)).includes(EMAIL));
+  await sleep(1500);
+  check('(q4) 7 günü dolmuş karantina silinir ve kart çıkmaz', (await lsGet(page, QKEY)) === null && await qCard(page).count() === 0);
+  check('(q4) Süresi dolan kopyanın içeriği cihazda kalmadı', !(await dumpHas(page, 'Q3 Test Varlik')));
+  // yeni karantina, sonra BAŞKA hesapla giriş
+  await addHolding(page, 'Q3 Ikinci Varlik');
+  await sleep(1800);
+  mock.failWrites = true;
+  await addHolding(page, 'Q3 Ucuncu Varlik');
+  await sleep(1800);
+  await leaveKeep(page);
+  await until(async () => (await qRec(page)) !== null);
+  mock.failWrites = false;
+  check('(q3) Hazırlık: ikinci karantina var', !!(await qRec(page)));
+  await login(page, 'bob@ornek.com');
+  await until(async () => (await sideText(page)).includes('bob@ornek.com'));
+  await sleep(1500);
+  check('(q3) Başka hesapla girişte karantina silinir, kart çıkmaz', (await lsGet(page, QKEY)) === null && await qCard(page).count() === 0);
+  check('(q3) Başka hesapla girişte önceki hesabın kopyası cihazda kalmadı', !(await dumpHas(page, 'Q3 Ucuncu Varlik')));
+}
+{
+  const mock = makeMock();
+  const { page } = await signedInWithData(mock);
+  mock.failWrites = true;
+  await addHolding(page, 'Q5 Sifirla Varlik');
+  await sleep(1800);
+  await leaveKeep(page);
+  await until(async () => (await qRec(page)) !== null);
+  check('(q5) Hazırlık: karantina var', !!(await qRec(page)));
+  // Girişsiz yeni kullanım başlar (SIFIRLA düğmesi kurulumdan sonra görünür); karantina bundan etkilenmez.
+  await page.getByRole('button', { name: 'Hesapsız devam et' }).click();
+  await page.getByRole('button', { name: 'Kendi paramı gireceğim' }).click();
+  await page.waitForTimeout(300);
+  check('(q5) Girişsiz yeni kullanım karantinayı silmez', !!(await qRec(page)));
+  await page.click('text=SIFIRLA');
+  check('(q5) SIFIRLA karantinayı siler', await until(async () => (await lsGet(page, QKEY)) === null));
+}
+{
+  const mock = makeMock();
+  const { page } = await signedInWithData(mock);
+  mock.failWrites = true;
+  await addHolding(page, 'Q5b Hesap Silme Varlik');
+  await sleep(1800);
+  await leaveKeep(page);
+  await until(async () => (await qRec(page)) !== null);
+  mock.failWrites = false;
+  await login(page, EMAIL);
+  await qCard(page).waitFor({ timeout: 12000 });
+  await page.locator('.side-account').click();
+  await page.getByRole('button', { name: /Hesabımı sil/ }).click();
+  check('(q5) Hesap silme karantinayı da siler', await until(async () => mock.rpcCalls === 1 && (await lsGet(page, QKEY)) === null));
+  check('(q5) Hesap silmeden sonra kopyanın içeriği cihazda kalmadı', !(await dumpHas(page, 'Q5b Hesap Silme Varlik')));
+}
+
+// (q6) 34+33: girişliyken SIFIRLA + yeniden kurulum hesaptaki portföyü SORMADAN ezmez
+{
+  const mock = makeMock();
+  mock.rows[UID] = cloudRowOf({ 'fagent.portfolio.v1': portfolio(['Q6 Hesap Portfoyu', 'Q6 Ikinci']) });
+  const { page, ctx } = await newPage(CLOUD_BASE, { mock });
+  const dialogs = [];
+  page.removeAllListeners('dialog');
+  page.on('dialog', d => { dialogs.push(d.message()); void d.accept(); });
+  await open(page, CLOUD_BASE);
+  await login(page, EMAIL);
+  check('(q6) Hazırlık: hesap portföyü yüklendi', await until(async () => (await page.locator('.list-row', { hasText: 'Q6 Hesap Portfoyu' }).count()) >= 1, 12000));
+  const rowBefore = JSON.stringify(mock.rows[UID]);
+  const writesBefore = mock.writes.length;
+  await page.click('text=SIFIRLA');
+  check('(q6) SIFIRLA onay metni olanı söyler (hesaptaki kopya silinmez, yeniden kurulumda seçim sorulur)',
+    dialogs.some(m => m.includes('hesab') && m.includes('silinmez') && m.includes('sor')));
+  await until(async () => (await page.getByRole('button', { name: 'Karma örnek portföy' }).count()) === 1);
+  await page.getByRole('button', { name: 'Karma örnek portföy' }).click();
+  const region = page.getByRole('region', { name: 'Senkron çakışması' });
+  check('(q6) Yeniden kurulumdan sonra çakışma kartı çıkar (hesaptaki kayıt sorulmadan ezilmez)',
+    await until(async () => (await region.count()) === 1, 10000));
+  await sleep(2500);
+  check('(q6) Kullanıcı seçmeden hesaba yazma gitmedi', mock.writes.length === writesBefore && JSON.stringify(mock.rows[UID]) === rowBefore);
+  check('(q6) Kartta güvenli seçenek (hesaptakini getir) birincil, bu cihazdakiyle değiştirme ayrı ve onaylı',
+    await region.getByRole('button', { name: /Hesabımdaki veriyi yükle/ }).count() === 1);
+  await region.getByRole('button', { name: /Hesabımdaki veriyi yükle/ }).click();
+  check('(q6) "Hesabımdaki veriyi yükle" hesap portföyünü geri getirir',
+    await until(async () => (await page.locator('.list-row', { hasText: 'Q6 Hesap Portfoyu' }).count()) >= 1, 12000));
+  await sleep(2000);
+  check('(q6) Geri getirme sonrası bulut satırı değişmedi', JSON.stringify(mock.rows[UID]) === rowBefore);
+  await ctx.close();
+}
+{
+  // (q6b) kullanıcı "bu cihazdakiyle değiştir" derse yazılır (onayla)
+  const mock = makeMock();
+  mock.rows[UID] = cloudRowOf({ 'fagent.portfolio.v1': portfolio(['Q6b Hesap']) });
+  const { page } = await newPage(CLOUD_BASE, { mock });
+  await open(page, CLOUD_BASE);
+  await login(page, EMAIL);
+  await until(async () => (await page.locator('.list-row', { hasText: 'Q6b Hesap' }).count()) >= 1, 12000);
+  await page.click('text=SIFIRLA');
+  await until(async () => (await page.getByRole('button', { name: 'Karma örnek portföy' }).count()) === 1);
+  await page.getByRole('button', { name: 'Karma örnek portföy' }).click();
+  const region = page.getByRole('region', { name: 'Senkron çakışması' });
+  await region.waitFor({ timeout: 10000 });
+  await region.getByRole('button', { name: /bu tarayıcıdaki veriyi hesabıma yükle/i }).click();
+  check('(q6b) Açık onayla "bu cihazdakiyle değiştir" hesabı günceller',
+    await until(async () => JSON.stringify(mock.rows[UID]).includes('BIST 30') || !JSON.stringify(mock.rows[UID]).includes('Q6b Hesap'), 10000));
+}
+
+// (q7) 2b: sürümlü koşullu yazım (sürüm sütunu var)
+{
+  const mock = makeMock(); // versioned: true
+  const { page } = await signedInWithData(mock);
+  check('(q7) İlk kayıt düz insert (sürüm 0) ile yapıldı', mock.writes[0]?.method === 'INSERT' && mock.versions[UID] === 0);
+  await addHolding(page, 'Q7 Ikinci Varlik');
+  check('(q7) Sonraki kayıt koşullu güncelleme (PATCH, version=0) ile yapıldı; sürüm 1 oldu',
+    await until(async () => mock.writes.some(w => w.method === 'PATCH' && w.ver === 0) && mock.versions[UID] === 1));
+  check('(q7) Normal yazımda upsert kullanılmadı', !mock.writes.some(w => w.method === 'UPSERT'));
+  // başka cihaz araya girdi: sürüm ilerledi, içerik farklı
+  const other = cloudRowOf({ 'fagent.portfolio.v1': portfolio(['Q7 Baska Cihaz']) });
+  mock.rows[UID] = other; mock.versions[UID] = 5;
+  const rowBefore = JSON.stringify(mock.rows[UID]);
+  await addHolding(page, 'Q7 Yerel Degisiklik');
+  const region = page.getByRole('region', { name: 'Senkron çakışması' });
+  check('(q7) Eşleşmeyen sürümde çakışma kartı çıkar', await until(async () => (await region.count()) === 1, 10000));
+  check('(q7) Eşleşmeyen sürümde bulut satırı EZİLMEDİ', JSON.stringify(mock.rows[UID]) === rowBefore && mock.versions[UID] === 5);
+  const rec = await qRec(page);
+  check('(q7) Kaybeden kopya (bu cihazın değişikliği) karantinaya alındı', !!rec && rec.reason === 'surum-cakismasi' && JSON.stringify(rec.data).includes('Q7 Yerel Degisiklik'));
+  check('(q7) Kullanıcıya bildirim: kartta bu cihazın değişikliklerinin ayrıca saklandığı yazıyor',
+    (await region.innerText()).includes('ayrıca') && (await region.innerText()).includes('7 gün'));
+  await region.getByRole('button', { name: /Hesabımdaki veriyi yükle/ }).click();
+  check('(q7) Hesaptakini yükleyince başka cihazın verisi görünür', await until(async () => (await page.locator('.list-row', { hasText: 'Q7 Baska Cihaz' }).count()) >= 1, 12000));
+  await qCard(page).waitFor({ timeout: 12000 }).catch(() => {});
+  check('(q7) Reddedilen kopya silinmedi: aynı hesapla "kurtarılmamış kopya" kartı sorar', await qCard(page).count() === 1);
+  await qCard(page).getByRole('button', { name: /Hesabıma yükle/ }).click();
+  check('(q7) Kopya hesaba yüklenince bulut satırı kopyayı içerir', await until(async () => JSON.stringify(mock.rows[UID]).includes('Q7 Yerel Degisiklik'), 10000));
+  const bodies = JSON.stringify(mock.upserts);
+  check('(q7) Sürümlü yolda da karantina anahtarı buluta girmedi', !bodies.includes('quarantine'));
+}
+
+// (q7b) 2b: hesapta SÜRÜMLÜ kayıt varken girişte okunan sürüm kullanılır; başka cihaz ilerlerse çakışma
+{
+  const mock = makeMock();
+  mock.rows[UID] = cloudRowOf({ 'fagent.portfolio.v1': portfolio(['Q7b Hesap Varligi']) });
+  mock.versions[UID] = 3;
+  const { page } = await newPage(CLOUD_BASE, { mock });
+  await open(page, CLOUD_BASE);
+  await login(page, EMAIL);
+  check('(q7b) Hazırlık: hesap portföyü yüklendi', await until(async () => (await page.locator('.list-row', { hasText: 'Q7b Hesap Varligi' }).count()) >= 1, 12000));
+  await addHolding(page, 'Q7b Yeni Varlik');
+  check('(q7b) Okunan sürümle (3) koşullu güncelleme yapıldı; sürüm 4 oldu',
+    await until(async () => mock.writes.some(w => w.method === 'PATCH' && w.ver === 3) && mock.versions[UID] === 4));
+  mock.rows[UID] = cloudRowOf({ 'fagent.portfolio.v1': portfolio(['Q7b Baska Cihaz']) });
+  mock.versions[UID] = 9; // başka cihaz hem içeriği hem sürümü ilerletti
+  const rowBefore = JSON.stringify(mock.rows[UID]);
+  await addHolding(page, 'Q7b Eski Surumle Yazilmaz');
+  check('(q7b) Eski sürümle yazım reddedilir: bulut ezilmedi, çakışma kartı çıktı',
+    await until(async () => (await page.getByRole('region', { name: 'Senkron çakışması' }).count()) === 1, 10000)
+    && JSON.stringify(mock.rows[UID]) === rowBefore && mock.versions[UID] === 9);
+}
+
+// (q8) 2b: sürüm sütunu YOKSA (eski veritabanı) bugünkü davranış: düz upsert, hata yok
+{
+  const mock = makeMock();
+  mock.versioned = false;
+  const { page } = await signedInWithData(mock);
+  await addHolding(page, 'Q8 Eski DB Varlik');
+  check('(q8) Sürüm sütunu yokken kayıt düz upsert ile sürer',
+    await until(async () => JSON.stringify(mock.rows[UID]).includes('Q8 Eski DB Varlik')) && mock.writes.some(w => w.method === 'UPSERT'));
+  check('(q8) Sürüm sütunu yokken hata durumu görünmez', !(await bodyText(page)).includes('Senkron hatası') && (await page.locator('.side-account-dot.warn').count()) === 0);
+}
+
+// =====================================================================================
+// TUR 2: O1 (iki sekme), O2 (Çıkış önce sorar), O3 (sahibi belirsiz veri), D1, D2, D5 + uyum
+// =====================================================================================
+
+// (q9) O1: başka sekmede SIFIRLA yapıldı; bayrağı olmayan sekmede yeniden kurulum hesabı sormadan ezmez
+{
+  const mock = makeMock();
+  mock.rows[UID] = cloudRowOf({ 'fagent.portfolio.v1': portfolio(['Q9 Hesap Portfoyu']) });
+  const { page: p1, ctx } = await newPage(CLOUD_BASE, { mock });
+  await open(p1, CLOUD_BASE);
+  await login(p1, EMAIL);
+  await until(async () => (await p1.locator('.list-row', { hasText: 'Q9 Hesap Portfoyu' }).count()) >= 1, 12000);
+  await sleep(1500);
+  const p2 = await ctx.newPage(); // aynı oturum ve depolama, AYRI bellek (SIFIRLA bayrağı yok)
+  p2.on('pageerror', err => { console.log('PAGE_ERROR:', err.message); failed = true; });
+  p2.on('dialog', d => d.accept());
+  await attach(p2, mock, CLOUD_BASE);
+  await p2.goto(CLOUD_BASE, { waitUntil: 'networkidle' });
+  check('(q9) Hazırlık: ikinci sekme hesap portföyüyle senkron', await until(async () => (await p2.locator('.list-row', { hasText: 'Q9 Hesap Portfoyu' }).count()) >= 1, 12000));
+  await sleep(1500);
+  const rowBefore = JSON.stringify(mock.rows[UID]);
+  const writesBefore = mock.writes.length;
+  await p1.click('text=SIFIRLA'); // sekme 1: SIFIRLA (sahiplik işareti silinir)
+  check('(q9) Sekme 1: SIFIRLA sahiplik işaretini sildi', await until(async () => (await lsGet(p1, 'fagent.cloud.owner.v1')) === null));
+  const onboardBtn = p2.getByRole('button', { name: 'Karma örnek portföy' });
+  check('(q9) Sekme 2 sıfırlanmayı gördü (kurulum ekranı)', await until(async () => (await onboardBtn.count()) === 1, 8000));
+  await onboardBtn.click(); // sekme 2: bayrağı olmayan sekmede yeniden kurulum
+  const region2 = p2.getByRole('region', { name: 'Senkron çakışması' });
+  check('(q9) Başka sekmede SIFIRLA sonrası yeniden kurulum çakışma kartını açar (hesap sorulmadan ezilmez)',
+    await until(async () => (await region2.count()) === 1, 10000));
+  await sleep(2500);
+  check('(q9) Hesaptaki kayıt değişmedi, yazma gitmedi', JSON.stringify(mock.rows[UID]) === rowBefore && mock.writes.length === writesBefore);
+  await ctx.close();
+}
+
+// (q10) O3: sahibi belirsiz veri (girişten önce hesapsız kullanılmış) oturum düşüşünde hesap etiketiyle karantinaya YAZILMAZ
+{
+  const mock = makeMock();
+  const { page } = await newPage(CLOUD_BASE, { mock });
+  await open(page, CLOUD_BASE);
+  await seed(page, { 'fagent.portfolio.v1': portfolio(['Q10 Sahibi Belirsiz']) });
+  await login(page, EMAIL);
+  await uploadCard(page).waitFor({ timeout: 10000 }); // bulut boş + sahibi belirsiz veri → onay bekliyor
+  await page.evaluate(ref => {
+    const bc = new BroadcastChannel(`sb-${ref}-auth-token`);
+    bc.postMessage({ event: 'SIGNED_OUT', session: null });
+    bc.close();
+  }, FAKE_REF);
+  check('(q10) Oturum düştü', await until(async () => (await sideText(page)).includes('GİRİŞ / KAYIT')));
+  await sleep(500);
+  check('(q10) Sahibi belirsiz veri hesap etiketiyle karantinaya yazılmadı', (await lsGet(page, QKEY)) === null);
+  check('(q10) Kullanıcı katmanları yine temizlendi', !(await lsKeys(page)).includes('fagent.portfolio.v1'));
+}
+
+// (q11) O2: "Sil ve çık" kopya bırakmaz; synced veride Çıkış sormaz
+{
+  const mock = makeMock();
+  const { page } = await signedInWithData(mock);
+  await page.locator('.side-account').click();
+  await accountCardOf(page).getByRole('button', { name: /Çıkış yap/ }).click();
+  check('(q11) Hesapla eşit veride Çıkış sormadan çıkar (yalnız gitmemiş veri için sorulur)',
+    await until(async () => (await sideText(page)).includes('GİRİŞ / KAYIT')) && (await qRec(page)) === null);
+}
+{
+  const mock = makeMock();
+  const { page } = await signedInWithData(mock);
+  mock.failWrites = true;
+  await addHolding(page, 'Q11 Silinecek Varlik');
+  await sleep(1800);
+  await page.locator('.side-account').click();
+  await accountCardOf(page).getByRole('button', { name: /Çıkış yap/ }).click();
+  await askGroup(page).waitFor({ timeout: 8000 });
+  const [dl] = await Promise.all([
+    page.waitForEvent('download', { timeout: 8000 }),
+    askGroup(page).getByRole('button', { name: /İndir/ }).click(),
+  ]);
+  const fs = await import('node:fs');
+  check('(q11) Çıkış sorusundaki "İndir" gitmemiş değişikliği yedek dosyası olarak verir; hâlâ girişli',
+    fs.readFileSync(await dl.path(), 'utf8').includes('Q11 Silinecek Varlik') && (await sideText(page)).includes(EMAIL));
+  await askGroup(page).getByRole('button', { name: /Sil ve çık/ }).click();
+  check('(q11) "Sil ve çık" çıkar', await until(async () => (await sideText(page)).includes('GİRİŞ / KAYIT')));
+  check('(q11) "Sil ve çık" karantina kopyası bırakmaz ve veriyi cihazdan siler', (await lsGet(page, QKEY)) === null && !(await dumpHas(page, 'Q11 Silinecek Varlik')));
+}
+
+// (q12) D2: karantina yazılamazsa (yer yok) çıkış DURDURULUR, veri silinmez; kullanıcı bilgilendirilir
+{
+  const mock = makeMock();
+  const { page } = await signedInWithData(mock);
+  await page.evaluate(() => {
+    const orig = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (k, v) {
+      if (k === 'fagent.quarantine.v1' && window.__qFail) throw new DOMException('quota', 'QuotaExceededError');
+      return orig.call(this, k, v);
+    };
+  });
+  mock.failWrites = true;
+  await addHolding(page, 'Q12 Yer Yok Varlik');
+  await sleep(1800);
+  await page.evaluate(() => { window.__qFail = true; });
+  await page.locator('.side-account').click();
+  await accountCardOf(page).getByRole('button', { name: /Çıkış yap/ }).click();
+  await askGroup(page).waitFor({ timeout: 8000 });
+  await askGroup(page).getByRole('button', { name: /7 gün bu cihazda sakla ve çık/ }).click();
+  check('(q12) Kopya yazılamayınca çıkış yapılmadı ve kullanıcıya bildirildi',
+    await until(async () => (await bodyText(page)).includes('Bu cihazda kopya için yer yok'), 8000) && (await sideText(page)).includes(EMAIL));
+  check('(q12) Veri silinmedi (portföy yerelde duruyor)', (await lsGet(page, 'fagent.portfolio.v1'))?.includes('Q12 Yer Yok Varlik') === true);
+  check('(q12) "İndir" hâlâ sunuluyor', await askGroup(page).getByRole('button', { name: /İndir/ }).count() === 1);
+}
+
+// (q13) D1 + uyum: karara bağlanmamış karantinanın üzerine sessizce yazılmaz; kopya saklanamazsa kartta uyarı
+{
+  const mock = makeMock();
+  const { page } = await signedInWithData(mock);
+  const bump = async name => {
+    mock.rows[UID] = cloudRowOf({ 'fagent.portfolio.v1': portfolio([name]) });
+    mock.versions[UID] = (mock.versions[UID] ?? 0) + 5;
+  };
+  await bump('Q13 Baska Cihaz 1');
+  await addHolding(page, 'Q13 Ilk Yerel');
+  const region = page.getByRole('region', { name: 'Senkron çakışması' });
+  await region.waitFor({ timeout: 10000 });
+  await region.getByRole('button', { name: /Hesabımdaki veriyi yükle/ }).click();
+  await qCard(page).waitFor({ timeout: 12000 });
+  check('(q13) Hazırlık: ilk kopya kartta (1 kayıt)', (await qAll(page)).length === 1);
+  await bump('Q13 Baska Cihaz 2');
+  await addHolding(page, 'Q13 Ikinci Yerel');
+  await region.waitFor({ timeout: 10000 });
+  const recs = await qAll(page);
+  check('(q13) Karara bağlanmamış ilk kopya korunur; ikinci çakışma ikinci kayıt olur',
+    recs.length === 2 && JSON.stringify(recs[1].data).includes('Q13 Ilk Yerel') && JSON.stringify(recs[0].data).includes('Q13 Ikinci Yerel'));
+  await region.getByRole('button', { name: /Hesabımdaki veriyi yükle/ }).click();
+  await qCard(page).waitFor({ timeout: 12000 });
+  check('(q13) Kart iki kopyayı da ayrı satırlarda sunar', await qCard(page).getByRole('button', { name: /Sil/ }).count() === 2);
+  await qCard(page).getByRole('button', { name: /Sil/ }).first().click();
+  check('(q13) Bir kopyayı silmek diğerini silmez', await until(async () => (await qAll(page)).length === 1));
+}
+{
+  const mock = makeMock();
+  const { page } = await signedInWithData(mock);
+  await page.evaluate(() => {
+    const orig = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (k, v) {
+      if (k === 'fagent.quarantine.v1') throw new DOMException('quota', 'QuotaExceededError');
+      return orig.call(this, k, v);
+    };
+  });
+  mock.rows[UID] = cloudRowOf({ 'fagent.portfolio.v1': portfolio(['Q13b Baska Cihaz']) });
+  mock.versions[UID] = 7;
+  await addHolding(page, 'Q13b Yerel');
+  const region = page.getByRole('region', { name: 'Senkron çakışması' });
+  await region.waitFor({ timeout: 10000 });
+  check('(q13b) Sürüm çakışmasında kopya saklanamazsa kartta koşullu uyarı (önce yedek indir) çıkar',
+    (await region.innerText()).includes('SAKLANAMADI') && (await region.innerText()).includes('yedeğini indir'));
+}
+
+// (q14) D5: çıkışta sürüm kipi sıfırlanır (eski veritabanı → yeni veritabanı geçişinde koşullu yazım yeniden öğrenilir)
+{
+  const mock = makeMock();
+  mock.versioned = false;
+  mock.rows[UID] = cloudRowOf({ 'fagent.portfolio.v1': portfolio(['Q14 Hesap']) });
+  const { page } = await newPage(CLOUD_BASE, { mock });
+  await open(page, CLOUD_BASE);
+  await login(page, EMAIL);
+  await until(async () => (await page.locator('.list-row', { hasText: 'Q14 Hesap' }).count()) >= 1, 12000);
+  await page.locator('.side-account').click();
+  await accountCardOf(page).getByRole('button', { name: /Çıkış yap/ }).click();
+  await until(async () => (await sideText(page)).includes('GİRİŞ / KAYIT'));
+  mock.versioned = true; // veritabanı yükseltildi; aynı sayfa (yenileme yok), başka hesap, boş bulut
+  await login(page, 'bob@ornek.com');
+  await until(async () => (await sideText(page)).includes('bob@ornek.com'));
+  await page.getByRole('button', { name: 'Kendi paramı gireceğim' }).click();
+  await addHolding(page, 'Q14 Bob Varlik');
+  check('(q14) Çıkıştan sonra sürüm kipi yeniden öğrenildi: yeni hesabın ilk kaydı sürümlü insert ile yapıldı',
+    await until(async () => mock.writes.some(w => w.method === 'INSERT' && w.uid === USERS['bob@ornek.com']), 8000));
 }
 
 await browser.close();

@@ -481,13 +481,13 @@ Geri yükleme güvenilmeyen girdi sayılır: dosya dışarıdan gelebilir. Önce
 
 **Durum:** YAPILDI · **Yol haritası:** YH-1 · **PDF ekranı:** Gizlilik kartları; SIFIRLA düğmesinin yeri tasarımda belirlenecek
 
-SIFIRLA bütün oyunu başa sarar. Sırayla: portföy boş duruma, ajan belleği, öğretilen bilgi, vergi, hedef, yedek meta verisi, girilen enflasyon, eski anahtarlar, bulut sahiplik işareti, kurtarma kayıtları silinir; son olarak IndexedDB aynası silinir. Ayna silinmezse açılışta veri geri gelirdi; bu yüzden önce localStorage'a senkron bir 'silme işareti' konur. Sayfa silme bitmeden yenilenirse açılış işareti görür ve aynayı siler, geri yüklemez. Çıkış (hesaptan) buna ek olarak fiyat ve piyasa önbelleğini ve portföy anahtarını da siler.
+SIFIRLA bütün oyunu başa sarar. Sırayla: portföy boş duruma, ajan belleği, öğretilen bilgi, vergi, hedef, yedek meta verisi, girilen enflasyon, eski anahtarlar, bulut sahiplik işareti, kurtarma kayıtları ve hesaba gitmemiş yerel kopya (karantina, fagent.quarantine.v1) silinir; son olarak IndexedDB aynası silinir. Ayna silinmezse açılışta veri geri gelirdi; bu yüzden önce localStorage'a senkron bir 'silme işareti' konur. Sayfa silme bitmeden yenilenirse açılış işareti görür ve aynayı siler, geri yüklemez. Çıkış (hesaptan) buna ek olarak fiyat ve piyasa önbelleğini ve portföy anahtarını da siler.
 
 | Kontrol | Geçerse | Geçemezse |
 |---|---|---|
-| Kullanıcı onayı | 'Tüm veriler silinsin ve başa dönülsün mü?' onayıyla devam eder. | Vazgeçilirse hiçbir şey silinmez. |
+| Kullanıcı onayı | Girişsizken 'Tüm veriler silinsin ve başa dönülsün mü?'; girişliyken 'Bu tarayıcıdaki veriler silinsin ve başa dönülsün mü? Hesabındaki kopya silinmez. Yeniden kurulum yaparsan, hesaptaki kayıtla bu tarayıcıdaki yeni veriden hangisinin kalacağı sana sorulur; sen seçmeden hesabındaki kayıt değişmez.' onayıyla devam eder. | Vazgeçilirse hiçbir şey silinmez. |
 | Silme işareti önce yazılıyor | Yarım kalan silmede bile geri yükleme olmaz. | IndexedDB silmesi hata verirse işaret kalır ve ayna o oturumda yazmaz. |
-| Kurtarma kayıtları (fagent.recovery.*) da siliniyor | Silinen veri kurtarma rafında kalmaz. | - |
+| Kurtarma kayıtları (fagent.recovery.*) ve karantina kopyası (fagent.quarantine.v1) da siliniyor | Silinen veri kurtarma rafında ve karantinada kalmaz. | - |
 | Çıkışta kullanıcı katmanları ve önbellekler | clearForSignOut hepsini temizler. | Bulut çakışması varsa keepLocalData ile yerel kopya korunabilir (cloud.ts signOut). |
 
 **Kod:**
@@ -505,7 +505,7 @@ SIFIRLA bütün oyunu başa sarar. Sırayla: portföy boş duruma, ajan belleği
 - tests/unit/depolama.test.ts: silme işareti: silme başarısızsa işaret KALIR (sonraki açılış tekrar dener) ve geri yükleme yapılmaz
 - tests/unit/depolama.test.ts: O-B: KOŞAN iş sırasında SIFIRLA -> silinen veri kurtarma kaydında KALMAZ
 
-**Not:** Girişliyken SIFIRLA'nın buluttaki kopyayı sormadan ezmesi ayrı bir açık madde (34+33, bkz. A17).
+**Not:** Girişliyken SIFIRLA bu tarayıcıdaki veriyi ve karantina kopyasını siler, hesaptaki kopya durur; yeniden kurulumda (başka sekmede yapılsa da) hesapla bu tarayıcıdan hangisinin kalacağı sorulur (34+33 kapandı, bkz. A17; sahte Supabase ile yeşil).
 
 ### A16 · Hesap ve bulut: isteğe bağlı, canlıda kapalı
 
@@ -520,6 +520,10 @@ Supabase hesabı oyunun isteğe bağlı bir bölümüdür. Derleme sırasında V
 | Gönderilen veri beyaz listede mi, boyut sınırında mı (MAX_SYNC_CHARS 1.500.000) | Satır yazılır. | Durum 'hata', 'Veri, hesap senkronu için çok büyük; buluta kaydedilmedi.' |
 | Onboarding tamam mı (portfolioOnboarded) | Yazılır. | Boş durum buluta yazılmaz. |
 | Satır sahibi | RLS: yalnız kendi user_id satırı. | Gerçek Supabase'de RLS doğrulanmadı (yalnız sahte Supabase ile yeşil). |
+| Sürüm sütunu var mı (portfolios.version, 20261031000000 migration'ı; src/surum.ts) | Kayıt koşullu yapılır: ilk kayıt insert, sonrakiler 'update ... where version = okunan sürüm'. | Sütun yoksa (eski veritabanı, hata kodu 42703) düz upsert'e düşülür; davranış öncekiyle aynı, hata görünmez. |
+| Sürüm eşleşti mi (başka cihaz araya girdi mi) | Yazılır, yeni sürüm alınır. | Hiçbir şey yazılmaz; bu cihazın kopyası karantinaya alınır, güncel bulut kaydı okunur ve çakışma kartı çıkar (bulut ezilmez). |
+| Hesaba gitmemiş yerel veri çıkışta/oturum düşüşünde var mı (src/karantina.ts) | Kullanıcı Çıkış'a basarsa ÖNCE sorulur (7 gün bu cihazda sakla / İndir / Sil ve çık); oturum kendiliğinden düşerse sormadan saklanmaya çalışılır. Kopya ayrı anahtarda (fagent.quarantine.v1), hesap kimliğinin özetiyle, en çok 2 kayıt, kayıt başına en çok 7 gün tutulur; buluta ve yedek dosyasına girmez. Karara bağlanmamış kopyanın üzerine yazılmaz. | Veri hesapla eşitse ya da sahibi belirsizse karantina açılmaz. Cihazda yer yoksa: kullanıcının Çıkış'ı DURDURULUR ve kullanıcıya bildirilir (veri silinmez; İndir sunulur); oturum kendiliğinden düşmüşse bugünkü davranış sürer (veri silinir). |
+| Karantina kime ait, süresi doldu mu | Aynı hesapla girişte 'indir / hesaba yükle / sil' sorulur. | Başka hesapla girişte, SIFIRLA'da, hesap silmede ve 7 gün dolunca silinir. |
 
 **Kod:**
 - `src/cloud.ts:cloudEnabled`
@@ -528,40 +532,56 @@ Supabase hesabı oyunun isteğe bağlı bir bölümüdür. Derleme sırasında V
 - `src/cloud.ts:deleteAccount`
 - `scripts/build.mjs (sb_secret_/service_role denetimi)`
 - `supabase/migrations/20261018000000_portfolios_and_account_deletion.sql`
+- `src/cloud.ts:writeRow`
+- `src/cloud.ts:localSignOutCleanup`
+- `src/cloud.ts:quarantineUpload`
+- `src/karantina.ts`
+- `src/surum.ts`
+- `src/config/varsayilanlar.ts:KARANTINA_OMRU_MS`
+- `supabase/migrations/20261031000000_portfolios_version.sql`
 
-**Bozulursa:** Bulut kapalıyken etkisi yok. Açıkken kayıt başarısız olursa yerel kopya durur, durum 'hata' görünür.
+**Bozulursa:** Bulut kapalıyken etkisi yok. Açıkken kayıt başarısız olursa yerel kopya durur, durum 'hata' görünür; çıkışta gitmemiş veri karantinaya alınır (silinmez).
 
 **Test:**
 - tests/e2e/fagent-auth-e2e.mjs (ayrı dist-e2e-cloud derlemesi, port 4201, SAHTE Supabase ile yeşil)
 - tests/run-e2e.mjs (dist/ içinde Supabase adresi yok doğrulaması)
+- tests/unit/karantina.test.ts (karantina kuralları, sürüm yanıtı yorumu)
+- tests/e2e/fagent-auth-e2e.mjs (q1-q14: karantina, SIFIRLA koruması, sürümlü yazım; sahte Supabase ile yeşil)
 
-**Not:** Kod tam; canlıya açılması canlı-öncesi zorunlu listeye bağlı (A17). RLS, delete_my_account, e-posta yönlendirmeleri, PASSWORD_RECOVERY gerçek projede doğrulanmadı. Kullanıcı kararı (2026-10-27): kod repoda açık kalır, silinmez, sert kilitlenmez. Araştırma: docs/veri-akisi/bulut-senkron-arastirma.md (2026-10-31; öneri: sürümlü koşullu yazım + karantina + dürüst onay; karar kullanıcıda).
+**Not:** Kod tam; canlıya açılması canlı-öncesi zorunlu listeye bağlı (A17). RLS, delete_my_account, e-posta yönlendirmeleri, PASSWORD_RECOVERY gerçek projede doğrulanmadı. Sürüm sütunu migration'ı (20261031000000) yalnız DOSYA olarak var, hiçbir projeye uygulanmadı; gerçek veritabanına uygulama plan adım 5'e ve açık insan onayına bağlı. Kullanıcı kararı (2026-10-27): kod repoda açık kalır, silinmez, sert kilitlenmez. Kullanıcı kararı (2026-10-31): docs/veri-akisi/bulut-senkron-arastirma.md önerisi kabul (sürümlü koşullu yazım + karantina + dürüst onay).
 
-### A17 · Bulut: canlı öncesi zorunlu açık maddeler (34+33, 35, 41, 27)
+### A17 · Bulut: canlı öncesi zorunlu maddeler (34+33, 35, 41, 27)
 
-**Durum:** PLANLI · **PDF ekranı:** Abonelik planları ve hesap ekranı (hesap canlıda kapalı)
+**Durum:** KISMEN · **PDF ekranı:** Abonelik planları ve hesap ekranı (hesap canlıda kapalı)
 
-Bulut oyunu canlıya çıkmadan önce kapanması gereken dört kapı vardır. Bunlar kapanana kadar canlıda VITE_SUPABASE_* tanımlanmaz. Kullanıcı kararıyla (2026-10-24) bu maddeler şimdilik YAPILMAZ; önce çakışma çözümü ve çoklu cihaz örnekleri araştırılacak.
+Bulut oyunu canlıya çıkmadan önce dört kapı kapanmalıdır. Kullanıcı kararıyla (2026-10-31) araştırma önerisi kabul edildi ve istemci tarafı uygulandı: 34+33, 35b ve 35c sahte Supabase ile yeşil kapandı; 27'nin istemci kodu ve migration dosyası hazır, gerçek veritabanında doğrulanmadı. Bunlar kapanana (ve gerçek projede sınanana) kadar canlıda VITE_SUPABASE_* tanımlanmaz.
 
 | Kontrol | Geçerse | Geçemezse |
 |---|---|---|
-| 34+33: girişliyken SIFIRLA + yeniden kurulum | - | Buluttaki kopyayı sormadan ezer; onay metni yanıltıcı (kayıt kaynaklı, bu oturumda yeniden doğrulanmadı). |
-| 35: başka sekmeden çıkış | - | Hesaba yüklenmemiş tek yerel kopyayı silebilir (kayıt kaynaklı). |
+| 34+33: girişliyken SIFIRLA + yeniden kurulum | KAPANDI (sahte Supabase ile yeşil): SIFIRLA onayı olanı söyler; yeniden kurulumdaki ilk kayıt önce buluta bakar, farklıysa çakışma kartı çıkar ('Hesabımdaki veriyi yükle' birincil, 'bu tarayıcıdaki veriyi hesabıma yükle' ayrı ve onaylı). Başka sekmede SIFIRLA yapılıp o sekmede yeniden kurulursa da (sahiplik işareti yoksa) önce buluta bakılır. Test: q6, q6b, q9. | - |
+| 35b: başka sekmeden çıkış / oturum süresi dolması | KAPANDI (sahte Supabase ile yeşil): hesaba gitmemiş veri, yalnız sahiplik işareti bu hesabı gösteriyorsa, karantinaya alınır (7 gün, hesap özetiyle etiketli); sahibi belirsiz veri hesap etiketiyle yazılmaz. Test: q2, q3, q10. | - |
+| 35c: internet yokken kullanıcının Çıkış'ı | KAPANDI (sahte Supabase ile yeşil): son kayıt yeniden denenir, gitmezse Çıkış'ta önce sorulur (7 gün bu cihazda sakla / İndir / Sil ve çık); saklanamıyorsa çıkış durdurulur ve kullanıcı bilgilendirilir; aynı hesapla girişte indir / hesaba yükle / sil sorulur. Test: q1, q3, q4, q5, q11, q12. | - |
 | 41: geri yükleme yazımı ya-hep-ya-hiç, dosya boyutu sınırı | KAPANDI: anlık görüntü + rollback ve 10 MB sınırı kodda ve testte (bkz. A14). | - |
-| 27: koşulsuz upsert | - | cloud.ts save() koşulsuz upsert yapıyor (kodda doğrulandı): iki cihazda son yazan kazanır. |
+| 27: koşulsuz upsert / iki cihazda son yazan kazanır | İstemci HAZIR (sahte Supabase ile yeşil): sürüm eşleşmezse yazılmaz, kaybeden kopya karantinaya alınır, kullanıcıya çakışma kartı çıkar. Sürüm çakışmasında karara bağlanmamış eski kopya korunur (en çok 2 kayıt); kopya saklanamazsa kart önce yedek indirmeyi söyler. Test: q7, q7b, q8, q13, q13b, q14. | AÇIK: migration (portfolios.version + tetikleyici) hiçbir projeye uygulanmadı; PostgREST'in eşleşmeyen sürümde 0 satır döndürdüğü varsayımı gerçek projede doğrulanmadı (src/surum.ts TODO). Sütun yoksa istemci düz upsert'e düşer, yani sütun uygulanana kadar 27 fiilen açıktır. |
 
 **Kod:**
-- `src/cloud.ts:save (upsert)`
-- `src/cloud.ts:resolveConflict`
+- `src/cloud.ts:save / writeRow`
+- `src/cloud.ts:noteLocalReset`
+- `src/cloud.ts:localSignOutCleanup`
 - `src/cloud.ts:signOut`
+- `src/cloud.ts:resolveConflict`
+- `src/karantina.ts`
+- `src/surum.ts`
 - `src/backup.ts:applyUserData`
+- `supabase/migrations/20261031000000_portfolios_version.sql`
 
-**Bozulursa:** Canlıda açılsaydı iki cihazlı kullanıcı veri kaybedebilirdi. Bu yüzden hesap özelliği kapalı tutulur.
+**Bozulursa:** Migration uygulanana kadar iki cihazlı kullanıcıda son yazan kazanmaya devam eder (istemci düz upsert'e düşer). Hesap özelliği canlıda kapalı olduğundan canlı kullanıcı etkilenmez.
 
 **Test:**
-- tests/e2e/fagent-auth-e2e.mjs (mevcut davranışı sahte Supabase ile korur; açık maddeleri kapatan test yok)
+- tests/e2e/fagent-auth-e2e.mjs (q1-q14, sahte Supabase ile yeşil)
+- tests/unit/karantina.test.ts
 
-**Not:** 34+33, 35 satırları CLAUDE.md tablosundan alındı; bu belge için kod yeniden incelenmedi, 27 ve 41 kodda görüldü. Araştırma: docs/veri-akisi/bulut-senkron-arastirma.md (2026-10-31): 34+33, 35b ve 27 kodda yeniden incelendi; yeni gözlem 35c (kullanıcının kendi Çıkış'ında kayıt ağ hatasıyla düşerse yerel veri yine silinir, ekip doğrulamalı); öneri Seçenek 2 (2a istemci, 2b migration), 4 kullanıcı kararı bekliyor.
+**Not:** 2a (istemci) tamam: 34+33, 35b, 35c. 2b (27): istemci ve migration dosyası hazır; gerçek veritabanına uygulama ve iki istemciyle doğrulama plan adım 5'e bağlı. Karantina açık riski: kopya cihazda düz metin kalır (ortak cihaz); 7 gün sınırı ve hesap eşleşmesiyle dengelenir; TODO(hukuk) src/karantina.ts (aydınlatma, 47). Karantina kimliği özeti yalnız eşitlik karşılaştırmasıdır; kimliği bilen eşleşmeyi doğrulayabilir. Kalan: 47 (KVKK aydınlatma) en sona bırakıldı (kullanıcı kararı 2026-10-31). Ayrıntı: docs/veri-akisi/bulut-senkron-arastirma.md 'Uygulama durumu'.
 
 ## B) Veri kaynakları işletimi
 
@@ -1531,7 +1551,7 @@ Devirde alan adı kayıt sahibi, Vercel projesi/ekibi, Supabase proje sahipliği
 1. Dış kaynaklar (EVDS, CoinGecko, Frankfurter) gerçek ağda hiç doğrulanmadı; tüm sonuçlar taklit yanıtla yeşil.
 2. EVDS_API_KEY Vercel fagent projesinde tanımlı değil (27.10 kontrolü); TÜFE seri kodu TP.FG.J0 ve tüm kur seri kodları gerçek yanıtla doğrulanmadı; kur tablosu bilerek boş.
 3. Gerçek Supabase projesine karşı RLS, delete_my_account, e-posta yönlendirmeleri ve PASSWORD_RECOVERY doğrulanmadı; auth testleri sahte Supabase ile yeşil.
-4. Bulut canlı-öncesi maddeleri açık: 34+33 (girişliyken SIFIRLA buluttaki kopyayı ezer), 35 (başka sekmeden çıkış yerel kopyayı silebilir; A8 ile yalnız 'öteki sekmenin diski yeniden doldurması' yanı kapandı), 27 (koşulsuz upsert, son yazan kazanır). 41 (geri yükleme atomik değil, boyut sınırı) kapandı (A14). Bunlar kapanana kadar VITE_SUPABASE_* canlıda tanımlanmaz.
+4. Bulut canlı-öncesi maddeleri: 34+33, 35b/35c ve 41 kapandı (sahte Supabase ile yeşil; gerçek projede doğrulanmadı). 27 için istemci hazır ama sürüm sütunu migration'ı hiçbir veritabanına uygulanmadı (plan adım 5, açık onay); uygulanana kadar son yazan kazanır. 47 (KVKK aydınlatma) en sona bırakıldı. Bunlar kapanana kadar VITE_SUPABASE_* canlıda tanımlanmaz.
 5. localStorage doluyken yazılamayan değişiklik yalnız bellekte durur: sayfa yenilenirse kaybolur (ekrandaki uyarı ve beforeunload onayı bunu bildirir); değer IndexedDB aynasına bilerek yazılmaz (localStorage esas kaynak). Kota, setItem hatası taklit edilerek sınandı; gerçek kota dolumu denenmedi. Vergi/hedef/ajan katmanlarının kota yolu node birim testinde değil yalnız yazmaDurumu üzerinden sınandı. Uyarının yönlendirdiği 'Veri Yedeği' kartı yalnız Panel sekmesinde; yeri tasarım kararı.
 6. Kayıt kimliği t<milisaniye> / h<milisaniye> biçiminde; aynı milisaniyede iki kayıt aynı kimliği alabilir (store.ts addTxn, addIncome, addHolding). Kod okunarak görüldü.
 7. store.addTxn tutarın pozitif olmasını kendisi denetlemez; denetim arayüzde (App.tsx). Başka bir çağıran (örn. ajan) geçersiz tutar gönderirse store'a ulaşabilir; ajan yolunda tutar denetiminin tamlığı bu belgede doğrulanmadı.
@@ -1555,4 +1575,4 @@ Devirde alan adı kayıt sahibi, Vercel projesi/ekibi, Supabase proje sahipliği
 25. Sekmeler arası eşitleme: olay gecikmesinde yazım anı karşılaştırması ezilen sürümü kurtarma alanına alır ama işlemi yine uygular (stale bellek kazanır). Başka sekmenin sürümü kurtarma alanına alınamazsa (IndexedDB yok/hata) kaydedilmemiş değişiklik yazılmadan bekler; her yazımda kopya yeniden denenir, IndexedDB hiç yoksa bekletme sürer (yenilemede kaybolur). Silme işareti ömrü (30 sn) ölçülmedi, varsayım. Çakışma ve silme-kazanır kararları gerçek tarayıcıda yalnız kota taklidiyle sınandı; 'kopya alınamadı' yolu yalnız birim testte. #35'in 'çıkışla hesaba yüklenmemiş tek yerel kopya silinir' yanı açık.
 
 ---
-Durum dağılımı: YAPILDI 29, KISMEN 12, PLANLI 13.
+Durum dağılımı: YAPILDI 29, KISMEN 13, PLANLI 12.

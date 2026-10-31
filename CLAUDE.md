@@ -186,11 +186,11 @@ Env boşken bulut kodu hiç çalışmaz; hesapsız ürün bu maddelerden etkilen
 
 | # | Dosya | Sorun | Sahip |
 |---|---|---|---|
-| 34 + 33 | `src/cloud.ts`, `src/App.tsx` | Girişliyken SIFIRLA + yeniden kurulum buluttaki kopyayı sormadan ezer; onay metni yanıltıcı | veri-akışı + tasarım |
+| ~~34 + 33~~ | `src/cloud.ts`, `src/App.tsx` | ✅ Kapandı (31.10, A16): girişliyken SIFIRLA sonrası yeniden kurulum (iki sekmede de) bulutu ezmez, çakışma kartı çıkar; onay metni dürüst; auth e2e q6/q6b/q9 (sahte Supabase ile yeşil) | — |
 | ~~35a~~ | `src/sekmeSenkron.ts`, `src/store.ts` | ✅ Kapandı (31.10, A8): başka sekmede çıkış/SIFIRLA sonrası bu sekme belleğinden diski yeniden doldurmaz (silme kazanır, işaret ömrü 30 sn, yazıcı durur); `fagent-sekme-e2e.mjs` | — |
-| 35b | `src/cloud.ts` | Başka sekmeden çıkış, hesaba yüklenmemiş tek yerel kopyayı siler (karantina yok; `docs/is-kuyrugu.md` sıra 7) | veri-akışı |
+| ~~35b/35c~~ | `src/cloud.ts`, `src/karantina.ts` | ✅ Kapandı (31.10, A16): hesaba gitmemiş veri karantinada en çok 7 gün (en çok 2 kopya), kendi Çıkış'ında sorulur, yer yoksa çıkış durur; sahibi belirsiz veri karantinaya girmez; q1–q5, q10–q12 (sahte Supabase ile yeşil). Açık risk: oturum kendiliğinden düşerken cihazda yer yoksa veri silinir | — |
 | ~~41~~ | `src/backup.ts` | ✅ Kapandı (31.10, A14): anlık görüntü + iki turlu rollback, geri alınamayan değer bekletilir ve ayna korunur, ~10 MB sınırı; `fagent-yazma-e2e.mjs`, `depolama.test.ts` | — |
-| 27 | `src/cloud.ts` | Koşulsuz upsert: iki cihazda son yazan kazanır (koşullu güncelleme ya da açıkça belgeleme) | veri-akışı |
+| 27 | `src/cloud.ts`, `src/surum.ts` | KISMEN (31.10, A17): istemci koşullu yazım + çakışma kopyası hazır (q7/q7b/q8/q13, sahte Supabase ile yeşil); `supabase/migrations/20261031000000_portfolios_version.sql` HİÇBİR projeye uygulanmadı — adım 5'te açık onayla uygulanıp iki istemciyle doğrulanacak | veri-akışı |
 | ~~40~~ | `scripts/build.mjs` | ✅ Kapandı: derleme `sb_secret_`/service_role içeren VITE_* değerinde durur | — |
 | ~~43/16~~ | `vercel.json`, `netlify.toml` | ✅ Kapandı (24.10): CSP, frame-ancestors, nosniff, Referrer-Policy, Permissions-Policy; `fagent-csp-e2e.mjs` korur. Vercel önizlemede başlıklar DOĞRULANDI (24.10, yanıt başlıklarında görüldü) | — |
 | 47 | `src/Account.tsx` | KVKK aydınlatma metni olmadan kayıt açılabiliyor (adım 7) | tasarım |

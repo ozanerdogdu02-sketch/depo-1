@@ -19,6 +19,7 @@ import { clearPriceHistoryCache } from './priceHistory';
 import { clearMarketCache } from './cryptoMarketData';
 import { clearRecoveryKeys } from './recovery';
 import { clearMirrorForReset } from './mirror';
+import { deleteQuarantine } from './karantina';
 
 // Bu tarayıcıdaki kullanıcı verisinin hangi hesaba (Supabase user id) ait olduğu.
 // SENKRONLANMAZ ve BACKED_UP_KEYS'te YOKTUR. Amaç hesaplar arası sızıntıyı önlemek:
@@ -62,7 +63,9 @@ export function purgeLegacyKeys(): void {
 }
 
 // SIFIRLA. App.tsx'teki resetAll yalnızca bunu çağırır.
-export function clearLocalUserData(): void {
+// Karantina (hesaba gitmemiş kopya, karantina.ts) SIFIRLA'da da silinir. `keepQuarantine` yalnızca cloud.ts'in
+// çıkış/oturum düşüşü yolunda true gelir: orada karantina temizlikten SONRA yazılır ya da var olan korunur.
+export function clearLocalUserData(keepQuarantine = false): void {
   actions.reset();
   resetMemory();
   resetTraining();
@@ -74,14 +77,15 @@ export function clearLocalUserData(): void {
   clearCloudOwner();
   clearRecoveryKeys();   // bozuk-kayıt kurtarma kopyaları da kullanıcı verisidir
   clearMirrorForReset(); // IndexedDB aynası: silinmezse açılışta veri geri gelirdi
+  if (!keepQuarantine) deleteQuarantine();
   // Not: actions.reset() onboarded'ı false yapar, Panel unmount olur; bir sonraki
   // onboarding'de yeniden mount olup getTargets()/getTaxRates()'i TAZE okur — bu yüzden
   // kart state'lerini ayrıca sıfırlamak gerekmiyor.
 }
 
 // Çıkış / hesap silme / oturum düşüşü.
-export function clearForSignOut(): void {
-  clearLocalUserData();
+export function clearForSignOut(keepQuarantine = false): void {
+  clearLocalUserData(keepQuarantine);
   clearPriceHistoryCache();
   clearMarketCache();
   // actions.reset() boş durumu 'fagent.portfolio.v1'e geri yazar (onboarded=false). Çıkıştan

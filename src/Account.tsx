@@ -16,7 +16,8 @@ import {
   LogIn, LogOut, UserPlus, KeyRound, Trash2, Cloud, CloudOff, Loader2, Download, AlertTriangle,
 } from 'lucide-react';
 import {
-  useCloud, signIn, signUp, sendPasswordReset, setNewPassword, signOut, deleteAccount, resolveConflict,
+  useCloud, signIn, signUp, sendPasswordReset, setNewPassword, signOut, prepareSignOut, deleteAccount, resolveConflict,
+  quarantineDownload, quarantineDiscard, quarantineUpload,
   type AuthResult, type ConflictKind, type SyncStatus,
 } from './cloud';
 import { downloadBackup } from './backup';
@@ -89,6 +90,7 @@ function HesapAciklama() {
 // Bulutta farklı bir kayıt var ve bu tarayıcıda da (hesaba ait olduğu bilinmeyen ya da eşitlemeden
 // sonra değişmiş) veri var: cloud.ts hiçbir şeyi otomatik uygulamaz, upsert de yapmaz. Karar burada.
 function ConflictCard({ email }: { email: string }) {
+  const cloud = useCloud();
   const [busy, setBusy] = useState(false);
   const [backedUp, setBackedUp] = useState(false);
 
@@ -111,6 +113,18 @@ function ConflictCard({ email }: { email: string }) {
         istersen önce yedeğini indir; yedek dosyasını daha sonra Panel'deki "Veri Yedeği" kartından
         geri yükleyebilirsin. Sen karar verene kadar hiçbir şey eşitlenmez.
       </p>
+      {cloud.quarantine.some(q => q.reason === 'surum-cakismasi') && (
+        <p className="hint" style={{ marginTop: 8 }} role="status">
+          Hesabındaki kayıt, başka bir cihazda değişmiş. Bu tarayıcıdaki değişiklikler hesabına yazılmadı;
+          ayrıca bu cihazda en çok 7 gün saklanır. Hesabındaki veriyi yüklersen bu kopya silinmez.
+        </p>
+      )}
+      {cloud.conflictCopyFailed && (
+        <p className="auth-note auth-note-err" style={{ marginTop: 8 }} role="alert">
+          Hesabındaki kayıt, başka bir cihazda değişmiş. Bu tarayıcıdaki değişiklikler cihazda ayrıca SAKLANAMADI
+          (yer yok). Hesabındaki veriyi yüklemeden önce "Önce yedeğini indir"i kullan; yüklersen bu değişiklikler kaybolur.
+        </p>
+      )}
       <div className="auth-actions">
         <button
           className="btn btn-secondary btn-inline"
@@ -122,9 +136,7 @@ function ConflictCard({ email }: { email: string }) {
         <button className="btn btn-primary btn-inline" onClick={applyRemote} disabled={busy}>
           {busy ? <Loader2 size={14} className="spin-icon" /> : <Cloud size={14} />} Hesabımdaki veriyi yükle
         </button>
-        <button className="btn btn-secondary btn-inline" onClick={() => void signOut()} disabled={busy}>
-          <LogOut size={14} /> Çıkış yap
-        </button>
+        <SignOutControl disabled={busy} />
       </div>
       {backedUp && <p className="auth-note auth-note-ok" role="status">Yedek indirildi.</p>}
       <p className="hint" style={{ marginTop: 14 }}>
@@ -179,14 +191,118 @@ function UploadConfirmCard({ email, onResolved }: { email: string; onResolved: (
         <button className="btn btn-secondary btn-inline" onClick={discard} disabled={busy}>
           <Trash2 size={14} /> Bu tarayıcıdaki veriyi sil
         </button>
-        <button className="btn btn-secondary btn-inline" onClick={() => void signOut()} disabled={busy}>
-          <LogOut size={14} /> Çıkış yap
-        </button>
+        <SignOutControl disabled={busy} />
       </div>
       {backedUp && <p className="auth-note auth-note-ok" role="status">Yedek indirildi.</p>}
       <p className="hint" style={{ marginTop: 14 }}>
         Çıkış yaparsan bu tarayıcıdaki veri olduğu gibi kalır ve hiçbir şey hesabına gönderilmez.
       </p>
+    </div>
+  );
+}
+
+// "Çıkış yap": hesaba gitmemiş değişiklik varsa çıkıştan ÖNCE sorar. Bu cihazda saklamak varsayılan ve güvenli
+// seçenektir; kopya için yer yoksa çıkış yapılmaz ve kullanıcı bilgilendirilir (veri sessizce silinmez).
+function SignOutControl({ disabled }: { disabled: boolean }) {
+  const [ask, setAsk] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const run = (choice: 'sakla' | 'sil') => {
+    setBusy(true);
+    void signOut(choice).then(r => { if (!r.ok) setMsg(r.message); }).finally(() => setBusy(false));
+  };
+  const start = () => {
+    setBusy(true);
+    setMsg(null);
+    void prepareSignOut()
+      .then(r => { if (r.unsynced) setAsk(true); else return signOut().then(() => undefined); })
+      .finally(() => setBusy(false));
+  };
+  if (!ask) {
+    return (
+      <>
+        <button className="btn btn-secondary btn-inline" onClick={start} disabled={disabled || busy}>
+          {busy ? <Loader2 size={14} className="spin-icon" /> : <LogOut size={14} />} Çıkış yap
+        </button>
+        {msg && <p className="auth-note auth-note-err" role="alert">{msg}</p>}
+      </>
+    );
+  }
+  return (
+    <div role="group" aria-label="Çıkışta hesaba gitmemiş değişiklikler">
+      <p className="hint" style={{ marginTop: 8 }}>
+        Hesabına henüz gitmemiş değişiklikler var. Çıkışta bu tarayıcıdaki veri temizlenir. İstersen değişiklikler bu
+        cihazda en çok 7 gün ayrı bir kopya olarak saklanır; aynı hesapla girince ne yapılacağı sorulur.
+      </p>
+      <div className="auth-actions">
+        <button className="btn btn-primary btn-inline" onClick={() => run('sakla')} disabled={busy}>
+          <LogOut size={14} /> 7 gün bu cihazda sakla ve çık
+        </button>
+        <button className="btn btn-secondary btn-inline" onClick={() => downloadBackup()} disabled={busy}>
+          <Download size={14} /> İndir
+        </button>
+        <button
+          className="btn btn-secondary btn-inline"
+          onClick={() => { if (confirm('Hesaba gitmemiş değişiklikler silinsin ve çıkış yapılsın mı? Geri getirilemez.')) run('sil'); }}
+          disabled={busy}
+        >
+          <Trash2 size={14} /> Sil ve çık
+        </button>
+        <button className="btn btn-secondary btn-inline" onClick={() => { setAsk(false); setMsg(null); }} disabled={busy}>Vazgeç</button>
+      </div>
+      {msg && <p className="auth-note auth-note-err" role="alert">{msg}</p>}
+    </div>
+  );
+}
+
+// Hesaba gitmemiş yerel kopya(lar) bu cihazda (en çok 7 gün) saklanıyor. Her kopya için üç seçenek de
+// açıkça kullanıcıdadır; karar verilene kadar hiçbir şey hesaba yazılmaz ve silinmez.
+function QuarantineCard({ items }: { items: { savedAt: number; reason: string }[] }) {
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<AuthResult | null>(null);
+  const whyOf = (reason: string) => reason === 'surum-cakismasi'
+    ? 'Başka bir cihazda hesabın değiştiği için bu tarayıcıdaki değişiklikler hesaba yazılmadı.'
+    : reason === 'cikis'
+      ? 'Çıkış yaptığında bu değişiklikler hesaba gönderilememişti.'
+      : 'Oturum kapandığında bu değişiklikler hesaba gönderilememişti.';
+
+  const upload = (id: number) => {
+    if (!confirm('Bu kopya hesabına yüklensin mi? Hesabındaki mevcut kayıt bu kopyayla DEĞİŞTİRİLİR ve geri getirilemez.')) return;
+    setBusy(true);
+    void quarantineUpload(id).then(setNote).finally(() => setBusy(false));
+  };
+  const discard = (id: number) => {
+    if (!confirm('Bu cihazdaki kurtarılmamış kopya silinsin mi? Geri getirilemez.')) return;
+    quarantineDiscard(id);
+  };
+
+  return (
+    <div className="card auth-card auth-conflict fade" role="region" aria-label="Kurtarılmamış yerel kopya">
+      <h2 className="card-title auth-title"><AlertTriangle size={14} /> Kurtarılmamış yerel kopya</h2>
+      <p className="hint" style={{ marginTop: 8 }}>
+        Hesabına gitmemiş değişiklikler bu cihazda ayrıca saklandı ve her biri kaydedildiği günden en çok 7 gün sonra
+        silinir. Sen seçene kadar hesabına yazılmaz ve silinmez. Başka bir hesapla girersen, "SIFIRLA" yaparsan ya da
+        hesabını silersen de silinir.
+      </p>
+      {items.map(it => (
+        <div key={it.savedAt} className="auth-quarantine-item">
+          <p className="hint" style={{ marginTop: 8 }}>
+            {new Date(it.savedAt).toLocaleString('tr-TR')} · {whyOf(it.reason)}
+          </p>
+          <div className="auth-actions">
+            <button className="btn btn-secondary btn-inline" onClick={() => quarantineDownload(it.savedAt)} disabled={busy}>
+              <Download size={14} /> İndir
+            </button>
+            <button className="btn btn-secondary btn-inline" onClick={() => upload(it.savedAt)} disabled={busy}>
+              {busy ? <Loader2 size={14} className="spin-icon" /> : <Cloud size={14} />} Hesabıma yükle
+            </button>
+            <button className="btn btn-secondary btn-inline" onClick={() => discard(it.savedAt)} disabled={busy}>
+              <Trash2 size={14} /> Sil
+            </button>
+          </div>
+        </div>
+      ))}
+      <Notice result={note} />
     </div>
   );
 }
@@ -260,7 +376,8 @@ export function Account({ onSignedIn, onSkip }: { onSignedIn: () => void; onSkip
       void run(deleteAccount);
     };
     const syncErr = cloud.status === 'hata';
-    return (
+    return (<>
+      {cloud.quarantine.length > 0 && <QuarantineCard items={cloud.quarantine} />}
       <div className="card auth-card fade">
         <h2 className="card-title auth-title">Hesabım</h2>
         <p className="auth-email">{cloud.email}</p>
@@ -275,22 +392,26 @@ export function Account({ onSignedIn, onSkip }: { onSignedIn: () => void; onSkip
             yaptığında orada da görünür.
           </li>
           <li>
-            "SIFIRLA" yalnızca bu tarayıcıdaki veriyi siler; hesabındaki kopya kalır ve bir sonraki girişte geri
-            gelir. Hesabındaki veriyi silmenin yolu "Hesabımı sil"dir.
+            "SIFIRLA" yalnızca bu tarayıcıdaki veriyi siler; hesabındaki kopya kalır. Yeniden kurulumda hesaptaki
+            kayıtla yeni verinden hangisinin kalacağı sana sorulur; sen seçmeden hesabındaki kayıt değişmez.
+            Hesabındaki veriyi silmenin yolu "Hesabımı sil"dir.
           </li>
-          <li>Çıkış yaptığında bu tarayıcıdaki veriler temizlenir; hesabındaki kopya durur.</li>
+          <li>
+            Çıkış yaptığında bu tarayıcıdaki veriler temizlenir; hesabındaki kopya durur. Hesaba henüz gitmemiş
+            değişiklik varsa çıkıştan önce sorulur: bu cihazda en çok 7 gün ayrı bir kopya olarak saklanır (aynı
+            hesapla girişte ne yapılacağı sorulur), indirilir ya da silinir. Cihazda kopya için yer yoksa çıkıştan
+            önce bildirilir. Oturum kendiliğinden kapanırsa kopya sormadan saklanmaya çalışılır.
+          </li>
         </ul>
         <div className="auth-actions">
-          <button className="btn btn-secondary btn-inline" onClick={() => void signOut()} disabled={busy}>
-            <LogOut size={14} /> Çıkış yap
-          </button>
+          <SignOutControl disabled={busy} />
           <button className="btn btn-danger btn-inline" onClick={remove} disabled={busy}>
             <Trash2 size={14} /> Hesabımı sil
           </button>
         </div>
         <Notice result={result} />
       </div>
-    );
+    </>);
   }
 
   // Giriş yapılmamış: giriş / kayıt / şifremi unuttum.

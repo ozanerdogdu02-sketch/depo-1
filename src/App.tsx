@@ -26,7 +26,7 @@ import { clearLocalUserData } from './localData';
 // cloud.ts yan etkisi: env tanımlıysa hesap/bulut senkronunu başlatır; tanımsızsa hiçbir şey
 // yapmaz (istemci oluşturulmaz, ağ isteği atılmaz). Hesap arayüzü ve düğmesi yalnızca
 // cloudEnabled iken render edilir.
-import { cloudEnabled, useCloud, isCloudSynced } from './cloud';
+import { cloudEnabled, useCloud, isCloudSynced, noteLocalReset } from './cloud';
 import { Account, syncLabel } from './Account';
 import { useInflation, setUserInflation, loadLiveInflation, inflationSourceLabel, getInflation } from './inflation';
 import { exportHoldingsCsv, exportTxnsCsv, parseHoldingsCsv } from './csv';
@@ -1975,6 +1975,17 @@ export default function App() {
     if (cloudEnabled && cloud.status === 'cakisma') setTab('hesap');
   }, [cloud.status]);
 
+  // Hesaba gitmemiş yerel kopya (karantina) varsa aynı hesapla girişte "indir / hesaba yükle / sil" kartı
+  // için Hesap ekranına bir kez geçilir (her kayıt döngüsünde değil: kayıt tarihi başına bir kez).
+  const quarantineShown = useRef<number | null>(null);
+  useEffect(() => {
+    const at = cloud.quarantine[0]?.savedAt ?? null;
+    if (cloudEnabled && at !== null && cloud.status === 'senkron' && quarantineShown.current !== at) {
+      quarantineShown.current = at;
+      setTab('hesap');
+    }
+  }, [cloud.quarantine, cloud.status]);
+
   // Şifre sıfırlama bağlantısıyla gelen kullanıcı "Yeni şifre belirle" formunu görmeli; form yalnızca
   // Hesap ekranında çizilir, bu yüzden bağlantı hangi sekmede açılırsa açılsın Hesap'a geçilir.
   useEffect(() => {
@@ -1987,10 +1998,19 @@ export default function App() {
   useEffect(() => { void loadLiveInflation(); }, []);
 
   const resetAll = () => {
-    if (confirm('Tüm veriler silinsin ve başa dönülsün mü?')) {
+    // Girişliyken onay metni olanı söyler: silinen yalnız bu tarayıcıdaki veridir, hesaptaki kopya durur,
+    // yeniden kurulumda hangisinin kalacağı sorulur (34+33). Girişsiz metin değişmedi.
+    const signedIn = cloudEnabled && cloud.email !== null;
+    const message = signedIn
+      ? 'Bu tarayıcıdaki veriler silinsin ve başa dönülsün mü?\n\n' +
+        'Hesabındaki kopya silinmez. Yeniden kurulum yaparsan, hesaptaki kayıtla bu tarayıcıdaki yeni veriden ' +
+        'hangisinin kalacağı sana sorulur; sen seçmeden hesabındaki kayıt değişmez.'
+      : 'Tüm veriler silinsin ve başa dönülsün mü?';
+    if (confirm(message)) {
       // Gövde localData.ts'e taşındı (çıkış temizliği de aynı kümeyi kullanır). Davranış aynı:
       // portföy, ajan hafızası, öğretilen bilgi, vergi, hedef, yedek meta, enflasyon.
       // Hesaplı kullanıcıda buluttaki kopya SİLİNMEZ — onun yolu "Hesabı sil"dir.
+      if (signedIn) noteLocalReset(); // yeniden kurulum hesaptaki kaydı sormadan ezmesin
       clearLocalUserData();
     }
   };

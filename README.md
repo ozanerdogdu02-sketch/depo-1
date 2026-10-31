@@ -51,7 +51,10 @@ düğmesi görünmez ve uygulama yalnızca tarayıcıda çalışır.
 Açmak için `.env.example`'ı `.env.local` olarak kopyalayıp Supabase projesinin URL'sini ve
 **publishable (anon)** anahtarını yaz. Gizli/servis (`service_role`) anahtarı hiçbir `VITE_`
 değişkenine konmaz. Tablo, RLS politikaları ve hesap silme fonksiyonu:
-`supabase/migrations/20261018000000_portfolios_and_account_deletion.sql` (projeye henüz uygulanmadı).
+`supabase/migrations/20261018000000_portfolios_and_account_deletion.sql`; sürüm sütunu (iki cihazda çakışma
+koruması): `supabase/migrations/20261031000000_portfolios_version.sql`. İkisi de yalnızca dosyadır, hiçbir
+projeye uygulanmadı (plan adım 5). Sürüm migration'ı uygulanmadan da uygulama çalışır: istemci sütun yoksa
+düz upsert'e düşer (iki cihazda son yazan kazanır).
 
 ```bash
 cp .env.example .env.local   # iki değişkeni doldur
@@ -92,9 +95,21 @@ Davranış:
   tarayıcıda açılırsa oturum açılmaz (yeniden istenir ya da şifreyle girilir). URL'deki `#access_token=…`
   oturum olarak **kabul edilmez** ve adres çubuğundan silinir (hazırlanmış bağlantıyla başkasının hesabına
   sokulma — login CSRF — engeli). Gerçek Supabase'de e-posta akışı henüz doğrulanmadı (plan adım 5).
-- **SIFIRLA** yalnızca bu tarayıcıdaki veriyi siler; hesaptaki kopya kalır ve sonraki girişte geri
-  gelir. Hesaptaki veriyi silmenin yolu Hesabım → **Hesabımı sil**'dir.
+- **SIFIRLA** yalnızca bu tarayıcıdaki veriyi siler; hesaptaki kopya kalır. Girişliyken SIFIRLA'dan sonra
+  yeniden kurulum hesaptaki kaydı sormadan ezmez: ilk kayıt denemesinde bulutla karşılaştırılır, farklıysa
+  çakışma kartı çıkar ("Hesabımdaki veriyi yükle" birincil; "bu tarayıcıdaki veriyi hesabıma yükle" ayrı ve
+  onaylı). Hesaptaki veriyi silmenin yolu Hesabım → **Hesabımı sil**'dir.
 - **Çıkışta** bu tarayıcıdaki kullanıcı katmanları, fiyat önbellekleri ve oturum bilgisi temizlenir.
+  Hesaba henüz gitmemiş değişiklik varsa: kullanıcının kendi Çıkış'ında çıkıştan önce sorulur ("7 gün bu cihazda sakla
+  ve çık" / "İndir" / "Sil ve çık"); oturum kendiliğinden düşerse (başka sekmeden çıkış, süre dolması) sormadan
+  saklanmaya çalışılır. Saklanan **karantina** kopyası bu cihazda ayrı bir anahtardadır (`fagent.quarantine.v1`,
+  `src/karantina.ts`): hesap kimliğinin özetiyle etiketli, kayıt başına en çok 7 gün, en çok 2 kayıt. Cihazda yer yoksa
+  kullanıcının Çıkış'ı yapılmaz ve bildirilir (oturum kendiliğinden düşmüşse veri yine silinir). Aynı hesapla girişte
+  "indir / hesaba yükle / sil" sorulur; başka hesapla girişte, SIFIRLA'da, hesap silmede ve süre dolunca silinir.
+  Karantina buluta, yedek dosyasına ve IndexedDB aynasına girmez (yalnızca "indir" ile ayrı bir dosya olarak çıkar).
+  Kopya cihazda düz metin kalır (ortak cihaz riski).
+- **İki cihaz:** sürüm sütunu varsa kayıt "yalnız sürüm eşleşirse" yazılır. Başka cihaz hesabı değiştirmişse bu
+  cihazın değişikliği hesaba yazılmaz, karantinaya alınır ve çakışma kartı çıkar. Gerçek projede doğrulanmadı.
 - Arayüzdeki gizlilik metinleri iki durumlu: hesapsız/girişsiz kullanımda "yalnızca tarayıcında",
   girişliyken "hesabına eşitlenir" der.
 
@@ -126,7 +141,9 @@ src/
   backup.ts         — tam veri yedeği: beş katmanı tek JSON'da dışa/geri al (beyaz listeli);
                       bulut senkronu da aynı beyaz liste + doğrula-yaz çekirdeğini kullanır
   cloud.ts          — OPSİYONEL hesap + bulut senkronu (Supabase; env tanımsızken tamamen kapalı)
-  Account.tsx       — Hesap ekranı: giriş/kayıt/şifre sıfırlama/çıkış/hesap silme/çakışma kararı
+  Account.tsx       — Hesap ekranı: giriş/kayıt/şifre sıfırlama/çıkış/hesap silme/çakışma kararı/karantina kartı
+  karantina.ts      — hesaba gitmemiş yerel kopyanın 7 günlük karantinası (SAF; depo parametre)
+  surum.ts          — portfolios.version koşullu yazım sonucunun yorumu (SAF)
   localData.ts      — SIFIRLA ve çıkış temizliği (yerel kullanıcı katmanları)
   ErrorBoundary.tsx — render hatasında beyaz ekran yerine veri kurtarma ekranı
   inflation.ts      — enflasyon oranının TEK KAYNAĞI (varsayım / TCMB EVDS / kullanıcı)

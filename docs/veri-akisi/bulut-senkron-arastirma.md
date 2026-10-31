@@ -1,6 +1,6 @@
 # Bulut senkronu: açık maddeler araştırması (34+33, 35b, 27, 47)
 
-Durum: ARAŞTIRMA, kod yazılmadı. 2026-10-31. Kapsam: `docs/veri-akisi/veri-yolculugu.json` A16/A17.
+Durum: ARAŞTIRMA (2026-10-31); önerilen Seçenek 2 uygulandı, bkz. en alttaki "Uygulama durumu". Kapsam: `docs/veri-akisi/veri-yolculugu.json` A16/A17.
 Kod satırları 2026-10-31'de `grep -n` ile bulundu (son commit a247359); satır numaraları kayar.
 Bu belge hiçbir şeyi canlıya açmaz: `VITE_SUPABASE_*` canlıda tanımsız kalır (CLAUDE.md, zorunlu liste).
 
@@ -109,3 +109,29 @@ Plan bağlantısı: 2a → plan adım 2 (hesap katmanı) / YH sırasında "canl�
 - K12 KVKK İlke Kararı 2026/347 (aydınlatma ve açık rıza ayrı; RG 24.03.2026, ikincil özetler, resmî metin okunmadı): https://www.erdem-erdem.av.tr/bilgi-bankasi/acik-riza-ve-aydinlatma-metinlerinin-ayri-duzenlenmesine-iliskin-kisisel-verileri-koruma-kurulu-ilke-karari-yayimlandi , https://cottgroup.com/tr/mevzuat/item/kvkk-ilke-karari-aydinlatma-ve-acik-riza-metinlerinin-yonetimi
 - K13 Firebase Firestore referansı: https://firebase.google.com/docs/reference/node/firebase.firestore.Firestore?authuser=5 ; ikincil: https://oneuptime.com/blog/post/2026-02-17-how-to-enable-offline-persistence-in-firestore-for-web-applications/markdown
 - K14 Ink & Switch, Local-first software: https://inkandswitch.com/local-first/ ; Kleppmann 2024 tanımı (ikincil): https://en.wikipedia.org/wiki/Local-first_software
+
+## Uygulama durumu (2026-10-31, kullanıcı kararı: öneri kabul, şimdi yalnız veri ve kod; 2. tur düzeltmeleri dahil)
+
+Kapsam: 2a (istemci) ve 2b (migration DOSYASI + istemci). KVKK (47) ve hukuk/muhasebe en sona bırakıldı, bu turda yapılmadı. Tüm testler SAHTE Supabase ile yeşildir; gerçek projeye bağlanılmadı.
+
+| Madde | Durum | Nerede | Test (tests/e2e/fagent-auth-e2e.mjs) |
+|---|---|---|---|
+| 34+33 | Kapandı (sahte Supabase ile yeşil) | `cloud.ts` `noteLocalReset` + `save` (sahiplik işareti yoksa da önce `pull`) + `pull(uid, afterReset)`; `App.tsx` `resetAll` (girişliyken dürüst onay metni); `Account.tsx` Hesabım maddeleri | q6, q6b, q9 (iki sekme) |
+| 35b | Kapandı (sahte Supabase ile yeşil) | `cloud.ts` `localSignOutCleanup` + `unsyncedSnapshot`; `karantina.ts` | q2, q3, q10 |
+| 35c | Kapandı (sahte Supabase ile yeşil) | `cloud.ts` `prepareSignOut` + `signOut` (önce sorar; kopya yazılamazsa çıkışı durdurur); `Account.tsx` `SignOutControl` | q1, q4, q5, q11, q12 |
+| 27 | İstemci hazır; migration yalnız DOSYA, hiçbir projeye uygulanmadı | `surum.ts`, `cloud.ts` `writeRow`/`pull`, `supabase/migrations/20261031000000_portfolios_version.sql` | q7, q7b, q8, q13, q13b, q14 |
+
+Davranış (kodda):
+- Karantina: anahtar `fagent.quarantine.v1` (localStorage). BACKED_UP_KEYS, bulut gövdesi, yedek dosyası ve IndexedDB aynasında YOK. Kayıt hesap kimliğinin özetiyle etiketlidir (16 karakter; düz kimlik ve e-posta yazılmaz; özet yalnız eşitlik karşılaştırmasıdır, kimliği bilen eşleşmeyi doğrulayabilir). Kayıt başına ömür `KARANTINA_OMRU_MS` = 7 gün, en çok `KARANTINA_MAKS_KAYIT` = 2 kayıt (`config/varsayilanlar.ts`). Karara bağlanmamış kopyanın üzerine yenisi yazılmaz (ikinci kayıt olur; üçüncüde en eski düşer). Kota hatasında eski kayıtlar silinmez.
+- Kullanıcı Çıkış'a bastığında hesaba gitmemiş (ve bu hesaba ait) veri varsa çıkıştan ÖNCE sorulur: "7 gün bu cihazda sakla ve çık" / "İndir" / "Sil ve çık" / "Vazgeç". Cihazda kopya için yer yoksa çıkış yapılmaz, kullanıcıya bildirilir ve veri silinmez. Oturum kendiliğinden düşerse (başka sekme, süre dolması) sormadan saklanmaya çalışılır; yer yoksa bugünkü davranış sürer (veri silinir) ve bu açık bir kalan risktir. Sahiplik işareti bu hesabı göstermiyorsa (girişten önce hesapsız kullanılmış veri) kopya bu hesabın etiketiyle yazılmaz.
+- Aynı hesapla girişte "Kurtarılmamış yerel kopya" kartı, her kopya için: İndir (ayrı `fagent-karantina-<tarih>.json`, yedek biçimi), Hesabıma yükle (onaylı; önce buluta yazılır, yazılamazsa hiçbir şey değişmez), Sil. Başka hesapla girişte, SIFIRLA'da, hesap silmede ve süre dolunca (okuma/açılış anında) silinir.
+- Sürümlü yazım: sütun varsa ilk kayıt `insert`, sonrakiler `update ... eq(version)`. Sürüm eşleşmezse yazılmaz, bu cihazın kopyası karantinaya alınır (`surum-cakismasi`), güncel kayıt okunur ve mevcut çakışma kartı çıkar (kartta kopyanın ayrıca saklandığı yazar; saklanamadıysa kart önce yedeğin indirilmesini söyler). Bulutun yalnız sürümü ilerlemiş, içeriği değişmemişse çakışma sayılmaz ve yerel kayıt yazılır. Eski veritabanına (düz upsert) düşüş yalnız hata koduyla (42703 / PGRST204) olur; çıkışta sürüm kipi sıfırlanır.
+- Migration (yalnız dosya): sürüm sütunu + `check (version >= 0)`, güncellemede sürüm = eski + 1, eklemede sürüm 0; geri alma adımları dosyada yorum olarak.
+- "Eşleşmeyen sürümde boş sonuç" ve "çift ilk kayıtta 23505" varsayımları yalnız `src/surum.ts` içinde; orada `TODO(dogrulama)` var.
+
+Açık / doğrulanmadı:
+- Migration'ın gerçek veritabanında uygulanması plan adım 5'e ve açık insan onayına bağlı. Uygulanana kadar 27 fiilen açıktır (istemci düz upsert'e düşer). Tetikleyiciler, RLS ile birlikte çalışması, PostgREST'in 0 satır yanıtı ve gerçek çok-cihaz davranışı gerçek projede iki istemciyle sınanmadı.
+- Karantina kopyası cihazda düz metin kalır (ortak cihaz riski). `karantina.ts` içinde `TODO(hukuk)` var; aydınlatma metni (47) bu saklamayı henüz anlatmıyor.
+- Oturum kendiliğinden düşerken cihazda yer yoksa veri yine silinir (kullanıcıya sorulamaz).
+- Karantina kovası olarak ayrı localStorage anahtarı seçildi (IndexedDB değil): sahiplik/silme/süre mantığı tek yerde ve eşzamanlı okunabilir; kota bedeli yukarıdaki maddede.
+- 47 (KVKK aydınlatma/rıza ayrımı) yapılmadı.

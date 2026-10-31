@@ -31,6 +31,15 @@
 // verinin kime ait olduğu bilinmez — ortak cihazda başka birinin verisi olabilir). Kullanıcıya
 // 'cakisma' durumuyla açık seçim sunulur: yükle / sil / çıkış (bkz. resolveConflict).
 //
+// KARANTİNA (35b/35c, src/karantina.ts): oturum düşüşünde (başka sekmeden çıkış, süre dolması) ve kullanıcının
+// Çıkış'ında hesaba GİTMEMİŞ yerel veri silinmez; hesap kimliğinin özetiyle etiketli tek kopya olarak bu
+// cihazda en çok 7 gün saklanır. Aynı hesapla girişte 'indir / hesaba yükle / sil' sorulur; başka hesapla
+// girişte, SIFIRLA'da, hesap silmede ve süre dolunca silinir. Karantina buluta ve yedek dosyasına GİRMEZ.
+//
+// SÜRÜMLÜ YAZIM (27, src/surum.ts + supabase/migrations/20261031000000_portfolios_version.sql): satırda
+// `version` sütunu varsa yazım 'yalnız sürüm eşleşirse' yapılır; eşleşmezse bu cihazın kopyası karantinaya
+// alınır ve kullanıcıya çakışma kartı çıkar (bulut ezilmez). Sütun yoksa (eski veritabanı) düz upsert'e düşülür.
+//
 // GİZLİLİK: bu modül console'a, analitiğe ya da telemetriye veri, e-posta, user id veya ham
 // hata gövdesi YAZMAZ. Hatalar kullanıcıya yalnızca sabit Türkçe mesajlarla gösterilir.
 // Supabase dışında hiçbir uca kullanıcı verisi gitmez.
@@ -42,6 +51,11 @@ import {
   type ApplyMode,
 } from './backup';
 import { clearForSignOut, getCloudOwner, getCloudBase, setCloudOwner } from './localData';
+import {
+  deleteQuarantine, deleteQuarantineAt, listQuarantine, quarantineFile, writeQuarantine,
+  type QuarantineReason,
+} from './karantina';
+import { eklemeSonucu, guncellemeSonucu, satirSurumu, surumSutunuYok, type YazmaSonucu } from './surum';
 
 // ---- Yapılandırma ----
 
@@ -115,17 +129,22 @@ export interface CloudState {
   //   'bulut-kaydi-var' — hesabında farklı bir kayıt var VE bu tarayıcıda veri var
   //   'bulut-bos'       — hesabında kayıt yok, bu tarayıcıda sahibi belirsiz veri var; yükleme onayı bekliyor
   conflictKind: ConflictKind | null;
+  // Bu hesaba ait, hesaba gitmemiş yerel kopya bu cihazda saklanıyor mu (karantina.ts)? İçerik burada TUTULMAZ.
+  // Kayıt kimliği = savedAt (en yeni başta, en çok KARANTINA_MAKS_KAYIT).
+  quarantine: { savedAt: number; reason: QuarantineReason }[];
+  // Sürüm çakışmasında bu cihazın kopyası saklanamadı (yer yok): kart "önce yedeğini indir" uyarısını gösterir.
+  conflictCopyFailed: boolean;
 }
 
 export type ConflictKind = 'bulut-kaydi-var' | 'bulut-bos';
 
-let cloud: CloudState = { ready: !cloudEnabled, email: null, status: 'kapali', recovery: false, error: null, conflictKind: null };
+let cloud: CloudState = { ready: !cloudEnabled, email: null, status: 'kapali', recovery: false, error: null, conflictKind: null, quarantine: [], conflictCopyFailed: false };
 const listeners = new Set<() => void>();
 
 function set(patch: Partial<CloudState>): void {
   // Çakışma durumundan çıkılınca tür de temizlenir.
   if (patch.status !== undefined && patch.status !== 'cakisma' && patch.conflictKind === undefined) {
-    patch = { ...patch, conflictKind: null };
+    patch = { ...patch, conflictKind: null, conflictCopyFailed: false };
   }
   cloud = { ...cloud, ...patch };
   listeners.forEach(fn => fn());
@@ -259,6 +278,17 @@ let userInitiatedSignOut = false;
 // Çakışma durumundaki uzak veri + yerel verinin bu hesaba ait olup olmadığı.
 // remote === null: bulutta kayıt yok, bekleyen şey bu tarayıcıdaki verinin hesaba yüklenme onayı.
 let pendingRemote: { uid: string; remote: ParsedRemote | null; localOwned: boolean } | null = null;
+// Sürümlü yazım durumu: 'yes' = portfolios.version var; 'no' = yok (eski veritabanı → düz upsert);
+// 'unknown' = henüz okunmadı. knownVersion: okunan satırın sürümü; null = bulutta satır yok (ilk kayıt = insert).
+let versionMode: 'unknown' | 'yes' | 'no' = 'unknown';
+let knownVersion: number | null = null;
+// Girişliyken SIFIRLA yapıldı, yeniden kurulum henüz olmadı: kayıt gitmez; yeniden kurulunca bulut kopyasıyla
+// karşılaştırılır (pull) ve çakışmada kullanıcıya sorulur (34+33).
+let localResetPending = false;
+
+function describeQuarantine(uid: string | null): CloudState['quarantine'] {
+  return listQuarantine(uid).map(r => ({ savedAt: r.savedAt, reason: r.reason }));
+}
 
 function cancelSave(): void {
   if (saveTimer) {
@@ -280,9 +310,8 @@ function scheduleSave(): void {
 // YA HEP YA HİÇ: portföy anahtarı yoksa ya da onboarded=false ise HİÇBİR katman gönderilmez.
 // Böylece SIFIRLA'dan ya da çıkıştan sonra boş/kısmi bir anlık görüntü buluttaki tam satırın
 // üzerine yazılamaz.
-// NOT: girişliyken SIFIRLA'dan sonra yeniden onboard olunursa (örnek veri / boş başlangıç),
-// bu yeni veri buluttaki satırın ÜZERİNE YAZILIR — kullanıcı girişliyken yaptığı her
-// değişiklik hesabına eşitlenir.
+// Girişliyken SIFIRLA'dan sonra yeniden kurulum (örnek veri / boş başlangıç) buluttaki satırı SORMADAN
+// ezmez: ilk kayıt denemesinde pull() ile bulut kopyasıyla karşılaştırılır, farklıysa çakışma kartı çıkar (34+33).
 async function save(uid: string): Promise<void> {
   if (suppress || !syncReady || userId !== uid || cloud.status === 'cakisma') return;
   const client = getClient();
@@ -292,27 +321,76 @@ async function save(uid: string): Promise<void> {
     set({ status: 'senkron', error: null });
     return;
   }
+  // Bu hesabın sahiplik işareti yoksa (başka sekmede SIFIRLA yapıldı ya da hiç eşitlenmedi) bayrak açıkmış gibi
+  // davranılır: hesaptaki kayıt sormadan ezilmez, önce bulutla karşılaştırılır (bayrak yalnız bu sekmenin belleğindedir).
+  if (localResetPending || getCloudOwner() !== uid) {
+    localResetPending = false;
+    await pull(uid, true);
+    return;
+  }
   const body = { fagentBackup: ROW_FORMAT_VERSION, data: snapshot };
   if (!sizeOk(body)) {
     set({ status: 'hata', error: 'Veri, hesap senkronu için çok büyük; buluta kaydedilmedi.' });
     return;
   }
   set({ status: 'kaydediliyor' });
+  let result: YazmaSonucu;
   try {
-    const supabase = await client;
-    const { error } = await supabase
-      .from(TABLE)
-      .upsert({ user_id: uid, data: body, updated_at: new Date().toISOString() });
-    if (userId !== uid) return; // bu arada çıkış yapıldı
-    if (error) {
-      set({ status: 'hata', error: 'Buluta kaydedilemedi.' });
-      return;
-    }
-    setCloudOwner(uid, hashSnapshot(snapshot));
-    set({ status: 'senkron', error: null });
+    result = await writeRow(await client, uid, body);
   } catch {
-    if (userId === uid) set({ status: 'hata', error: 'Buluta kaydedilemedi.' });
+    result = { tur: 'hata' };
   }
+  if (userId !== uid) return; // bu arada çıkış yapıldı
+  if (result.tur === 'cakisma') {
+    // Başka bir cihaz hesabı değiştirmiş: bu cihazın kopyası kaybeden olur ama SİLİNMEZ (karantina);
+    // bulut ezilmez; güncel bulut kaydı okunur ve kullanıcıya çakışma kartı çıkar.
+    // Karara bağlanmamış eski kopya varsa üzerine yazılmaz (ikinci kayıt olur); yer yoksa eskiler dokunulmadan kalır.
+    const saved = writeQuarantine(uid, 'surum-cakismasi', snapshot);
+    const newId = saved ? listQuarantine(uid)[0]?.savedAt : undefined;
+    set({ quarantine: describeQuarantine(uid) });
+    syncReady = false;
+    await pull(uid);
+    if (userId === uid && cloud.status === 'senkron') {
+      // Çakışma yokmuş (içerikler eşit çıktı): bu kopya gereksiz; yalnız o kayıt silinir.
+      if (newId !== undefined) deleteQuarantineAt(newId);
+      set({ quarantine: describeQuarantine(uid) });
+    } else if (userId === uid && getCloudState().status === 'cakisma' && !saved) {
+      set({ conflictCopyFailed: true });
+    }
+    return;
+  }
+  if (result.tur !== 'ok') {
+    set({ status: 'hata', error: 'Buluta kaydedilemedi.' });
+    return;
+  }
+  setCloudOwner(uid, hashSnapshot(snapshot));
+  set({ status: 'senkron', error: null });
+}
+
+// Satırı yazar. Sürüm sütunu varsa KOŞULLU (yalnız sürüm eşleşirse), yoksa bugünkü düz upsert.
+// Eşleşmeyen sürüm / çift ilk kayıt yorumu src/surum.ts'te tek yerdedir (gerçek projede doğrulanmadı).
+async function writeRow(supabase: SupabaseClient, uid: string, body: unknown): Promise<YazmaSonucu> {
+  const updated_at = new Date().toISOString();
+  if (versionMode === 'yes') {
+    let r: YazmaSonucu;
+    if (knownVersion === null) {
+      const { data, error } = await supabase.from(TABLE).insert({ user_id: uid, data: body, updated_at }).select('version');
+      r = eklemeSonucu(error, data);
+    } else {
+      const { data, error } = await supabase.from(TABLE)
+        .update({ data: body, updated_at }).eq('user_id', uid).eq('version', knownVersion).select('version');
+      r = guncellemeSonucu(error, data);
+    }
+    if (r.tur === 'ok') {
+      if (r.surum === null) versionMode = 'no'; // sürüm okunamadı: koşullu yazıma güvenilmez
+      else knownVersion = r.surum;
+      return r;
+    }
+    if (r.tur !== 'surum-yok') return r;
+    versionMode = 'no'; // sütun yok (eski veritabanı): bugünkü davranışa düş
+  }
+  const { error } = await supabase.from(TABLE).upsert({ user_id: uid, data: body, updated_at });
+  return error ? { tur: 'hata' } : { tur: 'ok', surum: null };
 }
 
 // Uzak veriyi uygular ve (gerekirse) sayfayı BİR KEZ yeniler — dosyadan geri yüklemeyle aynı
@@ -329,6 +407,10 @@ function applyRemote(uid: string, remote: ParsedRemote): void {
   }
   setCloudOwner(uid, hashSnapshot(snapshotUserData()));
   pendingRemote = null;
+  reloadOnce();
+}
+
+function reloadOnce(): void {
   let alreadyReloaded = false;
   try { alreadyReloaded = sessionStorage.getItem(RELOAD_FLAG) === '1'; } catch { /* yok */ }
   if (alreadyReloaded) {
@@ -342,11 +424,12 @@ function applyRemote(uid: string, remote: ParsedRemote): void {
   window.location.reload();
 }
 
-async function pull(uid: string): Promise<void> {
+async function pull(uid: string, afterReset = false): Promise<void> {
   const client = getClient();
   if (!client) return;
   syncReady = false;
   pendingRemote = null;
+  localResetPending = false;
   set({ status: 'bekliyor', error: null });
 
   // Hesaplar arası sızıntı koruması: yerel veri BAŞKA bir hesaba aitse, bu hesaba YÜKLENMEZ;
@@ -354,19 +437,36 @@ async function pull(uid: string): Promise<void> {
   const owner = getCloudOwner();
   if (owner && owner !== uid) {
     suppress = true;
-    try { clearForSignOut(); } finally { suppress = false; }
+    try { clearForSignOut(); } finally { suppress = false; } // başka hesabın karantinası da burada silinir
   }
+  set({ quarantine: describeQuarantine(uid) }); // başka hesaba ait / süresi dolmuş kayıt okunurken silinir
 
   let row: unknown;
   try {
     const supabase = await client;
-    const { data, error } = await supabase.from(TABLE).select('data').eq('user_id', uid).maybeSingle();
+    const fetchRow = async (cols: string) => {
+      const r = await supabase.from(TABLE).select(cols).eq('user_id', uid).maybeSingle();
+      return { data: r.data as unknown, error: r.error };
+    };
+    let res = await fetchRow(versionMode === 'no' ? 'data' : 'data,version');
+    if (res.error && versionMode !== 'no' && surumSutunuYok(res.error)) {
+      versionMode = 'no'; // eski veritabanı: sürüm sütunu yok → düz upsert modu
+      res = await fetchRow('data');
+    }
     if (userId !== uid) return;
-    if (error) {
+    if (res.error) {
       set({ status: 'hata', error: 'Bulut verisi okunamadı.' });
       return;
     }
-    row = (data as { data?: unknown } | null)?.data;
+    const rec = res.data as { data?: unknown } | null;
+    row = rec?.data;
+    if (versionMode !== 'no') {
+      if (rec === null || rec === undefined) { versionMode = 'yes'; knownVersion = null; }
+      else {
+        const v = satirSurumu(rec);
+        if (v === undefined) versionMode = 'no'; else { versionMode = 'yes'; knownVersion = v; }
+      }
+    }
   } catch {
     if (userId === uid) set({ status: 'hata', error: 'Bulut verisi okunamadı.' });
     return;
@@ -377,7 +477,7 @@ async function pull(uid: string): Promise<void> {
   const ownedByThisUser = getCloudOwner() === uid;
 
   if (row === undefined || row === null) {
-    if (ownedByThisUser || !localHasData(local)) {
+    if (ownedByThisUser || afterReset || !localHasData(local)) {
       // Güvenli yol: yerel veri bu hesaba ait (işaret bu uid) ya da yerelde yüklenecek hiçbir şey
       // yok. İşaret bu noktadan sonra bu hesabı gösterir.
       syncReady = true;
@@ -472,7 +572,7 @@ export async function resolveConflict(choice: 'remote' | 'local' | 'discard'): P
     if (p.remote) return; // kayıt varken "sil" seçeneği yok; kullanıcı 'remote' ile yerini değiştirir
     cancelSave();
     suppress = true;
-    try { clearForSignOut(); } finally { suppress = false; }
+    try { clearForSignOut(true); } finally { suppress = false; }
     cancelSave();
     pendingRemote = null;
     setCloudOwner(p.uid, hashSnapshot(snapshotUserData()));
@@ -485,27 +585,52 @@ export async function resolveConflict(choice: 'remote' | 'local' | 'discard'): P
   // Bulut boşken kullanıcı yüklemeyi onayladı: kaybedilecek bir bulut kaydı yok, bu yüzden sahiplik
   // hemen yazılır (yükleme ağ hatasıyla düşse de bir sonraki girişte soru yeniden sorulmaz).
   if (!p.remote) setCloudOwner(p.uid, hashSnapshot(snapshotUserData()));
+  // Bulutta kayıt varken "bu tarayıcıdaki veriyi yükle" onaylandı: yazım başarılı olana kadar eşitlenmiş sayılmasın
+  // diye gerçek bir özet yerine eşleşmeyen yer tutucu yazılır (save() sahiplik işaretini ister).
+  else setCloudOwner(p.uid, 'yazilmadi');
   syncReady = true;
   set({ status: 'bekliyor', error: null });
   await save(p.uid);
 }
 
+// Hesaba gitmemiş yerel veri var mı (karantinaya alınacak)? Yerelde kaybı üzücü veri olmalı VE son
+// başarılı eşitlemenin parmak izinden farklı olmalı (eşitse bulutta zaten var).
+function unsyncedSnapshot(): Record<string, string> | null {
+  const snap = snapshotUserData();
+  if (!localHasData(snap)) return null;
+  const base = getCloudBase();
+  return base !== null && base === hashSnapshot(snap) ? null : snap;
+}
+
 // Yerel kullanıcı katmanlarının çıkış sırası (#7):
-// (1) zamanlayıcı iptal, (2) userId=null + suppress, (3) temizlik, (4) suppress kapalı,
-// (5) zamanlayıcı yeniden iptal.
-function localSignOutCleanup(keepLocalData: boolean): void {
+// (1) zamanlayıcı iptal, (2) userId=null + suppress, (3) [karantina kopyası al] + temizlik + [karantinayı yaz],
+// (4) suppress kapalı, (5) zamanlayıcı yeniden iptal.
+// quarantine: null = karantina da silinir (hesap silme). Nesne = var olan karantina korunur; yaz === true ise hesaba
+// gitmemiş veri temizlikten önce kopyalanıp (uid etiketiyle) yazılır. yaz === false: yeni kopya alınmaz (kullanıcı
+// "Sil ve çık" dedi, kopya zaten yazıldı ya da veri bu hesaba ait değil).
+function localSignOutCleanup(
+  keepLocalData: boolean,
+  quarantine: { uid: string; reason: QuarantineReason; yaz: boolean } | null,
+): void {
   cancelSave();
   userId = null;
   syncReady = false;
   pendingRemote = null;
+  localResetPending = false;
+  versionMode = 'unknown'; // başka hesap/başka veritabanı: sürüm kipi yeniden öğrenilir
+  knownVersion = null;
   suppress = true;
   try {
-    if (!keepLocalData) clearForSignOut();
+    if (!keepLocalData) {
+      const unsynced = quarantine?.yaz ? unsyncedSnapshot() : null;
+      clearForSignOut(quarantine !== null); // var olan (aynı hesabın) karantinası korunur
+      if (unsynced && quarantine) writeQuarantine(quarantine.uid, quarantine.reason, unsynced); // oturum düşüşü: kota hatası bugünkü davranışa düşer
+    }
   } finally {
     suppress = false;
     cancelSave();
   }
-  set({ email: null, status: 'kapali', error: null, recovery: false });
+  set({ email: null, status: 'kapali', error: null, recovery: false, quarantine: [] });
 }
 
 // Supabase'in oturum anahtarlarını (sb-<ref>-auth-token ve PKCE code-verifier) temizler —
@@ -540,7 +665,11 @@ function onSession(session: Session | null): void {
     // Kullanıcının başlatmadığı oturum düşüşü (başka sekmeden çıkış, token yenileme hatası,
     // süre dolması): yerel kullanıcı katmanları da temizlenir — ortak cihazda A'nın verisi
     // kalıp B'nin hesabına yüklenmesin. (Kullanıcının bastığı Çıkış'ta userId zaten null'dır.)
-    if (prevId !== null && !userInitiatedSignOut) localSignOutCleanup(false);
+    // Karantina yalnız sahiplik işareti bu hesabı gösteriyorsa alınır: sahibi belirsiz veri (girişten önce hesapsız
+    // kullanılmış) hesap etiketiyle yazılmaz; yine temizlenir ama kopyalanmaz.
+    if (prevId !== null && !userInitiatedSignOut) {
+      localSignOutCleanup(false, { uid: prevId, reason: 'oturum-dustu', yaz: getCloudOwner() === prevId });
+    }
     set({ ready: true });
     return;
   }
@@ -559,6 +688,7 @@ async function init(): Promise<void> {
     set({ ready: true, status: 'hata', error: 'Hesap sistemi yüklenemedi.' });
     return;
   }
+  listQuarantine(null); // süresi dolmuş / bozuk karantina açılışta temizlenir
   subscribePortfolio(scheduleSave);
   subscribeUserData(scheduleSave);
   supabase.auth.onAuthStateChange((event, session) => {
@@ -571,7 +701,7 @@ async function init(): Promise<void> {
     if (!error && !data.session && getCloudOwner()) {
       // Bu tarayıcıdaki veri bir hesaba ait ama oturum yok (tarayıcı kapalıyken süresi doldu
       // ya da başka yerden düşürüldü) → kullanıcının başlatmadığı oturum düşüşüyle aynı.
-      localSignOutCleanup(false);
+      localSignOutCleanup(false, { uid: getCloudOwner() as string, reason: 'oturum-dustu', yaz: true });
     }
     onSession(error ? null : data.session);
   } catch {
@@ -662,23 +792,51 @@ export async function setNewPassword(password: string): Promise<AuthResult> {
   } catch { return NETWORK_ERROR; }
 }
 
+// Çıkış öncesi: bekleyen/başarısız son kayıt bir kez daha denenir; sonra hesaba gitmemiş (ve bu hesaba ait) veri
+// var mı? Arayüz true görürse çıkıştan ÖNCE sorar (sakla / indir / sil). Çakışma kartında sahibi belirsiz veri
+// zaten olduğu gibi kalır, bu yüzden sorulmaz.
+export async function prepareSignOut(): Promise<{ unsynced: boolean }> {
+  const uid = userId;
+  if (!uid) return { unsynced: false };
+  if (cloud.status === 'cakisma' && pendingRemote !== null && !pendingRemote.localOwned) return { unsynced: false };
+  if (saveTimer || cloud.status === 'hata') {
+    cancelSave();
+    await save(uid);
+  }
+  return { unsynced: getCloudOwner() === uid && unsyncedSnapshot() !== null };
+}
+
 // Çıkış: bu tarayıcıdaki kullanıcı katmanları + sembol içeren önbellekler + Supabase oturumu
 // temizlenir (ortak cihazda bir sonraki kişi görmesin); veri hesapta durur.
 // İstisna: çakışma durumunda yerel veri hesaba ait DEĞİLSE (girişten önce bu tarayıcıda
 // olan veri) "Çıkış yap" onu olduğu gibi bırakır.
-export async function signOut(): Promise<void> {
+// choice 'sakla' (varsayılan): hesaba gitmemiş veri karantinaya alınır; kopya YAZILAMAZSA çıkış DURDURULUR
+// (veri silinmez, ok:false döner; kullanıcı indirebilir ya da "Sil ve çık" diyebilir). 'sil': kopya alınmaz.
+export type SignOutResult = { ok: true } | { ok: false; message: string };
+
+export async function signOut(choice: 'sakla' | 'sil' = 'sakla'): Promise<SignOutResult> {
   const client = getClient();
-  if (!client) return;
+  if (!client) return { ok: true };
   const keepLocalData = cloud.status === 'cakisma' && pendingRemote !== null && !pendingRemote.localOwned;
-  userInitiatedSignOut = true;
+  const signOutUid = userId;
   try {
-    // Bekleyen kayıt varsa önce gönderilir (son değişiklik kaybolmasın). save() kendi
-    // korumalarına tabidir: onboarded=false / çakışma / okunmamış bulutta göndermez.
-    if (saveTimer && userId) {
+    // Bekleyen kayıt (ya da önceki başarısız kayıt) varsa önce gönderilir (son değişiklik kaybolmasın).
+    // save() kendi korumalarına tabidir: onboarded=false / çakışma / okunmamış bulutta göndermez.
+    if ((saveTimer || cloud.status === 'hata') && userId) {
       const uid = userId;
       cancelSave();
       await save(uid);
     }
+    // Gitmeyen veri temizlikten ÖNCE karantinaya yazılır; yazılamazsa çıkılmaz (35c, D2).
+    if (!keepLocalData && choice === 'sakla' && signOutUid && getCloudOwner() === signOutUid) {
+      const unsynced = unsyncedSnapshot();
+      if (unsynced && !writeQuarantine(signOutUid, 'cikis', unsynced)) {
+        return { ok: false, message: 'Bu cihazda kopya için yer yok; çıkış yapılmadı. Önce "İndir"i kullan ya da "Sil ve çık" de.' };
+      }
+    }
+  } catch { /* kayıt hatası çıkışı engellemez */ }
+  userInitiatedSignOut = true;
+  try {
     cancelSave();
     userId = null;
     suppress = true;
@@ -688,9 +846,10 @@ export async function signOut(): Promise<void> {
     } catch { /* yok — yerel temizlik yine de yapılır */ }
   } finally {
     removeAuthStorage();
-    localSignOutCleanup(keepLocalData);
+    localSignOutCleanup(keepLocalData, signOutUid ? { uid: signOutUid, reason: 'cikis', yaz: false } : null);
     userInitiatedSignOut = false;
   }
+  return { ok: true };
 }
 
 // KVKK: kullanıcı hesabını ve buluttaki tüm verisini kendisi silebilir. Arayüz bunu ancak
@@ -729,10 +888,95 @@ export async function deleteAccount(): Promise<AuthResult> {
     await endSession(supabase);
   } finally {
     removeAuthStorage();
-    localSignOutCleanup(false);
+    localSignOutCleanup(false, null); // hesap silindi: karantina da silinir
     userInitiatedSignOut = false;
   }
   return { ok: true, message: 'Hesabın ve hesabındaki tüm veriler silindi.' };
+}
+
+// Girişliyken SIFIRLA'dan ÖNCE çağrılır (App.resetAll): yeniden kurulumdaki ilk kayıt, hesaptaki kopyayı
+// sormadan ezmez; önce bulutla karşılaştırılır ve farklıysa çakışma kartı çıkar (34+33).
+export function noteLocalReset(): void {
+  if (!userId) return;
+  cancelSave();
+  localResetPending = true;
+}
+
+// ---- Karantina eylemleri (Account.tsx kartı) ----
+
+// "İndir": karantinadaki kopya (id = savedAt), yedek dosyasıyla aynı biçimde AYRI bir dosya olarak iner (karantina durur).
+export function quarantineDownload(id?: number): boolean {
+  const recs = listQuarantine(userId);
+  const rec = id === undefined ? recs[0] : recs.find(r => r.savedAt === id);
+  if (!rec) { set({ quarantine: describeQuarantine(userId) }); return false; }
+  const file = quarantineFile(rec);
+  const blob = new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `fagent-karantina-${file.createdAt.slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  return true;
+}
+
+// "Sil": seçilen kopya kalıcı olarak silinir (diğer kopya durur).
+export function quarantineDiscard(id?: number): void {
+  if (id === undefined) deleteQuarantine(); else deleteQuarantineAt(id);
+  set({ quarantine: describeQuarantine(userId) });
+}
+
+// "Hesaba yükle": kopya hesaptaki kaydın YERİNE yazılır (arayüz önce onay alır), sonra bu tarayıcıya uygulanır.
+// Önce buluta yazılır; yazılamazsa hiçbir şey değişmez ve kopya durur.
+export async function quarantineUpload(id?: number): Promise<AuthResult> {
+  const uid = userId;
+  if (!uid || !syncReady || cloud.status !== 'senkron') {
+    return { ok: false, message: 'Hesapla eşitleme tamamlanınca tekrar dene.' };
+  }
+  const recs = listQuarantine(uid);
+  const rec = id === undefined ? recs[0] : recs.find(r => r.savedAt === id);
+  if (!rec) {
+    set({ quarantine: describeQuarantine(uid) });
+    return { ok: false, message: 'Kopya bulunamadı ya da süresi doldu.' };
+  }
+  const pairs = whitelistUserData(rec.data, 'replace');
+  if (!pairs || pairs.length === 0) return { ok: false, message: 'Kopya okunamadı; silinmedi.' };
+  const payload = Object.fromEntries(pairs);
+  const body = { fagentBackup: ROW_FORMAT_VERSION, data: payload };
+  if (!sizeOk(body)) return { ok: false, message: 'Kopya hesap senkronu için çok büyük; silinmedi.' };
+  const client = getClient();
+  if (!client) return DISABLED;
+  cancelSave();
+  suppress = true;
+  let result: YazmaSonucu;
+  try {
+    result = await writeRow(await client, uid, body);
+  } catch {
+    result = { tur: 'hata' };
+  }
+  if (result.tur === 'cakisma') {
+    suppress = false;
+    syncReady = false;
+    await pull(uid);
+    return { ok: false, message: 'Hesabındaki kayıt bu arada değişti; kopya silinmedi.' };
+  }
+  if (result.tur !== 'ok') {
+    suppress = false;
+    return { ok: false, message: 'Buluta kaydedilemedi; kopya silinmedi.' };
+  }
+  const applied = applyUserData(payload, { mode: 'replace' });
+  deleteQuarantineAt(rec.savedAt); // yalnız yüklenen kopya; diğeri (varsa) karar bekler
+  set({ quarantine: describeQuarantine(uid) });
+  suppress = false; // yenileme olmasa da senkron açık kalır (kayıt zamanlanabilir)
+  if (!applied.ok) {
+    return { ok: false, message: 'Kopya hesaba yüklendi ama bu tarayıcıya yazılamadı.' };
+  }
+  setCloudOwner(uid, hashSnapshot(snapshotUserData()));
+  clearReloadFlag();
+  reloadOnce();
+  return { ok: true };
 }
 
 // Ajan metinleri için (agent.ts cloud'u import ETMEZ; App bu değeri chatReply'ye parametre

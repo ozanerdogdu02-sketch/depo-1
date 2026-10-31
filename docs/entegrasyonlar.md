@@ -194,7 +194,9 @@ Bunlar `AGENTS.md` ve `CLAUDE.md`'de yazılı ve testlerle korunuyor:
 2. **Uydurma veri yok.** Doğrulanamayan bir sayı gösterilmez; "veri yok" demek "yanlış veri"
    demekten iyidir. (Stopajda kripto/altın/döviz %0 bırakılması bunun örneği.)
 3. **Veri varsayılan olarak tarayıcıda kalır** (`localStorage` esas, aynı tarayıcıdaki IndexedDB aynası; ikisi de cihaz dışına çıkmaz). Kullanıcı hesap açarsa 5 katman yalnızca kendi RLS'li
-   Supabase kaydına eşitlenir (`cloud.ts`; hesapsız modda ağ isteği yoktur). Diğer ağ istisnaları: EVDS
+   Supabase kaydına eşitlenir (`cloud.ts`; hesapsız modda ağ isteği yoktur). Hesaba gitmemiş yerel veri için çıkışta sorulur;
+   seçilirse bu cihazda en çok 7 gün karantinada saklanır (`karantina.ts`; buluta ve yedeğe girmez, cihaz dışına çıkmaz; cihazda yer yoksa
+   çıkıştan önce bildirilir). Diğer ağ istisnaları: EVDS
    proxy'si (istek portföy içermez) ile kur/kripto fiyat uçları.
 4. **`agent.ts`, `analytics.ts`, `projection.ts`, `vergiKurallari.ts` ve `varsayimlar.ts` SAFTIR** — I/O yok, tüm veri parametreyle gelir. Bu hem test
    edilebilirliği hem ileride LLM'e geçişi sağlıyor.
