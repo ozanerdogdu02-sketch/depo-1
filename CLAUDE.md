@@ -74,6 +74,12 @@ Odak: sistemi ve işleyişi kurmak; KVKK/SPK/ETBİS vb. yükümlülükler satı�
 
 `docs/veri-akisi/bulut-senkron-arastirma.md` önerileri kabul: önce Seçenek 2a (istemci kodu; 34+33, 35b, 35c), sonra 2b (sürüm sütunu; 27) — 2b'nin migration'ı yalnız DOSYA olarak hazırlanır, gerçek veritabanına adım 5'te açık onayla uygulanır. Çıkışta hesaba gitmemiş veri en çok 7 gün bu cihazda karantinada bekler; aynı hesapla girişte "indir / hesaba yükle / sil" sorulur; başka hesapla girişte, SIFIRLA'da ve hesap silmede silinir. KVKK (47) ve tüm hukuk/muhasebe konuları EN SONA bırakıldı (kullanıcı: "hukuki ve muhasebeci kısmını en son konuşuruz"). Simülasyon bölümleri sırayla: A bitince kullanıcıya A'nın kısa özeti yazılır, sonra B.
 
+## KURAL (kullanıcı, 2026-11-02): BÖLÜM SONU KOD DENETİMİ + AJANLARA ZERO TRUST
+
+- Simülasyonun her bölümü (A, B, C…) bittiğinde bölüm sonu KOD DENETİMİ yapılır: veri dışarı çıkıyor mu (her ağ çağrısı, her depolama anahtarı, yedek/bulut gövdesi), veri sıkışması/taşması (kota, boyut sınırları, önbellek), güncel ve doğru veri kullanımı (kaynak/tarih etiketi, eski veri hesapta kullanılmaz, uydurma yok), yanlış kodlanmış yollar. Denetim raporu `docs/denetim/bolum-<X>-denetim.md`; bulgular kapanmadan sonraki bölümün commit'i atılmaz.
+- AJANLARA ZERO TRUST: hiçbir ajan çıktısı kendi beyanıyla kabul edilmez. Uygulayıcı ajan ≠ doğrulayan ajan; kapı (typecheck, build, tarama, birim, e2e) bağımsız test ajanında; güvenlik + uyum ayrı ajanlarda; her koruma için KIRMIZI/YEŞİL kanıt; lider (ben) kritik iddiaları komutla yeniden doğrular; ajanlar commit/push yapamaz, `.env` okuyamaz, yalnız PID ile süreç durdurur.
+- Cloudflare eklentisi (kullanıcı "Cloudflare audit" dedi) bu oturumda YÜKLÜ DEĞİL; yüklenirse denetimde kullanılır. Yüklenmezse aynı denetim fagent-guvenlik ile yapılır.
+
 ## DURUM VE SIRADAKİ İŞLER (2026-10-30, kullanım sınırı nedeniyle durduruldu)
 
 Commit'li: YH-1 (P3 bağlama), YH-2 (projeksiyon motoru). Tasarım: kullanıcının "mevcut tasarım" PDF'i `docs/tasarim/FAGENT_web_sitesi.pdf` (sekmeli paneller + 3 abonelik planı; tek-ekran-Projeksiyon kararı ve "abonelik yapılmaz" kapsamıyla ÇELİŞKİ var → `docs/mvp-tanimi.md` yazılacak, kullanıcıya sorulacak).
