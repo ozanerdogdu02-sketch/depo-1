@@ -13,9 +13,9 @@ import isoTarih from '../fixtures/kap/kap-ornek-iso-tarih.mjs';
 const BASE = 'https://ornek.invalid/api/kap';
 const istek = (url = BASE, basliklar: Record<string, string> = {}, method = 'GET') => new Request(url, { method, headers: basliklar });
 const govde = async (r: Response) => await r.json() as Record<string, unknown>;
-const ACIK = { FAGENT_KAZIMA: 'on' };
+const ACIK = { FAGENT_KAZIMA: 'on', VERCEL_ENV: 'preview' };
 // 2026-10-28 Çarşamba 12:00 TSİ (seans içi) ve 2026-10-31 Cumartesi 12:00 TSİ (seans dışı)
-const SEANS_ICI = Date.UTC(2026, 9, 28, 9, 0);
+const SEANS_ICI = Date.UTC(2026, 9, 29, 13, 0); // Perşembe 16:00 TSİ (bildirimler geçmişte kalsın)
 const SEANS_DISI = Date.UTC(2026, 9, 31, 9, 0);
 
 function kur(opts: {
@@ -43,7 +43,7 @@ test('U2: bayraksız /api/kap -> 503 kapali, yukarı akışa HİÇ gidilmez (yok
     assert.equal((await govde(r)).error, 'kapali');
     assert.equal(n, 0);
   }
-  assert.equal(kazimaAcikMi({ FAGENT_KAZIMA: 'ON' }), true);
+  assert.equal(kazimaAcikMi({ FAGENT_KAZIMA: 'ON', VERCEL_ENV: 'preview' }), true);
   assert.equal(kazimaAcikMi({}), false);
 });
 
@@ -87,10 +87,10 @@ test('U3: yukarı akış isteği sabit — adres, POST, dürüst User-Agent (tar
   assert.equal(b['user-agent'], 'FAGENT/1.0');
   assert.ok(!/mozilla|chrome|safari/i.test(JSON.stringify(b)));
   for (const yasak of ['cookie', 'authorization', 'origin', 'referer', 'x-forwarded-for', 'x-real-ip']) assert.ok(!(yasak in b), yasak);
-  // gövde: yalnız sabit alanlar + sunucu tarihleri (2026-10-27 .. 2026-10-28)
+  // gövde: yalnız sabit alanlar + sunucu tarihleri (2026-10-28 .. 2026-10-29)
   const g = JSON.parse(gorulen.init.body as string) as Record<string, unknown>;
   assert.deepEqual(Object.keys(g).sort(), ['disclosureClass', 'fromDate', 'memberType', 'mkkMemberOidList', 'subjectList', 'toDate']);
-  assert.deepEqual([g.fromDate, g.toDate], ['2026-10-27', '2026-10-28']);
+  assert.deepEqual([g.fromDate, g.toDate], ['2026-10-28', '2026-10-29']);
   assert.deepEqual([g.mkkMemberOidList, g.subjectList], [[], []]);
   assert.ok(!JSON.stringify(g).includes('1.2.3.4') && !JSON.stringify(g).includes('gizli'));
 });
@@ -114,7 +114,7 @@ test('U3: yanıt yalnız meta alanlar + pencere; özet/ek/ham alanlar GEÇMEZ; e
   assert.equal(r.status, 200);
   const j = await govde(r);
   assert.deepEqual(Object.keys(j).sort(), ['items', 'pencere']);
-  assert.deepEqual(j.pencere, ['2026-10-27', '2026-10-28']);
+  assert.deepEqual(j.pencere, ['2026-10-28', '2026-10-29']);
   const items = j.items as Array<Record<string, unknown>>;
   assert.deepEqual(items.map(i => i.no), [1000003, 1000002, 1000001]);
   const metin = JSON.stringify(j);
@@ -338,4 +338,67 @@ test('TODO(hukuk) işareti ve dürüst kimlik kodda durur; kod tarayıcı taklid
   assert.ok(!/Mozilla|Chrome\/|Safari\//i.test(kod.replace(/^\s*\/\/.*$/gm, '')));
   const api = readFileSync(new URL('../../api/kap.mjs', import.meta.url), 'utf8');
   assert.ok(api.includes("platform: 'vercel'"));
+});
+
+/* ── B11 düzeltmeleri (D1, D3, D4) ── */
+
+test('D1: bidi, sıfır genişlikli ve U+2028/2029 karakterleri başlık/unvan/kodda temizlenir', () => {
+  const kirli = 'Ba\u202Eşl\u200Bık\u200F\uFEFF\u2066x\u2069 a\u2028b\u2029c';
+  const a = kapAyristir([{ disclosureIndex: 1, publishDate: '2026-10-28 10:00:00', subject: kirli, memberTitle: '\u202AÖRNEK\u200D A.Ş.', stockCodes: 'ORN\u200BKA' }]);
+  assert.ok(a.ok);
+  assert.equal(a.items![0].baslik, 'Başlıkx a b c');
+  assert.equal(a.items![0].unvan, 'ÖRNEK A.Ş.');
+  assert.deepEqual(a.items![0].kodlar, []); // kod alanı metin()'den geçmez: biçim dışı (gizli karakterli) kod atılır
+  const tum = JSON.stringify(a);
+  assert.ok(!/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF\u2028\u2029]/.test(tum));
+});
+
+test('D3: Retry-After HTTP-tarih biçimi de çözülür; geçmiş/bozuk tarih 60 sn tabanına düşer', async () => {
+  const z = { t: Date.UTC(2026, 9, 29, 13, 0, 0) };
+  const dene = async (basliklar: Record<string, string>) => {
+    const h = kur({ zaman: z, fetchFn: async () => new Response('', { status: 429, headers: basliklar }) });
+    return (await h(istek())).headers.get('retry-after');
+  };
+  assert.equal(await dene({ 'retry-after': 'Thu, 29 Oct 2026 13:05:00 GMT' }), '300');
+  assert.equal(await dene({ 'retry-after': 'Thu, 29 Oct 2026 15:00:00 GMT' }), '900');  // 15 dk üst sınır
+  assert.equal(await dene({ 'retry-after': 'Thu, 29 Oct 2026 12:00:00 GMT' }), '60');   // geçmiş
+  assert.equal(await dene({ 'retry-after': 'bir gun sonra' }), '60');
+  assert.equal(await dene({ 'retry-after': '120' }), '120');
+});
+
+test('D4: gelecek tarihli bildirim reddedilir (10 dk tolerans); sunucu saatiyle sınanır', async () => {
+  const simdi = Date.UTC(2026, 9, 29, 7, 0, 0); // 10:00 TSİ
+  assert.equal(kapZamanCoz('2026-10-29 10:09:00', simdi), '2026-10-29T10:09:00+03:00');   // 9 dk ileri: tolerans içinde
+  assert.equal(kapZamanCoz('2026-10-29 10:11:00', simdi), undefined);                      // 11 dk ileri
+  assert.equal(kapZamanCoz('30.10.2026 09:00:00', simdi), undefined);
+  assert.equal(kapZamanCoz('2026-10-29 23:00:00'), '2026-10-29T23:00:00+03:00');           // simdi verilmezse denetim yok
+  const a = kapAyristir([
+    { disclosureIndex: 1, publishDate: '2026-10-29 09:00:00', subject: 'geçmiş' },
+    { disclosureIndex: 2, publishDate: '2026-12-31 09:00:00', subject: 'gelecek' },
+  ], simdi);
+  assert.deepEqual(a.items!.map(i => i.no), [1]);
+  assert.equal(kapAyristir([{ disclosureIndex: 2, publishDate: '2026-12-31 09:00:00', subject: 'g' }], simdi).ok, false); // hepsi tanınmadı
+  // sunucu işleyicisi simdi() ile çağırır
+  const h = kur({ zaman: { t: simdi }, fetchFn: async () => new Response(JSON.stringify([
+    { disclosureIndex: 5, publishDate: '2026-10-29 09:30:00', subject: 'a' },
+    { disclosureIndex: 6, publishDate: '2026-10-29 23:30:00', subject: 'b' },
+  ])) });
+  assert.deepEqual(((await govde(await h(istek()))).items as Array<{ no: number }>).map(i => i.no), [5]);
+});
+
+test('B12-3/R1: production, boş ve bilinmeyen ortamda FAGENT_KAZIMA yok sayılır: KAP da 503 kapali, 0 fetch', async () => {
+  const ortamlar: Array<[Record<string, string>, unknown]> = [
+    [{ VERCEL_ENV: 'production' }, undefined], [{ CONTEXT: 'production' }, undefined], [{ VERCEL_ENV: '' }, undefined], [{}, undefined],
+    [{}, { deploy: { context: 'production' } }],
+  ];
+  for (const [ek, ctx] of ortamlar) {
+    let n = 0;
+    const h = kur({ env: { FAGENT_KAZIMA: 'on', ...ek }, fetchFn: async () => { n++; return new Response('{}'); } });
+    const r = await h(istek(), ctx as never);
+    assert.equal(r.status, 503, JSON.stringify([ek, ctx]));
+    assert.equal((await govde(r)).error, 'kapali');
+    assert.equal(n, 0);
+  }
+  const h = kur({ env: { FAGENT_KAZIMA: 'on' }, fetchFn: async () => new Response('{"items":[]}') });
+  assert.equal((await h(istek(), { deploy: { context: 'deploy-preview' } } as never)).status, 200);
 });

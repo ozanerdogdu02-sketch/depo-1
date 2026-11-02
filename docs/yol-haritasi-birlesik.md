@@ -250,7 +250,7 @@ Genel bağlam: `src/storage/` (idb.ts, resilient.ts, migrate.ts, schema.ts, loca
 - **Bugünkü durum:** Kodda KAP yok. Resmî, belgelenmiş, ücretsiz geliştirici API'si bulunamadı. Topluluk araçları sitenin iç uçlarını (`kap.org.tr/tr/api/...`) kullanıyor (`cok-kaynakli-veri-plani.md` §4, bağlantılar orada). Bu ortamdan `kap.org.tr` erişimi reddedildi.
 - **Yapılacaklar:**
   1. Ortak sunucu çatısı `api/_kazima.mjs` (öneri ad): sabit hedef listesi; istekler arası bekleme; zaman aşımı (8 sn önerisi); en çok 2 yeniden deneme; devre kesici (15 dk); kimliği belli User-Agent (ürün adı + iletişim adresi, devirde değişir); robots.txt kontrolü; yanıt şeması ve mantık kontrolü; hata durumunda `KaynakSonucu` biçimi.
-  2. `api/kap.mjs`: kullanıcıdan girdi almaz. "Son N genel bildirim" tablosunu çeker ve `s-maxage` ile önbelleğe alır (30 dk önerisi).
+  2. `api/kap.mjs`: kullanıcıdan girdi almaz. "Son N genel bildirim" tablosunu çeker ve `s-maxage` ile önbelleğe alır (15 dk: seans içi 15 dk, dışı 1 saat).
   3. `src/kaynaklar/kap.ts`: tabloyu alır, portföydeki hisse kodlarıyla tarayıcıda süzer.
   4. Ayrıştırıcı kaydedilmiş örnek yanıtlarla (fixture) test edilir. Fixture ortamda erişim olmadığı için kullanıcının ya da önizleme loglarının sağladığı gerçek yanıttan alınır. Uydurma fixture "örnek" diye etiketlenir.
   5. Metin şablonu: "ŞİRKET · tarih · bildirim başlığı · KAP bağlantısı". Yorum, özet ya da yön yok.

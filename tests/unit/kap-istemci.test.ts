@@ -146,3 +146,15 @@ test('kaynak kodu: KAP istemcisi portföy/store içe aktarmaz, TODO(hukuk) işar
   assert.ok(kod.includes('TODO(hukuk)'));
   assert.ok(!/from '\.\.\/(store|backup|cloud|localData)/.test(kod));
 });
+
+test('D2: istemci doğrulayıcısı başlık 300 / unvan 200 / sınıf 6 / kod 20 sınırını uygular (önbellek ve yanıt)', async () => {
+  const iyi: KapBildirim = { no: 1, zaman: '2026-10-28T10:00:00+03:00', kodlar: ['ORNKA'], unvan: 'u'.repeat(200), baslik: 'b'.repeat(300), sinif: 'ABCDEF' };
+  assert.equal(kapVeriMi({ bildirimler: [iyi] }), true);
+  for (const kotu of [
+    { ...iyi, baslik: 'b'.repeat(301) }, { ...iyi, unvan: 'u'.repeat(201) }, { ...iyi, sinif: 'ABCDEFG' }, { ...iyi, sinif: 'oda' },
+    { ...iyi, kodlar: Array.from({ length: 21 }, (_, i) => 'KOD' + String(i).padStart(2, '0')) },
+  ]) assert.equal(kapVeriMi({ bildirimler: [kotu] }), false);
+  const { c } = orta();
+  const s = await kapOku({ calistirici: c, fetchFn: async () => yanit(200, { items: [{ ...iyi, baslik: 'b'.repeat(5000) }] }) });
+  assert.deepEqual([s.durum, s.veri], ['veri_yok', undefined]);
+});

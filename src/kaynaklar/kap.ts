@@ -31,6 +31,7 @@ export interface KapVeri { bildirimler: KapBildirim[]; kesildi?: true }
 export const kapBaglanti = (no: number): string => `https://www.kap.org.tr/tr/Bildirim/${no}`;
 
 const KOD_RE = /^[A-Z0-9]{3,6}$/;
+const SINIF_RE = /^[A-Z]{1,6}$/;
 const ZAMAN_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+03:00$/;
 
 export const kapBildirimMi = (v: unknown): v is KapBildirim => {
@@ -39,8 +40,10 @@ export const kapBildirimMi = (v: unknown): v is KapBildirim => {
   return typeof b.no === 'number' && Number.isSafeInteger(b.no) && b.no > 0
     && typeof b.zaman === 'string' && ZAMAN_RE.test(b.zaman) && Number.isFinite(Date.parse(b.zaman))
     && Array.isArray(b.kodlar) && b.kodlar.every(k => typeof k === 'string' && KOD_RE.test(k))
-    && typeof b.unvan === 'string' && typeof b.baslik === 'string' && b.baslik !== ''
-    && (b.sinif === undefined || typeof b.sinif === 'string')
+    && b.kodlar.length <= 20
+    && typeof b.unvan === 'string' && b.unvan.length <= 200
+    && typeof b.baslik === 'string' && b.baslik !== '' && b.baslik.length <= 300
+    && (b.sinif === undefined || (typeof b.sinif === 'string' && SINIF_RE.test(b.sinif)))
     && (b.gec === undefined || b.gec === true) && (b.duzeltme === undefined || b.duzeltme === true);
 };
 

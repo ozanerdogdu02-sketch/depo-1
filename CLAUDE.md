@@ -82,8 +82,8 @@ Odak: sistemi ve işleyişi kurmak; KVKK/SPK/ETBİS vb. yükümlülükler satı�
 
 ## DURUM VE SIRADAKİ İŞLER (2026-11-02)
 
-Çalışma sırası simülasyon bölümleridir (`docs/veri-akisi/veri-yolculugu.json`, sayfa: https://claude.ai/artifact/4ibpKT4js5mmYEDyGtnSUj). Bölüm A'nın kodu bitti (YH-1, YH-2, YH-3, A6–A10, A14, A16/A17 commit'li; kalan A9/A16/A17 dış bağımlılık: tasarım, Monte Carlo onayı, gerçek Supabase, KVKK). Bölüm B: B11 KAP commit'li (e4f8865); B11 küçük düzeltmeler + B12 BİST çalışma ağacında, Bölüm A denetimi (`docs/denetim/bolum-A-denetim.md`) kapanmadan commit'lenmez. Durum analizi: `docs/denetim/durum-analizi.md`.
-Sonraki: A denetimi → B12 + B11 düzeltmeleri kapı/inceleme → CoinGecko'yu ortak çalıştırıcıya taşıma + CSP daraltma → B13 notu + CI düzeltmesi (Node 22, test:unit) → B denetimi → C.
+Çalışma sırası simülasyon bölümleridir (`docs/veri-akisi/veri-yolculugu.json`, sayfa: https://claude.ai/artifact/4ibpKT4js5mmYEDyGtnSUj). Bölüm A'nın kodu bitti (YH-1, YH-2, YH-3, A6–A10, A14, A16/A17 commit'li; kalan A9/A16/A17 dış bağımlılık: tasarım, Monte Carlo onayı, gerçek Supabase, KVKK). Bölüm A denetimi KAPANDI (9752bf5; açık: A-D3-6 örnek portföy rozeti kararı, R1/R2 düşük). Bölüm B: B11 KAP + düzeltmeler ve B12 BİST commit'li (KISMEN: bülten biçimi doğrulanmadı, ayrıştırıcı kaydı bilerek boş, yukarı akışa gidilmez). Kazıma üretim kilidi kodda: yalnız ortam açıkça preview/branch-deploy/development VE FAGENT_KAZIMA=on ise açılır (gerçek deploy'da doğrulanmadı). Durum analizi: `docs/denetim/durum-analizi.md`.
+Sonraki: CoinGecko'yu ortak çalıştırıcıya taşıma (A-D4-1 istemci zaman aşımı) → B13 notu + CI düzeltmesi (Node 22, test:unit) → B denetimi → C.
 Bekleyen kullanıcı işleri: Vercel'e `EVDS_API_KEY`; Preview ortamına `FAGENT_KAZIMA=on` ve `FAGENT_BIST_KESIF=on` (Production'a EKLENMEZ); Monte Carlo kararı; yapay zekâ denemesi onayı; hukuk/muhasebe en sona.
 
 ## KAPSAM KARARI (kullanıcı, 2026-10-25): YALNIZCA ALTYAPI VE VERİ AKIŞI

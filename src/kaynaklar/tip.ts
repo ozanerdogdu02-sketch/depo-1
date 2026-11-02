@@ -3,7 +3,7 @@
 // Sahte veri yok: `veri` yalnızca gerçekten okunmuş değerdir (ya da önbellekteki son okunmuş değer, durum 'eski').
 import { KAYNAK_YENIDEN_DENEME_BEKLEME_MS } from '../config/varsayilanlar.ts';
 
-export type KaynakAdi = 'tcmb' | 'coingecko' | 'frankfurter' | 'kap' | 'elle';
+export type KaynakAdi = 'tcmb' | 'coingecko' | 'frankfurter' | 'kap' | 'bist' | 'elle';
 
 // guncel: taze veri (kaynaktan ya da süresi dolmamış önbellekten)
 // eski: kaynağa ulaşılamıyor, önbellekte son bilinen değer var (etiketli anılır, hesaplarda kullanılmaz)
@@ -68,6 +68,7 @@ const ETIKET: Record<KaynakAdi, KaynakEtiketi> = {
   coingecko: { ad: 'CoinGecko', yonelme: "CoinGecko'ya", ayrilma: "CoinGecko'dan" },
   frankfurter: { ad: 'Frankfurter', yonelme: "Frankfurter'a", ayrilma: "Frankfurter'dan" },
   kap: { ad: 'KAP', yonelme: "KAP'a", ayrilma: "KAP'tan" },
+  bist: { ad: 'Borsa İstanbul', yonelme: "Borsa İstanbul'a", ayrilma: "Borsa İstanbul'dan" },
   elle: { ad: 'Elle girilen', yonelme: 'Elle girilen veriye', ayrilma: 'Elle girilen veriden' },
 };
 

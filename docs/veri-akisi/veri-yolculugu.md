@@ -585,7 +585,7 @@ Bulut oyunu canlıya çıkmadan önce dört kapı kapanmalıdır. Kullanıcı ka
 
 ## B) Veri kaynakları işletimi
 
-Dışarıdan gelen her sayı bir kapıdan geçer: sunucu geçiş fonksiyonu (anahtar yalnız orada), istemci çalıştırıcısı (zaman aşımı, yeniden deneme, devre kesici, önbellek) ve mantık denetimi. Kaynak çökerse yalnız o kaynağın bölümü etkilenir; uydurma sayı gösterilmez. Bugün canlı olan: kur (Frankfurter) ve kripto (CoinGecko). Hazır ama anahtarsız kapalı: TCMB/EVDS. KAP: sunucu ucu ve istemci kodu yazıldı (U1–U3), canlıda varsayılan KAPALI, gerçek KAP yanıtıyla doğrulanmadı. Planlı: BİST, paylaşılan önbellek.
+Dışarıdan gelen her sayı bir kapıdan geçer: sunucu geçiş fonksiyonu (anahtar yalnız orada), istemci çalıştırıcısı (zaman aşımı, yeniden deneme, devre kesici, önbellek) ve mantık denetimi. Kaynak çökerse yalnız o kaynağın bölümü etkilenir; uydurma sayı gösterilmez. Bugün canlı olan: kur (Frankfurter) ve kripto (CoinGecko). Hazır ama anahtarsız kapalı: TCMB/EVDS. KAP: sunucu ucu ve istemci kodu yazıldı (U1–U3), canlıda varsayılan KAPALI, gerçek KAP yanıtıyla doğrulanmadı. BİST: sunucu iskeleti ve istemci yazıldı (ayrıştırıcı kaydı boş, bülten biçimi doğrulanmadı), canlıda varsayılan KAPALI. Planlı: paylaşılan önbellek.
 
 
 ### B1 · Enflasyon çekimi: tarayıcıdan EVDS'ye giden yol
@@ -888,7 +888,7 @@ KAP için resmi, belgelenmiş, ücretsiz bir geliştirici API'si bulunamadı. Ku
 | Ortak kazıma çatısı: dürüst User-Agent (FAGENT/1.0, tarayıcı taklidi yok), 4 sn zaman aşımı, yönlendirme yok, 2 MB / 500 satır sınırı, aynı anda tek istek, istekler arası en az 60 sn (sonuç paylaşılır), devre kesici (3 ağ/5xx hatası -> 15 dk), 429'da Retry-After kadar bekleme | Kaynağa kaba yük binmez. | 502 ulasilamadi / sinir_asildi; önbellekte son bilinen değer varsa 'eski' diye etiketli anılır. |
 | Ayrıştırıcı: iki tarih biçimi, memberTitle/kapTitle, virgüllü hisse kodları; yalnız meta alanlar (özet, ek, metin alınmaz) | Süzülmüş liste döner (en yeni önce). | 'okunamadi' (HTML/güvenlik duvarı sayfası ya da şema uyuşmazlığı); uydurma satır yok. |
 | Güvenlik duvarı ya da 4xx reddi | - | 'kaynak_reddetti': engel aşılmaz, yeniden denenmez, devre kesici sayılmaz; KAP bölümü 'KAP'a ulaşılamadı.' der. |
-| CDN önbelleği: seans içi (hafta içi 09:00–19:00 TSİ) 15 dk, dışı 1 saat; istemci önbelleği 15 dk | Saatte bölge başına en çok ~4 yukarı akış isteği. | Süresi geçen istemci kaydı silinmez, 'eski' kalır. |
+| CDN önbelleği: seans içi (hafta içi 09:00–19:00 TSİ) 15 dk, dışı 1 saat; istemci önbelleği 15 dk | CDN önbelleği çalışıyorsa bölge başına saatte ~4 yukarı akış isteği beklenir; sunucunun garantisi yalnız iki yukarı akış isteği arası >= 60 sn'dir. Gerçek istek sayısı ölçülmedi. | Süresi geçen istemci kaydı silinmez, 'eski' kalır. |
 | Hukuk okuması (TODO(hukuk)) | Kullanıcı kararı karar günlüğüne yazılır; canlıda bayrak açılır. | Bayrak kapalı kalır; KAP canlıda bağlanmaz. |
 | Metin dili: yorumsuz liste | ŞİRKET · tarih · başlık · KAP bağlantısı. | Yorum/yön cümlesi yasak. |
 
@@ -913,25 +913,39 @@ KAP için resmi, belgelenmiş, ücretsiz bir geliştirici API'si bulunamadı. Ku
 
 ### B12 · BİST gün sonu fiyatı (kazıma)
 
-**Durum:** PLANLI · **Yol haritası:** YH-5 · **PDF ekranı:** Hisseler (gün sonu fiyatı)
+**Durum:** KISMEN · **Yol haritası:** YH-5 · **PDF ekranı:** Hisseler (gün sonu fiyatı)
 
-Hisse fiyatını otomatik getirmek için gün sonu kapanış tablosu düşünülüyor. Hangi herkese açık sayfadan çekileceği henüz seçilmedi; fiyat verisi lisanslı dağıtıcılar üzerinden yayıldığı için bu en belirsiz kaynaktır. Elle ve CSV giriş her zaman yedek yol olarak kalır; kullanıcının elle girdiği değer onay almadan ezilmez.
+Hisse fiyatı için kaynak, Borsa İstanbul'un resmî Günlük Bülteni (kullanıcı kararı K2); gün içi ve anlık fiyat çekilmez. Sunucu ucu iskeleti yazıldı ama bülten dosya biçimi (PDF, zip ya da CSV; dosya adı) bu ortamdan doğrulanamadığı için ayrıştırıcı kaydı BOŞTUR: uç şimdilik 'okunamadi' döner ve istemci 'veri_yok' der, ekranda hiçbir fiyat uydurulmaz. Önizlemede bir kez 'keşif modu' (FAGENT_BIST_KESIF=on) çalıştırılıp yalnız içerik türü, boyut ve ilk 512 baytın güvenli özeti alınacak; biçim bilinince ayrıştırıcı yazılır. Kullanıcıdan hiçbir girdi sunucuya gitmez: istek parametresiz, portföye göre süzme tarayıcıda. Elle girilen fiyat HER ZAMAN öncelikli ve onaysız ezilmez; BİST yalnız elle fiyat yoksa kullanılır.
 
 | Kontrol | Geçerse | Geçemezse |
 |---|---|---|
-| Kaynak sayfa seçimi ve kullanım koşulu okuması | Bağdaştırıcı yazılır. | Başlamaz. |
-| AGENTS.md §0.4 yeni hali | Kullanıcı onaylar. | Ajan bu cümleyi değiştirmez; BİST adımı başlamaz. |
-| Günlük ±%20 mantık denetimi | Değer kabul edilir. | 'mantik_disi', gösterilmez. |
+| Kazıma bayrağı (FAGENT_KAZIMA=on, yalnız sunucu ortam değişkeni) | Sunucu bültenin sabit adresine gider. | 503 'kapali'; Borsa İstanbul'a hiç gidilmez; istemci 'Veri kaynağı yapılandırılmamış (Borsa İstanbul: bu kaynak sunucuda etkin değil).' der. |
+| Keşif modu (FAGENT_BIST_KESIF=on): sabit adresten yalnız durum kodu, content-type, boyut ve ilk 512 baytın güvenli özeti | Bülten biçimi ve dosya adı yazıya geçer; gerekirse Üst Kurul talebi açılır. | Bayrak kapalıysa keşif yapılmaz; biçim bilinmeden ayrıştırıcı yazılmaz. |
+| Parametresiz istek (her sorgu parametresi 400, keşif de parametreyle tetiklenemez) | Portföy ve semboller ağa hiç girmez; süzme tarayıcıda. | 400 gecersiz_parametre. |
+| Ortak kazıma çatısı: dürüst User-Agent (FAGENT/1.0), yönlendirme yok, 4 sn zaman aşımı, 2 MB sınırı, aynı anda tek istek, istekler arası en az 60 sn, devre kesici (3 hata -> 15 dk), 429'da Retry-After | Kaynağa kaba yük binmez. | 502 ulasilamadi / sinir_asildi; önbellekte son bilinen değer varsa 'eski' diye etiketli anılır. |
+| Ayrıştırıcı arayüzü: kayıt boş; çıktı doğrulanır (kod biçimi, pozitif sonlu kapanış, gerçek ve gelecek olmayan tarih, en çok 3000 satır) | {tarih, beklenen, satirlar} döner. | 'okunamadi' (sabit biçim etiketi: pdf, zip, html, metin, bilinmiyor); ham içerik yanıta girmez; istemcide 'veri_yok'. |
+| Gün sonu penceresi: hafta içi 19:30 TSİ'den sonra o günün bülteni beklenir; bülten kendi tarihini taşır | Bülten beklenen tarihteyse güncel; CDN sonraki iş günü 19:30'a kadar (en çok 24 saat). | Daha eski bülten güncel sayılmaz, eski diye etiketlenir; CDN 15 dk. Resmî tatil takvimi tutulmaz. |
+| Günlük ±%20 makullük denetimi (önceki bültene göre, tarayıcıda) | Değer kabul edilir. | O kod 'veri_yok' + not ('Önceki kapanışa göre ±%20 dışında; gösterilmiyor.'); aynı bültende sonradan kabul edilmez. Bedelsiz/bölünme günü bu yüzden gösterilmez. |
+| Fiyat önceliği: elle girilen > BİST | Elle fiyat geçerliyse (sonlu, > 0) aynen kalır; farklı BİST kapanışı yalnız 'aday' olarak bildirilir. | Elle fiyat yoksa makul BİST kapanışı kullanılır; o da yoksa 'kaynak yok' ve sayı uydurulmaz. |
+| Kaynak sayfa seçimi ve kullanım koşulu okuması (TODO(hukuk)) | Canlıda bayrak açılabilir. | Bayrak kapalı kalır; BİST canlıda bağlanmaz. |
 
 **Kod:**
-- `doğrulanamadı: api/bist.mjs ve src/kaynaklar/bist.ts henüz yok`
+- `netlify/functions/bist.mjs:createBistHandler (sunucu; bayrak, keşif, bistAyristir, beklenenBultenTarihi, bistCdnSaniye)`
+- `api/bist.mjs:GET (Vercel bağlama)`
+- `netlify/ortak/sunucu-ortak.mjs (EVDS ve KAP ile ortak parçalar)`
+- `src/kaynaklar/bist.ts:bistOku, bistSuz, bistMakullukUygula, makulMu, fiyatSec`
+- `src/kaynaklar/onbellek.ts:ONBELLEK_ANAHTARLARI.bistKapanis (fagent.kaynak.bist.v1, yedek/buluta girmez)`
+- `doğrulanamadı: gerçek bülten dosyası (adres, biçim, ayrıştırıcı); BIST_AYRISTIRICILAR kaydı bilerek boş`
 
-**Bozulursa:** Henüz canlı değil; hisse fiyatı elle girilmeye devam eder.
+**Bozulursa:** Kapalıyken, biçim doğrulanmamışken ya da kaynak ulaşılamazken kullanıcı BİST fiyatı görmez; durum metni nedenini söyler, hisse fiyatı elle girilmeye devam eder. Veri kaybı yok.
 
 **Test:**
-- yok (planlı)
+- tests/unit/bist-sunucu.test.ts: bayrak, parametre, sabit istek ve kimlik, gün sonu penceresi ve CDN süresi, ayrıştırıcı çıktı doğrulaması, boş kayıtta okunamadi, 429/5xx/4xx/zaman aşımı/büyük gövde, devre kesici, 60 sn paylaşım, keşif modu
+- tests/unit/bist-istemci.test.ts: ağ isteğinde parametre yok, süzme tarayıcıda, önbellek, durumlar, ±%20 makullük, eski bülten etiketi, elle fiyat > BİST
+- tests/e2e/fagent-auth-e2e.mjs: fagent.kaynak.bist.* anahtarı bulut gövdesine girmez
+- tests/fixtures/bist/bist-sentetik.ts: SENTETİK biçim (gerçek bülten değil)
 
-**Not:** Lisans gereği, gün sonu verinin üçüncü taraf uygulamada lisanssız gösterimi, ücretli üründe gösterim doğrulanmadı (TODO(hukuk)). Araştırma notu (2026-10-31, kap-bist-erisim.md §3): birincil aday Borsa İstanbul'un resmi Günlük Bülten sayfası (2011'den beri); dosya biçimi ve adı doğrulanamadı (PDF ya da zip/CSV çıkarsa ayrıştırıcı için Üst Kurul talebi). Aracı kurum/grafik sitesi iç uçları reddedildi (üçüncü taraf ürünü; o yolları kullanan kütüphane de ticari kullanım için BİST lisansı gerektiğini yazıyor). Sembol listesi için borsaistanbul.com/datum/hisse_endeks_ds.csv adayı. Gün sonu çekişi hafta içi 19:30 TSİ sonrası önerisi; seans saatleri ikincil kaynaktan.
+**Not:** Lisans gereği, gün sonu verinin üçüncü taraf uygulamada lisanssız gösterimi, ücretli üründe gösterim doğrulanmadı (TODO(hukuk)). B12 iskeleti yazıldı (2026-11-02): ortak modül, FAGENT_KAZIMA bayrağı, keşif modu, ayrıştırıcı arayüzü (kayıt boş), istemci, makullük ve fiyat önceliği; ekrana bağlanmadı (tasarım kullanıcıda). KALAN: biçim keşfi kullanıcının önizlemesine bağlı: Vercel Preview ortamına FAGENT_KAZIMA=on ve FAGENT_BIST_KESIF=on eklenince /api/bist keşif özetini döndürür; bülten sayfası HTML çıkarsa dosya bağlantısı için ikinci bir keşif gerekir. Biçim PDF ya da zip çıkarsa ayrıştırıcı kütüphane için Üst Kurul talebi docs/teknoloji-talepleri.md'de BEKLEMEDE; düz CSV/metin çıkarsa kütüphane gerekmez. Bülten adresi (borsaistanbul.com/veriler/gunluk-bulten) bülten SAYFASIdır, dosya adresi doğrulanmadı. Araştırma notu: docs/veri-akisi/kap-bist-erisim.md §3. Aracı kurum/grafik sitesi iç uçları reddedildi.
 
 ### B13 · Paylaşılan herkese açık veri önbelleği
 
@@ -1425,7 +1439,7 @@ Devir paketine eklenecek tek sayfa: hangi yükümlülük kimde, hangi madde aç�
 
 **Durum:** YAPILDI · **PDF ekranı:** Abonelik planları (ödeme canlıda kapalı); Gizlilik kartları
 
-Satıştan önce canlıda dört kapı kilitli kalır: hesap (Supabase), ödeme, kazıma (KAP/BİST) ve yapay zekâ yorumu. Hesap kapısı kodla kilitli: env boşken bulut kodu çalışmaz. Ödeme ve yapay zekâ için kod yoktur. Kazıma kodu (KAP) vardır ama sunucu ayarı FAGENT_KAZIMA=on yoksa kapalıdır (503 kapali).
+Satıştan önce canlıda dört kapı kilitli kalır: hesap (Supabase), ödeme, kazıma (KAP/BİST) ve yapay zekâ yorumu. Hesap kapısı kodla kilitli: env boşken bulut kodu çalışmaz. Ödeme ve yapay zekâ için kod yoktur. Kazıma kodu (KAP, BİST iskeleti) vardır ama sunucu ayarı FAGENT_KAZIMA=on yoksa kapalıdır (503 kapali).
 
 | Kontrol | Geçerse | Geçemezse |
 |---|---|---|
@@ -1577,7 +1591,7 @@ Devirde alan adı kayıt sahibi, Vercel projesi/ekibi, Supabase proje sahipliği
 13. Hız sınırında kullanılan istemci IP'sinin kişisel veri sayılıp sayılmadığı avukat teyidine bağlı (TODO(hukuk)); EVDS kullanım şartları ticari/abonelikli üründe birincil metinle doğrulanmadı.
 14. Projeksiyon motorunun yeni fonksiyonlarının çoğu ekrana bağlı değil; Aşama B (Monte Carlo) için ayrı onay gerekiyor ve rassal yürüyüş ertelemesiyle çelişki notu planda.
 15. Vergi oranları (tax_rules.json) ve piyasa varsayımları (varsayimlar.json) tarih aralıklı dosyada; hiçbiri muhasebeci doğrulamasından geçmedi (dogrulandi:false); fon stopajı %17,5 ve enflasyon varsayımı %30 birincil kaynakla doğrulanmadı (TODO(muhasebe)). Fon için 2026-05-01 öncesi oran (%15) doğrulanmadığı için dosyada yok.
-16. KAP (YH-4) sunucu ucu ve istemcisi yazıldı ama kapalı ve gerçek yanıtla doğrulanmadı (U4 bekliyor); BİST (YH-5) ve paylaşılan veri önbelleği (YH-6) yapılmadı; YH-7 ve YH-8 PDF tasarımına göre yeniden tanımlanacak (motorlar PDF ekranlarını besler). KAP/BİST için kaynak sayfa, kullanım koşulu ve lisans doğrulanmadı; AGENTS.md §0.4 güncellemesi kullanıcı onayı bekliyor.
+16. KAP (YH-4) sunucu ucu ve istemcisi yazıldı ama kapalı ve gerçek yanıtla doğrulanmadı (U4 bekliyor); BİST (YH-5) iskeleti yazıldı ama bülten biçimi doğrulanmadığı için fiyat dönmüyor (keşif önizleme bekliyor), paylaşılan veri önbelleği (YH-6) yapılmadı; YH-7 ve YH-8 PDF tasarımına göre yeniden tanımlanacak (motorlar PDF ekranlarını besler). KAP/BİST için kaynak sayfa, kullanım koşulu ve lisans doğrulanmadı; AGENTS.md §0.4 güncellemesi onaylandı ve uygulandı (2026-10-31, AGENTS.md §0.4).
 17. docs/mvp-tanimi.md, CHANGELOG, scripts/paket-olustur.sh, /home/user/FAGENT-Paket, 'Uyumluluk durumu ve açık maddeler' sayfası ve alan adı henüz yok. MVP kapsamı (PDF tasarımındaki hangi ekran ve özellik ilk sürümde açık) kullanıcıya sorulacak.
 18. ci.yml Node 20 kuruyor, package.json engines >=22.18; CI'da test:unit adımı yok; aksiyonlar SHA ile sabit değil; Dependabot yok. Kod okunarak görüldü, CI koşusu yapılmadı.
 19. Bağımlılıklar için 14 günlük bekleme kuralı depoda bulunamadı; bağımlılık güncelleme düzeni yazılı kural değil.
@@ -1589,4 +1603,4 @@ Devirde alan adı kayıt sahibi, Vercel projesi/ekibi, Supabase proje sahipliği
 25. Sekmeler arası eşitleme: olay gecikmesinde yazım anı karşılaştırması ezilen sürümü kurtarma alanına alır ama işlemi yine uygular (stale bellek kazanır). Başka sekmenin sürümü kurtarma alanına alınamazsa (IndexedDB yok/hata) kaydedilmemiş değişiklik yazılmadan bekler; her yazımda kopya yeniden denenir, IndexedDB hiç yoksa bekletme sürer (yenilemede kaybolur). Silme işareti ömrü (30 sn) ölçülmedi, varsayım. Çakışma ve silme-kazanır kararları gerçek tarayıcıda yalnız kota taklidiyle sınandı; 'kopya alınamadı' yolu yalnız birim testte. #35'in 'çıkışla hesaba yüklenmemiş tek yerel kopya silinir' yanı açık.
 
 ---
-Durum dağılımı: YAPILDI 29, KISMEN 14, PLANLI 11.
+Durum dağılımı: YAPILDI 29, KISMEN 15, PLANLI 10.

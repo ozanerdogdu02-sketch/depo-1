@@ -22,6 +22,12 @@
   to = "/.netlify/functions/kap"
   status = 200
 
+# BİST gün sonu ucu (kazıma; FAGENT_KAZIMA=on yoksa 503 kapali).
+[[redirects]]
+  from = "/api/bist"
+  to = "/.netlify/functions/bist"
+  status = 200
+
 # Güvenlik başlıkları — vercel.json ile aynı değerler (tek kaynak: vercel.json; değişirse ikisini birlikte güncelle).
 [[headers]]
   for = "/*"

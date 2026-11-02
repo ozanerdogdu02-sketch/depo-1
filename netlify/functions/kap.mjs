@@ -20,7 +20,10 @@
 
 import {
   json, createIstemciSiniri, createDevreKesici, sinirliOku, yukariAkisaGit,
+  KULLANICI_KIMLIGI, kazimaAcikMi, kullaniciKimligi, retryAfterMs,
 } from '../ortak/sunucu-ortak.mjs';
+
+export { kazimaAcikMi };
 
 /* ───────────── Sabitler (seans saatleri dâhil; tek yerde) ───────────── */
 
@@ -30,8 +33,6 @@ const PENCERE_GUN = 2;                         // dün + bugün (yıl başında 
 const MAKS_GOVDE_BAYT = 2 * 1024 * 1024;       // 2 MB (okumadan önce content-length, akışta sayaç)
 const MAKS_SATIR = 500;
 const YUKARI_AKIS_ARALIGI_MS = 60_000;         // iki yukarı akış isteği arası en az
-const RETRY_AFTER_MIN_MS = 60_000;
-const RETRY_AFTER_MAX_MS = 15 * 60_000;
 const DEVRE_SURE_MS = 15 * 60_000;             // 3 ardışık ağ/zaman aşımı/5xx -> 15 dk
 const TSI_FARK_MS = 3 * 3600_000;              // Türkiye UTC+3 (yaz saati yok)
 const SEANS_BAS_SAAT = 9;                      // hafta içi 09:00–19:00 TSİ
@@ -39,19 +40,11 @@ const SEANS_BIT_SAAT = 19;
 const CDN_SEANS_ICI_SN = 900;
 const CDN_SEANS_DISI_SN = 3600;
 const CDN_ESKI_SUNMA_SN = 300;                 // stale-while-revalidate
-const KULLANICI_KIMLIGI = 'FAGENT/1.0';
 
 export const KAP_SABITLERI = Object.freeze({
   KAP_URL, PENCERE_GUN, MAKS_GOVDE_BAYT, MAKS_SATIR, YUKARI_AKIS_ARALIGI_MS, DEVRE_SURE_MS,
   CDN_SEANS_ICI_SN, CDN_SEANS_DISI_SN, KULLANICI_KIMLIGI,
 });
-
-/* ───────────── Kazıma bayrağı ───────────── */
-
-export function kazimaAcikMi(env) {
-  const v = String(env?.FAGENT_KAZIMA ?? '').trim().toLowerCase();
-  return v === 'on' || v === 'acik';
-}
 
 /* ───────────── Tarih penceresi ve önbellek süresi (SUNUCU kurar) ───────────── */
 
@@ -84,7 +77,12 @@ const KOD_RE = /^[A-Z0-9]{3,6}$/;
 // Kontrol karakterlerini boşluğa çevirir, boşlukları sıkıştırır, uzunluğu keser. Metin değilse undefined.
 function metin(v, maks) {
   if (typeof v !== 'string') return undefined;
-  const s = v.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, maks);
+  // Yön değiştiren (bidi) ve sıfır genişlikli karakterler SİLİNİR (ekranda başlığı/kodu gizlice değiştirebilir);
+  // kontrol karakterleri ve satır/paragraf ayırıcıları (U+2028/2029) boşluğa çevrilir.
+  const s = v
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, '')
+    .replace(/[\u0000-\u001f\u007f\u2028\u2029]/g, ' ')
+    .replace(/\s+/g, ' ').trim().slice(0, maks);
   return s || undefined;
 }
 
@@ -96,7 +94,9 @@ function bildirimNo(v) {
 
 // İki biçim: "GG.AA.YYYY SS:DD:ss" ve "YYYY-AA-GG SS:DD:ss" (ayırıcı boşluk ya da T; saniye/saat isteğe bağlı).
 // Türkiye saati varsayılır -> "YYYY-AA-GGTSS:DD:ss+03:00". Gerçek olmayan tarih/saat undefined.
-export function kapZamanCoz(v) {
+const GELECEK_TOLERANS_MS = 10 * 60_000; // saat kayması payı
+
+export function kapZamanCoz(v, simdiMs) {
   if (typeof v !== 'string') return undefined;
   const s = v.trim();
   let y, mo, d, h = 0, mi = 0, sn = 0, m;
@@ -108,7 +108,10 @@ export function kapZamanCoz(v) {
   if (y < 2000 || y > 2100 || mo < 1 || mo > 12 || d < 1 || h > 23 || mi > 59 || sn > 59) return undefined;
   const dt = new Date(Date.UTC(y, mo - 1, d));
   if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) return undefined;
-  return `${y}-${p2(mo)}-${p2(d)}T${p2(h)}:${p2(mi)}:${p2(sn)}+03:00`;
+  const iso = `${y}-${p2(mo)}-${p2(d)}T${p2(h)}:${p2(mi)}:${p2(sn)}+03:00`;
+  // Gelecek tarihli bildirim gerçek olamaz (şema kayması ya da bozuk veri): simdiMs verilmişse 10 dk paydan ilerisi reddedilir.
+  if (simdiMs !== undefined && Date.parse(iso) > simdiMs + GELECEK_TOLERANS_MS) return undefined;
+  return iso;
 }
 
 function kodlariCoz(v) {
@@ -132,7 +135,7 @@ function satirlariBul(govde) {
 
 // Dönüş: { ok: true, items, kesildi } | { ok: false }. SADECE meta alanlar taşınır; `summary` vb. asla.
 // Boş dizi geçerli (o pencerede bildirim yok). Satır sayılıp hiçbiri tanınmazsa şema tutmadı -> ok:false.
-export function kapAyristir(govde) {
+export function kapAyristir(govde, simdiMs) {
   const satirlar = satirlariBul(govde);
   if (!satirlar) return { ok: false };
   const gorulen = new Set();
@@ -140,7 +143,7 @@ export function kapAyristir(govde) {
   for (const r of satirlar) {
     if (!r || typeof r !== 'object' || Array.isArray(r)) continue;
     const no = bildirimNo(r.disclosureIndex);
-    const zaman = kapZamanCoz(r.publishDate);
+    const zaman = kapZamanCoz(r.publishDate, simdiMs);
     const baslik = metin(r.subject, 300);
     if (no === undefined || zaman === undefined || baslik === undefined || gorulen.has(no)) continue;
     gorulen.add(no);
@@ -159,21 +162,6 @@ export function kapAyristir(govde) {
 }
 
 /* ───────────── İşleyici ───────────── */
-
-function kullaniciKimligi(env) {
-  // İletişim yeri verilmişse eklenir (sunucu ortam değişkeni); yoksa yalnız ürün adı/sürüm. Güvenli karakterlerle sınırlı.
-  const il = String(env?.FAGENT_ILETISIM ?? '').trim();
-  return /^[\w@.:/+\- ]{3,100}$/.test(il) ? `${KULLANICI_KIMLIGI} (+${il})` : KULLANICI_KIMLIGI;
-}
-
-function retryAfterMs(res, govdeMetni) {
-  let sn = Number(res.headers.get('retry-after'));
-  if (!Number.isFinite(sn) || sn <= 0) {
-    try { sn = Number(JSON.parse(govdeMetni ?? '')?.retryAfter); } catch { sn = NaN; }
-  }
-  const ms = Number.isFinite(sn) && sn > 0 ? sn * 1000 : RETRY_AFTER_MIN_MS;
-  return Math.min(RETRY_AFTER_MAX_MS, Math.max(RETRY_AFTER_MIN_MS, ms));
-}
 
 export function createKapHandler({
   fetchFn = (...a) => globalThis.fetch(...a),
@@ -207,7 +195,7 @@ export function createKapHandler({
     if (res.status === 429) {
       // KAP'ın açık isteğine uyulur: Retry-After kadar hiç gidilmez, yeniden deneme yok.
       const kucuk = await sinirliOku(res, 4096).catch(() => undefined);
-      const ms = retryAfterMs(res, kucuk);
+      const ms = retryAfterMs(res, kucuk, simdi());
       devre.ac(ms);
       return { status: 429, body: { error: 'sinir_asildi', message: 'KAP şu an istek kabul etmiyor.' }, headers: { 'retry-after': String(Math.ceil(ms / 1000)) } };
     }
@@ -224,7 +212,7 @@ export function createKapHandler({
       const m = await sinirliOku(res, MAKS_GOVDE_BAYT);
       if (m !== undefined) veri = JSON.parse(m); // HTML (güvenlik duvarı sayfası) burada patlar -> okunamadi
     } catch { veri = null; }
-    const a = veri === null ? { ok: false } : kapAyristir(veri);
+    const a = veri === null ? { ok: false } : kapAyristir(veri, simdi());
     if (!a.ok) return { status: 502, body: { error: 'okunamadi', message: 'KAP yanıtı okunamadı.' }, headers: {} };
 
     devre.basari();
@@ -236,9 +224,9 @@ export function createKapHandler({
     };
   }
 
-  return async (req) => {
+  return async (req, context) => {
     // Bayrak ÖNCE: kapalıyken hiçbir şey yapılmaz (yukarı akışa gidilmez, sayaç tutulmaz). Beklenen durum, arıza değil.
-    if (!kazimaAcikMi(env)) {
+    if (!kazimaAcikMi(env, context)) {
       return json({ error: 'kapali', message: 'KAP okuma bu sunucuda etkin değil.' }, 503);
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') {

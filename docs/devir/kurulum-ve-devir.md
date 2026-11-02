@@ -12,6 +12,9 @@ Kod (bu depo), Vercel projesi, Supabase projesi (hesap açılırsa), alan adı, 
 | `VITE_SUPABASE_URL` | Vercel (Build) | Hesap özelliği için | Boşsa hesap/bulut kodu hiç çalışmaz |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Vercel (Build) | Hesap özelliği için | Yalnız publishable/anon; `sb_secret_`/service_role derlemeyi durdurur |
 | `EVDS_API_KEY` | Vercel (Runtime, **sunucu**) | Canlı enflasyon için | TCMB EVDS ücretsiz anahtar; tarayıcıya girmez. Yoksa uygulama elle girilen varsayımla çalışır |
+| `FAGENT_KAZIMA` | Vercel (Runtime, **sunucu**), yalnız **Preview** | Hayır (varsayılan kapalı) | `on` ise `/api/kap` ve `/api/bist` kaynaklara gider. **Production'da TANIMLANMAZ.** Dağıtımdan sonra `/api/kap` → 503 `kapali` olduğu kontrol edilir (açıksa env silinir). Hukuk: `TODO(hukuk)` |
+| `FAGENT_BIST_KESIF` | Vercel (Runtime, **sunucu**), yalnız **Preview** | Hayır | `on` iken `/api/bist` yalnız bülten biçim keşfi yapar (içerik, boyut, ilk 512 bayt özeti). Keşiften sonra kaldırılır; Production'da TANIMLANMAZ |
+| `FAGENT_ILETISIM` | Vercel (Runtime, **sunucu**) | Hayır | Kazıma isteklerinin User-Agent'ına eklenen iletişim yeri (ör. e-posta); yoksa yalnız `FAGENT/1.0` |
 Gizli anahtarlar yalnızca sunucu tarafındadır; `.env*` dosyaları depoya girmez.
 
 ## Barındırma
@@ -24,6 +27,8 @@ Vercel: framework Vite, çıktı `dist`, `vercel.json` güvenlik başlıkların�
 
 ## Açık maddeler (alıcıya devredilen)
 - **EVDS ara katmanı ve IP:** `netlify/functions/evds.mjs` istek sınırı için istemci IP adresini yalnızca kısa süreli bellekte (≈1 dk) tutar, kalıcı kayıt yoktur. IP'nin kişisel veri sayılıp sayılmadığı ve aydınlatma metnindeki ifade avukat teyidine bağlıdır (`TODO(hukuk)`, `docs/yasal/aydinlatma-kvkk.md`).
+- **Kazıma uçlarının kapalı olduğunun kontrolü (KAP/BİST):** Production dağıtımından sonra `GET /api/kap` ve `GET /api/bist` yanıtı **503 `kapali`** olmalı. 200 dönüyorsa Production'da `FAGENT_KAZIMA` tanımlıdır; kaldırılmalıdır. KAP/BİST kullanım koşulları, otomatik okuma izni ve lisans birincil metinle doğrulanmadı (`TODO(hukuk)`).
+- **Üretimde varsayılan ret (kod kilidi, izin listesi):** kazıma YALNIZ ortam açıkça `preview`, `deploy-preview`, `branch-deploy`, `development` ya da `dev` ise VE `FAGENT_KAZIMA=on` ise çalışır (`netlify/ortak/sunucu-ortak.mjs` → `kazimaOrtamiUygunMu`). Ortam kaynakları: `VERCEL_ENV`, Netlify v2 `context.deploy.context`, `CONTEXT`. Hepsi boşsa ya da biri `production`/bilinmeyen ise ÜRETİM sayılır ve `/api/kap` ile `/api/bist` 503 `kapali` döner; bayrak yanlışlıkla Production'a eklense de açılmaz. **Netlify'da çalışma anında doğrulanmadı** (yalnız env/context nesnesi taklidiyle sınandı; Vercel önizlemede `VERCEL_ENV=preview` gelmesi de gerçek deploy'da doğrulanacak). Satış sonrası alıcı, hukuk/lisans konularını kapattıktan sonra bu kilidi bilinçli kaldırır (kod değişikliği gerekir).
 - **EVDS kullanım şartları:** ticari/abonelikli üründe gösterim ve kaynak gösterme biçimi birincil metinle doğrulanmadı (`TODO(hukuk)`).
 - **EVDS anahtarı geçersizse (401/403):** işlev günlüğüne bak; her açılışta bir istek gider, kullanıcıya yalnız "ulaşılamadı" görünür (yukarı akış 4xx devre kesiciyi açmaz).
 - **EVDS seri kodları:** TÜFE `TP.FG.J0` ve kur serileri gerçek yanıtla doğrulanmadı; kur serisi listesi bilerek boş (`TODO(muhasebe)`).

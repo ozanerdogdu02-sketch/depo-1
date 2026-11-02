@@ -135,3 +135,72 @@ export async function yukariAkisaGit(fetchFn, url, init = {}, zamanAsimiMs = UPS
     return { hata: 'ulasilamadi' };
   }
 }
+
+/* ───────────── Kazıma uçları için ortak (KAP, BİST) ───────────── */
+
+export const KULLANICI_KIMLIGI = 'FAGENT/1.0';
+
+// Kazıma bayrağı: sunucu ortam değişkeni FAGENT_KAZIMA=on (ya da acik). Yoksa kapalı (canlıda varsayılan).
+// VARSAYILAN RET (allow-list): kazıma YALNIZ ortam AÇIKÇA önizleme/geliştirme ise ve bayrak açıksa çalışır. Ortam bilinmiyorsa
+// (VERCEL_ENV boş, Netlify bağlamı yok) ÜRETİM sayılır ve kapalı kalır. Bayrak production'a yanlışlıkla eklense de açılmaz.
+// Ortam: VERCEL_ENV (Vercel) > Netlify v2 ikinci argüman `context.deploy.context` > env.CONTEXT (Netlify).
+// Satış sonrası alıcı bu kilidi bilinçli kaldırır (docs/devir/kurulum-ve-devir.md). Netlify çalışma anında DOĞRULANMADI.
+export const KAZIMA_IZINLI_ORTAMLAR = Object.freeze(['preview', 'deploy-preview', 'branch-deploy', 'development', 'dev']);
+
+const ortamDegerleri = (env, context) => [env?.VERCEL_ENV, context?.deploy?.context, env?.CONTEXT]
+  .map((v) => (typeof v === 'string' ? v.trim().toLowerCase() : '')).filter(Boolean);
+
+// Kaynaklardan HEPSİ izinli olmalı (biri 'production' ya da bilinmeyense kapalı) ve en az biri dolu olmalı (hiçbiri yoksa üretim sayılır).
+export function kazimaOrtamiUygunMu(env, context) {
+  const d = ortamDegerleri(env, context);
+  return d.length > 0 && d.every((v) => KAZIMA_IZINLI_ORTAMLAR.includes(v));
+}
+
+export function kazimaAcikMi(env, context) {
+  if (!kazimaOrtamiUygunMu(env, context)) return false;
+  const v = String(env?.FAGENT_KAZIMA ?? '').trim().toLowerCase();
+  return v === 'on' || v === 'acik';
+}
+
+// Dürüst kimlik: yalnız ürün adı/sürüm; FAGENT_ILETISIM güvenli karakterlerdeyse eklenir. Tarayıcı taklidi YOK.
+export function kullaniciKimligi(env) {
+  const il = String(env?.FAGENT_ILETISIM ?? '').trim();
+  return /^[\w@.:/+\- ]{3,100}$/.test(il) ? `${KULLANICI_KIMLIGI} (+${il})` : KULLANICI_KIMLIGI;
+}
+
+export const RETRY_AFTER_MIN_MS = 60_000;
+export const RETRY_AFTER_MAX_MS = 15 * 60_000;
+
+// 429 bekleme süresi (ms), [60 sn, 15 dk] aralığına sıkıştırılır. Retry-After iki biçimde gelebilir:
+// saniye sayısı ya da HTTP-tarih ("Wed, 21 Oct 2026 07:28:00 GMT"). Başlık yoksa gövdedeki {"retryAfter": sn} okunur.
+export function retryAfterMs(res, govdeMetni, simdiMs = Date.now()) {
+  let ms = NaN;
+  const baslik = (res.headers.get('retry-after') ?? '').trim();
+  if (/^\d{1,9}$/.test(baslik)) ms = Number(baslik) * 1000;
+  else if (baslik) {
+    const t = Date.parse(baslik); // HTTP-tarih; çözülemezse NaN
+    if (Number.isFinite(t)) ms = t - simdiMs;
+  }
+  if (!(ms > 0)) {
+    try { const sn = Number(JSON.parse(govdeMetni ?? '')?.retryAfter); ms = Number.isFinite(sn) && sn > 0 ? sn * 1000 : NaN; } catch { ms = NaN; }
+  }
+  if (!(ms > 0)) ms = RETRY_AFTER_MIN_MS;
+  return Math.min(RETRY_AFTER_MAX_MS, Math.max(RETRY_AFTER_MIN_MS, ms));
+}
+
+// Gövdenin yalnız İLK `n` baytını okur, akışı keser (keşif modu için; gerisi indirilmez).
+export async function ilkBaytlariOku(res, n) {
+  if (!res.body) return new Uint8Array(0);
+  const okuyucu = res.body.getReader();
+  const cikis = new Uint8Array(n);
+  let dolu = 0;
+  while (dolu < n) {
+    const { done, value } = await okuyucu.read();
+    if (done) break;
+    const al = Math.min(value.byteLength, n - dolu);
+    cikis.set(value.subarray(0, al), dolu);
+    dolu += al;
+  }
+  await okuyucu.cancel().catch(() => {});
+  return cikis.subarray(0, dolu);
+}
