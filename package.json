@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
     "test:unit": "node --test \"tests/unit/*.test.ts\"",
     "test:e2e": "node tests/run-e2e.mjs",
-    "guvenlik": "node scripts/guvenlik-tarama.mjs"
+    "guvenlik": "node scripts/guvenlik-tarama.mjs",
+    "denetim": "node scripts/denetim.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.118.0",

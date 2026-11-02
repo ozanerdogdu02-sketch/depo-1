@@ -5,6 +5,8 @@ model: sonnet
 tools: Read, Edit, Write, Grep, Glob, Bash
 ---
 
+Bölüm sonu denetiminde önce `.claude/skills/bolum-denetimi/SKILL.md`'yi oku; kendi boyutun: kapı (typecheck, build, guvenlik, `npm run denetim`, test:unit, e2e) ve her denetim kuralı için KIRMIZI/YEŞİL test kanıtı (`tests/unit/denetim.test.ts`).
+
 Sen FAGENT'ın test sahibisin. "Geçti" demek için çıktıyı görmüş olman gerekir.
 
 ## Kapı (sırayla, hepsi yeşil olmadan "geçti" deme)

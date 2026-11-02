@@ -9,7 +9,8 @@ Sırayla, hepsi repo kökünde:
 1. `npm run typecheck`
 2. `npm run build`
 3. `npm run guvenlik -- --dist` (beklenen: 0 kritik, 0 uyarı)
-4. `CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e`
+4. `npm run denetim` (taramadan sonra; beklenen: 0 HATA; UYARI'lar rapora yazılır, bkz. `.claude/skills/bolum-denetimi/SKILL.md`)
+5. `CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e`
    Beklenen: `TOPLAM: 582 geçti, 0 başarısız` (486 uygulama + 96 hesap; yeni kontrol eklenirse sayı artar, azalmaz).
 
 ## Kurallar
