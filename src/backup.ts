@@ -13,6 +13,7 @@
 // uygulamanın durumunu belirlemesine izin vermek olurdu.
 
 import { YEDEK_DOSYA_MAX_BOYUT } from './config/varsayilanlar.ts';
+import { portfoyMetniGecerli } from './portfoySema.ts';
 import { readLocal, clearPendingWrites, markPending } from './yazmaDurumu.ts';
 
 const BACKUP_VERSION = 1;
@@ -61,6 +62,17 @@ export function getBackupMeta(): BackupMeta {
 
 function writeMeta(meta: BackupMeta): void {
   try { localStorage.setItem(META_KEY, JSON.stringify(meta)); } catch { /* kota */ }
+}
+
+// İçe aktarılan dosyanın createdAt değeri güvenilmez girdidir: yalnız geçerli ISO tarih-saat ve şimdiden ileri
+// değilse kabul edilir; aksi halde şimdiki zaman (gelecek tarih yedek hatırlatmasını sonsuza dek susturmasın).
+const ISO_ZAMAN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,9})?)?(Z|[+-]\d{2}:\d{2})$/;
+export function guvenilirYedekZamani(v: unknown, simdi: Date = new Date()): string {
+  if (typeof v === 'string' && ISO_ZAMAN.test(v)) {
+    const t = Date.parse(v);
+    if (Number.isFinite(t) && t <= simdi.getTime()) return new Date(t).toISOString();
+  }
+  return simdi.toISOString();
 }
 
 // Yedek dosyasının içeriğini üretir. SAF sayılmaz (localStorage okur) ama ağ/DOM'a dokunmaz —
@@ -133,7 +145,10 @@ export function whitelistUserData(data: unknown, mode: ApplyMode, only?: readonl
   for (const key of keys) {
     if (!Object.prototype.hasOwnProperty.call(data, key)) continue;
     const v = data[key];
-    if (typeof v === 'string') out.push([key, v]);
+    if (typeof v !== 'string') continue;
+    // Portföy iç şeması (sonlu, >=0 sayılar; bkz. portfoySema.ts): geçersizse HİÇBİR ŞEY yazılmaz (ya hep ya hiç).
+    if (key === PORTFOLIO_KEY && !portfoyMetniGecerli(v)) return undefined;
+    out.push([key, v]);
   }
   return out;
 }
@@ -270,6 +285,12 @@ export function restoreBackup(text: string): RestoreResult {
     return { ok: false, message: 'Yedek dosyasının içeriği eksik.' };
   }
 
+  // Portföy değeri geçersizse (bozuk biçim, eksi ya da sayı olmayan tutar) yazmadan önce açık mesajla dur.
+  const pv = (file.data as Record<string, unknown>)[PORTFOLIO_KEY];
+  if (typeof pv === 'string' && !portfoyMetniGecerli(pv)) {
+    return { ok: false, message: 'Yedekteki portföy verisinde geçersiz değer var (bozuk biçim, eksi ya da sayı olmayan tutar). Geri yükleme yapılmadı, mevcut veri değişmedi.' };
+  }
+
   // BEYAZ LİSTE + ya hep ya hiç: ortak çekirdek (bulut senkronu da aynısını kullanır).
   const result = applyUserData(file.data, { mode: 'replace' });
   if (!result.ok) {
@@ -282,7 +303,7 @@ export function restoreBackup(text: string): RestoreResult {
   }
 
   // Meta (son yedek zamanı) yalnızca DOSYA yolunda yazılır; bulut yolu meta yazmaz.
-  writeMeta({ ...getBackupMeta(), lastBackupAt: file.createdAt ?? new Date().toISOString() });
+  writeMeta({ ...getBackupMeta(), lastBackupAt: guvenilirYedekZamani(file.createdAt) });
   // Hesaplı kullanıcıda geri yüklenen veri buluta da gitsin (cloud.ts yalnızca kayıt zamanlar).
   notifyUserDataChanged();
   return { ok: true, message: `Yedek geri yüklendi (${result.written} katman).`, restoredKeys: result.written };

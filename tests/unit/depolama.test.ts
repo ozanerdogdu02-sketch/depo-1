@@ -206,6 +206,8 @@ test('resilient: iki depo da bozuksa hata çağırana döner (yutulmaz)', async 
 });
 
 // ---- Göç ----
+// Yazma çekirdeği portföy değerini DOĞRULAR (G2): atomiklik/kota testlerinde portföy anahtarına gelen değer geçerli minimal portföy olmalı.
+const PV = '{"holdings":[],"txns":[]}';
 const KEYS = ['fagent.portfolio.v1', 'fagent.agent.memory.v1', 'fagent.agent.training.v1', 'fagent.tax.v1', 'fagent.target.v1'] as const;
 
 const OLD_PORTFOLIO = JSON.stringify({
@@ -1297,7 +1299,7 @@ test('A14: N. yazımda kota hatası -> rollback TAMAM, önceki 5 katman aynen ge
     const off = subscribeUserDataWrites(() => { fired++; });
     st.failSetAfter = 2; // 3. yazımda hata: iki katman yeni değerle yazılmış olacak
     const r = applyUserData({
-      'fagent.portfolio.v1': 'YENI1', 'fagent.agent.memory.v1': 'YENI2', 'fagent.target.v1': 'YENI3',
+      'fagent.portfolio.v1': PV, 'fagent.agent.memory.v1': 'YENI2', 'fagent.target.v1': 'YENI3',
     }, { mode: 'replace' });
     assert.deepEqual(r, { ok: false, reason: 'yazilamadi', rollback: 'tamam' });
     st.failSetAfter = Infinity;
@@ -1313,7 +1315,7 @@ test('A14: rollback da başarısızsa açık durum: rollback "eksik" ve etkilene
   try {
     const { applyUserData } = await import('../../src/backup.ts');
     st.failSetAfter = 1; st.sticky = true; // 1. yazım tamam, 2. yazım hata, geri alma yazımları da hata
-    const r = applyUserData({ 'fagent.portfolio.v1': 'YENI', 'fagent.tax.v1': 'YENI-V' }, { mode: 'replace' });
+    const r = applyUserData({ 'fagent.portfolio.v1': PV, 'fagent.tax.v1': 'YENI-V' }, { mode: 'replace' });
     assert.equal(r.ok, false);
     assert.ok(!r.ok && r.reason === 'yazilamadi' && r.rollback === 'eksik');
     assert.ok(!r.ok && r.reason === 'yazilamadi' && r.rollbackKeys?.includes('fagent.portfolio.v1'));
@@ -1357,6 +1359,75 @@ test('A14: restoreBackup boyut sınırı ayrıştırmadan önce uygulanır; mesa
   } finally { uninstallLs(); }
 });
 
+test('A-D3-4: içe aktarılan createdAt yalnız geçerli ISO ve <= şimdi ise lastBackupAt olur; yoksa şimdiki zaman', async () => {
+  const { restoreBackup, getBackupMeta } = await import('../../src/backup.ts');
+  const dene = (createdAt: unknown) => {
+    installLs({});
+    try {
+      const r = restoreBackup(JSON.stringify({ fagentBackup: 1, createdAt, data: { 'fagent.tax.v1': '{"fon":2}' } }));
+      assert.equal(r.ok, true);
+      return getBackupMeta().lastBackupAt as string;
+    } finally { uninstallLs(); }
+  };
+  const once = Date.now();
+  assert.equal(dene('2020-05-17T10:00:00.000Z'), '2020-05-17T10:00:00.000Z');
+  for (const kotu of ['2999-01-01T00:00:00.000Z', 'bozuk', '', 12345, null, '2020-13-45T99:99:99Z', 'Mon Jan 01 2020']) {
+    const t = dene(kotu);
+    assert.match(t, /^\d{4}-\d{2}-\d{2}T/);
+    assert.ok(Date.parse(t) >= once - 5 && Date.parse(t) <= Date.now() + 5, `şimdiki zaman bekleniyordu: ${String(kotu)} -> ${t}`);
+  }
+});
+
+test('A-D3-5: portföy iç şeması sayısal ve >=0 değilse boş açılır, ham değer kurtarma anahtarına kopyalanır; eski biçim bozulmaz', async () => {
+  const store = await import('../../src/store.ts');
+  const PK = 'fagent.portfolio.v1';
+  const h = (o: Record<string, unknown> = {}) => ({ id: 'h1', name: 'A', type: 'hisse', amount: 100, costBasis: 80, ...o });
+  const t = (o: Record<string, unknown> = {}) => ({ id: 't1', date: '2026-01-02', holdingId: 'h1', holdingName: 'A', kind: 'alis', amount: 50, ...o });
+  const pf = (holdings: unknown[], txns: unknown[] = [], extra: Record<string, unknown> = {}) => JSON.stringify({ onboarded: true, holdings, txns, realizedPnl: 0, ...extra });
+  const yukle = (raw: string) => {
+    const st = installLs({ [PK]: raw });
+    try { store.reloadPortfolioFromDisk(); return { p: store.getPortfolio(), kurtarma: Object.keys(st.store).some(k => k.startsWith(`fagent.recovery.corrupt.${PK}`)) }; }
+    finally { uninstallLs(); }
+  };
+  const kotu: Array<[string, string]> = [
+    ['amount metin', pf([h({ amount: 'abc' })])],
+    ['amount negatif', pf([h({ amount: -5 })])],
+    ['amount null', pf([h({ amount: null })])],
+    ['costBasis metin', pf([h({ costBasis: 'x' })])],
+    ['holding nesne değil', pf([42])],
+    ['txn amount metin', pf([h()], [t({ amount: 'x' })])],
+    ['txn commission negatif', pf([h()], [t({ commission: -1 })])],
+    ['txn quantity metin', pf([h()], [t({ quantity: 'x' })])],
+    ['realizedPnl metin', pf([h()], [], { realizedPnl: 'a' })],
+  ];
+  for (const [ad, raw] of kotu) {
+    const r = yukle(raw);
+    assert.equal(r.p.holdings.length, 0, `${ad}: boş açılmalı`);
+    assert.equal(r.p.txns.length, 0, `${ad}: boş açılmalı`);
+    assert.equal(r.kurtarma, true, `${ad}: ham değer kurtarma anahtarına kopyalanmalı`);
+  }
+  // Eski biçim (costBasis/holdingId/realizedPnl/commission yok; negatif realizedPnl geçerli) bozulmaz.
+  const eski = yukle(JSON.stringify({ onboarded: true, holdings: [{ id: 'h1', name: 'A', type: 'hisse', amount: 100 }], txns: [{ id: 't1', date: '2026-01-02', holdingName: 'A', kind: 'alis', amount: 50 }] }));
+  assert.equal(eski.p.holdings.length, 1);
+  assert.equal(eski.p.holdings[0].costBasis, 100);
+  assert.equal(eski.p.txns[0].holdingId, 'h1');
+  assert.equal(eski.kurtarma, false);
+  const gecerli = yukle(pf([h({ quantity: 2, symbol: 'USD' })], [t({ commission: 1.5, quantity: 3, unitPrice: 4 })], { realizedPnl: -250.5 }));
+  assert.deepEqual([gecerli.p.holdings.length, gecerli.p.txns.length, gecerli.p.realizedPnl, gecerli.kurtarma], [1, 1, -250.5, false]);
+  store.reloadPortfolioFromDisk();
+});
+
+test('A-D3-5: modül yüklenirken (açılışta) geçerli portföy bozuk sayılmaz (TDZ regresyonu)', async () => {
+  const PK = 'fagent.portfolio.v1';
+  const raw = JSON.stringify({ onboarded: true, realizedPnl: 0, holdings: [{ id: 'h1', name: 'A', type: 'hisse', amount: 100, costBasis: 80 }], txns: [{ id: 't1', date: '2026-01-02', holdingId: 'h1', holdingName: 'A', kind: 'alis', amount: 50 }] });
+  const st = installLs({ [PK]: raw });
+  try {
+    const taze = await import('../../src/store.ts?acilis=1'); // yeni modül örneği: load() açılışta çalışır
+    assert.equal(taze.getPortfolio().holdings.length, 1);
+    assert.equal(Object.keys(st.store).some(k => k.startsWith('fagent.recovery.corrupt.')), false);
+  } finally { uninstallLs(); }
+});
+
 // BAYT TOPLAMINA göre kota taklidi: tüm değerlerin toplam uzunluğu sınırı aşarsa setItem hata verir (gerçek kota net boyuta bakar).
 function installByteQuotaLs(init: Record<string, string>, limit: number, failOn?: { key: string }): { store: Record<string, string> } {
   const st = { store: { ...init } };
@@ -1374,13 +1445,13 @@ function installByteQuotaLs(init: Record<string, string>, limit: number, failOn?
 }
 
 test('ORTA-1: bayt toplamı kotasında rollback ÖNCE küçülenleri geri yazar; tek turlu sıra "eksik" bırakırdı', async () => {
-  // eski: portföy 50, bellek 10, öğretilen 30 (=90); sınır 100. Yeni: portföy 10 (küçülür), bellek 60 (büyür), öğretilen 90 (kotaya takılır).
-  const old = { 'fagent.portfolio.v1': 'P'.repeat(50), 'fagent.agent.memory.v1': 'M'.repeat(10), 'fagent.agent.training.v1': 'T'.repeat(30) };
-  const st = installByteQuotaLs(old, 100);
+  // eski: portföy 65, bellek 10, öğretilen 30 (=105); sınır 105. Yeni: portföy PV (25, küçülür), bellek 50 (büyür), öğretilen 90 (kotaya takılır).
+  const old = { 'fagent.portfolio.v1': 'P'.repeat(65), 'fagent.agent.memory.v1': 'M'.repeat(10), 'fagent.agent.training.v1': 'T'.repeat(30) };
+  const st = installByteQuotaLs(old, 105);
   try {
     const { applyUserData } = await import('../../src/backup.ts');
     const y = await import('../../src/yazmaDurumu.ts');
-    const r = applyUserData({ 'fagent.portfolio.v1': 'p'.repeat(10), 'fagent.agent.memory.v1': 'm'.repeat(60), 'fagent.agent.training.v1': 't'.repeat(90) }, { mode: 'replace' });
+    const r = applyUserData({ 'fagent.portfolio.v1': PV, 'fagent.agent.memory.v1': 'm'.repeat(50), 'fagent.agent.training.v1': 't'.repeat(90) }, { mode: 'replace' });
     assert.deepEqual(r, { ok: false, reason: 'yazilamadi', rollback: 'tamam' });
     assert.deepEqual(st.store, old);
     assert.deepEqual([...y.getUnsavedKeys()], []);
@@ -1397,7 +1468,7 @@ test('ORTA-1: ilk turda geri yazılamayan anahtar ikinci turda yeniden denenir',
     const ls = (globalThis as unknown as { localStorage: { setItem: (k: string, v: string) => void } }).localStorage;
     const orig = ls.setItem;
     ls.setItem = (k, v) => { n++; if (n === 2 || n === 3) { const e = new Error('dolu'); e.name = 'QuotaExceededError'; throw e; } orig(k, v); };
-    const r = applyUserData({ 'fagent.portfolio.v1': 'X', 'fagent.tax.v1': 'Y' }, { mode: 'replace' });
+    const r = applyUserData({ 'fagent.portfolio.v1': PV, 'fagent.tax.v1': 'Y' }, { mode: 'replace' });
     assert.deepEqual(r, { ok: false, reason: 'yazilamadi', rollback: 'tamam' });
     assert.deepEqual(st.store, old);
   } finally { uninstallLs(); }
@@ -1410,7 +1481,7 @@ test('ORTA-2: portfolioOnly başarısında yalnız yazılan anahtarın bekleyeni
     const { applyUserData } = await import('../../src/backup.ts');
     y.markPending('fagent.tax.v1', 'BEKLEYEN-V');
     y.markPending('fagent.portfolio.v1', 'BEKLEYEN-P');
-    const r = applyUserData({ 'fagent.portfolio.v1': 'YENI' }, { mode: 'portfolioOnly' });
+    const r = applyUserData({ 'fagent.portfolio.v1': PV }, { mode: 'portfolioOnly' });
     assert.equal(r.ok, true);
     assert.equal(y.getPendingWrite('fagent.portfolio.v1'), undefined);
     assert.equal(y.getPendingWrite('fagent.tax.v1'), 'BEKLEYEN-V');

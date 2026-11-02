@@ -161,12 +161,22 @@ check(
 
 /* ── 7) SIFIRLA yedek geçmişini de temizliyor ───────────────────────────────── */
 
+await page.evaluate(() => { localStorage.setItem('baska.uygulama.anahtari', 'dokunma'); localStorage.setItem('fagent.pricehistory.v1.USD', '{}'); });
+await page.evaluate(() => localStorage.setItem('fagent.pricehistory.v1.bitcoin', JSON.stringify({ points: [{ date: '2026-01-01', price: 1 }], fetchedAt: Date.now() })));
 page.once('dialog', d => d.accept());
 await page.locator('.side-reset').click();
 await page.waitForTimeout(400);
 check(
   'SIFIRLA yedek geçmişini de sildi',
   (await page.evaluate(() => localStorage.getItem('fagent.backup.v1'))) === null,
+);
+check(
+  'SIFIRLA fiyat geçmişi önbelleğini de sildi (A-D1-2: anahtar adı tutulan varlığı gösterir)',
+  (await page.evaluate(() => Object.keys(localStorage).filter(k => k.startsWith('fagent.pricehistory.v1.')).length)) === 0,
+);
+check(
+  'SIFIRLA fiyat geçmişi dışındaki alakasız anahtara dokunmadı (A-D1-2)',
+  (await page.evaluate(() => localStorage.getItem('baska.uygulama.anahtari'))) === 'dokunma',
 );
 
 await page.close();

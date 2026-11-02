@@ -75,6 +75,7 @@ export function clearLocalUserData(keepQuarantine = false): void {
   resetInflation(); // kullanıcının girdiği enflasyon oranı da kullanıcı verisidir
   purgeLegacyKeys();
   clearCloudOwner();
+  clearPriceHistoryCache(); // fiyat geçmişi önbelleği: anahtar adları (coin/döviz kodu) tutulan varlıkları gösterir
   clearRecoveryKeys();   // bozuk-kayıt kurtarma kopyaları da kullanıcı verisidir
   clearMirrorForReset(); // IndexedDB aynası: silinmezse açılışta veri geri gelirdi
   if (!keepQuarantine) deleteQuarantine();

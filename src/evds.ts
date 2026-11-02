@@ -1,4 +1,4 @@
-// TCMB EVDS istemcisi — yıllık TÜFE enflasyonunu resmî kaynaktan çeker.
+// TCMB (EVDS üzerinden) istemcisi — yıllık TÜFE enflasyonunu resmî kaynaktan çeker.
 //
 // Asıl iş artık src/kaynaklar/tcmb.ts bağdaştırıcısındadır (KaynakSonucu, önbellek, zaman aşımı, yeniden
 // deneme, devre kesici). Bu dosya MEVCUT İMZAYI korur: `fetchInflationPct` ve `InflationReading` aynı kalır,

@@ -111,6 +111,10 @@ export const TCMB_TUFE_TTL_MS = 12 * 60 * 60 * 1000;           // TÜFE ayda bir
 export const TCMB_KUR_TTL_MS = 60 * 60 * 1000;                 // kur günde bir açıklanır
 export const KAP_TTL_MS = 15 * 60 * 1000;                      // KAP bildirim listesi: sunucu CDN'i seans içinde 15 dk
 export const TUFE_MANTIK_ARALIK_PCT = { min: -50, max: 500 } as const; // dışı: veri yok say
+// TÜFE son dönemi bugünden bu kadar aydan eskiyse veri yok sayılır (eski veri hesaba girmez). TÜİK ayın 3'ünde açıklar:
+// normalde en eski kabul edilen dönem ~2 ay geridir; 3 ay bir ay gecikmeye tolerans verir. Kaynak: ürün kararı,
+// Tarih: 2026-11-02, tahmin/piyasa iddiası değil; doğrulanmadı.
+export const TUFE_DONEM_MAX_YAS_AY = 3;
 export const KUR_GUNLUK_SAPMA_PCT = 20;                        // bir önceki gözlemden ± bu kadar dışı: veri yok say
 
 /* ───────────── Yedek dosyası boyut sınırı ─────────────

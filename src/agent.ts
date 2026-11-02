@@ -313,7 +313,7 @@ function pnlBarChart(s: PortfolioState): ChartSpec | undefined {
    formülünü açıklayıp hesabı kullanıcıya bırakıyordu, Fagent hesabı kendisi yapıyor. */
 
 // SON ÇARE geri düşme değeri. Enflasyonun tek doğruluk kaynağı artık `inflation.ts` —
-// App.tsx her çağrıda güncel oranı `inflationPct` parametresiyle geçirir (TCMB EVDS'den canlı,
+// App.tsx her çağrıda güncel oranı `inflationPct` parametresiyle geçirir (TCMB'den, EVDS üzerinden canlı,
 // kullanıcının girdiği ya da varsayım). agent.ts SAF kalsın diye buradan okunmaz, geçirilir.
 // Bu sabit yalnızca parametre hiç verilmediğinde (ör. doğrudan çağrılan bir test) devreye girer.
 // Enflasyon varsayımı tek kaynaktan, çağrı anında okunur: config/varsayimlar.json (config/varsayilanlar.ts)
@@ -1099,7 +1099,7 @@ export function chatReply(
   // Kullanıcının girdiği hedef dağılım (targetAllocation.ts). Aynı gerekçeyle dışarıdan gelir.
   // App.tsx her turda TAZE okur — kart ile ajanın farklı sayı söylemesi en kötü sonuç olurdu.
   targets?: Record<AssetType, number>,
-  // Güncel enflasyon oranı (inflation.ts: TCMB EVDS'den canlı / kullanıcının girdiği / varsayım).
+  // Güncel enflasyon oranı (inflation.ts: TCMB'den, EVDS üzerinden canlı / kullanıcının girdiği / varsayım).
   // TODO: bu imza sekiz parametreye ulaştı — bir sonraki eklemede tek bir bağlam nesnesine
   // (`{ taxRates, targets, inflationPct }`) çevrilmeli. Şimdi yapılmadı çünkü her kuralın
   // imzasına dokunmak, toplantı öncesi gereksiz bir kırılma riski taşıyor.

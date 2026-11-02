@@ -64,7 +64,7 @@ export function devreAcikMi(acilisMs: number | undefined, simdiMs: number, sureM
 
 interface KaynakEtiketi { ad: string; yonelme: string; ayrilma: string }
 const ETIKET: Record<KaynakAdi, KaynakEtiketi> = {
-  tcmb: { ad: 'TCMB EVDS', yonelme: "TCMB EVDS'ye", ayrilma: "TCMB EVDS'den" },
+  tcmb: { ad: 'TCMB (EVDS üzerinden)', yonelme: "TCMB'ye (EVDS üzerinden)", ayrilma: "TCMB'den (EVDS üzerinden)" },
   coingecko: { ad: 'CoinGecko', yonelme: "CoinGecko'ya", ayrilma: "CoinGecko'dan" },
   frankfurter: { ad: 'Frankfurter', yonelme: "Frankfurter'a", ayrilma: "Frankfurter'dan" },
   kap: { ad: 'KAP', yonelme: "KAP'a", ayrilma: "KAP'tan" },

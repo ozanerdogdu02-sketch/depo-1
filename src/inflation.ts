@@ -8,7 +8,7 @@
 //
 // Değerin kaynağı üç durumdan biri olabilir ve arayüz bunu AÇIKÇA yazar:
 //   'varsayim'  — elle güncellenen sabit (TÜİK son açıklanan yıllık TÜFE)
-//   'evds'      — TCMB EVDS'den canlı çekildi
+//   'evds'      — TCMB'den (EVDS üzerinden) canlı çekildi
 //   'kullanici' — kullanıcı kendi oranını girdi (senaryo denemesi)
 import { useSyncExternalStore } from 'react';
 import { fetchInflationPct } from './evds';
@@ -65,7 +65,7 @@ export function useInflation(): InflationState {
 // Arayüzde sayının nereden geldiğini yazmak için. Kullanıcı bir oranın resmî mi yoksa
 // varsayım mı olduğunu bilmeden ona güvenmemeli.
 export function inflationSourceLabel(s: InflationState): string {
-  if (s.source === 'evds') return `TCMB EVDS${s.periodLabel ? ` · ${s.periodLabel}` : ''}`;
+  if (s.source === 'evds') return `TCMB (EVDS üzerinden)${s.periodLabel ? ` · ${s.periodLabel}` : ''}`;
   if (s.source === 'kullanici') return 'senin girdiğin oran';
   return 'varsayım (TÜİK Eylül 2026 yıllık TÜFE ≈ %29,73, haber kaynaklı, doğrulanmadı; elle güncellenir)';
 }

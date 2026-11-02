@@ -20,7 +20,7 @@
    anlamı "kazanç bilinmiyor"dur. Bu ayrım kullanıcıya SÖYLENMELİ — `uyarilar` bunun içindir.
    Sıfır göstermek ile bilinmediğini söylemek aynı şey değildir (bkz. UNVERIFIED_TAX deseni). */
 
-import { AssetType, Holding, PortfolioState, Txn } from './store';
+import type { AssetType, Holding, PortfolioState, Txn } from './store.ts';
 
 export const AKTARIM_SEMA_SURUM = 1;
 
@@ -49,6 +49,10 @@ export interface AktarimSonuc {
 
 function sayiMi(v: unknown): v is number {
   return typeof v === 'number' && Number.isFinite(v);
+}
+// Hesaba giren tutarlar sonlu ve >=0 olmalı (portfoySema.ts ile aynı kural).
+function tutarMi(v: unknown): v is number {
+  return sayiMi(v) && v >= 0;
 }
 
 /* Ayrıştırır ve DOĞRULAR — hiçbir şey yazmaz. Yazma kararını çağıran verir, çünkü bu işlem
@@ -89,8 +93,8 @@ export function parseOtoAktarim(text: string): AktarimSonuc {
     if (!GECERLI_TIP.includes(x.type as AssetType)) {
       return { ok: false, message: `Tanınmayan varlık türü: "${String(x.type)}" (${x.name}).` };
     }
-    if (!sayiMi(x.amount) || !sayiMi(x.costBasis)) {
-      return { ok: false, message: `"${x.name}" kaleminde tutar sayı değil — aktarım yapılmadı.` };
+    if (!tutarMi(x.amount) || !tutarMi(x.costBasis)) {
+      return { ok: false, message: `"${x.name}" kaleminde tutar ya da maliyet geçerli bir sayı (sıfır veya pozitif) değil — aktarım yapılmadı.` };
     }
     holdings.push({
       id: x.id,
@@ -107,7 +111,10 @@ export function parseOtoAktarim(text: string): AktarimSonuc {
   const txns: Txn[] = [];
   for (const x of (Array.isArray(p.txns) ? p.txns : []) as Record<string, unknown>[]) {
     if (x?.kind !== 'alis' && x?.kind !== 'satis') continue;
-    if (typeof x.date !== 'string' || !sayiMi(x.amount)) continue;
+    if (typeof x.date !== 'string') continue;
+    if (!tutarMi(x.amount) || (x.commission !== undefined && x.commission !== null && !tutarMi(x.commission))) {
+      return { ok: false, message: 'Bir işlemin tutarı ya da komisyonu geçerli bir sayı (sıfır veya pozitif) değil — aktarım yapılmadı.' };
+    }
     txns.push({
       id: typeof x.id === 'string' ? x.id : `oto${txns.length + 1}`,
       date: x.date,
@@ -115,7 +122,7 @@ export function parseOtoAktarim(text: string): AktarimSonuc {
       holdingName: typeof x.holdingName === 'string' ? x.holdingName : '',
       kind: x.kind,
       amount: x.amount,
-      commission: sayiMi(x.commission) ? x.commission : 0,
+      commission: tutarMi(x.commission) ? x.commission : 0,
     });
   }
 

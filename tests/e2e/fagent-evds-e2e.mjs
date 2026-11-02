@@ -9,7 +9,7 @@
 // HİÇBİR hata gösterilmemeli. Bu dosyadaki testlerin çoğu o yolun sessizliğini doğruluyor.
 //
 // Doğrulanan davranışlar:
-//   • Fonksiyon veri döndüğünde oran canlı değere geçiyor ve kaynak "TCMB EVDS" yazıyor
+//   • Fonksiyon veri döndüğünde oran canlı değere geçiyor ve kaynak "TCMB (EVDS üzerinden)" yazıyor
 //   • Yıllık değişim ENDEKSTEN hesaplanıyor (baz yılı önemsiz) — 13. gözlemle karşılaştırma
 //   • 503 (anahtar yok), 502 (TCMB susuyor) ve ağ kopması: sessizce varsayıma düşülüyor
 //   • Bozuk/eksik yanıt: varsayım korunuyor, uydurma sayı ÜRETİLMİYOR
@@ -26,12 +26,14 @@ const VARSAYILAN = 30; // src/config/varsayilanlar.ts → VARSAYILAN_ENFLASYON_P
 
 // EVDS yanıt biçimi taklidi. Endeks 1000 → 1450 = %45,0 yıllık.
 // 14 gözlem üretiyoruz; istemci sondan 13. ile sonuncuyu karşılaştırıyor.
-function evdsBody({ from = 1000, to = 1450 } = {}) {
+function evdsBody({ from = 1000, to = 1450, yilAy = false } = {}) {
   const items = [];
   for (let i = 0; i < 14; i++) {
     // İlk gözlem "13 ay önce"nin bir öncesi; sondan 13. gözlem tam bir yıl öncesi olmalı.
     const v = i === 0 ? from * 0.98 : i === 1 ? from : from + ((to - from) * (i - 1)) / 12;
-    items.push({ Tarih: `${String((i % 12) + 1).padStart(2, '0')}-2026`, TP_FG_J0: v.toFixed(2), UNIXTIME: { $numberLong: '0' } });
+    // Gerçek ay etiketleri: son gözlem = geçen ay (dönem tazeliği ve "geçen yılın aynı ayı" eşlemesi etikete bakar).
+    const t = new Date().getFullYear() * 12 + new Date().getMonth() - 1 - (13 - i);
+    items.push({ Tarih: yilAy ? `${Math.floor(t / 12)}-${(t % 12) + 1}` : `${String((t % 12) + 1).padStart(2, '0')}-${Math.floor(t / 12)}`, TP_FG_J0: v.toFixed(2), UNIXTIME: { $numberLong: '0' } });
   }
   return { totalCount: items.length, items };
 }
@@ -59,6 +61,16 @@ const ask = async (page, text) => {
   return (await page.locator('.msg-agent').last().textContent()) ?? '';
 };
 
+/* ── 1b) EVDS ay etiketini "YYYY-M" döndürürse de canlı değer devreye girer (G1) ───── */
+
+{
+  const { page } = await newPage(route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(evdsBody({ yilAy: true })) }));
+  check('"YYYY-M" etiketli yanıtta canlı değere geçti (%45)', (await page.inputValue('#inflation-input')) === '45');
+  const metin = (await insightCard(page).textContent()) ?? '';
+  check('"YYYY-M" yanıtta dönem tek biçimde (AA-YYYY) gösteriliyor', /TCMB \(EVDS üzerinden\)\s*·\s*\d{2}-\d{4}/.test(metin));
+  await page.close();
+}
+
 /* ── 1) Canlı veri geldiğinde ───────────────────────────────────────────────── */
 
 {
@@ -68,10 +80,10 @@ const ask = async (page, text) => {
   check('EVDS fonksiyonu çağrıldı', calls() === 1);
   check('Enflasyon canlı değere geçti (%45)', (await page.inputValue('#inflation-input')) === '45');
   const metin = (await insightCard(page).textContent()) ?? '';
-  check('Kaynak "TCMB EVDS" olarak yazıldı', metin.includes('TCMB EVDS'));
-  check('Kaynak dönemi de gösteriliyor', /TCMB EVDS\s*·\s*\d{2}-2026/.test(metin));
+  check('Kaynak "TCMB (EVDS üzerinden)" olarak yazıldı', metin.includes('TCMB (EVDS üzerinden)'));
+  check('Kaynak dönemi de gösteriliyor', /TCMB \(EVDS üzerinden\)\s*·\s*\d{2}-\d{4}/.test(metin));
   check('Vergi kartı da aynı oranı gösteriyor', ((await taxCard(page).textContent()) ?? '').includes('%45 enflasyona göre'));
-  check('Vergi kartı da kaynağı yazıyor', ((await taxCard(page).textContent()) ?? '').includes('TCMB EVDS'));
+  check('Vergi kartı da kaynağı yazıyor', ((await taxCard(page).textContent()) ?? '').includes('TCMB (EVDS üzerinden)'));
 
   await page.locator('.side-link', { hasText: 'PROJEKSİYON' }).click();
   await page.waitForTimeout(300);

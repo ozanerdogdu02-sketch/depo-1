@@ -434,6 +434,30 @@ const UID = USERS[EMAIL];
 }
 
 // =====================================================================================
+// (c2) G2: bulut satırında geçersiz sayı (eksi maliyet / sayı olmayan tutar): hiçbir şey yazılmaz, upsert atılmaz
+// =====================================================================================
+for (const [ad, satir] of [
+  ['çıplak biçim, eksi costBasis', { onboarded: true, realizedPnl: 0, holdings: [{ id: 'g1', name: 'Bozuk', type: 'fon', amount: 1000, costBasis: -5 }], txns: [] }],
+  ['çıplak biçim, metin tutar', { onboarded: true, realizedPnl: 0, holdings: [{ id: 'g1', name: 'Bozuk', type: 'fon', amount: 'abc', costBasis: 5 }], txns: [] }],
+  ['yedek biçimi, eksi tutar', { fagentBackup: 1, data: { 'fagent.portfolio.v1': JSON.stringify({ onboarded: true, realizedPnl: 0, holdings: [{ id: 'g1', name: 'Bozuk', type: 'fon', amount: -1, costBasis: 5 }], txns: [] }) } }],
+]) {
+  const { page, mock } = await newPage(CLOUD_BASE);
+  await open(page, CLOUD_BASE);
+  await page.getByRole('button', { name: 'Karma örnek portföy' }).click();
+  await seed(page, LAYERS);
+  mock.rows[UID] = satir;
+  const before = await lsDump(page);
+  await login(page, EMAIL);
+  await until(async () => (await sideText(page)).includes(EMAIL), 10000);
+  await sleep(2500);
+  await page.locator('.side-account').click();
+  const sawErr = await until(async () => (await bodyText(page)).includes('Hesaptaki veri tanınmadı'), 5000);
+  check(`(c2) ${ad}: kullanıcıya hata gösterildi`, sawErr);
+  check(`(c2) ${ad}: localStorage değişmedi`, JSON.stringify(before) === JSON.stringify(await lsDump(page)));
+  check(`(c2) ${ad}: Bozuk varlık görünmedi, upsert atılmadı`, (await page.locator('.list-row', { hasText: 'Bozuk' }).count()) === 0 && mock.upserts.length === 0);
+}
+
+// =====================================================================================
 // (d) eski biçimli (çıplak PortfolioState) satır
 // =====================================================================================
 {

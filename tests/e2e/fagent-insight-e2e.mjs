@@ -26,7 +26,7 @@ check('Nakit benzeri reel değer kaybı uyarısı var', text.includes('reel değ
 check('Somut TL erozyon tutarı gösteriliyor (₺)', /~₺[\d.]+/.test(text));
 // Kaynak etiketi: canlı veri yokken "varsayım" demeli ve TCMB'den geldiğini İDDİA ETMEMELİ.
 check('Enflasyon kaynağı "varsayım" olarak etiketli', text.includes('varsayım'));
-check('Canlı veri yokken TCMB EVDS iddiası YOK', !text.includes('TCMB EVDS'));
+check('Canlı veri yokken TCMB EVDS iddiası YOK', !text.includes('TCMB EVDS') && !text.includes('TCMB (EVDS üzerinden)'));
 
 // --- 3. Enflasyon varsayımı değişince hesap yeniden yapılıyor ---
 const before = await card.innerText();

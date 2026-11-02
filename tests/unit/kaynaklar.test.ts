@@ -33,33 +33,33 @@ const yerel = (y: number, a: number, g: number, sa = 0, dk = 0) => new Date(y, a
 
 test('durum metni: guncel -> kaynak, dönem, alındı', () => {
   const s: KaynakSonucu<number> = { kaynak: 'tcmb', durum: 'guncel', veri: 1, donem: '09-2026', alindi: yerel(2026, 10, 27, 14, 5).toISOString() };
-  assert.equal(kaynakDurumMetni(s), 'Kaynak: TCMB EVDS · dönem 09-2026 · alındı 27.10.2026 14:05');
+  assert.equal(kaynakDurumMetni(s), 'Kaynak: TCMB (EVDS üzerinden) · dönem 09-2026 · alındı 27.10.2026 14:05');
 });
 
 test('durum metni: eski -> etiketli anılır, hesaplarda KULLANILMADIĞI ve varsayımın kullanıldığı söylenir', () => {
   const s: KaynakSonucu<number> = { kaynak: 'tcmb', durum: 'eski', veri: 1, donem: '09-2026', alindi: yerel(2026, 10, 26, 9, 0).toISOString(), hata: 'ulasilamadi' };
-  assert.equal(kaynakDurumMetni(s), "TCMB EVDS'ye şu an ulaşılamıyor. Son bilinen değer (dönem 09-2026, alındı 26.10.2026) hesaplarda kullanılmıyor; hesaplar varsayımla yapılıyor (varsayım).");
+  assert.equal(kaynakDurumMetni(s), "TCMB'ye (EVDS üzerinden) şu an ulaşılamıyor. Son bilinen değer (dönem 09-2026, alındı 26.10.2026) hesaplarda kullanılmıyor; hesaplar varsayımla yapılıyor (varsayım).");
   const m = kaynakDurumMetni(s);
   assert.ok(m.includes('hesaplarda kullanılmıyor') && m.includes('(varsayım)') && !m.includes('gösteriliyor'));
 });
 
 test('durum metni: ulasilamadi (+ çağıranın varsayım cümlesi)', () => {
   const s: KaynakSonucu<number> = { kaynak: 'tcmb', durum: 'ulasilamadi', hata: 'ulasilamadi' };
-  assert.equal(kaynakDurumMetni(s), "TCMB EVDS'ye ulaşılamadı.");
+  assert.equal(kaynakDurumMetni(s), "TCMB'ye (EVDS üzerinden) ulaşılamadı.");
   assert.equal(kaynakDurumMetni(s, { varsayim: 'Enflasyon için varsayım kullanılıyor: %30 (doğrulanmadı).' }),
-    "TCMB EVDS'ye ulaşılamadı. Enflasyon için varsayım kullanılıyor: %30 (doğrulanmadı).");
+    "TCMB'ye (EVDS üzerinden) ulaşılamadı. Enflasyon için varsayım kullanılıyor: %30 (doğrulanmadı).");
 });
 
 test('durum metni: kapali -> veri kaynağı yapılandırılmamış (anahtar / seri)', () => {
   assert.equal(kaynakDurumMetni({ kaynak: 'tcmb', durum: 'kapali', hata: 'anahtar_yok' }),
-    'Veri kaynağı yapılandırılmamış (TCMB EVDS: sunucu anahtarı tanımlı değil).');
+    'Veri kaynağı yapılandırılmamış (TCMB (EVDS üzerinden): sunucu anahtarı tanımlı değil).');
   assert.equal(kaynakDurumMetni({ kaynak: 'tcmb', durum: 'kapali', hata: 'seri_dogrulanmadi' }),
-    'Veri kaynağı yapılandırılmamış (TCMB EVDS: sunucuda bu seri henüz tanımlı değil).');
+    'Veri kaynağı yapılandırılmamış (TCMB (EVDS üzerinden): sunucuda bu seri henüz tanımlı değil).');
 });
 
 test('durum metni: veri_yok (mantık dışı) -> gösterilmiyor', () => {
   assert.equal(kaynakDurumMetni({ kaynak: 'tcmb', durum: 'veri_yok', hata: 'mantik_disi' }),
-    "TCMB EVDS'den gelen değer okunamadı; gösterilmiyor.");
+    "TCMB'den (EVDS üzerinden) gelen değer okunamadı; gösterilmiyor.");
 });
 
 test('durum metni: yasak kalıp yok (öneri/tavsiye/emir/tahmin)', () => {
@@ -76,9 +76,9 @@ test('durum metni: yasak kalıp yok (öneri/tavsiye/emir/tahmin)', () => {
 });
 
 test('durum metni: eksik alanlarda bozulmaz; guncel ama veri yok -> gösterilmiyor', () => {
-  assert.equal(kaynakDurumMetni({ kaynak: 'tcmb', durum: 'guncel', veri: 1 }), 'Kaynak: TCMB EVDS');
-  assert.equal(kaynakDurumMetni({ kaynak: 'tcmb', durum: 'guncel' }), "TCMB EVDS'den değer okunamadı; gösterilmiyor.");
-  assert.equal(kaynakDurumMetni({ kaynak: 'tcmb', durum: 'eski' }), "TCMB EVDS'ye ulaşılamadı.");
+  assert.equal(kaynakDurumMetni({ kaynak: 'tcmb', durum: 'guncel', veri: 1 }), 'Kaynak: TCMB (EVDS üzerinden)');
+  assert.equal(kaynakDurumMetni({ kaynak: 'tcmb', durum: 'guncel' }), "TCMB'den (EVDS üzerinden) değer okunamadı; gösterilmiyor.");
+  assert.equal(kaynakDurumMetni({ kaynak: 'tcmb', durum: 'eski' }), "TCMB'ye (EVDS üzerinden) ulaşılamadı.");
   assert.equal(formatTarih('bozuk'), '');
   assert.equal(formatTarihSaat(undefined), '');
 });
@@ -245,36 +245,98 @@ test('kayıt defteri: bir kaynak reddetse bile diğerleri sonuç verir', async (
 
 /* ── tcmb.ts: ayrıştırma ── */
 
+// 14 ardışık ay: 08-2025 ... 09-2026 (gerçek ay etiketleri; yıllık değişim 09-2025 -> 09-2026).
+const TUFE_SIMDI = Date.parse('2026-10-27T12:00:00Z');
+const tufeEtiket = (i: number) => { const t = 2025 * 12 + 7 + i; return `${String((t % 12) + 1).padStart(2, '0')}-${Math.floor(t / 12)}`; };
 function tufeSatirlari(from = 1000, to = 1450) {
   const items: Record<string, unknown>[] = [];
   for (let i = 0; i < 14; i++) {
     const v = i === 0 ? from * 0.98 : i === 1 ? from : from + ((to - from) * (i - 1)) / 12;
-    items.push({ Tarih: `${String((i % 12) + 1).padStart(2, '0')}-2026`, TP_FG_J0: v.toFixed(2), UNIXTIME: { $numberLong: '0' } });
+    items.push({ Tarih: tufeEtiket(i), TP_FG_J0: v.toFixed(2), UNIXTIME: { $numberLong: '0' } });
   }
   return items;
 }
 
 test('tufeAyristir: endeksten yıllık değişim (1000 -> 1450 = %45,0), dönem son satır', () => {
-  const r = tufeAyristir(tufeSatirlari());
+  const r = tufeAyristir(tufeSatirlari(), TUFE_SIMDI);
   assert.ok(r.ok);
-  if (r.ok) { assert.equal(r.veri.annualPct, 45); assert.equal(r.donem, '02-2026'); }
+  if (r.ok) { assert.equal(r.veri.annualPct, 45); assert.equal(r.donem, '09-2026'); }
 });
 
 test('tufeAyristir: eksik seri / sıfır taban -> okunamadi; akıl dışı -> mantik_disi', () => {
   assert.deepEqual(tufeAyristir([{ Tarih: '01-2026', TP_FG_J0: '1000' }]), { ok: false, hata: 'okunamadi' });
   assert.deepEqual(tufeAyristir(undefined), { ok: false, hata: 'okunamadi' });
-  assert.deepEqual(tufeAyristir(tufeSatirlari(1000, 900000)), { ok: false, hata: 'mantik_disi' });
-  assert.deepEqual(tufeAyristir(tufeSatirlari(1000, 100)), { ok: false, hata: 'mantik_disi' });
+  assert.deepEqual(tufeAyristir(tufeSatirlari(1000, 900000), TUFE_SIMDI), { ok: false, hata: 'mantik_disi' });
+  assert.deepEqual(tufeAyristir(tufeSatirlari(1000, 100), TUFE_SIMDI), { ok: false, hata: 'mantik_disi' });
 });
 
 test('tufeAyristir: boş/metin değerli satırlar ayıklanır, virgüllü ondalık okunur', () => {
   const it = tufeSatirlari();
-  it.push({ Tarih: '03-2026', TP_FG_J0: null }, { Tarih: '04-2026', TP_FG_J0: '' });
-  const r = tufeAyristir(it);
-  assert.ok(r.ok);
+  it.push({ Tarih: '10-2026', TP_FG_J0: null }, { Tarih: '11-2026', TP_FG_J0: '' });
+  const r = tufeAyristir(it, TUFE_SIMDI);
+  assert.ok(r.ok && r.donem === '09-2026');
   const virgul = tufeSatirlari().map(x => ({ ...x, TP_FG_J0: String(x.TP_FG_J0).replace('.', ',') }));
-  const r2 = tufeAyristir(virgul);
+  const r2 = tufeAyristir(virgul, TUFE_SIMDI);
   assert.ok(r2.ok && r2.veri.annualPct === 45);
+});
+
+test('tufeAyristir (A-D3-1): tam seri; ortada eksik ay yıllık değeri KAYDIRMAZ', () => {
+  const tam = tufeAyristir(tufeSatirlari(), TUFE_SIMDI);
+  assert.ok(tam.ok && tam.veri.annualPct === 45);
+  const ortada = tufeSatirlari().filter((_, i) => i !== 6); // 02-2026 yok; son ile geçen yılın aynı ayı (09-2025) duruyor
+  const r = tufeAyristir(ortada, TUFE_SIMDI);
+  assert.ok(r.ok, 'ortadaki eksik ay okunabilir seriyi bozmaz');
+  if (r.ok) { assert.equal(r.veri.annualPct, 45); assert.equal(r.donem, '09-2026'); }
+});
+
+test('tufeAyristir (A-D3-1): geçen yılın aynı ayı yoksa (baştaki eksik) okunamadi, 14 aya bölüp etiketlemez', () => {
+  const bas = tufeSatirlari().filter((_, i) => i !== 1); // 09-2025 yok
+  assert.deepEqual(tufeAyristir(bas, TUFE_SIMDI), { ok: false, hata: 'okunamadi' });
+  const bos = tufeSatirlari().map((x, i) => i === 1 ? { ...x, TP_FG_J0: null } : x);
+  assert.deepEqual(tufeAyristir(bos, TUFE_SIMDI), { ok: false, hata: 'okunamadi' });
+  const bozukEtiket = tufeSatirlari().map(x => ({ ...x, Tarih: 'bozuk' }));
+  assert.deepEqual(tufeAyristir(bozukEtiket, TUFE_SIMDI), { ok: false, hata: 'okunamadi' });
+});
+
+test('tufeAyristir (G1): "YYYY-M", "YYYY-MM" ve "AA-YYYY" etiketleri okunur; dönem etiketi tek biçime (AA-YYYY) çevrilir', () => {
+  const bicim = (f: (y: number, m: number) => string) => tufeSatirlari().map((x, i) => {
+    const t = 2025 * 12 + 7 + i;
+    return { ...x, Tarih: f(Math.floor(t / 12), (t % 12) + 1) };
+  });
+  for (const f of [(y: number, m: number) => `${y}-${m}`, (y: number, m: number) => `${y}-${String(m).padStart(2, '0')}`, (y: number, m: number) => `${String(m).padStart(2, '0')}-${y}`, (y: number, m: number) => `${m}-${y}`]) {
+    const r = tufeAyristir(bicim(f), TUFE_SIMDI);
+    assert.ok(r.ok, `okunmalı: ${bicim(f)[13].Tarih}`);
+    if (r.ok) { assert.equal(r.veri.annualPct, 45); assert.equal(r.donem, '09-2026'); }
+  }
+  // ay sınırı 1-12; bozuk etiketli satır OKUNMAZ (atlanır: dönem o satıra kayamaz, bir önceki aya düşer)
+  for (const kotu of ['2026-0', '2026-13', '13-2026', '0-2026', '2026/9', '9-26']) {
+    const r = tufeAyristir(tufeSatirlari().map((x, i) => i === 13 ? { ...x, Tarih: kotu } : x), TUFE_SIMDI);
+    assert.ok(r.ok && r.donem === '08-2026', kotu);
+  }
+});
+
+test('tufeAyristir (A-D3-2): son dönem bugünden 3 aydan eskiyse veri yok sayılır; 3 ay sınırı geçerli', () => {
+  assert.deepEqual(tufeAyristir(tufeSatirlari(), Date.parse('2026-12-10T12:00:00Z')), { ok: true, veri: { annualPct: 45 }, donem: '09-2026' });
+  assert.deepEqual(tufeAyristir(tufeSatirlari(), Date.parse('2027-01-10T12:00:00Z')), { ok: false, hata: 'mantik_disi' });
+});
+
+test('tufeOku (A-D3-3): önbellekteki akıl dışı değer guncel sayılmaz', async () => {
+  const { c } = orta();
+  const bozuk = JSON.stringify({ surum: 1, kaynak: 'tcmb', donem: '09-2026', alindi: new Date(TUFE_SIMDI).toISOString(), veri: { annualPct: 99999 } });
+  const ls = new MemStorage();
+  ls.setItem(ONBELLEK_ANAHTARLARI.tcmbTufe, bozuk);
+  const c2 = createCalistirici({ depo: createLocalStore(ls), simdi: () => TUFE_SIMDI, bekle: async () => {} });
+  const s = await tufeOku({ calistirici: c2, fetchFn: async () => yanit(502, {}), simdiMs: TUFE_SIMDI });
+  assert.notEqual(s.durum, 'guncel');
+  assert.equal(s.veri, undefined);
+  void c;
+});
+
+test('eskiTufeOnbelleginiTasi (A-D3-3): akıl dışı eski değer taşınmaz', async () => {
+  const ls = new MemStorage();
+  ls.setItem(ESKI_TUFE_ANAHTARI, JSON.stringify({ reading: { annualPct: 99999, periodLabel: '09-2026' }, storedAt: TUFE_SIMDI }));
+  assert.equal(await eskiTufeOnbelleginiTasi(createLocalStore(ls)), 'taninmadi');
+  assert.equal(ls.getItem(ONBELLEK_ANAHTARLARI.tcmbTufe), null);
 });
 
 // SENTETİK kur alan tablosu (gerçek EVDS seri kodu değildir).
@@ -322,8 +384,8 @@ const yanit = (status: number, body: unknown) => new Response(JSON.stringify(bod
 test('tufeOku: istek yalnız seri taşır (tarih, portföy, sembol yok); başarıda guncel + önbellek', async () => {
   const { c } = orta();
   const urller: string[] = [];
-  const s = await tufeOku({ calistirici: c, fetchFn: async u => { urller.push(u); return yanit(200, { items: tufeSatirlari() }); } });
-  assert.deepEqual([s.durum, s.veri?.annualPct, s.donem], ['guncel', 45, '02-2026']);
+  const s = await tufeOku({ calistirici: c, fetchFn: async u => { urller.push(u); return yanit(200, { items: tufeSatirlari() }); }, simdiMs: TUFE_SIMDI });
+  assert.deepEqual([s.durum, s.veri?.annualPct, s.donem], ['guncel', 45, '09-2026']);
   assert.equal(urller.length, 1);
   assert.equal(urller[0], '/api/evds?series=TP.FG.J0');
 });
@@ -344,7 +406,7 @@ test('tufeOku: 503 anahtar_yok -> kapali; 502 -> ulasilamadi (yeniden denemeli);
 test('tufeOku: akıl dışı / eksik yanıt -> veri_yok (uydurma sayı yok), yeniden denenmez', async () => {
   const a = orta();
   let n = 0;
-  const s = await tufeOku({ calistirici: a.c, fetchFn: async () => { n++; return yanit(200, { items: tufeSatirlari(1000, 900000) }); } });
+  const s = await tufeOku({ calistirici: a.c, fetchFn: async () => { n++; return yanit(200, { items: tufeSatirlari(1000, 900000) }); }, simdiMs: TUFE_SIMDI });
   assert.deepEqual([s.durum, s.hata, s.veri, n], ['veri_yok', 'mantik_disi', undefined, 1]);
   const b = orta();
   const e = await tufeOku({ calistirici: b.c, fetchFn: async () => yanit(200, { items: [{ Tarih: '01-2026', TP_FG_J0: '1000' }] }) });
@@ -356,11 +418,11 @@ test('tufeOku: akıl dışı / eksik yanıt -> veri_yok (uydurma sayı yok), yen
 
 test('tufeOku: TTL sonrası kaynak çökerse eski + dönem + alındı', async () => {
   const { c, ilerlet } = orta();
-  await tufeOku({ calistirici: c, fetchFn: async () => yanit(200, { items: tufeSatirlari() }) });
+  await tufeOku({ calistirici: c, fetchFn: async () => yanit(200, { items: tufeSatirlari() }), simdiMs: TUFE_SIMDI });
   ilerlet(13 * 60 * 60 * 1000);
   const s = await tufeOku({ calistirici: c, fetchFn: async () => yanit(502, {}) });
-  assert.deepEqual([s.durum, s.veri?.annualPct, s.donem], ['eski', 45, '02-2026']);
-  assert.ok(kaynakDurumMetni(s).includes('Son bilinen değer (dönem 02-2026'));
+  assert.deepEqual([s.durum, s.veri?.annualPct, s.donem], ['eski', 45, '09-2026']);
+  assert.ok(kaynakDurumMetni(s).includes('Son bilinen değer (dönem 09-2026'));
 });
 
 test('kurOku: tablo=kur isteği sembol/portföy taşımaz; sunucu seri_dogrulanmadi derse kapali', async () => {

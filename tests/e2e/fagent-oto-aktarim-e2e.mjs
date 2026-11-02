@@ -97,7 +97,16 @@ const sayiDegil = structuredClone(gecerli);
 sayiDegil.portfoy.holdings[0].amount = 'yüz';
 await kart.locator('input[type=file]').setInputFiles(dosya(sayiDegil));
 await page.waitForTimeout(400);
-check('Sayı olmayan tutar reddedildi', ((await kart.textContent()) ?? '').includes('tutar sayı değil'));
+check('Sayı olmayan tutar reddedildi', ((await kart.textContent()) ?? '').includes('geçerli bir sayı'));
+
+// G2: eksi maliyet de reddedilir ve mevcut portföy değişmez.
+const portfoyOnce = await page.evaluate(() => localStorage.getItem('fagent.portfolio.v1'));
+const eksiMaliyet = structuredClone(gecerli);
+eksiMaliyet.portfoy.holdings[0].costBasis = -5;
+await kart.locator('input[type=file]').setInputFiles(dosya(eksiMaliyet));
+await page.waitForTimeout(400);
+check('Eksi maliyet reddedildi (aktarım yapılmadı)', ((await kart.textContent()) ?? '').includes('aktarım yapılmadı'));
+check('Eksi maliyet reddedilince mevcut portföy değişmedi', (await page.evaluate(() => localStorage.getItem('fagent.portfolio.v1'))) === portfoyOnce);
 
 check(
   'Reddedilen dosyaların HİÇBİRİ mevcut veriyi bozmadı',

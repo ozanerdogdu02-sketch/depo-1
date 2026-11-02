@@ -133,6 +133,42 @@ test('zaman aşımı: yukarı akış TimeoutError -> 502 zaman_asimi; istek Abor
   assert.ok(sinyal instanceof AbortSignal);
 });
 
+// Gövde okunurken zaman aşımı (yavaş gövde): fetch yanıt başlığını verdi, ama gövde akışı TimeoutError ile kesilir.
+const yavasGovde = () => new Response(new ReadableStream({ pull() { throw new DOMException('zaman', 'TimeoutError'); } }), { status: 200 });
+
+test('A-D5-1: gövde okunurken zaman aşımı -> zaman_asimi (okunamadi değil) ve devre kesiciye sayılır', async () => {
+  let t = 1_000_000, cagri = 0;
+  const h = kur({ simdi: () => t, fetchFn: async () => { cagri++; return yavasGovde(); } });
+  const sor = (ip: string) => h(istek(tufeUrl(), { 'x-real-ip': ip }));
+  const r = await sor('10.0.0.1');
+  assert.equal(r.status, 502);
+  assert.equal((await govde(r)).error, 'zaman_asimi');
+  await sor('10.0.0.2'); await sor('10.0.0.3');
+  assert.equal(cagri, 3);
+  const acik = await sor('10.0.0.4');
+  assert.equal(cagri, 3, 'üç ardışık gövde zaman aşımından sonra devre açık: yukarı akışa gidilmez');
+  assert.equal(acik.status, 502);
+});
+
+test('G4: gövde okunurken bağlantı kopması (TimeoutError dışı) devre kesiciye sayılır; bozuk JSON sayılmaz', async () => {
+  let cagri = 0;
+  const kopuk = () => new Response(new ReadableStream({ pull() { throw new TypeError('terminated'); } }), { status: 200 });
+  const h = kur({ simdi: () => 1_000_000, fetchFn: async () => { cagri++; return kopuk(); } });
+  const sor = (ip: string) => h(istek(tufeUrl(), { 'x-real-ip': ip }));
+  const r = await sor('10.1.0.1');
+  assert.equal(r.status, 502);
+  assert.equal((await govde(r)).error, 'ulasilamadi');
+  await sor('10.1.0.2'); await sor('10.1.0.3');
+  assert.equal(cagri, 3);
+  await sor('10.1.0.4');
+  assert.equal(cagri, 3, 'üç ardışık gövde kopmasından sonra devre açık');
+  // bozuk JSON (yukarı akış sağlam ama gövde HTML) devreyi AÇMAZ
+  let n = 0;
+  const h2 = kur({ simdi: () => 1_000_000, fetchFn: async () => { n++; return new Response('<html>', { status: 200 }); } });
+  for (let i = 0; i < 6; i++) await h2(istek(tufeUrl(), { 'x-real-ip': `10.2.0.${i}` }));
+  assert.equal(n, 6, 'bozuk JSON devre kesiciyi açmaz');
+});
+
 test('devre kesici: 3 ardışık yukarı akış hatasından sonra 60 sn yukarı akışa gidilmez, sonra yeniden denenir', async () => {
   let t = 1_000_000, cagri = 0, saglam = false;
   const h = kur({

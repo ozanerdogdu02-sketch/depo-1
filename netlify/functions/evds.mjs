@@ -146,11 +146,19 @@ export function createEvdsHandler({
       return json({ error: 'kaynak_reddetti', message: 'TCMB EVDS isteği kabul etmedi.' }, 502);
     }
 
-    let data = null;
+    // Gövde okuma: akış hatası (zaman aşımı, bağlantı kopması) gerçek yukarı akış arızasıdır -> devre kesiciye sayılır.
+    // Bozuk JSON / sınır aşımı ise (yukarı akış sağlam, gövde beklenmedik) sayılmaz.
+    let metin;
     try {
-      const metin = await sinirliOku(res, MAKS_GOVDE_BAYT);
-      if (metin !== undefined) data = JSON.parse(metin);
-    } catch { data = null; }
+      metin = await sinirliOku(res, MAKS_GOVDE_BAYT);
+    } catch (e) {
+      devre.hata();
+      return e && (e.name === 'TimeoutError' || e.name === 'AbortError')
+        ? json({ error: 'zaman_asimi', message: 'TCMB EVDS zamanında yanıt vermedi.' }, 502)
+        : json({ error: 'ulasilamadi', message: 'TCMB EVDS servisine ulaşılamadı.' }, 502);
+    }
+    let data = null;
+    try { if (metin !== undefined) data = JSON.parse(metin); } catch { data = null; }
     // Yalnız { items } süzülür; yukarı akışın başka alanları istemciye geçmez.
     if (!data || typeof data !== 'object' || !Array.isArray(data.items)) {
       return json({ error: 'okunamadi', message: 'TCMB EVDS yanıtı okunamadı.' }, 502);

@@ -44,8 +44,11 @@ export const IZIN_DINAMIK_CAGRI = [
 // index.html ve public/ içindeki dış bağlantılar: bilinçli olarak boş (hiçbir dış script/stil/görsel yok).
 export const IZIN_HTML_DIS = [];
 export const IZIN_AG_DISI = ['www.w3.org', 'localhost', '127.0.0.1']; // xmlns vb.; ağ isteği değil
-// Supabase adresi koda gömülü değil, VITE_SUPABASE_URL ortamından gelir; CSP'de bu desenle izinlidir.
-export const SUPABASE_DESENI = '*.supabase.co';
+// Supabase adresi koda gömülü değil, VITE_SUPABASE_URL ortamından gelir. CSP'de JOKER (*.supabase.co) YASAK:
+// canlıda hesap kapalıyken gereksiz bir dışarı çıkış kanalı olur. Hesap açılırken connect-src'ye yalnız
+// PROJE alt alanı eklenir (https://<proje>.supabase.co ve wss://<proje>.supabase.co); bkz. docs/devir/kurulum-ve-devir.md.
+export const SUPABASE_JOKER_RE = /^\*\.supabase\.(co|in)$/i;
+const SUPABASE_PROJE_RE = /^[a-z0-9-]+\.supabase\.(co|in)$/i;
 
 // Yedeğe girmeyen ama bilinçli olan kalıcı anahtarlar (neden koddaki adından/yorumundan doğrulandı).
 // '.' ile bitenler önektir.
@@ -403,6 +406,17 @@ bilgi.agEnvanteri = agEnvanteri;
 
 /* ───────────── 2. CSP uyumu ───────────── */
 
+// connect-src kaynağını çözer: şema (büyük/küçük harf fark etmez), port ve yol atılır; host küçük harfe çevrilir.
+// Joker: '*' tek başına, şema-tek ('https:', 'wss:', 'data:'...) ya da host '*' ile başlıyorsa ('*.x.co', '*').
+export function cspKaynakCoz(t) {
+  const ham = String(t).trim();
+  if (ham === '*') return { joker: true, host: '*' };
+  if (/^[a-z][a-z0-9+.-]*:$/i.test(ham)) return { joker: true, host: '' };
+  const sema = ham.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '');
+  const host = sema.split(/[/?#]/)[0].replace(/:(\d+|\*)$/, '').toLowerCase();
+  return { joker: host.startsWith('*') || host === '', host };
+}
+
 function cspConnect(metin) {
   if (!metin) return undefined;
   const m = metin.match(/connect-src([^;"\\]*)/);
@@ -421,10 +435,20 @@ if (cspVercel && cspNetlify && [...cspVercel].sort().join(' ') !== [...cspNetlif
 }
 for (const [ad, csp] of [['vercel.json', cspVercel], ['netlify.toml', cspNetlify]]) {
   if (!csp) continue;
-  const hostlar = csp.filter((t) => t !== "'self'").map((t) => t.replace(/^[a-z]+:\/\//, ''));
+  const hostlar = [];
+  for (const t of csp.filter((x) => x !== "'self'")) {
+    const k = cspKaynakCoz(t);
+    if (k.joker) {
+      const supa = SUPABASE_JOKER_RE.test(k.host);
+      ekle('HATA', supa ? 'csp-supabase-joker' : 'csp-joker', ad,
+        `connect-src '${t}' joker/şema-tek içeriyor; yalnız açık ana bilgisayar yazılabilir` +
+        (supa ? ' (Supabase için yalnız proje alt alanı <proje>.supabase.co, hesap kapalıyken hiç eklenmez).' : '.'));
+      continue;
+    }
+    hostlar.push(k.host);
+  }
   // Eksik: istemcinin çağırdığı ama CSP'de olmayan.
   const gerekli = new Set(istemciFetchHostlari);
-  if (supabaseKullaniliyor) gerekli.add(SUPABASE_DESENI);
   for (const h of gerekli) {
     if (!hostlar.some((d) => hostEslesir(d, h) || d === h)) {
       ekle('HATA', 'csp-eksik', ad, `İstemci '${h}' adresini çağırıyor ama connect-src'de yok (tarayıcı engeller).`);
@@ -432,7 +456,7 @@ for (const [ad, csp] of [['vercel.json', cspVercel], ['netlify.toml', cspNetlify
   }
   // Fazla: CSP'de olup kodda kullanılmayan.
   for (const d of hostlar) {
-    const kullanilan = [...istemciFetchHostlari].some((h) => hostEslesir(d, h)) || (supabaseKullaniliyor && d === SUPABASE_DESENI);
+    const kullanilan = [...istemciFetchHostlari].some((h) => hostEslesir(d, h)) || (supabaseKullaniliyor && SUPABASE_PROJE_RE.test(d));
     if (!kullanilan) ekle('UYARI', 'csp-fazla', ad, `connect-src '${d}' izni var ama istemci kodunda bu adrese istek yok (izin daraltılabilir).`);
   }
 }

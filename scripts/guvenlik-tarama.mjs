@@ -22,7 +22,7 @@ function git(args) {
 // (.gitignore'dakiler hariç). Yeni dosyalar commit edilmeden önce de taranmalı: ekip iş
 // akışında incelenen işin tamamı commit'siz çalışma ağacındadır.
 // Silinmiş (index'te var, diskte yok) dosyalar taranamaz; atla.
-const izlenen = [...new Set(git(['ls-files', '--cached', '--others', '--exclude-standard']))].filter(f => existsSync(f));
+const izlenen = [...new Set(git(['ls-files', '--cached', '--others', '--exclude-standard']))].filter(f => existsSync(f) && statSync(f).isFile()); // dizine bağlı sembolik bağ EISDIR ile çökertmesin
 const ikili = /\.(png|jpe?g|gif|ico|webp|woff2?|ttf|zip|pdf)$/i;
 // Bu betik ve kural belgeleri desenleri tarif ettiği için kendileriyle eşleşir; taranmaz.
 const muaf = new Set(['scripts/guvenlik-tarama.mjs']);

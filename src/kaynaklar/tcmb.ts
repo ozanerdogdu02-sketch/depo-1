@@ -9,7 +9,7 @@
 import { createLocalStore } from '../storage/local.ts';
 import type { KvStore } from '../storage/types.ts';
 import {
-  KUR_GUNLUK_SAPMA_PCT, TCMB_KUR_TTL_MS, TCMB_TUFE_TTL_MS, TUFE_MANTIK_ARALIK_PCT,
+  KUR_GUNLUK_SAPMA_PCT, TCMB_KUR_TTL_MS, TCMB_TUFE_TTL_MS, TUFE_DONEM_MAX_YAS_AY, TUFE_MANTIK_ARALIK_PCT,
 } from '../config/varsayilanlar.ts';
 import { createCalistirici } from './kayit.ts';
 import type { Calistirici, GetirSonucu, KaynakTanimi } from './kayit.ts';
@@ -53,16 +53,41 @@ function sayiOku(v: unknown): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
-export function tufeAyristir(items: EvdsSatir[] | undefined): Ayristir<TufeVeri> {
+// Ay etiketini ay sırasına (yıl*12 + ay-1) çevirir. EVDS aylık veride "AA-YYYY" (01-2026) ya da "YYYY-M[M]" (2026-1)
+// dönebilir; ikisi de kabul edilir, ay 1-12 olmalı. Başka biçim undefined (satır atlanır).
+function ayIndeksi(etiket: string): number | undefined {
+  const a = /^(\d{1,2})-(\d{4})$/.exec(etiket);
+  const b = /^(\d{4})-(\d{1,2})$/.exec(etiket);
+  const ay = a ? Number(a[1]) : b ? Number(b[2]) : 0;
+  const yil = a ? Number(a[2]) : b ? Number(b[1]) : 0;
+  return ay >= 1 && ay <= 12 ? yil * 12 + (ay - 1) : undefined;
+}
+// Ekranda tek biçim: AA-YYYY.
+function ayEtiketi(idx: number): string {
+  return `${String((idx % 12) + 1).padStart(2, '0')}-${Math.floor(idx / 12)}`;
+}
+
+// Yıllık TÜFE = son ayın endeksi / TAM 12 ay önceki aynı ayın endeksi. Konum değil TARİH ETİKETİ eşleşir:
+// eksik ay varsa 14 ay önceye bölüp resmî dönem etiketiyle göstermek yerine okunamadi döner.
+// Son dönem `simdiMs`ten TUFE_DONEM_MAX_YAS_AY aydan eskiyse veri yok sayılır (eski veri hesaba girmez).
+export function tufeAyristir(items: EvdsSatir[] | undefined, simdiMs: number = Date.now()): Ayristir<TufeVeri> {
   if (!items || items.length < 13) return { ok: false, hata: 'okunamadi' };
-  // Boş/okunamayan satırları ayıkla — EVDS ileriye dönük boş aylar döndürebilir.
-  const seri = items
-    .map(it => ({ etiket: typeof it.Tarih === 'string' ? it.Tarih : '', deger: ilkSayi(it) }))
-    .filter((r): r is { etiket: string; deger: number } => r.deger !== undefined);
-  if (seri.length < 13) return { ok: false, hata: 'okunamadi' };
-  const son = seri[seri.length - 1];
-  const yilOnce = seri[seri.length - 13];
-  if (!(yilOnce.deger > 0)) return { ok: false, hata: 'okunamadi' };
+  // Boş/okunamayan/etiketsiz satırları ayıkla — EVDS ileriye dönük boş aylar döndürebilir.
+  const ay = new Map<number, { etiket: string; deger: number }>();
+  for (const it of items) {
+    const etiket = typeof it.Tarih === 'string' ? it.Tarih : '';
+    const idx = ayIndeksi(etiket);
+    const deger = ilkSayi(it);
+    if (idx !== undefined && deger !== undefined) ay.set(idx, { etiket: ayEtiketi(idx), deger });
+  }
+  if (ay.size < 2) return { ok: false, hata: 'okunamadi' };
+  const sonIdx = Math.max(...ay.keys());
+  const son = ay.get(sonIdx)!;
+  const yilOnce = ay.get(sonIdx - 12);
+  if (!yilOnce || !(yilOnce.deger > 0)) return { ok: false, hata: 'okunamadi' };
+  const simdi = new Date(simdiMs);
+  const yas = simdi.getFullYear() * 12 + simdi.getMonth() - sonIdx;
+  if (yas > TUFE_DONEM_MAX_YAS_AY) return { ok: false, hata: 'mantik_disi' };
   const yillik = (son.deger / yilOnce.deger - 1) * 100;
   if (!Number.isFinite(yillik) || yillik < TUFE_MANTIK_ARALIK_PCT.min || yillik > TUFE_MANTIK_ARALIK_PCT.max) {
     return { ok: false, hata: 'mantik_disi' };
@@ -126,8 +151,9 @@ async function evdsSatirlari(url: string, fetchFn: FetchLike, signal: AbortSigna
   return { ok: true, veri: data.items as EvdsSatir[] };
 }
 
+const tufeAralikta = (x: number) => Number.isFinite(x) && x >= TUFE_MANTIK_ARALIK_PCT.min && x <= TUFE_MANTIK_ARALIK_PCT.max;
 const tufeVeriMi = (v: unknown): v is TufeVeri =>
-  !!v && typeof (v as TufeVeri).annualPct === 'number' && Number.isFinite((v as TufeVeri).annualPct);
+  !!v && typeof (v as TufeVeri).annualPct === 'number' && tufeAralikta((v as TufeVeri).annualPct);
 const sonluMu = (x: unknown) => typeof x === 'number' && Number.isFinite(x) && x > 0;
 const kurVeriMi = (v: unknown): v is KurVeri => {
   if (!v || typeof v !== 'object' || Array.isArray(v) || Object.keys(v).length === 0) return false;
@@ -143,6 +169,7 @@ export interface TcmbSecenek {
   fetchFn?: FetchLike;
   signal?: AbortSignal;
   zorla?: boolean;
+  simdiMs?: number;                       // test: TÜFE dönem tazeliği için saat (varsayılan Date.now())
   kurAlanlari?: Record<string, KurAlani>; // test/yapılandırma; varsayılan KUR_ALANLARI
 }
 
@@ -178,7 +205,7 @@ export async function tufeOku(s: TcmbSecenek = {}): Promise<KaynakSonucu<TufeVer
     async getir(signal) {
       const r = await evdsSatirlari(`${FN_URL}?${qs}`, fetchFn, signal);
       if (!r.ok) return r;
-      const a = tufeAyristir(r.veri);
+      const a = tufeAyristir(r.veri, s.simdiMs ?? Date.now());
       return a.ok ? { ok: true, veri: a.veri, donem: a.donem } : { ok: false, hata: a.hata, yenidenDene: false };
     },
   };
@@ -216,7 +243,7 @@ export async function eskiTufeOnbelleginiTasi(depo: KvStore | undefined): Promis
   try {
     const eski = JSON.parse(e.value) as { reading?: { annualPct?: unknown; periodLabel?: unknown }; storedAt?: unknown } | null;
     const pct = eski?.reading?.annualPct;
-    if (typeof pct !== 'number' || !Number.isFinite(pct) || typeof eski?.storedAt !== 'number' || !Number.isFinite(eski.storedAt)) return 'taninmadi';
+    if (typeof pct !== 'number' || !tufeAralikta(pct) || typeof eski?.storedAt !== 'number' || !Number.isFinite(eski.storedAt)) return 'taninmadi';
     const donem = typeof eski.reading?.periodLabel === 'string' && eski.reading.periodLabel ? eski.reading.periodLabel : undefined;
     const yeni = JSON.stringify({ surum: 1, kaynak: 'tcmb', donem, alindi: new Date(eski.storedAt).toISOString(), veri: { annualPct: pct } });
     const yazildi = await depo.addIfAbsent(ONBELLEK_ANAHTARLARI.tcmbTufe, yeni);

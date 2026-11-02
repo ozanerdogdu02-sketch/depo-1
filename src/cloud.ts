@@ -50,6 +50,8 @@ import {
   applyUserData, snapshotUserData, subscribeUserData, whitelistUserData, BACKED_UP_KEYS,
   type ApplyMode,
 } from './backup';
+import { portfoyIcSemasiGecerli } from './portfoySema';
+import { validSupabaseUrl } from './supabaseUrl';
 import { clearForSignOut, getCloudOwner, getCloudBase, setCloudOwner } from './localData';
 import {
   deleteQuarantine, deleteQuarantineAt, listQuarantine, quarantineFile, writeQuarantine,
@@ -61,13 +63,6 @@ import { eklemeSonucu, guncellemeSonucu, satirSurumu, surumSutunuYok, type Yazma
 
 function readEnv(v: string | undefined): string {
   return typeof v === 'string' ? v.trim() : '';
-}
-
-function validSupabaseUrl(u: string): boolean {
-  try {
-    const p = new URL(u);
-    return p.protocol === 'https:' || p.protocol === 'http:';
-  } catch { return false; }
 }
 
 const SUPABASE_URL = readEnv(import.meta.env.VITE_SUPABASE_URL);
@@ -248,6 +243,7 @@ export function parseRemoteRow(value: unknown): ParsedRemote | undefined {
   }
   // Eski standalone biçimi: çıplak PortfolioState.
   if (Array.isArray(value.holdings) && Array.isArray(value.txns)) {
+    if (!portfoyIcSemasiGecerli(value as { holdings: unknown[]; txns: unknown[]; realizedPnl?: unknown })) return undefined; // geçersiz sayı: hiçbir şey yazılmaz
     return { mode: 'portfolioOnly', payload: { 'fagent.portfolio.v1': JSON.stringify(value) } };
   }
   return undefined;

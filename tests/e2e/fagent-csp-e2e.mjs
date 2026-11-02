@@ -26,6 +26,8 @@ check('frame-ancestors none', hdrs['Content-Security-Policy'].includes("frame-an
 check('nosniff var', hdrs['X-Content-Type-Options'] === 'nosniff');
 check('Referrer-Policy var', !!hdrs['Referrer-Policy']);
 const scriptSrc = (hdrs['Content-Security-Policy'].split(';').map(x => x.trim()).find(x => x.startsWith('script-src')) ?? '');
+const connectSrc = (hdrs['Content-Security-Policy'].split(';').map(x => x.trim()).find(x => x.startsWith('connect-src')) ?? '');
+check('connect-src: Supabase joker yok (hesap kapalıyken dışarı çıkış kanalı olmaz; A-D1-1)', connectSrc !== '' && !/supabase/i.test(connectSrc));
 check('script-src: unsafe-eval ve unsafe-inline yok', scriptSrc !== '' && !/unsafe-eval|unsafe-inline/.test(scriptSrc));
 
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });

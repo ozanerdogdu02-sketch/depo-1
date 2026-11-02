@@ -20,6 +20,8 @@ Vercel: framework Vite, çıktı `dist`, `vercel.json` güvenlik başlıkların�
 ## Supabase (hesap özelliği açılacaksa)
 `supabase/migrations/` içindeki SQL uygulanır; RLS satır güvenliği ve `delete_my_account` işlevi gelir. Site URL, e-posta yönlendirmeleri ve özel SMTP ayarlanır. **Canlıya almadan önce** `CLAUDE.md` → "Hesap katmanı — canlı öncesi zorunlu liste" kapatılmalıdır (şu an açık: SIFIRLA/çıkış/geri yükleme/çakışma maddeleri).
 
+**CSP adımı (zorunlu, hesap açılırken):** `vercel.json` ve `netlify.toml` içindeki `connect-src` varsayılan olarak Supabase adresi İÇERMEZ (hesap kapalıyken dışarı çıkış kanalı olmasın; `npm run denetim` jokeri `csp-supabase-joker` HATASI sayar). Hesap açılırken iki dosyada da `connect-src` sonuna yalnız PROJE alt alanı eklenir: `https://<proje-kodu>.supabase.co wss://<proje-kodu>.supabase.co` (joker `*.supabase.co` KULLANILMAZ; iki dosya birebir aynı kalmalı). Sonra `VITE_SUPABASE_URL` (`https://` zorunlu, derleme `http:` ile durur) ve `VITE_SUPABASE_PUBLISHABLE_KEY` Vercel ortamına eklenir. Eklemeden hesap girişi tarayıcıda CSP tarafından engellenir.
+
 ## Açık maddeler (alıcıya devredilen)
 - **EVDS ara katmanı ve IP:** `netlify/functions/evds.mjs` istek sınırı için istemci IP adresini yalnızca kısa süreli bellekte (≈1 dk) tutar, kalıcı kayıt yoktur. IP'nin kişisel veri sayılıp sayılmadığı ve aydınlatma metnindeki ifade avukat teyidine bağlıdır (`TODO(hukuk)`, `docs/yasal/aydinlatma-kvkk.md`).
 - **EVDS kullanım şartları:** ticari/abonelikli üründe gösterim ve kaynak gösterme biçimi birincil metinle doğrulanmadı (`TODO(hukuk)`).

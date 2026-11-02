@@ -1,5 +1,5 @@
 // Kaynak çalıştırıcı + kayıt defteri. Bir kaynağın arızası YALNIZ kendi sonucunu etkiler.
-// Akış: taze önbellek -> devre kesici -> istek (zaman aşımı, en çok 2 yeniden deneme) -> önbelleğe yaz.
+// Akış: taze önbellek -> devre kesici -> istek (zaman aşımı, en çok 1 yeniden deneme) -> önbelleğe yaz.
 // Hata FIRLATMAZ; her yol KaynakSonucu döner. Ortam (depo, saat, bekleme) parametreyle girer: window yok.
 import type { KvStore } from '../storage/types.ts';
 import { KAYNAK_DEVRE_KESICI_MS, KAYNAK_ZAMAN_ASIMI_MS } from '../config/varsayilanlar.ts';

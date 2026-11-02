@@ -107,6 +107,64 @@ test('YEŞİL csp-fazla yalnız UYARI: kullanılmayan izin çıkışı bozmaz', 
   assert.equal(r.kod, 0);
 });
 
+function cspDegistir(a: Record<string, unknown>, yeni: string) {
+  a['vercel.json'] = JSON.stringify({ headers: [{ headers: [{ key: 'Content-Security-Policy', value: yeni }] }] });
+  a['netlify.toml'] = (a['netlify.toml'] as string).replace(CSP, yeni);
+}
+
+test('KIRMIZI csp-supabase-joker: connect-src içinde *.supabase.co / wss://*.supabase.co HATA (A-D1-1)', () => {
+  for (const ek of ['https://*.supabase.co', 'wss://*.supabase.co', 'https://*.supabase.in']) {
+    const a = temizAgac();
+    cspDegistir(a, CSP.replace('connect-src', `connect-src ${ek}`));
+    const r = calistir(a);
+    assert.equal(hatalar(r.bulgular, 'csp-supabase-joker').length, 2, ek); // iki dosyada
+    assert.equal(r.kod, 1, ek);
+  }
+});
+
+test('KIRMIZI G3 csp joker biçimleri: büyük harf şema, port, sondaki /, şema-tek, tek * (HATA)', () => {
+  const beklenen: Array<[string, string]> = [
+    ['HTTPS://*.supabase.co', 'csp-supabase-joker'],
+    ['https://*.supabase.co:443', 'csp-supabase-joker'],
+    ['*.supabase.co/', 'csp-supabase-joker'],
+    ['wss://*.SUPABASE.co', 'csp-supabase-joker'],
+    ['https:', 'csp-joker'],
+    ['wss:', 'csp-joker'],
+    ['*', 'csp-joker'],
+    ['https://*.example.com', 'csp-joker'],
+  ];
+  for (const [ek, kural] of beklenen) {
+    const a = temizAgac();
+    cspDegistir(a, CSP.replace('connect-src', `connect-src ${ek}`));
+    const r = calistir(a);
+    assert.equal(hatalar(r.bulgular, kural).length, 2, ek);
+    assert.equal(r.kod, 1, ek);
+  }
+});
+
+test('YEŞİL G3: portlu/yollu ama jokersiz açık host joker sayılmaz', () => {
+  const a = temizAgac();
+  cspDegistir(a, CSP.replace('connect-src', 'connect-src https://abc.supabase.co:443/rest'));
+  const r = calistir(a);
+  assert.equal(hatalar(r.bulgular, 'csp-supabase-joker').length + hatalar(r.bulgular, 'csp-joker').length, 0);
+});
+
+test('YEŞİL csp-supabase-joker: jokersiz CSP + kodda supabase-js varsa csp-eksik YOK; proje alt alanı serbest', () => {
+  const a = temizAgac();
+  a['package.json'] = JSON.stringify({ dependencies: { '@supabase/supabase-js': '1.0.0' } });
+  a['src/cloud.ts'] = "import { createClient } from '@supabase/supabase-js';\nexport const c = createClient(import.meta.env.VITE_SUPABASE_URL, 'k');\n";
+  const r = calistir(a);
+  assert.equal(hatalar(r.bulgular, 'csp-supabase-joker').length, 0);
+  assert.equal(hatalar(r.bulgular, 'csp-eksik').length, 0);
+  assert.equal(r.kod, 0);
+  const b = temizAgac();
+  b['src/cloud.ts'] = a['src/cloud.ts'];
+  cspDegistir(b, CSP.replace('connect-src', 'connect-src https://abcdefgh.supabase.co wss://abcdefgh.supabase.co'));
+  const r2 = calistir(b);
+  assert.equal(hatalar(r2.bulgular, 'csp-supabase-joker').length, 0);
+  assert.ok(!r2.bulgular.some((x) => x.kural === 'csp-fazla' && /supabase/.test(x.aciklama ?? '')));
+});
+
 test('KIRMIZI butce-asimi: JS toplamı bütçeyi aşar', () => {
   const a = temizAgac();
   a['dist/assets/index-b.js'] = Buffer.alloc(1_300_000, 97);

@@ -76,6 +76,37 @@ Gerçek EVDS (`TP.FG.J0`; TÜİK 2026 baz yılı değişikliği sonrası seri do
 
 Hukuk ve KVKK (kullanıcı kararı: en sona); erişilebilirlik (arayüz değişince).
 
-## Kapanış kaydı
+## Kapanış kaydı (2026-11-02)
 
-(Düzeltme turu ve bağımsız doğrulama sonrası doldurulur.)
+Uygulayıcı: fagent-veri-akisi (2 tur). Doğrulayıcılar: fagent-test (eski kodda KIRMIZI / yeni kodda YEŞİL, ayrı kopyalarda), fagent-guvenlik (2 tur inceleme). Lider kapıyı kendisi yeniden koştu.
+
+| Bulgu | Sonuç | Kanıt (test) |
+|---|---|---|
+| A-D3-1 | kapandı | `kaynaklar.test.ts` etiket eşleşmesi, eksik ay; doğrulayıcının bağımsız 8 denemesi |
+| A-D3-2 | kapandı | `kaynaklar.test.ts` 3 ay sınırı (`TUFE_DONEM_MAX_YAS_AY`) |
+| A-D3-3 | kapandı | `kaynaklar.test.ts` tufeOku / eskiTufeOnbelleginiTasi aralığı |
+| A-D3-4 | kapandı | `depolama.test.ts` A-D3-4 |
+| A-D3-5 | kapandı | `depolama.test.ts` A-D3-5 + TDZ regresyonu; yanlış pozitif taraması (4 meşru biçim) temiz |
+| A-D1-1 | kapandı | `denetim.test.ts` csp-supabase-joker; `fagent-csp-e2e` "Supabase joker yok" |
+| A-D3-2/G1 tarih biçimi | kapandı | `kaynaklar.test.ts` G1 (`YYYY-M`, `YYYY-MM`, `AA-YYYY`, `M-YYYY`); `fagent-evds-e2e` 1b |
+| G2 yazma yolu doğrulaması | kapandı | `yazma-dogrulama.test.ts`; `fagent-oto-aktarim-e2e`; auth e2e (c2) |
+| G3 CSP joker atlatma | kapandı | `denetim.test.ts` G3 |
+| G4 / A-D5-1 gövde hatası | kapandı | `evds-sunucu.test.ts` A-D5-1, G4 |
+| A-D1-2 | kapandı | `fagent-yedek-e2e`; `sifirla-onbellek.test.ts` (kaynak düzeyi) |
+| A-D4-2 | kapandı | `build-env.test.ts`, `supabase-url.test.ts` |
+| A-D4-3 | kapandı | `kaynaklar.test.ts` etiket; e2e evds/insight seçicileri |
+| A-D4-4 | kapandı | `istanbul-tarih.test.ts` (csvDosyaAdi, UTC 22:30 → ertesi gün) |
+| A-D5-2 | kapandı | `guvenlik-tarama.test.ts` symlink regresyonu |
+| A-D3-6 | açık (ayrı karar: örnek portföy rozeti, arayüz/uyum) | — |
+| A-D4-1 | ertelendi (CoinGecko ortak çalıştırıcı işi) | — |
+| A-D1-3 | bilgi (gizlilik metni, hukuk en sona) | — |
+| R1 DÜŞÜK | açık: aynı ay iki biçimde farklı değerle gelirse son gelen kazanır (gerçek EVDS'de olası değil) | — |
+| R2 DÜŞÜK | açık: bulutta geçersiz portföy → senkron "hata"da kalır, mesaj "tanınmadı" (adım 5'te çözüm yolu) | — |
+| R3 BİLGİ | açık: CSP'de tanınmayan açık host yalnız UYARI | — |
+
+Davranış değişikliği: otomatik aktarımda geçersiz (eksi/sayı olmayan) tutar artık tüm aktarımı reddeder (eskiden o işlem sessizce atlanıyordu). Yedekten geçersiz portföy geri yüklenmez, mevcut veri değişmez.
+
+Kapı (lider koşusu): typecheck ✓, build ✓, `guvenlik --dist` 0 kritik/0 uyarı, test:unit 400/400, `denetim` 0 HATA, e2e 900/900 (714 hesapsız + 186 auth, sahte Supabase ile yeşil).
+Doğrulanamayan: gerçek EVDS yanıt biçimi (`EVDS_API_KEY` eklenince canlı doğrulanacak), gerçek Supabase, dış API'ler.
+
+**Sonuç: Bölüm A denetimi KAPANDI** (kalanlar düşük/bilgi ya da ayrı karar maddeleri). Bölüm B commit'leri açılabilir.

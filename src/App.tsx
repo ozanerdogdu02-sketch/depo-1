@@ -138,15 +138,11 @@ function formatFetchedAt(iso: string): string {
   return new Date(iso).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
-// Enflasyon oranı için resmi/ücretsiz/anahtarsız bir CORS-açık API bulunmadığından (TÜİK dahil),
-// oran bir VARSAYIM olarak kullanıcıya bırakılır — tıpkı Projeksiyon sekmesindeki beklenen getiri
-// gibi. Sabit/uydurma bir "canlı" oran gösterilmez; arayüzde "senin varsayımın" olarak etiketlenir.
-//
-// Başlangıç değeri, otomatik çekilemediği için ELLE güncellenen bir varsayımdır: TÜİK yıllık TÜFE,
-// Eylül 2026 → %29,73 (yuvarlanarak 30; haber kaynaklı, doğrulanmalı). agent.ts artık aynı değeri src/config/varsayilanlar.ts'ten alır —
-// ikisi ayrışırsa Panel'in kartı ile ajanın metni farklı oran söyler. Güncellerken ikisini birlikte
-// değiştir ve fagent-insight-e2e.mjs'i çalıştır.
-
+// Enflasyon oranı: canlı değer TCMB'den (EVDS üzerinden, /api/evds) gelir; gelemezse (anahtar yok, ulaşılamıyor,
+// dönem eski, akıl dışı değer) kullanıcıya bırakılan VARSAYIM kullanılır ve "varsayım" etiketiyle gösterilir.
+// Sabit/uydurma bir "canlı" oran gösterilmez. Varsayım değeri src/config/varsayimlar.json'dadır (tarihli, kaynaklı);
+// agent.ts aynı değeri inflation.ts üzerinden alır, Panel kartı ile ajan metni ayrışmaz. Değiştirirsen
+// fagent-insight-e2e.mjs'i çalıştır.
 
 function insightVisual(level: Insight['level']): { icon: typeof AlertTriangle; color: string } {
   // Belirteç: renk yalnız artış/azalış/birincil eylem anlamı taşır. Seviye simgenin şekliyle
@@ -1992,7 +1988,7 @@ export default function App() {
     if (cloudEnabled && cloud.recovery) setTab('hesap');
   }, [cloud.recovery]);
 
-  // Canlı enflasyonu bir kez dene (TCMB EVDS → Netlify Function proxy). Başarısızlık SESSİZDİR:
+  // Canlı enflasyonu bir kez dene (TCMB, EVDS üzerinden → /api/evds sunucu ucu; Vercel ve Netlify). Başarısızlık SESSİZDİR:
   // fonksiyon yoksa (yerel geliştirme), anahtar tanımsızsa ya da TCMB yanıt vermezse elle
   // girilen varsayım olduğu gibi kalır ve kullanıcıya hiçbir hata gösterilmez.
   useEffect(() => { void loadLiveInflation(); }, []);
